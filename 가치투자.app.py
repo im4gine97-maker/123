@@ -2,7 +2,7 @@ import streamlit as st
 import yfinance as yf
 import time
 
-앱 기본 설정
+#앱 기본 설정
 st.set_page_config(page_title="JB Value Terminal", page_icon="⚡", layout="centered")
 
 커스텀 CSS (세련된 다크모드 UI)
