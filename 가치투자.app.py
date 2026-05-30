@@ -10,7 +10,7 @@ import pandas as pd
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 💡 세션 상태 초기화
+# 💡 세션 상태 초기화 (검색 기록, 북마크)
 # ==========================================
 if "search_tk" not in st.session_state:
     st.session_state.search_tk = None
@@ -20,6 +20,12 @@ if "bookmarks" not in st.session_state:
     st.session_state.bookmarks = []
 if "lang" not in st.session_state:
     st.session_state.lang = "ko"
+
+# 💡 엔터키 및 원클릭 즉시 반응을 위한 콜백 함수
+def trigger_scan():
+    if st.session_state.get("main_input"):
+        q = st.session_state.main_input.replace(" ", "").upper()
+        st.session_state.search_tk = tmap.get(q, q)
 
 # ==========================================
 # 💡 사이드바 (서재 및 설정 패널)
@@ -43,7 +49,7 @@ with st.sidebar:
     
     st.header(t("📚 내 서재", "📚 My Library"))
     
-    # 북마크
+    # 1. 북마크 (즐겨찾기) 영역
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
@@ -51,8 +57,10 @@ with st.sidebar:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
+                # 💡 강제 새로고침(st.rerun)을 통해 1번 누르면 즉시 반응하도록 수정
                 if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
                     st.session_state.search_tk = b_tk
+                    st.rerun()
             with c2:
                 if st.button("❌", key=f"del_bk_{b_tk}"):
                     st.session_state.bookmarks.remove(b_tk)
@@ -60,7 +68,7 @@ with st.sidebar:
                     
     st.divider()
     
-    # 검색 기록
+    # 2. 최근 검색 기록 영역
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -74,6 +82,7 @@ with st.sidebar:
             with c1:
                 if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
                     st.session_state.search_tk = h_tk
+                    st.rerun()
             with c2:
                 if st.button("❌", key=f"del_h_{h_tk}"):
                     st.session_state.history.remove(h_tk)
@@ -157,40 +166,23 @@ def analyze_trends(stk):
         pass
     return eps_trend, bps_trend
 
-# 💡 PER과 DCF를 1:1로 엄격하게 반영하는 강화된 투자의견 알고리즘
 def get_investment_opinion(mos, pmos, roe, fcf):
     dcf_broken = not fcf or fcf <= 0
-    
-    # 1. 강력 매수: DCF, PER 둘 다 압도적 저평가 + 우수한 수익성
     if not dcf_broken and mos >= 20 and pmos >= 15 and roe >= 15:
         return t("강력 매수 (Strong Buy)", "Strong Buy"), "#09ab3b", t("DCF 내재가치와 PER 상대가치 모두에서 압도적 저평가 및 탁월한 수익성 확인", "Overwhelmingly undervalued in both DCF and PE metrics with excellent profitability")
-        
-    # 2. 매수: DCF, PER 둘 다 저평가거나, 하나가 매우 싼데 나머지도 준수할 때
     elif not dcf_broken and ((mos >= 10 and pmos >= 10) or (mos >= 20 and pmos > 0) or (pmos >= 20 and mos > 0)) and roe >= 10:
         return t("매수 (Buy)", "Buy"), "#3fb950", t("DCF와 PER 기준 모두 충분한 안전마진이 확보된 우량 기업", "Sufficient margin of safety secured across both DCF and PE metrics")
-        
-    # 3. 강력 매도: 둘 다 미친듯이 비쌀 때
     elif mos <= -20 and pmos <= -20:
         return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("DCF와 PER 모두 심각한 고평가 상태 (미스터 마켓의 광기)", "Severely overvalued in both DCF and PE metrics (Market Mania)")
-        
-    # 4. 매도: 전반적으로 비싸거나, 하나가 심각하게 비쌀 때
     elif (mos <= -10 and pmos <= -10) or mos <= -30 or pmos <= -30:
         return t("매도 (Sell)", "Sell"), "#ff7b72", t("내재가치(DCF) 및 상대가치(PER) 기준 고평가 영역 진입 (안전마진 상실)", "Entered overvaluation territory across DCF and PE metrics (Loss of margin of safety)")
-        
-    # 5. FCF 적자 시 예외 처리
     elif dcf_broken:
-        if pmos <= -10:
-            return t("매도 (Sell)", "Sell"), "#ff7b72", t("잉여현금흐름 적자 및 PER 고평가로 인한 밸류에이션 리스크 가중", "Negative FCF and PE overvaluation leading to heightened risk")
+        if pmos <= -10: return t("매도 (Sell)", "Sell"), "#ff7b72", t("잉여현금흐름 적자 및 PER 고평가로 인한 밸류에이션 리스크 가중", "Negative FCF and PE overvaluation leading to heightened risk")
         return t("관망 (Hold)", "Hold"), "#e3b341", t("현금흐름(FCF) 적자로 인해 정확한 내재가치 산정 불가 (보수적 접근 필요)", "Unable to calculate intrinsic value due to negative FCF (Conservative approach required)")
-        
-    # 6. 관망: 엇갈린 지표 및 애매한 가격
     else:
-        if mos > 10 and pmos < -10:
-             return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF상 저평가이나 PER상 고평가 (엇갈린 지표, 역성장 여부 모니터링 필요)", "Undervalued on DCF but overvalued on PE (Mixed signals, monitor for degrowth)")
-        elif pmos > 10 and mos < -10:
-             return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
-        else:
-             return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
+        if mos > 10 and pmos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF상 저평가이나 PER상 고평가 (엇갈린 지표, 역성장 여부 모니터링 필요)", "Undervalued on DCF but overvalued on PE (Mixed signals, monitor for degrowth)")
+        elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
+        else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
 fallback_13f_data = {
     "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
@@ -338,13 +330,20 @@ tmap = {
 with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
-        ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930", "e.g., AAPL, GOOGL, 005930"), label_visibility="collapsed")
+        # 💡 on_change 콜백으로 엔터키 즉시 스캔 적용
+        ui = st.text_input(
+            t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
+            placeholder=t("예: AAPL, GOOGL, 005930", "e.g., AAPL, GOOGL, 005930"), 
+            label_visibility="collapsed",
+            key="main_input",
+            on_change=trigger_scan
+        )
         st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
+    
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
-            if ui:
-                q = ui.replace(" ", "").upper()
-                st.session_state.search_tk = tmap.get(q, q)
+            trigger_scan()
+            st.rerun() # 클릭 시 딜레이 없는 강제 실행
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
@@ -404,7 +403,6 @@ with tab1:
                 pmos_val = pmos if pmos else 0
                 op_title, op_color, op_reason = get_investment_opinion(mos_val, pmos_val, roe, base_fcf)
                 
-                # 💡 DCF와 PER을 동급으로 표시하는 UI 태그 포맷팅
                 if not iv:
                     dcf_text, dcf_color = t(f"⚠️ DCF: {err}", f"⚠️ DCF: {err}"), "#e3b341"
                 elif mos_val > 0:
@@ -434,7 +432,6 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # 1. 밸류에이션 지표
                 st.divider()
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 
@@ -458,7 +455,6 @@ with tab1:
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
                     st.caption(t("※ PER/PBR 추이는 주가 변동성에 따라 달라지므로 직접 확인이 필요한 부분입니다.", "※ Historical PER/PBR trends require manual verification due to price volatility."))
 
-                # 2. 10년 DCF
                 st.divider()
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
                 
@@ -471,7 +467,6 @@ with tab1:
                 else:
                     st.error(f"{err} {t('(확인이 필요한 부분입니다)', '(Needs manual verification)')}")
                 
-                # 3. 질적 분석
                 st.divider()
                 st.subheader(t("3. 질적 분석", "3. Qualitative Analysis"))
                 off = i.get('companyOfficers', [])
@@ -486,7 +481,6 @@ with tab1:
                 st.write(t("**[비즈니스 요약]**", "**[Business Summary]**"))
                 st.caption(f"{tr_text(sum_t)[:350]}...")
 
-                # 4. 매수 6원칙
                 st.divider()
                 st.subheader(t("4. 매수 6원칙 자동 체크", "4. Buy 6-Principles Auto Check"))
                 
@@ -509,7 +503,6 @@ with tab1:
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
-                # 5. 학문적 모델
                 st.divider()
                 st.subheader(t("5. 기업 해부 및 학문적 모델 적용", "5. Corporate Anatomy & Academic Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
@@ -520,13 +513,11 @@ with tab1:
                 st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 것은 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
-                # 6. 매도 3원칙
                 st.divider()
                 st.subheader(t("6. 매도 3원칙 (오직 다음 경우에만 매도)", "6. Sell 3-Principles (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
-                # 7. 거장 철학
                 st.divider()
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.", "**Warren Buffett (Ownership):** Stocks are not pieces of paper, but 'ownership of a business'. Analyze as if you are buying 100% of it. Mr. Market is your servant, not your master."))
@@ -577,6 +568,7 @@ with tab2:
                 use_container_width=True
             )
             
+            # 💡 빠른 장전 원클릭 적용 완료
             st.markdown("---")
             st.write(t("🔍 **포트폴리오 종목 빠른 분석 장전**", "🔍 **Fast Load for Analysis**"))
             c_tk, c_btn = st.columns([3, 1])
@@ -585,7 +577,8 @@ with tab2:
             with c_btn:
                 if st.button(t("검색창에 장전하기", "Load to Search"), use_container_width=True):
                     st.session_state.search_tk = fast_tk
-                    st.success(t(f"🎯 **{fast_tk}** 장전 및 스캔 완료! 상단의 **[개별 기업 가치분석]** 탭을 클릭하시면 결과가 나와있습니다.", f"🎯 **{fast_tk}** Loaded & Scanned! Click the **[Company Value Analysis]** tab above to see the results."))
+                    st.toast(t(f"🎯 {fast_tk} 분석 장전 완료! 상단의 [개별 기업 가치분석] 탭을 클릭하세요.", f"🎯 {fast_tk} Loaded! Click [Company Value Analysis] tab."), icon="✅")
+                    st.rerun() # 원클릭 강제 실행
         else:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
