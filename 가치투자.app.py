@@ -272,24 +272,20 @@ ai_ceo_db = {
     "BRK-B": "정직함과 주주 친화 정책의 대명사이며 어떠한 범죄나 사기 이력도 없습니다. 가장 신뢰할 수 있는 경영자 중 한 명입니다."
 }
 
-# 💡 세션 스테이트 초기화 (검색창 연동용)
-if "search_tk" not in st.session_state:
-    st.session_state.search_tk = None
-if "stock_input_val" not in st.session_state:
-    st.session_state.stock_input_val = ""
-
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
 with tab1:
-    ui = st.text_input("종목명 또는 티커 입력:", value=st.session_state.stock_input_val, placeholder="예: AAPL, GOOGL, 005930.KS", key="stock_input")
+    if "search_tk" not in st.session_state:
+        st.session_state.search_tk = None
+
+    ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: AAPL, GOOGL, 005930.KS")
     st.caption("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.")
     
     if st.button("가치 분석 스캔 시작", type="primary"):
-        if st.session_state.stock_input:
-            q = st.session_state.stock_input.replace(" ", "").upper()
+        if ui:
+            q = ui.replace(" ", "").upper()
             st.session_state.search_tk = tmap.get(q, q)
-            st.session_state.stock_input_val = st.session_state.stock_input # 입력값 유지
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
@@ -495,17 +491,16 @@ with tab2:
                 hide_index=False
             )
             
-            # 💡 빠른 분석 기능 수정 (렉 제거)
+            # 💡 빠른 분석 기능 추가
             st.markdown("---")
-            st.write("🔍 **포트폴리오 종목 빠른 분석 장전**")
+            st.write("🔍 **포트폴리오 종목 빠른 분석**")
             c_tk, c_btn = st.columns([3, 1])
             with c_tk:
-                fast_tk = st.selectbox("거장의 보유 종목을 검색창에 즉시 장전합니다.", df["티커"].tolist(), label_visibility="collapsed")
+                fast_tk = st.selectbox("거장의 보유 종목 중 하나를 골라 즉시 내재가치를 스캔합니다.", df["티커"].tolist(), label_visibility="collapsed")
             with c_btn:
-                if st.button("검색창에 장전하기", use_container_width=True):
-                    st.session_state.stock_input_val = fast_tk
-                    st.session_state.search_tk = None # 이전 분석 결과 닫기
-                    st.success(f"🎯 **{fast_tk}** 장전 완료! 상단의 **[개별 기업 가치분석]** 탭에서 **[스캔 시작]**을 눌러주세요.")
+                if st.button("이 종목 즉시 분석", use_container_width=True):
+                    st.session_state.search_tk = tmap.get(fast_tk, fast_tk)
+                    st.success(f"✅ '{fast_tk}' 분석 장전 완료! 상단의 **[개별 기업 가치분석]** 탭을 누르시면 결과가 바로 뜹니다.")
         else:
             st.warning("데이터를 불러오는 데 실패했습니다.")
 
