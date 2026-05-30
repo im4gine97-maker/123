@@ -6,11 +6,11 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-# 💡 화면 세팅
-st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="expanded")
+# 💡 앱 이름 변경
+st.set_page_config(page_title="DEEP VALUE TERMINAL", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 💡 세션 상태 초기화
+# 💡 세션 상태 초기화 (검색 기록, 북마크)
 # ==========================================
 if "search_tk" not in st.session_state:
     st.session_state.search_tk = None
@@ -18,24 +18,14 @@ if "history" not in st.session_state:
     st.session_state.history = []
 if "bookmarks" not in st.session_state:
     st.session_state.bookmarks = []
-if "lang" not in st.session_state:
-    st.session_state.lang = "ko"
 
 # ==========================================
-# 💡 사이드바 (서재 및 심플한 언어 텍스트 버튼)
+# 💡 사이드바 (서재 및 설정 패널)
 # ==========================================
 with st.sidebar:
-    # 파란 라디오 버튼을 없애고 오직 텍스트 버튼으로만 깔끔하게 전환
-    if st.session_state.lang == "ko":
-        if st.button("English", use_container_width=True):
-            st.session_state.lang = "en"
-            st.rerun()
-    else:
-        if st.button("Korean", use_container_width=True):
-            st.session_state.lang = "ko"
-            st.rerun()
-            
-    is_ko = st.session_state.lang == "ko"
+    st.header("⚙️ Settings / 설정")
+    lang = st.radio("Language / 언어", ["🇰🇷 한국어", "🇺🇸 English"], horizontal=True, label_visibility="collapsed")
+    is_ko = "한국어" in lang
 
     def t(ko, en):
         return ko if is_ko else en
@@ -44,7 +34,7 @@ with st.sidebar:
     
     st.header(t("📚 내 서재", "📚 My Library"))
     
-    # 북마크 영역
+    # 1. 북마크 (즐겨찾기) 영역
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
@@ -61,7 +51,7 @@ with st.sidebar:
                     
     st.divider()
     
-    # 최근 검색 기록 영역
+    # 2. 최근 검색 기록 영역
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -81,7 +71,7 @@ with st.sidebar:
                     st.rerun()
 
 # ==========================================
-# 💡 메인 UI 스타일 (파란 배경 최소화, 다크톤 정렬)
+# 💡 메인 UI 스타일
 # ==========================================
 st.markdown("""
 <style>
@@ -98,6 +88,17 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 [data-testid="stMetricLabel"] {font-size: 1rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
+
+# 💡 텍스트 로고 영역 (최상단)
+st.markdown("""
+<div style="padding-top: 10px; padding-bottom: 15px;">
+    <span style="font-size: 2.8rem; font-weight: 900; color: #58a6ff; letter-spacing: 1.5px; line-height: 1.2;">
+        DEEP VALUE TERMINAL
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+st.caption(t("※ 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.", "※ Warning: This model is optimized for companies with an economic moat, not highly cyclical businesses."))
 
 def tr_text(txt):
     if not txt: return txt
@@ -122,15 +123,13 @@ def clean_ceo_name(name):
         return k_name
     return name
 
-# 💡 최근 4년 EPS 및 자본(BPS) 상승 추세 자동 판별 로직
 def analyze_trends(stk):
-    eps_trend = t("데이터 부족 (확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
-    bps_trend = t("데이터 부족 (확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
+    eps_trend = t("데이터 부족 (이건 확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
+    bps_trend = t("데이터 부족 (이건 확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
     try:
         inc = stk.income_stmt
         bs = stk.balance_sheet
         
-        # 1. EPS Trend (4년 우상향 여부)
         if inc is not None and not inc.empty:
             target_col = 'Basic EPS' if 'Basic EPS' in inc.index else ('Diluted EPS' if 'Diluted EPS' in inc.index else None)
             if target_col:
@@ -139,16 +138,15 @@ def analyze_trends(stk):
                     if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]:
                         eps_trend = t("✅ 4년 지속 상승 추세", "✅ 4Y Consistent Upward Trend")
                     else:
-                        eps_trend = t("⚠️ 변동/하락 (확인이 필요한 부분입니다)", "⚠️ Fluctuating/Declining (Needs verification)")
+                        eps_trend = t("⚠️ 변동/하락 (이건 확인이 필요한 부분입니다)", "⚠️ Fluctuating/Declining (Needs verification)")
                         
-        # 2. Book Value Trend (자본 총계 상승 여부 = PBR 안정성)
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
                 if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]:
                     bps_trend = t("✅ 4년 자본 지속 증가 (PBR 안정)", "✅ 4Y Consistent Equity Growth")
                 else:
-                    bps_trend = t("⚠️ 자본 변동/감소 (확인이 필요한 부분입니다)", "⚠️ Equity Fluctuating/Declining (Needs verification)")
+                    bps_trend = t("⚠️ 자본 변동/감소 (이건 확인이 필요한 부분입니다)", "⚠️ Equity Fluctuating/Declining (Needs verification)")
     except:
         pass
     return eps_trend, bps_trend
@@ -279,9 +277,6 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-st.title("AGIE Deep Value Terminal")
-st.caption(t("※ 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.", "※ Warning: This model is optimized for companies with an economic moat, not highly cyclical businesses."))
-
 tab1, tab2 = st.tabs([t("개별 기업 가치분석", "Company Value Analysis"), t("유명 가치투자자 13F 포트폴리오", "Guru 13F Portfolios")])
 
 tmap = {
@@ -292,11 +287,10 @@ tmap = {
 with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
-        ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930.KS", "e.g., AAPL, GOOGL, 005930.KS"))
+        ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930.KS", "e.g., AAPL, GOOGL, 005930.KS"), label_visibility="collapsed")
         st.caption(t("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.", "※ For Korean stocks, please enter the ticker (e.g., 005930.KS) for accurate data scanning."))
     with col_btn:
-        st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-        if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True):
+        if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             if ui:
                 q = ui.replace(" ", "").upper()
                 st.session_state.search_tk = tmap.get(q, q)
@@ -390,7 +384,7 @@ with tab1:
                     if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+{mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
                     else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>{mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
                 else:
-                    st.error(f"{err} {t('(확인이 필요한 부분입니다)', '(Needs manual verification)')}")
+                    st.error(f"{err} {t('(이건 확인이 필요한 부분입니다)', '(Needs manual verification)')}")
                 
                 # 3. 질적 분석
                 st.divider()
@@ -401,7 +395,7 @@ with tab1:
                 
                 st.write(t("**[도덕성/리스크 리포트]**", "**[Ethics / Risk Report]**"))
                 default_ceo = t("현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)", "Based on the database, there are no prominent records of severe crimes such as embezzlement or fraud by the CEO. (Cross-verification is mandatory.)")
-                st.markdown(f"<div class='guru-quote'>{default_ceo}</div>", unsafe_allow_html=True)
+                st.info(default_ceo) 
                 
                 sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
                 st.write(t("**[비즈니스 요약]**", "**[Business Summary]**"))
@@ -418,7 +412,7 @@ with tab1:
                 
                 if mos > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos:.1f}%)</span>"
                 elif mos < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos:.1f}%)</span>"
-                else: p_txt += f"- DCF: ({t('확인 필요', 'Needs Check')})"
+                else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
                 if roe >= 15: biz_eval = f"<span class='good'>{t('우수 (자본효율 탁월, 해자 확률 높음)', 'Excellent (Great capital efficiency, high moat probability)')}</span>"
@@ -516,7 +510,7 @@ st.markdown(f"""
     {t('본 애플리케이션은 가치투자 분석을 돕기 위한 <b>단순 보조 도구</b>일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a <b>simple auxiliary tool</b> to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
     {t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, <b>최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.</b>', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and <b>all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.</b>')}</p>
     <p><b>[Copyright]</b><br>
-    ⓒ 2026 AGIE Deep Value Terminal. All rights reserved.<br>
+    ⓒ 2026 DEEP VALUE TERMINAL. All rights reserved.<br>
     {t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')}</p>
 </div>
 """, unsafe_allow_html=True)
