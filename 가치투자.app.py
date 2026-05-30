@@ -18,6 +18,7 @@ if "history" not in st.session_state: st.session_state.history = []
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
+
 if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
@@ -74,6 +75,7 @@ with st.sidebar:
     def t(ko, en): return ko if is_ko else en
         
     st.divider()
+    
     st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
@@ -81,7 +83,8 @@ with st.sidebar:
         top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
         for i, (rtk, count) in enumerate(top_5):
             if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
-                st.session_state.search_tk = rtk; st.rerun()
+                st.session_state.search_tk = rtk
+                st.rerun()
                 
     st.divider()
     st.header(t("📚 내 서재", "📚 My Library"))
@@ -92,22 +95,28 @@ with st.sidebar:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True): st.session_state.search_tk = b_tk; st.rerun()
+                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
+                    st.session_state.search_tk = b_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_bk_{b_tk}"): st.session_state.bookmarks.remove(b_tk); st.rerun()
+                if st.button("❌", key=f"del_bk_{b_tk}"):
+                    st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
     else:
-        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True): st.session_state.history = []; st.rerun()
+        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True):
+            st.session_state.history = []; st.rerun()
+            
         for h_tk in reversed(st.session_state.history):
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True): st.session_state.search_tk = h_tk; st.rerun()
+                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
+                    st.session_state.search_tk = h_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_h_{h_tk}"): st.session_state.history.remove(h_tk); st.rerun()
+                if st.button("❌", key=f"del_h_{h_tk}"):
+                    st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
@@ -213,6 +222,38 @@ def clean_ceo_name(name):
                 k_name = k_name[:-len(s)].strip(); break
         return k_name
     return name
+
+# 💡 진정한 ROIC 계산 로직 추가 (꼼수 제거, 재무제표 직접 스캔)
+def get_real_roic(stk, i):
+    try:
+        # 야후 파이낸스가 자체 계산한 값이 확실히 있다면 우선 사용
+        if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
+            return i['returnOnCapitalEmployed'] * 100
+
+        # 없다면 손익계산서와 대차대조표에서 직접 추출하여 계산
+        inc = stk.income_stmt
+        bs = stk.balance_sheet
+        
+        if inc is not None and not inc.empty and bs is not None and not bs.empty:
+            ebit = inc.loc['EBIT'].iloc[0] if 'EBIT' in inc.index else (inc.loc['Operating Income'].iloc[0] if 'Operating Income' in inc.index else 0)
+            pretax = inc.loc['Pretax Income'].iloc[0] if 'Pretax Income' in inc.index else 0
+            tax = inc.loc['Tax Provision'].iloc[0] if 'Tax Provision' in inc.index else 0
+            
+            tax_rate = tax / pretax if pretax > 0 else 0.25
+            nopat = ebit * (1 - tax_rate)
+            
+            total_debt = bs.loc['Total Debt'].iloc[0] if 'Total Debt' in bs.index else 0
+            total_equity = bs.loc['Stockholders Equity'].iloc[0] if 'Stockholders Equity' in bs.index else 0
+            cash = bs.loc['Cash And Cash Equivalents'].iloc[0] if 'Cash And Cash Equivalents' in bs.index else 0
+            
+            invested_capital = total_debt + total_equity - cash
+            
+            if invested_capital > 0:
+                roic = (nopat / invested_capital) * 100
+                return roic
+    except:
+        pass
+    return None
 
 def analyze_trends(stk):
     eps_trend, bps_trend = t("데이터 부족 (확인 요망)", "Insufficient Data"), t("데이터 부족 (확인 요망)", "Insufficient Data")
@@ -445,7 +486,11 @@ with tab1:
                 pbr = i.get('priceToBook', 0)
                 
                 roe = i.get('returnOnEquity', 0) * 100
-                roic_val = i.get('returnOnCapitalEmployed', roe / 100) * 100
+                
+                # 💡 진정한 ROIC 계산을 호출하여 독립적으로 표시
+                real_roic = get_real_roic(stk, i)
+                if real_roic is not None: roic_str = f"{real_roic:.2f}%"
+                else: roic_str = t("데이터 부족 (직접 확인 요망)", "N/A (Needs verification)")
                 
                 a_pe = i.get('fiveYearAvgPE')
                 if not a_pe: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
@@ -490,7 +535,7 @@ with tab1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
                     st.write(f"- **{t('배당 수익률', 'Dividend Yield')}:** {div:.2f}%")
                     st.write(f"- **ROE:** {roe:.2f}%")
-                    st.write(f"- **ROIC:** {roic_val:.2f}%")
+                    st.write(f"- **ROIC:** {roic_str}") # 💡 ROE와 별도로 분리된 순수 ROIC 지표 출력
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
@@ -679,9 +724,13 @@ with tab5:
          t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company closes tomorrow and sells its assets, will you get your money back?"), 
          t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
         
-        ("ROE / ROIC (자기자본이익률 / 투하자본수익률)", 
-         t("회사가 자본을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its capital."), 
-         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows capital at 15% a year. Consistent 15%+ ROE defines a great business.")),
+        ("ROE (자기자본이익률)", 
+         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its equity capital."), 
+         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
+        
+        ("ROIC (투하자본수익률)", 
+         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", "The true return on all capital invested (debt + equity), removing leverage distortions."), 
+         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
         
         ("FCF (잉여현금흐름)", 
          t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' after paying all expenses and capital investments."), 
