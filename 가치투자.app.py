@@ -7,18 +7,17 @@ import time
 import pandas as pd
 from datetime import datetime
 
-# 앱 이름 변경 및 레이아웃
+# 💡 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 세션 상태 초기화
+# 💡 세션 상태 초기화
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "history" not in st.session_state: st.session_state.history = []
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
-
 if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
@@ -30,7 +29,7 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# 글로벌 매크로 실시간 데이터
+# 💡 글로벌 매크로 실시간 데이터
 # ==========================================
 @st.cache_data(ttl=900) 
 def get_macro_data():
@@ -61,73 +60,62 @@ def get_macro_data():
 macro_data = get_macro_data()
 
 # ==========================================
-# 사이드바
+# 💡 사이드바
 # ==========================================
 with st.sidebar:
     if st.session_state.lang == "ko":
-        if st.button("English", use_container_width=True):
+        if st.button("🇺🇸 English", use_container_width=True):
             st.session_state.lang = "en"; st.rerun()
     else:
-        if st.button("Korean", use_container_width=True):
+        if st.button("🇰🇷 Korean", use_container_width=True):
             st.session_state.lang = "ko"; st.rerun()
             
     is_ko = st.session_state.lang == "ko"
     def t(ko, en): return ko if is_ko else en
         
     st.divider()
-    
-    st.header(t("실시간 인기 종목", "Trending Stocks"))
+    st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
     else:
         top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
         for i, (rtk, count) in enumerate(top_5):
             if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
-                st.session_state.search_tk = rtk
-                st.rerun()
+                st.session_state.search_tk = rtk; st.rerun()
                 
     st.divider()
-    
-    st.header(t("내 서재", "My Library"))
-    st.subheader(t("관심 종목 (즐겨찾기)", "Bookmarks"))
+    st.header(t("📚 내 서재", "📚 My Library"))
+    st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
     else:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
-                    st.session_state.search_tk = b_tk; st.rerun()
+                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True): st.session_state.search_tk = b_tk; st.rerun()
             with c2:
-                if st.button("X", key=f"del_bk_{b_tk}"):
-                    st.session_state.bookmarks.remove(b_tk); st.rerun()
+                if st.button("❌", key=f"del_bk_{b_tk}"): st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
-    
-    st.subheader(t("최근 검색 기록", "Recent Searches"))
+    st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
     else:
-        if st.button(t("전체 삭제", "Clear All History"), use_container_width=True):
-            st.session_state.history = []; st.rerun()
-            
+        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True): st.session_state.history = []; st.rerun()
         for h_tk in reversed(st.session_state.history):
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
-                    st.session_state.search_tk = h_tk; st.rerun()
+                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True): st.session_state.search_tk = h_tk; st.rerun()
             with c2:
-                if st.button("X", key=f"del_h_{h_tk}"):
-                    st.session_state.history.remove(h_tk); st.rerun()
+                if st.button("❌", key=f"del_h_{h_tk}"): st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
-    
-    st.header(t("고객 센터", "Customer Center"))
+    st.header(t("🎧 고객 센터", "🎧 Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
-    st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
+    st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
 # ==========================================
-# 메인 UI 스타일 및 번역 방지 메타태그
+# 💡 메인 UI 스타일
 # ==========================================
 st.markdown("""
 <meta name="google" content="notranslate">
@@ -156,11 +144,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 번역 방지 안내 문구
-st.info(t("화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
+st.info(t("💡 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 **'자동 번역' 기능을 꺼주세요.** (앱 자체에 한/영 변환 기능이 있습니다)", "💡 If the text looks distorted, please **disable your browser's auto-translate**. Use the language toggle in the sidebar instead."))
 
 # ==========================================
-# 가로 스크롤 매크로 대시보드
+# 💡 가로 스크롤 매크로 대시보드
 # ==========================================
 macro_items = [
     (t("KOSPI", "KOSPI"), f"{macro_data['KOSPI']['p']:,.2f}", macro_data['KOSPI']['pct'], "%"),
@@ -196,13 +183,13 @@ def get_market_opinion(erp):
 spy_op, spy_col = get_market_opinion(spy_erp)
 qqq_op, qqq_col = get_market_opinion(qqq_erp)
 
-with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
+with st.expander(t("📉 현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "📉 Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 **주식 위험 프리미엄(ERP)** 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an **Equity Risk Premium (ERP)** analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
     with c_m1:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -457,17 +444,8 @@ with tab1:
                 f_pe = i.get('forwardPE', 0)
                 pbr = i.get('priceToBook', 0)
                 
-                sector = i.get('sector', '')
-                is_fin = (sector == 'Financial Services') or (tk in ["105560.KS", "055550.KS", "086790.KS", "138040.KS", "JPM", "BAC", "WFC", "AXP", "MCO"])
                 roe = i.get('returnOnEquity', 0) * 100
-                
-                if is_fin:
-                    eff_label = "ROE"
-                    eff_val = f"{roe:.2f}%"
-                else:
-                    eff_label = "ROIC"
-                    roic_val = i.get('returnOnCapitalEmployed', roe / 100) * 100
-                    eff_val = f"{roic_val:.2f}%"
+                roic_val = i.get('returnOnCapitalEmployed', roe / 100) * 100
                 
                 a_pe = i.get('fiveYearAvgPE')
                 if not a_pe: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
@@ -511,7 +489,8 @@ with tab1:
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
                     st.write(f"- **{t('배당 수익률', 'Dividend Yield')}:** {div:.2f}%")
-                    st.write(f"- **{eff_label}:** {eff_val}")
+                    st.write(f"- **ROE:** {roe:.2f}%")
+                    st.write(f"- **ROIC:** {roic_val:.2f}%")
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
@@ -540,7 +519,7 @@ with tab1:
                 off = i.get('companyOfficers', [])
                 st.markdown(f"- **CEO:** {clean_ceo_name(off[0].get('name') if off else '누락')}")
                 st.info(t("현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
-                st.write(t("**[비즈니스 요약]**", "**[Business Summary]**"))
+                st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
                 st.divider()
