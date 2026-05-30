@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-st.set_page_config(page_title="AGIE", layout="wide")
+st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide")
 
 st.markdown("""
 <style>
@@ -43,7 +43,7 @@ def clean_ceo_name(name):
             break
     return k_name
 
-# 💡 하이브리드 자동 전환을 위한 최신 13F 백업 데이터베이스 구축
+# 리 루의 BAC 매도 및 GOOGL 1위 등극 등 팩트체크된 최신 데이터 백업
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 45.2},
@@ -53,11 +53,14 @@ fallback_13f_data = {
     ],
     "BRK": [
         {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 40.8},
-        {"티커": "BAC", "기업명": "Bank of America Corp", "비중(%)": 11.8},
         {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 10.4},
+        {"티커": "BAC", "기업명": "Bank of America Corp", "비중(%)": 11.8},
         {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 7.2},
         {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 5.8},
-        {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.6}
+        {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.6},
+        {"티커": "KHC", "기업명": "Kraft Heinz Co", "비중(%)": 3.2},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 2.7},
+        {"티커": "CB", "기업명": "Chubb Ltd", "비중(%)": 2.0}
     ],
     "PSH": [
         {"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 20.1},
@@ -90,7 +93,7 @@ def get_13f_portfolio(guru_code):
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
     }
-    data = []
+    valid_data = []
     try:
         res = requests.get(url, headers=headers, timeout=5)
         if res.status_code == 200:
@@ -102,6 +105,11 @@ def get_13f_portfolio(guru_code):
                     cols = row.find_all('td')
                     if len(cols) >= 3:
                         stock_text = cols[0].text.strip()
+                        
+                        # 💡 가짜 데이터 차단 로직: 비어있거나 기호(≡)가 오면 해당 열 무시
+                        if not stock_text or stock_text == '≡' or stock_text == '=':
+                            continue
+                            
                         if "-" in stock_text:
                             parts = stock_text.split("-")
                             tick = parts[0].strip()
@@ -115,14 +123,16 @@ def get_13f_portfolio(guru_code):
                             pct = float(pct_text)
                         except:
                             pct = 0.0
-                        data.append({"티커": tick, "기업명": name, "비중(%)": pct})
+                            
+                        if pct > 0:
+                            valid_data.append({"티커": tick, "기업명": name, "비중(%)": pct})
     except:
         pass
         
-    # 방화벽에 막혔을 경우 내장된 데이터로 즉시 전환
-    if not data:
+    # 유효한 데이터가 단 한 개도 추출되지 않았으면 백업 데이터로 즉시 전환
+    if not valid_data:
         return fallback_13f_data.get(guru_code, []), True
-    return data, False
+    return valid_data, False
 
 def get_nv(cd):
     url = "https://finance.naver.com/item/main.naver?code=" + cd
@@ -277,7 +287,7 @@ with tab1:
         st.session_state.search_tk = None
 
     ui = st.text_input("종목명 또는 티커 입력:", placeholder="종목 티커나 이름을 입력하세요 (예: AAPL, 구글, 005930.KS)")
-    if st.button("가치 분석 심층 스캔", type="primary"):
+    if st.button("가치 분석 스캔 시작", type="primary"):
         if ui:
             q = ui.replace(" ", "").upper()
             st.session_state.search_tk = tmap.get(q, q)
@@ -350,7 +360,7 @@ with tab1:
                     
                     st.write(f"- **PBR:** {pbr:.2f}배")
                     st.write(f"- **ROIC(ROE대체):** {roe:.2f}%")
-                    st.caption("※ 이건 확인이 필요한 부분입니다: PER, EPS, PBR 지속 상승 추세 및 배당 일관성 여부")
+                    st.caption("※ 확인이 필요한 부분: PER, EPS, PBR 지속 상승 추세 및 배당 일관성 여부")
                     
                     st.markdown("---")
                     st.write("**[이익수익률 vs 10년물 국채]**")
@@ -368,7 +378,7 @@ with tab1:
                         else:
                             iv_str = f"${iv:,.2f}"
                             
-                        st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {data_len}년 치 데이터 바탕 자동 산출)")
+                        st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {data_len}년 치 데이터 바탕 산출)")
                         st.write(f"**추정 적정가:** {iv_str}")
                         if mos > 0:
                             st.markdown(f"**DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
@@ -392,7 +402,7 @@ with tab1:
                     if ceo_eval:
                         ceo_report_text = ceo_eval
                     else:
-                        ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 구글링을 통한 교차 검증은 필수입니다.)"
+                        ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)"
 
                     st.write("**[도덕성/리스크 리포트]**")
                     st.markdown(f"> {ceo_report_text}")
@@ -414,11 +424,11 @@ with tab1:
                     p_txt = "**1. 가격은 저렴한가 (안전마진)?**<br>"
                     if pmos > 0: p_txt += f"PER 기준: <span class='good'>합격 (+{pmos:.1f}% 저평가)</span><br>"
                     elif pmos < 0: p_txt += f"PER 기준: <span class='highlight'>주의 ({pmos:.1f}% 고평가)</span><br>"
-                    else: p_txt += "PER 기준: (이건 확인이 필요한 부분입니다)<br>"
+                    else: p_txt += "PER 기준: (확인이 필요한 부분입니다)<br>"
                     
                     if mos > 0: p_txt += f"DCF 기준: <span class='good'>합격 (+{mos:.1f}% 저평가)</span>"
                     elif mos < 0: p_txt += f"DCF 기준: <span class='highlight'>주의 ({mos:.1f}% 고평가)</span>"
-                    else: p_txt += "DCF 기준: (이건 확인이 필요한 부분입니다)"
+                    else: p_txt += "DCF 기준: (확인이 필요한 부분입니다)"
                     
                     st.markdown(p_txt, unsafe_allow_html=True)
                     
@@ -470,7 +480,7 @@ with tab1:
 # ==========================================
 with tab2:
     st.subheader("글로벌 가치투자 거장 13F 포트폴리오")
-    st.caption("※ 미국의 13F 공시를 추적하여 포트폴리오 비중을 표출합니다.")
+    st.caption("※ 미국의 13F 공시를 추적하여 최신 포트폴리오 비중을 표출합니다.")
     
     guru_map = {
         "리 루 (Himalaya Capital)": "HC",
@@ -482,12 +492,12 @@ with tab2:
     
     guru_option = st.selectbox("포트폴리오를 조회할 집중 가치투자 거장을 선택하세요:", list(guru_map.keys()))
 
-    with st.spinner("미국 SEC 공시 기반 최신 포트폴리오 데이터 연동 중..."):
+    with st.spinner("최신 포트폴리오 데이터 연동 중..."):
         code = guru_map[guru_option]
         scraped_data, is_fallback = get_13f_portfolio(code)
         
         if is_fallback:
-            st.info("💡 외부 보안 방화벽이 감지되어, 최신 분기 공시 기반으로 안전하게 내장된 데이터를 표출합니다.")
+            st.info("외부 보안 방화벽이 감지되어, 최신 분기 공시 기반으로 안전하게 내장된 데이터를 표출합니다.")
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
