@@ -18,7 +18,6 @@ if "history" not in st.session_state: st.session_state.history = []
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
-
 if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
@@ -61,7 +60,7 @@ def get_macro_data():
 macro_data = get_macro_data()
 
 # ==========================================
-# 💡 사이드바 (서재, 랭킹, 고객센터)
+# 💡 사이드바
 # ==========================================
 with st.sidebar:
     if st.session_state.lang == "ko":
@@ -75,7 +74,6 @@ with st.sidebar:
     def t(ko, en): return ko if is_ko else en
         
     st.divider()
-    
     st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
@@ -83,11 +81,9 @@ with st.sidebar:
         top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
         for i, (rtk, count) in enumerate(top_5):
             if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
-                st.session_state.search_tk = rtk
-                st.rerun()
+                st.session_state.search_tk = rtk; st.rerun()
                 
     st.divider()
-    
     st.header(t("📚 내 서재", "📚 My Library"))
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
@@ -96,38 +92,30 @@ with st.sidebar:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
-                    st.session_state.search_tk = b_tk; st.rerun()
+                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True): st.session_state.search_tk = b_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_bk_{b_tk}"):
-                    st.session_state.bookmarks.remove(b_tk); st.rerun()
+                if st.button("❌", key=f"del_bk_{b_tk}"): st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
-    
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
     else:
-        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True):
-            st.session_state.history = []; st.rerun()
-            
+        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True): st.session_state.history = []; st.rerun()
         for h_tk in reversed(st.session_state.history):
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
-                    st.session_state.search_tk = h_tk; st.rerun()
+                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True): st.session_state.search_tk = h_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_h_{h_tk}"):
-                    st.session_state.history.remove(h_tk); st.rerun()
+                if st.button("❌", key=f"del_h_{h_tk}"): st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
-    
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
 # ==========================================
-# 💡 메인 UI 스타일
+# 💡 메인 UI 스타일 (라이트모드 글씨 뭉개짐 해결)
 # ==========================================
 st.markdown("""
 <style>
@@ -142,7 +130,8 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
 .macro-ticker::-webkit-scrollbar { display: none; }
 .macro-ticker { -ms-overflow-style: none; scrollbar-width: none; }
-.comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px;}
+/* 💡 여기서 라이트모드 텍스트 안보이는 문제 완벽 해결 (글씨색 강제 지정) */
+.comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px; color: #e6edf3;}
 .comment-time {font-size: 0.8rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
@@ -169,6 +158,7 @@ macro_items = [
     (t("10년물 국채", "10Y Treasury"), f"{macro_data['10Y Treasury']['p']:.3f}%", macro_data['10Y Treasury']['c'], " bp")
 ]
 
+# 라이트 모드 대비 color: #ffffff; 명시적 추가
 macro_html = "<div class='macro-ticker' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
 for name, val, chg, unit in macro_items:
     color = "#3fb950" if chg > 0 else ("#ff7b72" if chg < 0 else "#8b949e")
@@ -195,10 +185,11 @@ qqq_op, qqq_col = get_market_opinion(qqq_erp)
 with st.expander(t("📉 현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "📉 Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 **주식 위험 프리미엄(ERP)** 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an **Equity Risk Premium (ERP)** analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
+    # 💡 color: #e6edf3; 를 추가하여 하얀 화면(라이트 모드)에서도 텍스트가 무조건 밝게 보이도록 강제 세팅
     with c_m1:
-        st.markdown(f"<div style='background-color:#161b22; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div style='background-color:#161b22; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -260,15 +251,13 @@ def get_investment_opinion(mos, pmos, roe, fcf):
         elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
         else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
-fallback_13f_data = {
-    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
-    "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.52}, {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 6.64}],
-    "PSH": [{"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 25.00}, {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 19.19}, {"티커": "MSFT", "기업명": "Microsoft Corp", "비중(%)": 15.26}, {"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 6.55}],
-    "BAU": [{"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 12.70}, {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 11.67}, {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 7.69}, {"티커": "UNP", "기업명": "Union Pacific Corp", "비중(%)": 7.31}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 7.30}],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co. Inc.", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 8.10}],
-    "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 39.89}, {"티커": "RIG", "기업명": "Transocean Ltd", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical", "비중(%)": 28.14}],
-    "AQUA": [{"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 34.57}, {"티커": "BRK.A", "기업명": "Berkshire Hathaway A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}]
-}
+us_top30 = [
+    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
+]
+
+kr_top30 = [
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
+]
 
 @st.cache_data(ttl=43200) 
 def get_13f_portfolio(guru_code):
@@ -324,8 +313,7 @@ def get_data(tk):
         try:
             _ = stk_test.fast_info['lastPrice']
             tk = test_tk 
-        except:
-            tk = tk + ".KQ"
+        except: tk = tk + ".KQ"
 
     if "." not in tk: tk = tk.upper()
     kr = tk.endswith('.KS') or tk.endswith('.KQ')
@@ -356,8 +344,7 @@ def get_base_dcf_data(stk, i):
         fcf_s = None
         cf = stk.cash_flow
         if cf is not None and not cf.empty:
-            if 'Free Cash Flow' in cf.index:
-                fcf_s = cf.loc['Free Cash Flow'].dropna()
+            if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
@@ -396,80 +383,13 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-# ==========================================
-# 💡 하드코딩된 시가총액 Top 30 데이터
-# ==========================================
-us_top30 = [
-    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"},
-    {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"},
-    {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"},
-    {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"},
-    {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"},
-    {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"},
-    {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"},
-    {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"},
-    {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"},
-    {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"},
-    {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"},
-    {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
-    {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"},
-    {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"},
-    {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"},
-    {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"},
-    {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"},
-    {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"},
-    {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"},
-    {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"},
-    {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"},
-    {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"},
-    {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"},
-    {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"},
-    {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"},
-    {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"},
-    {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"},
-    {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"},
-    {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"},
-    {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
-]
-
-kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"},
-    {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"},
-    {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"},
-    {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"},
-    {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"},
-    {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"},
-    {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"},
-    {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"},
-    {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"},
-    {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"},
-    {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"},
-    {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"},
-    {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"},
-    {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"},
-    {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"},
-    {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"},
-    {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"},
-    {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"},
-    {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"},
-    {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"},
-    {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"},
-    {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"},
-    {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"},
-    {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"},
-    {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"},
-    {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"},
-    {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"},
-    {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"},
-    {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"},
-    {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
-]
-
-tab1, tab2, tab3, tab4 = st.tabs([
+# 💡 5개 탭 구조로 확장 (주식 용어 사전 추가)
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
     t("라운지 (커뮤니티)", "Lounge (Community)"),
-    t("🏆 시총 랭킹", "🏆 Market Cap Top 30")
+    t("🏆 시총 랭킹", "🏆 Market Cap Top 30"),
+    t("📖 주식 용어 사전", "📖 Glossary")
 ])
 
 tmap = {
@@ -493,14 +413,12 @@ with tab1:
         st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
-            trigger_scan()
-            st.rerun() 
+            trigger_scan(); st.rerun() 
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
         
-        if tk in st.session_state.history:
-            st.session_state.history.remove(tk)
+        if tk in st.session_state.history: st.session_state.history.remove(tk)
         st.session_state.history.append(tk)
         st.session_state.search_ranking[tk] = st.session_state.search_ranking.get(tk, 0) + 1
 
@@ -563,8 +481,9 @@ with tab1:
                 elif pmos_val < 0: per_text, per_color = t(f"🚨 PER: {pmos_val:.1f}% (고평가)", f"🚨 PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
                 else: per_text, per_color = t(f"⚠️ PER: 데이터 확인 필요", f"⚠️ PER: Needs verification"), "#e3b341"
 
+                # 💡 라이트모드 텍스트 뭉개짐을 막기 위해 color: #e6edf3; 추가
                 st.markdown(f"""
-                <div style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; margin-bottom: 25px; margin-top: 10px;">
+                <div style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
                     <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
                     <div style="display: flex; gap: 15px; margin-bottom: 8px; flex-wrap: wrap;">
                         <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {dcf_color}; border: 1px solid {dcf_color}40;">{dcf_text}</span>
@@ -613,19 +532,31 @@ with tab1:
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
                 st.divider()
-                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
-                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett:** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
-                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 낫습니다.", "**Charlie Munger:** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+                st.subheader(t("4. 매수 6원칙 자동 체크", "4. Buy 6-Principles Auto Check"))
+                p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
+                if pmos > 0: p_txt += f"- PER: <span class='good'>{t('합격', 'Pass')} (+{pmos:.1f}%)</span>\n"
+                elif pmos < 0: p_txt += f"- PER: <span class='highlight'>{t('주의', 'Warning')} ({pmos:.1f}%)</span>\n"
+                else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
+                if mos_val > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos_val:.1f}%)</span>"
+                elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos_val:.1f}%)</span>"
+                else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
+                st.markdown(p_txt, unsafe_allow_html=True)
+                if roe >= 15: biz_eval = f"<span class='good'>{t('우수 (자본효율 탁월, 해자 확률 높음)', 'Excellent (Great capital efficiency, high moat probability)')}</span>"
+                elif roe > 0: biz_eval = t("보통 (독점력 추가 확인 필요)", "Average (Requires moat verification)")
+                else: biz_eval = f"<span class='highlight'>{t('경고 (구조 훼손 점검 시급)', 'Warning (Structural damage check urgent)')}</span>"
+                st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
+                st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 리포트 참조', 'Refer to the report above')}")
+                st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
+                st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
-                # ==========================================
-                # 💡 종목 토론방 (해당 티커 전용 댓글창)
-                # ==========================================
+                st.divider()
+                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
+                st.caption(t("**워런 버핏:** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett:** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
+                st.caption(t("**찰리 멍거:** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 낫습니다.", "**Charlie Munger:** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+
                 st.divider()
                 st.subheader(f"💬 {tk} {t('종목 토론방', 'Discussion Board')}")
-                
-                if tk not in st.session_state.stock_comments:
-                    st.session_state.stock_comments[tk] = []
-                    
+                if tk not in st.session_state.stock_comments: st.session_state.stock_comments[tk] = []
                 for cmt in reversed(st.session_state.stock_comments[tk]):
                     st.markdown(f"<div class='comment-box'><b>{cmt['user']}</b> <span class='comment-time'>({cmt['time']})</span><br>{cmt['text']}</div>", unsafe_allow_html=True)
                 if not st.session_state.stock_comments[tk]:
@@ -635,7 +566,6 @@ with tab1:
                     c_user, c_txt = st.columns([1, 4])
                     with c_user: user_name = st.text_input(t("닉네임", "Nickname"), placeholder=t("가치투자자", "Value Investor"))
                     with c_txt: user_text = st.text_input(t("코멘트 남기기", "Add a comment"), placeholder=t("이 종목의 해자(Moat)는 무엇이라고 생각하시나요?", "What is this company's moat?"))
-                    
                     if st.form_submit_button(t("등록", "Post")) and user_text:
                         st.session_state.stock_comments[tk].append({"user": user_name if user_name else t("익명", "Anonymous"), "text": user_text, "time": datetime.now().strftime("%H:%M")})
                         st.rerun()
@@ -697,51 +627,101 @@ with tab3:
     else:
         for post in reversed(st.session_state.community_posts):
             st.markdown(f"""
-            <div style="background-color: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 15px;">
+            <div style="background-color: #161b22; color: #c9d1d9; padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                     <strong style="color: #58a6ff; font-size: 1.1rem;">👤 {post['user']}</strong>
                     <span style="color: #8b949e; font-size: 0.85rem;">{post['time']}</span>
                 </div>
-                <div style="color: #c9d1d9; font-size: 1.05rem; line-height: 1.5;">{post['text']}</div>
+                <div style="font-size: 1.05rem; line-height: 1.5;">{post['text']}</div>
             </div>
             """, unsafe_allow_html=True)
 
 # ==========================================
-# 💡 탭 4: 시가총액 랭킹 TOP 30 (신규 추가)
+# 탭 4: 시가총액 랭킹 TOP 30
 # ==========================================
 with tab4:
     st.subheader(t("🌍 한국 및 미국 시가총액 TOP 30", "🌍 US & KR Market Cap TOP 30"))
     st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
     
     mkt = st.radio(t("시장 선택", "Select Market"), [t("🇺🇸 미국 시장 (US Market)", "🇺🇸 US Market"), t("🇰🇷 한국 시장 (KR Market)", "🇰🇷 KR Market")], horizontal=True, label_visibility="collapsed")
-    
-    if "US" in mkt or "미국" in mkt:
-        df_mkt = pd.DataFrame(us_top30)
-    else:
-        df_mkt = pd.DataFrame(kr_top30)
+    df_mkt = pd.DataFrame(us_top30) if "US" in mkt or "미국" in mkt else pd.DataFrame(kr_top30)
         
-    st.dataframe(
-        df_mkt, 
-        use_container_width=True, 
-        hide_index=True,
-        column_config={
-            "순위": st.column_config.NumberColumn(t("순위", "Rank")),
-            "티커": st.column_config.TextColumn(t("티커", "Ticker")),
-            "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
-            "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
-        }
-    )
+    st.dataframe(df_mkt, use_container_width=True, hide_index=True, column_config={
+        "순위": st.column_config.NumberColumn(t("순위", "Rank")),
+        "티커": st.column_config.TextColumn(t("티커", "Ticker")),
+        "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
+        "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
+    })
     
     st.markdown("---")
     st.write(t("🔍 **랭킹 종목 빠른 분석 장전**", "🔍 **Fast Load for Analysis**"))
     c_tk2, c_btn2 = st.columns([3, 1])
-    with c_tk2:
-        fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
+    with c_tk2: fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
     with c_btn2:
         if st.button(t("검색창에 장전하기", "Load to Search"), key="mkt_load_btn", use_container_width=True):
             st.session_state.search_tk = fast_tk_mkt
             st.toast(t(f"🎯 {fast_tk_mkt} 분석 장전 완료!", f"🎯 {fast_tk_mkt} Loaded!"), icon="✅")
             st.rerun() 
+
+# ==========================================
+# 💡 탭 5: 주식 용어 사전 (맘 테스트 통과용)
+# ==========================================
+with tab5:
+    st.subheader(t("📖 가장 쉬운 주식 용어 사전 (엄마도 이해하는 버전)", "📖 The Easiest Stock Glossary (Mom-friendly Edition)"))
+    st.write(t("앱에서 자주 쓰이는 외계어 같은 금융 용어들을 일상생활에 빗대어 아주 쉽게 설명해 드립니다.", "Complex financial jargon used in this app, explained simply using everyday analogies."))
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    terms = [
+        ("💰 시가총액 (Market Cap)", 
+         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
+         t("예를 들어 삼성전자의 시가총액이 400조라면, 내 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
+        
+        ("⏱️ PER (주가수익비율)", 
+         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
+         t("예를 들어 강남의 치킨집을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠? 이때 PER은 10배입니다. 숫자가 낮을수록 본전을 빨리 뽑는 '싼 주식'입니다.", "If you buy a cafe for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
+        
+        ("📉 Fwd PER (선행 주가수익비율)", 
+         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
+         t("주식은 미래를 먹고 살기 때문에 단순 PER보다 Fwd PER이 훨씬 더 중요합니다.", "Since stocks are about the future, Fwd PE is much more important than trailing PE.")),
+        
+        ("🛡️ PBR (주가순자산비율)", 
+         t("회사가 내일 당장 망해서 공장이랑 책상을 다 고물상에 넘겼을 때(청산), 내 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company goes bankrupt tomorrow and sells everything to a junkyard, will you get your money back?"), 
+         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 내 투자금보다 돈이 남는다는 뜻으로, 아주 안전하다는 의미입니다.", "If PBR is below 1, it means the company's scrap value is higher than its stock price. Extremely safe (or extremely struggling).")),
+        
+        ("🔥 ROE / ROIC (자기자본이익률 / 투하자본수익률)", 
+         t("회사가 내 돈을 가지고 '얼마나 장사를 찰지게 잘하는지' 보여주는 이자율입니다.", "Shows how incredibly efficient the company is at multiplying your money."), 
+         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 내 돈을 불려준다는 뜻입니다. 워런 버핏은 15% 이상을 꾸준히 유지하는 회사를 사랑합니다.", "If a bank gives 3% interest, a company with 15% ROE is growing your money at 15% a year. Warren Buffett loves companies with 15%+ ROE.")),
+        
+        ("💵 FCF (잉여현금흐름)", 
+         t("월급 받고 생활비, 공과금 다 떼고 내 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' in your bank account after paying rent, bills, and groceries."), 
+         t("영업이익이 아무리 높아도 공장 짓느라 돈을 다 써버리면 남는 게 없죠. 진짜 부자 회사는 이 FCF(여윳돈)가 두둑한 회사입니다.", "A company might have high profit on paper, but if they spend it all on factory repairs, there's no cash. High FCF means a truly cash-rich company.")),
+        
+        ("🔮 DCF (현금흐름할인법) & 내재가치", 
+         t("회사가 앞으로 평생 벌어들일 돈을 현재 가치로 끌어와 계산한 '진짜 적정 가격'입니다.", "The 'true fair price' of a stock, calculated by guessing all the cash it will ever make in its lifetime and bringing that value to today."), 
+         t("현재 주가와 이 DCF 내재가치를 비교해서 주가가 더 싸면 매수 찬스입니다.", "If the current stock price is cheaper than this DCF Fair Value, it's a buying opportunity.")),
+        
+        ("☂️ 안전마진 (Margin of Safety)", 
+         t("100만 원짜리 명품백을 70만 원에 세일할 때 사는 것과 같습니다.", "Like buying a $1,000 designer bag on sale for $700."), 
+         t("내 분석이 틀렸거나, 세상에 갑자기 코로나 같은 위기가 와도 내가 다치지 않게 보호해 주는 '할인 폭(쿠션)'을 말합니다.", "It's the 'discount cushion' that protects you from losing money just in case your analysis was wrong or a crisis hits.")),
+        
+        ("🏦 이익수익률 (Earnings Yield)", 
+         t("주식을 은행 예금이라고 쳤을 때, 1년에 이자를 몇 %나 주는지 계산한 것입니다.", "If a stock were a bank account, this is the annual interest rate it pays you."), 
+         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사는 이익수익률이 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
+        
+        ("⚖️ 주식 위험 프리미엄 (ERP)", 
+         t("안전한 은행 이자(국채) 냅두고 굳이 '위험한 주식'을 할 거면, 이자(수익)를 얼마나 더 얹어줄 건데? 를 나타내는 숫자입니다.", "The extra return (premium) you demand for investing in risky stocks instead of risk-free government bonds."), 
+         t("이 숫자가 높을수록 주식이 채권보다 싸서 매력적이라는 뜻이고, 마이너스면 주식이 너무 비싸서 채권을 사는 게 낫다는 경고입니다.", "If this number is high, stocks are cheap and attractive. If it's negative, stocks are in a bubble and bonds are safer."))
+    ]
+
+    for term, definition, example in terms:
+        # 라이트모드 텍스트 뭉개짐 해결을 위해 텍스트 색상을 강제 (color: #c9d1d9 및 #e6edf3)
+        st.markdown(f"""
+        <div style="background-color: #161b22; color: #e6edf3; padding: 20px; border-radius: 12px; border-left: 5px solid #58a6ff; margin-bottom: 15px;">
+            <h4 style="margin-top: 0; color: #58a6ff; margin-bottom: 10px;">{term}</h4>
+            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
+            <div style="font-size: 0.95rem; color: #8b949e;">👉 <b>{t('이해하기:', 'Analogy:')}</b> {example}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # 하단 카피라이트
 st.divider()
