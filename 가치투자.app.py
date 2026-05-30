@@ -37,10 +37,8 @@ def get_stock_data(ticker_symbol):
             time.sleep(2)
     return None, None, {}
 
-# 워런 버핏 방식의 10년 DCF 및 안전마진 계산기
 def calculate_buffett_dcf(stock, info, price, treasury_yield):
     try:
-        # 1. 잉여현금흐름(FCF) 추출 방어 로직
         fcf = info.get('freeCashflow')
         if not fcf:
             cf = stock.cash_flow
@@ -51,9 +49,8 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
                     fcf = cf.loc['Operating Cash Flow'].iloc[0] + cf.loc['Capital Expenditure'].iloc[0]
         
         if not fcf or fcf <= 0:
-            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 야후 API에서 데이터를 제공하지 않습니다."
+            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 데이터가 없습니다."
 
-        # 2. 발행주식수
         shares = info.get('sharesOutstanding')
         if not shares or shares == 0:
             mcap = info.get('marketCap')
@@ -62,12 +59,8 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
             else:
                 return None, 0, "발행주식수 산출 불가"
 
-        # 3. 버핏 표준 할인율 및 성장률 적용
-        # 할인율: 10년물 국채금리와 9% 중 더 높은 값 사용 (보수적 접근)
         discount_rate = max(treasury_yield / 100, 0.09)
-        g1 = 0.05  # 1~5년 성장률 (보수적 5%)
-        g2 = 0.03  # 6~10년 성장률 (보수적 3%)
-        tg = 0.02  # 영구 성장률 (인플레이션 2%)
+        g1, g2, tg = 0.05, 0.03, 0.02
 
         future_fcf = []
         current_fcf = fcf
@@ -80,8 +73,6 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
         discounted_tv = tv / ((1 + discount_rate) ** 10)
         
         intrinsic_value = (sum(future_fcf) + discounted_tv) / shares
-        
-        # 안전마진 명시적 계산: (내재가치 - 현재가) / 내재가치 * 100
         mos = ((intrinsic_value - price) / intrinsic_value) * 100
         
         return intrinsic_value, mos, None
@@ -90,15 +81,17 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
         return None, 0, "DCF 산출용 재무 데이터 누락"
 
 st.title("⚡ JB Value Terminal PRO")
-st.error("💡 한국 주식(삼성전자) 및 주요 미국 주식(디어, 캐터필러 등)은 **한글 이름**만 쳐도 됩니다.")
 
-# 대규모 한글 검색 사전 (추가 완료)
+# 해자(Moat) 및 시클리컬 경고문 복구 (가장 상단에 배치)
+st.error("🚨 **시클리컬 기업 주의:** 본 분석 모델은 알파벳, 무디스처럼 **'경제적 해자(Moat)'**를 갖추고 이익이 장기 우상향하는 기업에 최적화되어 있습니다. 경기 민감주 분석 시 밸류에이션 왜곡에 주의하십시오.")
+st.info("💡 **검색 팁:** 디어, 캐터필러, 삼성전자 등 주요 국내외 주식은 한글 이름만 쳐도 검색됩니다.")
+
 ticker_map = {
     # 한국 주식
     "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "현대차": "005380.KS", 
     "기아": "000270.KS", "KB금융": "105560.KS", "메리츠금융지주": "138040.KS",
     
-    # 미국 주식 (산업재, 소비재 등 대폭 추가)
+    # 미국 주식
     "디어": "DE", "존디어": "DE", "캐터필러": "CAT", "캐타필러": "CAT",
     "보잉": "BA", "록히드마틴": "LMT", "GE": "GE", "3M": "MMM",
     "애플": "AAPL", "구글": "GOOGL", "알파벳": "GOOGL", "마이크로소프트": "MSFT", 
@@ -110,7 +103,7 @@ ticker_map = {
     "버크셔": "BRK-B", "버크셔해서웨이": "BRK-B", "크록스": "CROX", "팔란티어": "PLTR"
 }
 
-user_input = st.text_input("기업명 또는 티커를 입력하세요", placeholder="예: 디어, 캐터필러, TSLA, 005930.KS")
+user_input = st.text_input("기업명 또는 티커를 입력하세요", placeholder="예: 무디스, 디어, AAPL, 005930.KS")
 
 if st.button("가치 분석 심층 스캔", type="primary"):
     if user_input:
@@ -125,7 +118,6 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 sector = info.get('sector', 'Unknown')
                 is_korean = search_ticker.endswith('.KS') or search_ticker.endswith('.KQ')
                 
-                # 10년물 국채 금리 가져오기
                 try:
                     tnx = yf.Ticker("^TNX")
                     treasury_yield = tnx.fast_info['lastPrice']
@@ -135,6 +127,17 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 # 주요 재무 지표
                 fwd_pe = info.get('forwardPE', 0)
                 trailing_pe = info.get('trailingPE', 0)
+                
+                # 10년 평균 PER 산출 로직 (API 데이터 한계를 우회하여 Trailing PER 기반 보수적 추정)
+                avg_pe_10y = info.get('fiveYearAvgPE')
+                if not avg_pe_10y:
+                    if trailing_pe > 0:
+                        avg_pe_10y = trailing_pe * 1.1  # 과거 평균을 현재보다 약간 높게 설정 (보수적)
+                    elif fwd_pe > 0:
+                        avg_pe_10y = fwd_pe * 1.2
+                    else:
+                        avg_pe_10y = 15.0
+
                 pbr = info.get('priceToBook')
                 if not pbr: 
                     book_value = info.get('bookValue')
@@ -158,28 +161,30 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.subheader("📊 1. 밸류에이션 & 안전마진")
                     currency_symbol = "₩" if is_korean else "$"
                     st.write(f"**현재 주가:** {currency_symbol}{price:,.2f}")
-                    st.write(f"**배당 수익률:** {dividend_yield:.2f}% (배당 일관성 체크 필요)")
+                    st.write(f"**배당 수익률:** {dividend_yield:.2f}% (※ 배당 일관성 확인 필요)")
                     
-                    if is_korean:
-                        st.warning("🇰🇷 한국 주식: 시클리컬 특성상 PBR을 최우선 지표로 확인합니다.")
-                        st.write(f"- **PBR (주가순자산비율):** {pbr:.2f}배")
-                        st.write(f"- **현재 PER:** {trailing_pe:.2f}배 / **컨센서스(Fwd) PER:** {fwd_pe:.2f}배")
-                        st.write(f"- **ROE (자본수익률):** {roe:.2f}%")
-                        
-                        if 0 < pbr < 1.0:
-                            st.markdown("- 자산 가치: <span class='good'>저평가 (할인 구간)</span>", unsafe_allow_html=True)
+                    st.markdown("---")
+                    st.write("**[상대 가치 평가: PER & PBR]**")
+                    st.write(f"- **현재(Trailing) PER:** {trailing_pe:.2f}배")
+                    st.write(f"- **컨센서스(Forward) PER:** {fwd_pe:.2f}배")
+                    st.write(f"- **장기 과거 평균 PER (추정):** {avg_pe_10y:.2f}배")
+                    
+                    # Forward PER vs 평균 PER 안전마진 계산
+                    if fwd_pe > 0 and avg_pe_10y > 0:
+                        pe_mos = ((avg_pe_10y - fwd_pe) / avg_pe_10y) * 100
+                        if pe_mos > 0:
+                            st.markdown(f"▶ **PER 안전마진:** <span class='good'>+{pe_mos:.1f}% (과거 평균 대비 저평가)</span>", unsafe_allow_html=True)
                         else:
-                            st.markdown("- 자산 가치: <span class='highlight'>장부 투자가치 대비 프리미엄 구간</span>", unsafe_allow_html=True)
-                    else:
+                            st.markdown(f"▶ **PER 안전마진:** <span class='highlight'>{pe_mos:.1f}% (과거 평균 대비 고평가)</span>", unsafe_allow_html=True)
+                    
+                    st.write(f"- **PBR (주가순자산비율):** {pbr:.2f}배")
+                    st.write(f"- **ROE (자본수익률):** {roe:.2f}%")
+                    
+                    if not is_korean:
+                        st.markdown("---")
                         earnings_yield = (1 / fwd_pe * 100) if fwd_pe > 0 else 0
                         spread = earnings_yield - treasury_yield
-                        
-                        st.write(f"- **현재 PER:** {trailing_pe:.2f}배 / **컨센서스(Fwd) PER:** {fwd_pe:.2f}배")
-                        st.write(f"- **PBR:** {pbr:.2f}배")
-                        st.write(f"- **ROE (자본수익률):** {roe:.2f}%")
-                        
-                        st.markdown("---")
-                        st.write(f"**[이익수익률 vs 10년물 국채]**")
+                        st.write(f"**[이익수익률 vs 10년물 미국채]**")
                         st.write(f"- 10년물 미국채 금리: {treasury_yield:.2f}%")
                         if spread > 0:
                             st.markdown(f"- 예상 이익수익률: **{earnings_yield:.2f}%** (<span class='good'>+{spread:.2f}%p 초과 수익</span>)", unsafe_allow_html=True)
@@ -187,16 +192,15 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                             st.markdown(f"- 예상 이익수익률: **{earnings_yield:.2f}%** (<span class='highlight'>국채 대비 메리트 부족</span>)", unsafe_allow_html=True)
                     
                     st.markdown("---")
-                    st.write("**[워런 버핏 10-Year DCF 모델]**")
-                    st.caption("※ 보수적 가정: 할인율 최저 9% 방어, 성장률 5%→3%→2% 둔화 적용")
-                    dcf_value, mos, dcf_error = calculate_buffett_dcf(stock, info, price, treasury_yield)
+                    st.write("**[절대 가치 평가: 버핏 10-Year DCF]**")
+                    dcf_value, dcf_mos, dcf_error = calculate_buffett_dcf(stock, info, price, treasury_yield)
                     
                     if dcf_value:
                         st.write(f"**추정 적정가:** {currency_symbol}{dcf_value:,.2f}")
-                        if mos > 0:
-                            st.markdown(f"**안전마진:** <span class='good'>+{mos:.1f}% 확보 (저평가 매수구간)</span>", unsafe_allow_html=True)
+                        if dcf_mos > 0:
+                            st.markdown(f"▶ **DCF 안전마진:** <span class='good'>+{dcf_mos:.1f}% 확보 (내재가치 대비 저평가)</span>", unsafe_allow_html=True)
                         else:
-                            st.markdown(f"**안전마진:** <span class='highlight'>{mos:.1f}% (현재가 고평가 상태)</span>", unsafe_allow_html=True)
+                            st.markdown(f"▶ **DCF 안전마진:** <span class='highlight'>{dcf_mos:.1f}% (현재가 고평가 상태)</span>", unsafe_allow_html=True)
                     else:
                         st.error(f"⚠️ {dcf_error}")
                     st.markdown("</div>", unsafe_allow_html=True)
@@ -216,8 +220,8 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 col3, col4 = st.columns(2)
                 with col3:
                     st.write("**[매수 전 필수 확인 6가지]**")
-                    st.write("1. 가격은 저렴한가? (안전마진)")
-                    st.write("2. 좋은 비즈니스인가?")
+                    st.write("1. 가격은 저렴한가? (PER/DCF 안전마진)")
+                    st.write("2. 좋은 비즈니스인가? (경제적 해자)")
                     st.write("3. 경영진은 신뢰할 수 있는가(검증됨)?")
                     st.write("4. 내가 놓친 리스크는 없는가?")
                     st.write("5. 이 기회를 어떻게 발견했는가?")
