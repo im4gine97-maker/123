@@ -6,13 +6,21 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide")
+st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="collapsed")
 
-# 💡 모바일 호환성을 위해 강제 색상 지정 CSS를 모두 삭제하고 핵심 포인트 컬러만 남겼습니다.
 st.markdown("""
 <style>
-.highlight {color: #ff4b4b; font-weight: bold;}
-.good {color: #09ab3b; font-weight: bold;}
+.main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
+h1, h2, h3 {color: #58a6ff; font-weight: 700;}
+.box {background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px;}
+.guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 15px; margin-bottom: 12px; background: #1c2128; padding: 15px; border-radius: 0 8px 8px 0;}
+.highlight {color: #ff7b72; font-weight: bold;}
+.good {color: #3fb950; font-weight: bold;}
+.stTabs [data-baseweb="tab-list"] {gap: 20px; border-bottom: 1px solid #30363d;}
+.stTabs [data-baseweb="tab"] {font-size: 1.15rem; font-weight: 600; color: #8b949e; padding-bottom: 10px;}
+.stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
+[data-testid="stMetricValue"] {font-size: 1.8rem; font-weight: bold; color: #ffffff;}
+[data-testid="stMetricLabel"] {font-size: 1rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -37,7 +45,6 @@ def clean_ceo_name(name):
             break
     return k_name
 
-# 최신 2026년 1분기 완벽 반영된 13F 하드코딩 데이터
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85},
@@ -327,7 +334,6 @@ with tab1:
                 else:
                     p_str = f"${p:,.2f}"
 
-                # 💡 안전하고 직관적인 마크다운 텍스트 폼으로 복원
                 st.divider()
                 st.subheader("1. 핵심 밸류에이션 지표")
                 
@@ -484,6 +490,17 @@ with tab2:
                 use_container_width=True,
                 hide_index=False
             )
+            
+            # 💡 빠른 분석 기능 추가
+            st.markdown("---")
+            st.write("🔍 **포트폴리오 종목 빠른 분석**")
+            c_tk, c_btn = st.columns([3, 1])
+            with c_tk:
+                fast_tk = st.selectbox("거장의 보유 종목 중 하나를 골라 즉시 내재가치를 스캔합니다.", df["티커"].tolist(), label_visibility="collapsed")
+            with c_btn:
+                if st.button("이 종목 즉시 분석", use_container_width=True):
+                    st.session_state.search_tk = tmap.get(fast_tk, fast_tk)
+                    st.success(f"✅ '{fast_tk}' 분석 장전 완료! 상단의 **[개별 기업 가치분석]** 탭을 누르시면 결과가 바로 뜹니다.")
         else:
             st.warning("데이터를 불러오는 데 실패했습니다.")
 
