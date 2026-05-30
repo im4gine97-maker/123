@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-# 💡 사이드바를 기본적으로 펼쳐두어(expanded) 사용자가 바로 기능을 볼 수 있게 세팅
+# 💡 사이드바를 기본적으로 펼쳐두어 사용자가 바로 기능을 볼 수 있게 세팅
 st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
@@ -60,7 +60,6 @@ with st.sidebar:
             st.session_state.history = []
             st.rerun()
             
-        # 최신 검색어가 위로 오도록 역순 출력
         for h_tk in reversed(st.session_state.history):
             c1, c2 = st.columns([4, 1])
             with c1:
@@ -112,6 +111,37 @@ def clean_ceo_name(name):
                 break
         return k_name
     return name
+
+# 💡 최근 4년 EPS 및 자본(BPS) 상승 추세 자동 판별 로직
+def analyze_trends(stk):
+    eps_trend = t("데이터 부족 (이건 확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
+    bps_trend = t("데이터 부족 (이건 확인이 필요한 부분입니다)", "Insufficient Data (Needs verification)")
+    try:
+        inc = stk.income_stmt
+        bs = stk.balance_sheet
+        
+        # 1. EPS Trend (최근 4년 우상향 여부)
+        if inc is not None and not inc.empty:
+            target_col = 'Basic EPS' if 'Basic EPS' in inc.index else ('Diluted EPS' if 'Diluted EPS' in inc.index else None)
+            if target_col:
+                eps_vals = inc.loc[target_col].dropna().values[:4][::-1] # 4년 치 (오래된 순)
+                if len(eps_vals) >= 3:
+                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]:
+                        eps_trend = t("✅ 4년 지속 상승 추세", "✅ 4Y Consistent Upward Trend")
+                    else:
+                        eps_trend = t("⚠️ 변동/하락 (이건 확인이 필요한 부분입니다)", "⚠️ Fluctuating/Declining (Needs verification)")
+                        
+        # 2. Book Value Trend (자본 총계 상승 여부 = 장기적인 PBR/BPS 안정성)
+        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
+            if len(eq_vals) >= 3:
+                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]:
+                    bps_trend = t("✅ 4년 자본 지속 증가 (PBR 안정)", "✅ 4Y Consistent Equity Growth")
+                else:
+                    bps_trend = t("⚠️ 자본 변동/감소 (이건 확인이 필요한 부분입니다)", "⚠️ Equity Fluctuating/Declining (Needs verification)")
+    except:
+        pass
+    return eps_trend, bps_trend
 
 fallback_13f_data = {
     "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
@@ -253,6 +283,8 @@ with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
         ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930.KS", "e.g., AAPL, GOOGL, 005930.KS"))
+        # 💡 한국 주식 티커 안내 문구 원상 복구 완료
+        st.caption(t("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.", "※ For Korean stocks, please enter the ticker (e.g., 005930.KS) for accurate data scanning."))
     with col_btn:
         st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
@@ -263,7 +295,6 @@ with tab1:
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
         
-        # 💡 검색 기록 자동 저장 (중복 방지 및 최상단 끌어올리기)
         if tk in st.session_state.history:
             st.session_state.history.remove(tk)
         st.session_state.history.append(tk)
@@ -275,7 +306,6 @@ with tab1:
                 try: ty = yf.Ticker("^TNX").fast_info['lastPrice']
                 except: ty = 4.4
                 
-                # 💡 분석 완료 타이틀 및 북마크 버튼 영역
                 c_title, c_star = st.columns([4, 1])
                 with c_title:
                     st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}")
@@ -283,11 +313,9 @@ with tab1:
                     is_bookmarked = tk in st.session_state.bookmarks
                     star_label = t("⭐ 즐겨찾기 해제", "⭐ Remove Bookmark") if is_bookmarked else t("☆ 즐겨찾기 추가", "☆ Add Bookmark")
                     if st.button(star_label, use_container_width=True):
-                        if is_bookmarked:
-                            st.session_state.bookmarks.remove(tk)
-                        else:
-                            st.session_state.bookmarks.append(tk)
-                        st.rerun() # 사이드바 UI 즉시 업데이트
+                        if is_bookmarked: st.session_state.bookmarks.remove(tk)
+                        else: st.session_state.bookmarks.append(tk)
+                        st.rerun() 
                 
                 t_pe = i.get('trailingPE', 0)
                 f_pe = i.get('forwardPE', 0)
@@ -315,6 +343,9 @@ with tab1:
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
+                # 💡 EPS 및 BPS 4년 추세 분석 함수 호출
+                eps_trend, bps_trend = analyze_trends(stk)
+
                 # 1. 밸류에이션 지표
                 st.divider()
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
@@ -332,9 +363,13 @@ with tab1:
                     if pmos > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
                     elif pmos < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
                     st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
-                    st.caption(t("※ 확인 필요: PER, EPS, PBR 지속 상승 추세 여부", "※ Requires verification: Consistent upward trend in EPS, PER, PBR"))
                     st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
                     st.write(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey:.2f}%")
+                    
+                    # 💡 자동 추출된 4년치 트렌드 출력
+                    st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}")
+                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
+                    st.caption(t("※ PER/PBR 추이는 주가 변동성에 따라 달라지므로 직접 확인이 필요한 부분입니다.", "※ Historical PER/PBR trends require manual verification due to price volatility."))
 
                 # 2. 10년 DCF
                 st.divider()
@@ -348,7 +383,7 @@ with tab1:
                     if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+{mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
                     else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>{mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
                 else:
-                    st.error(f"{err} {t('(확인이 필요합니다)', '(Requires manual verification)')}")
+                    st.error(f"{err} {t('(이건 확인이 필요한 부분입니다)', '(Needs manual verification)')}")
                 
                 # 3. 질적 분석
                 st.divider()
@@ -376,7 +411,7 @@ with tab1:
                 
                 if mos > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos:.1f}%)</span>"
                 elif mos < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos:.1f}%)</span>"
-                else: p_txt += f"- DCF: ({t('확인 필요', 'Needs Check')})"
+                else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
                 if roe >= 15: biz_eval = f"<span class='good'>{t('우수 (자본효율 탁월, 해자 확률 높음)', 'Excellent (Great capital efficiency, high moat probability)')}</span>"
@@ -454,7 +489,6 @@ with tab2:
                 use_container_width=True
             )
             
-            # 💡 즉시 1번 탭 검색창으로 데이터를 넘기는 진정한 빠른 분석 기능
             st.markdown("---")
             st.write(t("🔍 **포트폴리오 종목 빠른 분석 장전**", "🔍 **Fast Load for Analysis**"))
             c_tk, c_btn = st.columns([3, 1])
