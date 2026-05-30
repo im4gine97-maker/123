@@ -17,9 +17,13 @@ def tr(text):
 
 def get_nv(code):
     url = "https://finance.naver.com/item/main.naver?code=" + code
-    h = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        r = requests.get(url, headers=h)
+        r = requests.get(url, headers=headers)
         s = BeautifulSoup(r.text, 'html.parser')
         i = {}
-        t =
+        
+        name_tag = s.select_one('.wrap_company h2 a')
+        if name_tag: i['name'] = name_tag.text
+        
+        per
