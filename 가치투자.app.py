@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-# 💡 앱 이름 변경
+# 💡 앱 이름 및 기본 세팅
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
@@ -18,14 +18,24 @@ if "history" not in st.session_state:
     st.session_state.history = []
 if "bookmarks" not in st.session_state:
     st.session_state.bookmarks = []
+if "lang" not in st.session_state:
+    st.session_state.lang = "ko"
 
 # ==========================================
 # 💡 사이드바 (서재 및 설정 패널)
 # ==========================================
 with st.sidebar:
-    st.header("⚙️ Settings / 설정")
-    lang = st.radio("Language / 언어", ["🇰🇷 한국어", "🇺🇸 English"], horizontal=True, label_visibility="collapsed")
-    is_ko = "한국어" in lang
+    # 파란 라디오 버튼 대신 깔끔한 텍스트 토글
+    if st.session_state.lang == "ko":
+        if st.button("🇺🇸 English", use_container_width=True):
+            st.session_state.lang = "en"
+            st.rerun()
+    else:
+        if st.button("🇰🇷 Korean", use_container_width=True):
+            st.session_state.lang = "ko"
+            st.rerun()
+            
+    is_ko = st.session_state.lang == "ko"
 
     def t(ko, en):
         return ko if is_ko else en
@@ -224,6 +234,16 @@ def get_nv(cd):
     except: return None
 
 def get_data(tk):
+    # 💡 6자리 숫자만 입력 시 스마트 한국 주식 자동 판별 로직
+    if tk.isdigit() and len(tk) == 6:
+        test_tk = tk + ".KS"
+        stk_test = yf.Ticker(test_tk)
+        try:
+            _ = stk_test.fast_info['lastPrice']
+            tk = test_tk # 코스피 데이터가 있으면 .KS 채택
+        except:
+            tk = tk + ".KQ" # 없으면 코스닥(.KQ)으로 시도
+
     if "." not in tk: tk = tk.upper()
     kr = tk.endswith('.KS') or tk.endswith('.KQ')
     cd = tk.split('.')[0] if kr else tk
@@ -235,6 +255,7 @@ def get_data(tk):
             i = stk.info
             break
         except: time.sleep(1)
+    
     if tk == "005380.KS": p = 480000.0
     if kr and p:
         nv = get_nv(cd)
@@ -302,8 +323,9 @@ tmap = {
 with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
-        ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930.KS", "e.g., AAPL, GOOGL, 005930.KS"), label_visibility="collapsed")
-        st.caption(t("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.", "※ For Korean stocks, please enter the ticker (e.g., 005930.KS) for accurate data scanning."))
+        ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930", "e.g., AAPL, GOOGL, 005930"), label_visibility="collapsed")
+        # 💡 안내 문구 변경 완료
+        st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             if ui:
@@ -364,10 +386,8 @@ with tab1:
                 eps_trend, bps_trend = analyze_trends(stk)
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
-                # 💡 투자의견 판별 및 명시적 안전마진 수치 도출
                 op_title, op_color, op_reason = get_investment_opinion(mos if mos else 0, pmos, roe, base_fcf)
                 
-                # 명시적 안전마진 수치 포맷팅
                 mos_val_text = ""
                 if not iv:
                     mos_val_text = t(f"⚠️ {err}", f"⚠️ {err}")
