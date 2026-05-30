@@ -151,6 +151,22 @@ def analyze_trends(stk):
         pass
     return eps_trend, bps_trend
 
+# 💡 투자의견 도출 알고리즘
+def get_investment_opinion(mos, pmos, roe, fcf):
+    if not fcf or fcf <= 0:
+        return t("관망 (Hold)", "Hold"), "#e3b341", t("잉여현금흐름(FCF) 역성장 또는 적자로 인한 밸류에이션 판단 보류", "Valuation suspended due to negative or declining Free Cash Flow")
+    
+    if mos >= 30 and pmos >= 10 and roe >= 15:
+        return t("강력 매수 (Strong Buy)", "Strong Buy"), "#09ab3b", t("압도적인 안전마진과 탁월한 자본수익률(ROE/ROIC)을 보유한 위대한 기업", "Overwhelming margin of safety with excellent ROE/ROIC")
+    elif (mos >= 15) or (mos > 0 and pmos >= 15 and roe >= 10):
+        return t("매수 (Buy)", "Buy"), "#3fb950", t("내재가치 대비 충분히 저평가되어 있으며 양호한 비즈니스 펀더멘털 보유", "Undervalued compared to intrinsic value with solid business fundamentals")
+    elif mos <= -30 and pmos <= -15:
+        return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("내재가치 및 상대가치 대비 심각하게 고평가된 과열 구간 (미스터 마켓의 광기)", "Severely overvalued based on intrinsic and relative valuation (Market Mania)")
+    elif mos <= -15:
+        return t("매도 (Sell)", "Sell"), "#ff7b72", t("안전마진이 완전히 소멸되었으며 밸류에이션 부담이 가중된 상태", "Margin of safety has vanished with significant valuation burden")
+    else:
+        return t("관망 (Hold)", "Hold"), "#e3b341", t("적정 가치 부근에서 거래 중이거나 추가적인 모니터링이 필요함", "Trading near fair value; requires further monitoring")
+
 fallback_13f_data = {
     "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
     "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.52}, {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 6.64}],
@@ -347,6 +363,17 @@ with tab1:
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
+                iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
+                
+                # 💡 투자의견 판별 및 출력
+                op_title, op_color, op_reason = get_investment_opinion(mos if mos else 0, pmos, roe, base_fcf)
+                
+                st.markdown(f"""
+                <div style="padding: 15px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; margin-bottom: 25px; margin-top: 10px;">
+                    <h3 style="margin: 0 0 5px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
+                    <span style="color: #c9d1d9; font-size: 0.95rem;">{op_reason}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # 1. 밸류에이션 지표
                 st.divider()
@@ -375,7 +402,6 @@ with tab1:
                 # 2. 10년 DCF
                 st.divider()
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
-                iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
@@ -446,6 +472,7 @@ with tab1:
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.", "**Warren Buffett (Ownership):** Stocks are not pieces of paper, but 'ownership of a business'. Analyze as if you are buying 100% of it. Mr. Market is your servant, not your master."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it. That same principle works in investing."))
+                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price. A truly great business rarely comes at a significantly cheap price."))
                 st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
