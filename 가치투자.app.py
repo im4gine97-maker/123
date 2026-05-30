@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 import time
+import urllib.parse
 
 st.set_page_config(page_title="AGIE", layout="wide")
 
@@ -165,7 +166,7 @@ ai_ceo_db = {
 if "search_tk" not in st.session_state:
     st.session_state.search_tk = None
 
-ui = st.text_input("종목명 또는 티커 입력:", placeholder="아무 종목의 티커나 이름을 입력하세요 (예: AAPL, 구글, 005930.KS)")
+ui = st.text_input("종목명 또는 티커 입력:", placeholder="종목 티커나 이름을 입력하세요 (예: AAPL, 구글, 005930.KS)")
 if st.button("가치 분석 심층 스캔", type="primary"):
     if ui:
         q = ui.replace(" ", "").upper()
@@ -213,7 +214,7 @@ if st.session_state.search_tk:
                 
             ey = (1 / f_pe * 100) if f_pe > 0 else 0
             
-            base_fcf, sh, final_g, y_cnt = get_base_dcf_data(stk, i)
+            base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
             
             if kr:
                 p_str = f"{int(p):,}원"
@@ -247,7 +248,7 @@ if st.session_state.search_tk:
                 st.write(f"- 예상 이익수익률: {ey:.2f}%")
                 
                 st.markdown("---")
-                st.write("**[버핏식 주주이익(Owner Earnings) 10-Year DCF]**")
+                st.write("**[10년 DCF]**")
                 
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
@@ -257,7 +258,7 @@ if st.session_state.search_tk:
                     else:
                         iv_str = f"${iv:,.2f}"
                         
-                    st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {y_cnt}년 치 데이터 바탕 자동 산출)")
+                    st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {data_len}년 치 데이터 바탕 자동 산출)")
                     st.write(f"**추정 적정가:** {iv_str}")
                     if mos > 0:
                         st.markdown(f"**DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
@@ -275,7 +276,6 @@ if st.session_state.search_tk:
                 
                 st.markdown(f"- **CEO:** <span class='good'>{tr(ceo)}</span>", unsafe_allow_html=True)
                 
-                # CEO 평가 텍스트 변수화 (3번 리포트와 완벽히 동일하게 맞추기 위함)
                 ceo_eval = ai_ceo_db.get(tk, None)
                 if ceo_eval:
                     ceo_report_text = ceo_eval
@@ -318,7 +318,6 @@ if st.session_state.search_tk:
                     biz_eval = f"<span class='highlight'>경고 (ROE {roe:.2f}%. 비즈니스 구조 훼손 가능성 점검 시급)</span>"
                 st.markdown(f"**2. 좋은 비즈니스인가?**<br>{biz_eval}", unsafe_allow_html=True)
                 
-                # 2번의 CEO 리포트 내용과 완벽하게 동일하게 표출
                 st.markdown(f"**3. 경영진은 신뢰할 수 있는가?** {ceo_report_text}")
                 st.write("**4. 놓친 리스크는 없는가?** 현재 주가 하락이 단순한 미스터 마켓의 우울증인지 영구적 손상인지 확인하세요.")
                 st.write("**5~6. 능력 범위 안인가?** 이 비즈니스 모델을 타인에게 논리적으로 재반박하며 설명할 수 있습니까?")
@@ -329,7 +328,7 @@ if st.session_state.search_tk:
                 st.write("**[기업 해부 및 학문적 모델 적용]**")
                 
                 if final_g > 0:
-                    math_eval = f"<span class='good'>자동 추출된 {y_cnt}년 치 재무제표를 바탕으로 연평균 {final_g*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
+                    math_eval = f"<span class='good'>자동 추출된 {data_len}년 치 재무제표를 바탕으로 연평균 {final_g*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
                 else:
                     math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아닙니다.</span>"
                     
@@ -344,6 +343,12 @@ if st.session_state.search_tk:
             st.markdown("<div class='guru-quote'>1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.</div>", unsafe_allow_html=True)
             st.markdown("<div class='guru-quote'>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.</div>", unsafe_allow_html=True)
             st.markdown("<div class='guru-quote'>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.</div>", unsafe_allow_html=True)
+
+            st.markdown("---")
+            st.subheader("5. 거장들의 철학 한마디")
+            st.markdown("<div class='guru-quote'><b>워런 버핏:</b> \"주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.\"</div>", unsafe_allow_html=True)
+            st.markdown("<div class='guru-quote'><b>찰리 멍거:</b> \"당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.\"</div>", unsafe_allow_html=True)
+            st.markdown("<div class='guru-quote'><b>필립 피셔:</b> \"가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.\"</div>", unsafe_allow_html=True)
 
         else:
             st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
