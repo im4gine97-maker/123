@@ -8,7 +8,6 @@ import pandas as pd
 
 st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="collapsed")
 
-# 💡 HTS(트레이딩 터미널) 스타일의 고급스럽고 정갈한 UI 커스텀
 st.markdown("""
 <style>
 .main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
@@ -46,7 +45,7 @@ def clean_ceo_name(name):
             break
     return k_name
 
-# 💡 차장님이 조사하신 2026년 1분기 기준 가장 정확한 최신 13F 하드코딩 데이터 적용
+# 💡 최신 2026년 1분기 완벽 반영된 하드코딩 데이터
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85},
@@ -69,18 +68,18 @@ fallback_13f_data = {
         {"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 6.55}
     ],
     "BAU": [
-        {"티커": "LBRDA", "기업명": "Liberty Broadband", "비중(%)": 15.2},
-        {"티커": "VSAT", "기업명": "Viasat Inc.", "비중(%)": 12.1},
-        {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 9.8},
-        {"티커": "FDC", "기업명": "FirstData", "비중(%)": 8.5},
-        {"티커": "WBD", "기업명": "Warner Bros. Discovery", "비중(%)": 7.2}
+        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 12.70},
+        {"티커": "QSR", "기업명": "Restaurant Brands International", "비중(%)": 11.67},
+        {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 7.69},
+        {"티커": "UNP", "기업명": "Union Pacific Corp", "비중(%)": 7.31},
+        {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 7.30}
     ],
     "AKRE": [
-        {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 18.5},
-        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 15.2},
-        {"티커": "AMT", "기업명": "American Tower", "비중(%)": 12.8},
-        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 10.5},
-        {"티커": "KKR", "기업명": "KKR & Co.", "비중(%)": 9.2}
+        {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 18.64},
+        {"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 11.27},
+        {"티커": "KKR", "기업명": "KKR & Co. Inc.", "비중(%)": 10.16},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
+        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 8.10}
     ]
 }
 
@@ -281,7 +280,7 @@ with tab1:
     if "search_tk" not in st.session_state:
         st.session_state.search_tk = None
 
-    ui = st.text_input("종목명 또는 티커 입력:", placeholder="종목 티커나 이름을 입력하세요 (예: AAPL, GOOGL, 005930.KS)")
+    ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: AAPL, GOOGL, 005930.KS")
     st.caption("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.")
     
     if st.button("가치 분석 스캔 시작", type="primary"):
@@ -336,7 +335,6 @@ with tab1:
                 else:
                     p_str = f"${p:,.2f}"
 
-                # 💡 대시보드 위젯(Metric)을 활용한 시각적 업그레이드
                 st.markdown("<div class='box'>", unsafe_allow_html=True)
                 st.subheader("1. 핵심 밸류에이션 지표")
                 m1, m2, m3 = st.columns(3)
