@@ -6,15 +6,74 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="collapsed")
+# 💡 사이드바를 기본적으로 펼쳐두어(expanded) 사용자가 바로 기능을 볼 수 있게 세팅
+st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="expanded")
 
-# 💡 UI 및 다국어 지원 토글
-lang = st.radio("Language / 언어", ["🇰🇷 한국어", "🇺🇸 English"], horizontal=True, label_visibility="collapsed")
-is_ko = "한국어" in lang
+# ==========================================
+# 💡 세션 상태 초기화 (검색 기록, 북마크)
+# ==========================================
+if "search_tk" not in st.session_state:
+    st.session_state.search_tk = None
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "bookmarks" not in st.session_state:
+    st.session_state.bookmarks = []
 
-def t(ko, en):
-    return ko if is_ko else en
+# ==========================================
+# 💡 사이드바 (서재 및 설정 패널)
+# ==========================================
+with st.sidebar:
+    st.header("⚙️ Settings / 설정")
+    lang = st.radio("Language / 언어", ["🇰🇷 한국어", "🇺🇸 English"], horizontal=True, label_visibility="collapsed")
+    is_ko = "한국어" in lang
 
+    def t(ko, en):
+        return ko if is_ko else en
+        
+    st.divider()
+    
+    st.header(t("📚 내 서재", "📚 My Library"))
+    
+    # 1. 북마크 (즐겨찾기) 영역
+    st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
+    if not st.session_state.bookmarks:
+        st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
+    else:
+        for b_tk in st.session_state.bookmarks:
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
+                    st.session_state.search_tk = b_tk
+            with c2:
+                if st.button("❌", key=f"del_bk_{b_tk}"):
+                    st.session_state.bookmarks.remove(b_tk)
+                    st.rerun()
+                    
+    st.divider()
+    
+    # 2. 최근 검색 기록 영역
+    st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
+    if not st.session_state.history:
+        st.caption(t("검색 기록이 없습니다.", "No recent searches."))
+    else:
+        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True):
+            st.session_state.history = []
+            st.rerun()
+            
+        # 최신 검색어가 위로 오도록 역순 출력
+        for h_tk in reversed(st.session_state.history):
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
+                    st.session_state.search_tk = h_tk
+            with c2:
+                if st.button("❌", key=f"del_h_{h_tk}"):
+                    st.session_state.history.remove(h_tk)
+                    st.rerun()
+
+# ==========================================
+# 💡 메인 UI 스타일
+# ==========================================
 st.markdown("""
 <style>
 .main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
@@ -30,10 +89,6 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 [data-testid="stMetricLabel"] {font-size: 1rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
-
-# 💡 세션 상태 초기화 (장전 버그 완벽 해결)
-if "search_tk" not in st.session_state:
-    st.session_state.search_tk = None
 
 def tr_text(txt):
     if not txt: return txt
@@ -205,23 +260,39 @@ with tab1:
                 q = ui.replace(" ", "").upper()
                 st.session_state.search_tk = tmap.get(q, q)
 
-    # 💡 세션 스테이트(search_tk)가 존재하면 즉시 렌더링 (장전 렉 완벽 해결)
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
+        
+        # 💡 검색 기록 자동 저장 (중복 방지 및 최상단 끌어올리기)
+        if tk in st.session_state.history:
+            st.session_state.history.remove(tk)
+        st.session_state.history.append(tk)
+
         with st.spinner(t("데이터 스캔 중...", "Scanning Data...")):
             stk, p, i, kr = get_data(tk)
             
             if p:
                 try: ty = yf.Ticker("^TNX").fast_info['lastPrice']
                 except: ty = 4.4
-                    
-                st.success(f"{i.get('shortName', tk)} {t('분석 완료', 'Analysis Complete')}")
+                
+                # 💡 분석 완료 타이틀 및 북마크 버튼 영역
+                c_title, c_star = st.columns([4, 1])
+                with c_title:
+                    st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}")
+                with c_star:
+                    is_bookmarked = tk in st.session_state.bookmarks
+                    star_label = t("⭐ 즐겨찾기 해제", "⭐ Remove Bookmark") if is_bookmarked else t("☆ 즐겨찾기 추가", "☆ Add Bookmark")
+                    if st.button(star_label, use_container_width=True):
+                        if is_bookmarked:
+                            st.session_state.bookmarks.remove(tk)
+                        else:
+                            st.session_state.bookmarks.append(tk)
+                        st.rerun() # 사이드바 UI 즉시 업데이트
                 
                 t_pe = i.get('trailingPE', 0)
                 f_pe = i.get('forwardPE', 0)
                 pbr = i.get('priceToBook', 0)
                 
-                # 💡 금융업(Financial) 판단 후 ROE / ROIC 완벽 분리 적용
                 sector = i.get('sector', '')
                 is_fin = (sector == 'Financial Services') or (tk in ["105560.KS", "055550.KS", "086790.KS", "138040.KS", "JPM", "BAC", "WFC", "AXP", "MCO"])
                 roe = i.get('returnOnEquity', 0) * 100
@@ -231,7 +302,7 @@ with tab1:
                     eff_val = f"{roe:.2f}%"
                 else:
                     eff_label = "ROIC"
-                    roic_val = i.get('returnOnCapitalEmployed', roe / 100) * 100 # ROIC 부재 시 ROE로 보수적 대체
+                    roic_val = i.get('returnOnCapitalEmployed', roe / 100) * 100
                     eff_val = f"{roic_val:.2f}%"
                 
                 a_pe = i.get('fiveYearAvgPE')
@@ -288,7 +359,7 @@ with tab1:
                 
                 st.write(t("**[도덕성/리스크 리포트]**", "**[Ethics / Risk Report]**"))
                 default_ceo = t("현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)", "Based on the database, there are no prominent records of severe crimes such as embezzlement or fraud by the CEO. (Cross-verification is mandatory.)")
-                st.info(default_ceo) # 속도를 위해 영어 전환 시에도 기본 안전 텍스트 출력
+                st.info(default_ceo) 
                 
                 sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
                 st.write(t("**[비즈니스 요약]**", "**[Business Summary]**"))
@@ -391,7 +462,6 @@ with tab2:
                 fast_tk = st.selectbox("Ticker", df["티커"].tolist(), label_visibility="collapsed")
             with c_btn:
                 if st.button(t("검색창에 장전하기", "Load to Search"), use_container_width=True):
-                    # 버튼을 누르면 즉시 1번 탭의 렌더링 조건을 충족시킵니다.
                     st.session_state.search_tk = fast_tk
                     st.success(t(f"🎯 **{fast_tk}** 장전 및 스캔 완료! 상단의 **[개별 기업 가치분석]** 탭을 클릭하시면 결과가 나와있습니다.", f"🎯 **{fast_tk}** Loaded & Scanned! Click the **[Company Value Analysis]** tab above to see the results."))
         else:
