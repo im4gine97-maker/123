@@ -78,7 +78,6 @@ def run_dcf(stk, i, p, ty):
         fcf_s = None
         cf = stk.cash_flow
         
-        # 1. 재무제표(현금흐름표)에서 직접 FCF 시계열 데이터 추출
         if cf is not None and not cf.empty:
             if 'Free Cash Flow' in cf.index:
                 fcf_s = cf.loc['Free Cash Flow'].dropna()
@@ -91,11 +90,10 @@ def run_dcf(stk, i, p, ty):
         sh = i.get('sharesOutstanding')
         if not sh: return 0, 0, "주식수 누락", 0
         
-        # 2. 재무제표 기반 과거 실질 성장률(CAGR) 직접 계산
         g = 0.05
         if fcf_s is not None and len(fcf_s) >= 2:
-            c = fcf_s.iloc[0] # 가장 최근년도 FCF
-            o = fcf_s.iloc[-1] # 가장 과거년도 FCF
+            c = fcf_s.iloc[0]
+            o = fcf_s.iloc[-1]
             y_cnt = len(fcf_s) - 1
             if c > 0 and o > 0:
                 g = (c / o) ** (1 / y_cnt) - 1
@@ -103,19 +101,16 @@ def run_dcf(stk, i, p, ty):
             eg = i.get('earningsGrowth')
             if eg: g = eg
             
-        # 3. 보수적 상하한선 적용 (안전마진을 위해 비정상적 폭등 제외. 최소 2% ~ 최대 15%)
         g = max(0.02, min(g, 0.15))
-        
         dr = max(ty / 100, 0.09)
         cv = fcf
         fut = []
         
-        # 4. 차장님 요청대로 추출된 성장률(g)을 향후 10년간 고정값으로 적용
         for y in range(1, 11):
             cv *= (1 + g)
             fut.append(cv / ((1 + dr) ** y))
             
-        tv = (cv * 1.02) / (dr - 0.02) # 영구 성장률은 인플레 수준 2%
+        tv = (cv * 1.02) / (dr - 0.02)
         dtv = tv / ((1 + dr) ** 10)
         
         iv = (sum(fut) + dtv) / sh
@@ -179,14 +174,13 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
                     st.subheader("📊 1. 밸류에이션 & 안전마진")
                     st.write(f"**현재 주가:** {p:,.2f}")
-                    st.write(f"**배당 수익률:** {div:.2f}% (배당정책 일관성 지속 확인 요망)")
+                    st.write(f"**배당 수익률:** {div:.2f}%")
                     
                     st.markdown("---")
                     st.write("**[상대 가치: PER & PBR]**")
                     st.write(f"- **현재 PER:** {t_pe:.2f}배")
-                    st.write(f"- **Fwd PER:** {f_pe:.2f}배 (시킹알파 참고)")
-                    st.write(f"- **5~10년 평균 PER:** {a_pe:.2f}배 (키움증권 참고)")
-                    st.caption("※ 정확하지 않은 정보들은 이건 확인이 필요한 부분이라는 코멘트를 써주세요.")
+                    st.write(f"- **Fwd PER:** {f_pe:.2f}배")
+                    st.write(f"- **5~10년 평균 PER:** {a_pe:.2f}배")
                     
                     if f_pe > 0 and a_pe > 0:
                         pmos = ((a_pe - f_pe) / a_pe) * 100
@@ -200,7 +194,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     else:
                         st.write(f"- **PBR:** {pbr:.2f}배")
                     st.write(f"- **ROIC(ROE대체):** {roe:.2f}%")
-                    st.caption("※ PER, EPS, PBR 지속 상승 추세 여부 필히 체크")
+                    st.caption("※ 이건 확인이 필요한 부분입니다: PER, EPS, PBR 지속 상승 추세 및 배당 일관성 여부")
                     
                     st.markdown("---")
                     st.write("**[이익수익률 vs 10년물 국채]**")
