@@ -43,7 +43,6 @@ def clean_ceo_name(name):
             break
     return k_name
 
-# 리 루의 BAC 매도 및 GOOGL 1위 등극 등 팩트체크된 최신 데이터 백업
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 45.2},
@@ -106,7 +105,6 @@ def get_13f_portfolio(guru_code):
                     if len(cols) >= 3:
                         stock_text = cols[0].text.strip()
                         
-                        # 💡 가짜 데이터 차단 로직: 비어있거나 기호(≡)가 오면 해당 열 무시
                         if not stock_text or stock_text == '≡' or stock_text == '=':
                             continue
                             
@@ -129,7 +127,6 @@ def get_13f_portfolio(guru_code):
     except:
         pass
         
-    # 유효한 데이터가 단 한 개도 추출되지 않았으면 백업 데이터로 즉시 전환
     if not valid_data:
         return fallback_13f_data.get(guru_code, []), True
     return valid_data, False
@@ -286,7 +283,9 @@ with tab1:
     if "search_tk" not in st.session_state:
         st.session_state.search_tk = None
 
-    ui = st.text_input("종목명 또는 티커 입력:", placeholder="종목 티커나 이름을 입력하세요 (예: AAPL, 구글, 005930.KS)")
+    ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: AAPL, GOOGL, 005930.KS")
+    st.caption("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.")
+    
     if st.button("가치 분석 스캔 시작", type="primary"):
         if ui:
             q = ui.replace(" ", "").upper()
@@ -495,9 +494,6 @@ with tab2:
     with st.spinner("최신 포트폴리오 데이터 연동 중..."):
         code = guru_map[guru_option]
         scraped_data, is_fallback = get_13f_portfolio(code)
-        
-        if is_fallback:
-            st.info("외부 보안 방화벽이 감지되어, 최신 분기 공시 기반으로 안전하게 내장된 데이터를 표출합니다.")
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
@@ -520,3 +516,18 @@ with tab2:
             )
         else:
             st.warning("데이터를 불러오는 데 실패했습니다.")
+
+# ==========================================
+# 💡 하단 면책 조항 및 저작권 명시 구역
+# ==========================================
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: #8b949e; font-size: 0.85rem; padding: 20px 0;'>
+    <p><b>[면책 조항 / Disclaimer]</b><br>
+    본 애플리케이션은 가치투자 분석을 돕기 위한 <b>보조 도구</b>일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.<br>
+    본 터미널의 결과만으로 실제 주식의 매수/매도를 결정해서는 안 되며, <b>최종 투자 결정 및 그로 인한 모든 책임은 전적으로 투자자 본인에게 있습니다.</b></p>
+    <p><b>[저작권 보호 / Copyright]</b><br>
+    ⓒ 2026 AGIE Deep Value Terminal. All rights reserved.<br>
+    본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.</p>
+</div>
+""", unsafe_allow_html=True)
