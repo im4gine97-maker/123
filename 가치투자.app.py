@@ -19,7 +19,6 @@ if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
 
-# 플랫폼 기능용 임시 메모리 (DB 연동 전까지 세션에서 유지)
 if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
@@ -31,11 +30,12 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# 💡 글로벌 매크로 실시간 데이터
+# 💡 글로벌 매크로 실시간 데이터 (KOSPI, KOSDAQ 포함)
 # ==========================================
 @st.cache_data(ttl=900) 
 def get_macro_data():
     macro_symbols = {
+        "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
         "USD/KRW": "KRW=X", "WTI Crude": "CL=F", "10Y Treasury": "^TNX",
         "SPY": "SPY", "QQQ": "QQQ"  
@@ -76,12 +76,10 @@ with st.sidebar:
         
     st.divider()
     
-    # 💡 실시간 검색 랭킹 (TOP 5)
     st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
     else:
-        # 검색 횟수 기준 내림차순 정렬하여 상위 5개 추출
         top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
         for i, (rtk, count) in enumerate(top_5):
             if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
@@ -124,10 +122,8 @@ with st.sidebar:
                     
     st.divider()
     
-    # 💡 고객센터 영역
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
-    # 차장님 이메일 주소로 연동되도록 mailto 링크 설정
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
 # ==========================================
@@ -163,6 +159,8 @@ st.markdown("""
 # 💡 가로 스크롤 매크로 대시보드
 # ==========================================
 macro_items = [
+    (t("KOSPI", "KOSPI"), f"{macro_data['KOSPI']['p']:,.2f}", macro_data['KOSPI']['pct'], "%"),
+    (t("KOSDAQ", "KOSDAQ"), f"{macro_data['KOSDAQ']['p']:,.2f}", macro_data['KOSDAQ']['pct'], "%"),
     (t("S&P 500", "S&P 500"), f"{macro_data['S&P 500']['p']:,.2f}", macro_data['S&P 500']['pct'], "%"),
     (t("Nasdaq 100", "Nasdaq 100"), f"{macro_data['Nasdaq 100']['p']:,.2f}", macro_data['Nasdaq 100']['pct'], "%"),
     (t("NQ 선물", "Nasdaq Fut"), f"{macro_data['Nasdaq Futures']['p']:,.2f}", macro_data['Nasdaq Futures']['pct'], "%"),
@@ -398,11 +396,49 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-# 💡 커뮤니티 탭 추가
-tab1, tab2, tab3 = st.tabs([
+# 💡 시총 탑 30 데이터 하드코딩
+us_top30 = [
+    {"순위": 1, "티커": "AAPL", "기업명": "Apple Inc."}, {"순위": 2, "티커": "MSFT", "기업명": "Microsoft Corp."},
+    {"순위": 3, "티커": "NVDA", "기업명": "NVIDIA Corp."}, {"순위": 4, "티커": "GOOGL", "기업명": "Alphabet Inc."},
+    {"순위": 5, "티커": "AMZN", "기업명": "Amazon.com Inc."}, {"순위": 6, "티커": "META", "기업명": "Meta Platforms"},
+    {"순위": 7, "티커": "BRK-B", "기업명": "Berkshire Hathaway"}, {"순위": 8, "티커": "LLY", "기업명": "Eli Lilly"},
+    {"순위": 9, "티커": "TSM", "기업명": "TSMC"}, {"순위": 10, "티커": "AVGO", "기업명": "Broadcom"},
+    {"순위": 11, "티커": "V", "기업명": "Visa Inc."}, {"순위": 12, "티커": "JPM", "기업명": "JPMorgan Chase"},
+    {"순위": 13, "티커": "WMT", "기업명": "Walmart"}, {"순위": 14, "티커": "UNH", "기업명": "UnitedHealth"},
+    {"순위": 15, "티커": "MA", "기업명": "Mastercard"}, {"순위": 16, "티커": "PG", "기업명": "Procter & Gamble"},
+    {"순위": 17, "티커": "JNJ", "기업명": "Johnson & Johnson"}, {"순위": 18, "티커": "XOM", "기업명": "Exxon Mobil"},
+    {"순위": 19, "티커": "HD", "기업명": "Home Depot"}, {"순위": 20, "티커": "COST", "기업명": "Costco Wholesale"},
+    {"순위": 21, "티커": "ORCL", "기업명": "Oracle"}, {"순위": 22, "티커": "ABBV", "기업명": "AbbVie"},
+    {"순위": 23, "티커": "BAC", "기업명": "Bank of America"}, {"순위": 24, "티커": "CRM", "기업명": "Salesforce"},
+    {"순위": 25, "티커": "KO", "기업명": "Coca-Cola"}, {"순위": 26, "티커": "NFLX", "기업명": "Netflix"},
+    {"순위": 27, "티커": "CVX", "기업명": "Chevron"}, {"순위": 28, "티커": "MRK", "기업명": "Merck & Co."},
+    {"순위": 29, "티커": "TSLA", "기업명": "Tesla"}, {"순위": 30, "티커": "PEP", "기업명": "PepsiCo"}
+]
+
+kr_top30 = [
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스"},
+    {"순위": 3, "티커": "373220", "기업명": "LG에너지솔루션"}, {"순위": 4, "티커": "207940", "기업명": "삼성바이오로직스"},
+    {"순위": 5, "티커": "005380", "기업명": "현대차"}, {"순위": 6, "티커": "000270", "기업명": "기아"},
+    {"순위": 7, "티커": "068270", "기업명": "셀트리온"}, {"순위": 8, "티커": "005490", "기업명": "POSCO홀딩스"},
+    {"순위": 9, "티커": "105560", "기업명": "KB금융"}, {"순위": 10, "티커": "035420", "기업명": "네이버 (NAVER)"},
+    {"순위": 11, "티커": "051910", "기업명": "LG화학"}, {"순위": 12, "티커": "028260", "기업명": "삼성물산"},
+    {"순위": 13, "티커": "055550", "기업명": "신한지주"}, {"순위": 14, "티커": "138040", "기업명": "메리츠금융지주"},
+    {"순위": 15, "티커": "032830", "기업명": "삼성생명"}, {"순위": 16, "티커": "086790", "기업명": "하나금융지주"},
+    {"순위": 17, "티커": "035720", "기업명": "카카오"}, {"순위": 18, "티커": "066570", "기업명": "LG전자"},
+    {"순위": 19, "티커": "012330", "기업명": "현대모비스"}, {"순위": 20, "티커": "003670", "기업명": "포스코퓨처엠"},
+    {"순위": 21, "티커": "011200", "기업명": "HMM"}, {"순위": 22, "티커": "323410", "기업명": "카카오뱅크"},
+    {"순위": 23, "티커": "259960", "기업명": "크래프톤"}, {"순위": 24, "티커": "033780", "기업명": "KT&G"},
+    {"순위": 25, "티커": "010130", "기업명": "고려아연"}, {"순위": 26, "티커": "018260", "기업명": "삼성SDS"},
+    {"순위": 27, "티커": "042700", "기업명": "한미반도체"}, {"순위": 28, "티커": "000810", "기업명": "삼성화재"},
+    {"순위": 29, "티커": "010950", "기업명": "S-Oil"}, {"순위": 30, "티커": "009150", "기업명": "삼성전기"}
+]
+
+# 💡 4개 탭 구조
+tab1, tab2, tab3, tab4 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
-    t("라운지 (커뮤니티)", "Lounge (Community)")
+    t("라운지 (커뮤니티)", "Lounge (Community)"),
+    t("🏆 시총 랭킹", "🏆 Market Cap Top 30")
 ])
 
 tmap = {
@@ -432,7 +468,6 @@ with tab1:
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
         
-        # 💡 히스토리 저장 및 실시간 검색어 랭킹 누적 업데이트
         if tk in st.session_state.history:
             st.session_state.history.remove(tk)
         st.session_state.history.append(tk)
@@ -560,20 +595,17 @@ with tab1:
                 if tk not in st.session_state.stock_comments:
                     st.session_state.stock_comments[tk] = []
                     
-                # 기존 댓글 출력
                 for cmt in reversed(st.session_state.stock_comments[tk]):
                     st.markdown(f"<div class='comment-box'><b>{cmt['user']}</b> <span class='comment-time'>({cmt['time']})</span><br>{cmt['text']}</div>", unsafe_allow_html=True)
                 if not st.session_state.stock_comments[tk]:
                     st.caption(t("아직 작성된 코멘트가 없습니다. 첫 번째 의견을 남겨주세요!", "No comments yet. Be the first to share your thoughts!"))
 
-                # 새 댓글 입력
                 with st.form(key=f"comment_form_{tk}", clear_on_submit=True):
                     c_user, c_txt = st.columns([1, 4])
                     with c_user: user_name = st.text_input(t("닉네임", "Nickname"), placeholder=t("가치투자자", "Value Investor"))
                     with c_txt: user_text = st.text_input(t("코멘트 남기기", "Add a comment"), placeholder=t("이 종목의 해자(Moat)는 무엇이라고 생각하시나요?", "What is this company's moat?"))
                     
-                    submit_btn = st.form_submit_button(t("등록", "Post"))
-                    if submit_btn and user_text:
+                    if st.form_submit_button(t("등록", "Post")) and user_text:
                         st.session_state.stock_comments[tk].append({
                             "user": user_name if user_name else t("익명", "Anonymous"),
                             "text": user_text,
@@ -622,23 +654,17 @@ with tab3:
     st.subheader(t("☕ 글로벌 밸류 라운지 (자유 게시판)", "☕ Global Value Lounge (Community)"))
     st.caption(t("※ 가치투자 철학, 매크로 시황, 유망 종목에 대해 자유롭게 토론하는 공간입니다. (현재 버전은 임시 메모리를 사용하므로 새로고침 시 초기화됩니다.)", "※ Discuss value investing, macro, and stocks freely. (Currently uses session memory and resets on refresh.)"))
     
-    # 커뮤니티 글쓰기 폼
     with st.form(key="community_form", clear_on_submit=True):
         f_user = st.text_input(t("닉네임", "Nickname"), placeholder=t("찰리 멍거 지망생", "Munger Wannabe"))
         f_text = st.text_area(t("내용", "Message"), placeholder=t("어떤 훌륭한 기업을 발견하셨나요?", "Did you find any wonderful companies?"), height=100)
         
         if st.form_submit_button(t("글 남기기", "Post to Lounge")):
             if f_text:
-                st.session_state.community_posts.append({
-                    "user": f_user if f_user else t("익명", "Anonymous"),
-                    "text": f_text,
-                    "time": datetime.now().strftime("%m-%d %H:%M")
-                })
+                st.session_state.community_posts.append({"user": f_user if f_user else t("익명", "Anonymous"), "text": f_text, "time": datetime.now().strftime("%m-%d %H:%M")})
                 st.rerun()
 
     st.divider()
     
-    # 커뮤니티 글 목록 출력
     if not st.session_state.community_posts:
         st.info(t("아직 라운지에 등록된 글이 없습니다. 첫 번째 이야기를 꺼내보세요!", "No posts in the lounge yet. Start the conversation!"))
     else:
@@ -652,6 +678,42 @@ with tab3:
                 <div style="color: #c9d1d9; font-size: 1.05rem; line-height: 1.5;">{post['text']}</div>
             </div>
             """, unsafe_allow_html=True)
+
+# ==========================================
+# 탭 4: 시가총액 랭킹 TOP 30
+# ==========================================
+with tab4:
+    st.subheader(t("🌍 한국 및 미국 시가총액 TOP 30", "🌍 US & KR Market Cap TOP 30"))
+    st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
+    
+    mkt = st.radio(t("시장 선택", "Select Market"), [t("🇺🇸 미국 시장 (US Market)", "🇺🇸 US Market"), t("🇰🇷 한국 시장 (KR Market)", "🇰🇷 KR Market")], horizontal=True, label_visibility="collapsed")
+    
+    if "US" in mkt or "미국" in mkt:
+        df_mkt = pd.DataFrame(us_top30)
+    else:
+        df_mkt = pd.DataFrame(kr_top30)
+        
+    st.dataframe(
+        df_mkt, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "순위": st.column_config.NumberColumn(t("순위", "Rank")),
+            "티커": st.column_config.TextColumn(t("티커", "Ticker")),
+            "기업명": st.column_config.TextColumn(t("기업명", "Company Name"))
+        }
+    )
+    
+    st.markdown("---")
+    st.write(t("🔍 **랭킹 종목 빠른 분석 장전**", "🔍 **Fast Load for Analysis**"))
+    c_tk2, c_btn2 = st.columns([3, 1])
+    with c_tk2:
+        fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
+    with c_btn2:
+        if st.button(t("검색창에 장전하기", "Load to Search"), key="mkt_load_btn", use_container_width=True):
+            st.session_state.search_tk = fast_tk_mkt
+            st.toast(t(f"🎯 {fast_tk_mkt} 분석 장전 완료!", f"🎯 {fast_tk_mkt} Loaded!"), icon="✅")
+            st.rerun() 
 
 # 하단 카피라이트
 st.divider()
