@@ -75,35 +75,58 @@ def get_data(tk):
 
 def run_dcf(stk, i, p, ty):
     try:
-        fcf = i.get('freeCashflow')
-        if not fcf:
-            cf = stk.cash_flow
-            if cf is not None and not cf.empty:
-                if 'Free Cash Flow' in cf.index:
-                    fcf = cf.loc['Free Cash Flow'].iloc[0]
-                else:
-                    fcf = cf.loc['Operating Cash Flow'].iloc[0] + cf.loc['Capital Expenditure'].iloc[0]
-        if not fcf or fcf <= 0: return 0, 0
+        fcf_s = None
+        cf = stk.cash_flow
+        
+        # 1. 재무제표(현금흐름표)에서 직접 FCF 시계열 데이터 추출
+        if cf is not None and not cf.empty:
+            if 'Free Cash Flow' in cf.index:
+                fcf_s = cf.loc['Free Cash Flow'].dropna()
+            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
+                
+        fcf = fcf_s.iloc[0] if (fcf_s is not None and not fcf_s.empty) else i.get('freeCashflow')
+        if not fcf or fcf <= 0: return 0, 0, "주주이익(FCF) 적자", 0
+        
         sh = i.get('sharesOutstanding')
-        if not sh: return 0, 0
+        if not sh: return 0, 0, "주식수 누락", 0
+        
+        # 2. 재무제표 기반 과거 실질 성장률(CAGR) 직접 계산
+        g = 0.05
+        if fcf_s is not None and len(fcf_s) >= 2:
+            c = fcf_s.iloc[0] # 가장 최근년도 FCF
+            o = fcf_s.iloc[-1] # 가장 과거년도 FCF
+            y_cnt = len(fcf_s) - 1
+            if c > 0 and o > 0:
+                g = (c / o) ** (1 / y_cnt) - 1
+        else:
+            eg = i.get('earningsGrowth')
+            if eg: g = eg
+            
+        # 3. 보수적 상하한선 적용 (안전마진을 위해 비정상적 폭등 제외. 최소 2% ~ 최대 15%)
+        g = max(0.02, min(g, 0.15))
+        
         dr = max(ty / 100, 0.09)
         cv = fcf
         fut = []
+        
+        # 4. 차장님 요청대로 추출된 성장률(g)을 향후 10년간 고정값으로 적용
         for y in range(1, 11):
-            cv *= 1.05 if y <= 5 else 1.03
+            cv *= (1 + g)
             fut.append(cv / ((1 + dr) ** y))
-        tv = (cv * 1.02) / (dr - 0.02)
+            
+        tv = (cv * 1.02) / (dr - 0.02) # 영구 성장률은 인플레 수준 2%
         dtv = tv / ((1 + dr) ** 10)
+        
         iv = (sum(fut) + dtv) / sh
         mos = ((iv - p) / iv) * 100
-        return iv, mos
+        return iv, mos, None, g
     except:
-        return 0, 0
+        return 0, 0, "DCF 연산 에러", 0
 
 st.title("⚡ AGIE Value Terminal")
 st.error("🚨 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
 
-# 삭제됐던 한글 유도리 검색 사전 완벽 복구!
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL",
     "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
@@ -156,13 +179,14 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
                     st.subheader("📊 1. 밸류에이션 & 안전마진")
                     st.write(f"**현재 주가:** {p:,.2f}")
-                    st.write(f"**배당 수익률:** {div:.2f}% (배당정책 일관성 확인 요망)")
+                    st.write(f"**배당 수익률:** {div:.2f}% (배당정책 일관성 지속 확인 요망)")
                     
                     st.markdown("---")
                     st.write("**[상대 가치: PER & PBR]**")
                     st.write(f"- **현재 PER:** {t_pe:.2f}배")
                     st.write(f"- **Fwd PER:** {f_pe:.2f}배 (시킹알파 참고)")
                     st.write(f"- **5~10년 평균 PER:** {a_pe:.2f}배 (키움증권 참고)")
+                    st.caption("※ 정확하지 않은 정보들은 이건 확인이 필요한 부분이라는 코멘트를 써주세요.")
                     
                     if f_pe > 0 and a_pe > 0:
                         pmos = ((a_pe - f_pe) / a_pe) * 100
@@ -176,7 +200,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     else:
                         st.write(f"- **PBR:** {pbr:.2f}배")
                     st.write(f"- **ROIC(ROE대체):** {roe:.2f}%")
-                    st.caption("※ PER, EPS, PBR 상승 추세 여부 지속 확인 요망")
+                    st.caption("※ PER, EPS, PBR 지속 상승 추세 여부 필히 체크")
                     
                     st.markdown("---")
                     st.write("**[이익수익률 vs 10년물 국채]**")
@@ -184,16 +208,18 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.write(f"- 예상 이익수익률: {ey:.2f}%")
                     
                     st.markdown("---")
-                    st.write("**[버핏 10-Year DCF]**")
-                    iv, mos = run_dcf(stk, i, p, ty)
+                    st.write("**[버핏식 주주이익(Owner Earnings) 10-Year DCF]**")
+                    st.caption(f"※ 국채 기준 할인율 최소 9% 방어, 영구성장률 2% 적용")
+                    iv, mos, err, g_rate = run_dcf(stk, i, p, ty)
                     if iv:
-                        st.write(f"**적정가:** {iv:,.2f}")
+                        st.write(f"- **적용된 FCF 연평균 성장률:** {g_rate*100:.1f}% (재무제표 기반)")
+                        st.write(f"**추정 적정가:** {iv:,.2f}")
                         if mos > 0:
-                            st.markdown(f"▶ **DCF 안전마진:** <span class='good'>+{mos:.1f}%</span>", unsafe_allow_html=True)
+                            st.markdown(f"▶ **DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
                         else:
-                            st.markdown(f"▶ **DCF 안전마진:** <span class='highlight'>{mos:.1f}%</span>", unsafe_allow_html=True)
+                            st.markdown(f"▶ **DCF 안전마진:** <span class='highlight'>{mos:.1f}% (고평가)</span>", unsafe_allow_html=True)
                     else:
-                        st.error("⚠️ DCF 산출 불가 (이건 확인이 필요한 부분입니다.)")
+                        st.error(f"⚠️ {err} (이건 확인이 필요한 부분입니다)")
                     st.markdown("</div>", unsafe_allow_html=True)
                     
                 with c2:
@@ -207,7 +233,6 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
                     st.markdown(f"- **비즈니스 요약:**\n> {tr(sum_t)[:350]}...")
                     st.caption("※ 모든 건 사실 수집 및 임직원 의견을 반영합니다.")
-                    st.caption("※ 부정확한 정보는 '확인이 필요한 부분'으로 간주하세요.")
                     
                     st.markdown("---")
                     st.write("**[기업 해부 및 모델 적용]**")
@@ -242,7 +267,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     
                 st.markdown("<div class='guru-quote'><b>철학:</b> 주식은 소유권(100% 인수 가정). 시장은 도구(미스터 마켓). 능력 범위 준수(재반박 가능 여부).</div>", unsafe_allow_html=True)
                 st.markdown("<div class='guru-quote'><b>사전 확인:</b> 시장데이터(트레이딩, 공시), 자본효율(기회비용), 재무건전, 비상탈출 전략.</div>", unsafe_allow_html=True)
-                st.markdown("<div class='guru-quote'><b>피셔 매수:</b> 상업화 초기 문제, 미스터 마켓의 우울증, 일시적이고 해결 가능한 악재 시 매수.</div>", unsafe_allow_html=True)
+                st.markdown("<div class='guru-quote'><b>피셔 매수:</b> 상업화 초기 일시적 문제, 미스터 마켓의 우울증, 일시적이고 해결 가능한 악재 시 매수.</div>", unsafe_allow_html=True)
 
             else:
                 st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
