@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide")
+st.set_page_config(page_title="AGIE", layout="wide")
 
 st.markdown("""
 <style>
@@ -16,7 +16,6 @@ h1, h2, h3 {color: #58a6ff;}
 .guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #e3b341; padding-left: 10px; margin-bottom: 10px;}
 .highlight {color: #da3633; font-weight: bold;}
 .good {color: #3fb950; font-weight: bold;}
-/* 탭 디자인 커스텀 */
 .stTabs [data-baseweb="tab-list"] {gap: 20px;}
 .stTabs [data-baseweb="tab"] {font-size: 1.1rem; font-weight: bold; color: #8b949e;}
 .stTabs [aria-selected="true"] {color: #58a6ff;}
@@ -43,6 +42,43 @@ def clean_ceo_name(name):
             k_name = k_name[:-len(s)].strip()
             break
     return k_name
+
+# 💡 실시간 13F 포트폴리오 크롤링 함수 (Dataroma 연동)
+@st.cache_data(ttl=43200) # 12시간마다 자동 갱신
+def get_13f_portfolio(guru_code):
+    url = f"https://www.dataroma.com/m/holdings.php?m={guru_code}"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    try:
+        res = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        table = soup.find('table', {'id': 'grid'})
+        if not table: return []
+        
+        data = []
+        rows = table.find('tbody').find_all('tr')
+        for row in rows[:20]: # 상위 20개 핵심 종목만 추출
+            cols = row.find_all('td')
+            if len(cols) >= 3:
+                stock_text = cols[0].text.strip()
+                if "-" in stock_text:
+                    parts = stock_text.split("-")
+                    tick = parts[0].strip()
+                    name = "-".join(parts[1:]).strip()
+                else:
+                    tick = stock_text
+                    name = stock_text
+                    
+                pct_text = cols[1].text.strip().replace('%', '')
+                try:
+                    pct = float(pct_text)
+                except:
+                    pct = 0.0
+                data.append({"티커": tick, "기업명": name, "비중(%)": pct})
+        return data
+    except Exception as e:
+        return [{"티커": "ERROR", "기업명": "데이터를 불러올 수 없습니다 (보안 차단 또는 서버 오류)", "비중(%)": 0.0}]
 
 def get_nv(cd):
     url = "https://finance.naver.com/item/main.naver?code=" + cd
@@ -150,8 +186,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
 st.title("AGIE Deep Value Terminal")
 st.caption("시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
 
-# 탭 생성
-tab1, tab2 = st.tabs(["개별 기업 가치분석", "거장들의 13F 포트폴리오"])
+tab1, tab2 = st.tabs(["개별 기업 가치분석", "거장들의 실시간 13F 포트폴리오"])
 
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL",
@@ -271,7 +306,7 @@ with tab1:
                     
                     st.write(f"- **PBR:** {pbr:.2f}배")
                     st.write(f"- **ROIC(ROE대체):** {roe:.2f}%")
-                    st.caption("※ 확인이 필요한 부분: PER, EPS, PBR 지속 상승 추세 및 배당 일관성 여부")
+                    st.caption("※ 이건 확인이 필요한 부분입니다: PER, EPS, PBR 지속 상승 추세 및 배당 일관성 여부")
                     
                     st.markdown("---")
                     st.write("**[이익수익률 vs 10년물 국채]**")
@@ -313,7 +348,7 @@ with tab1:
                     if ceo_eval:
                         ceo_report_text = ceo_eval
                     else:
-                        ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)"
+                        ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (이건 확인이 필요한 부분입니다.)"
 
                     st.write("**[도덕성/리스크 리포트]**")
                     st.markdown(f"> {ceo_report_text}")
@@ -321,7 +356,7 @@ with tab1:
                     st.markdown("---")
                     sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
                     st.markdown(f"- **비즈니스 요약:**\n> {tr(sum_t)[:350]}...")
-                    st.caption("※ 모든 판단은 사실 수집 및 임직원 의견을 반영하여 교차 검증하십시오.")
+                    st.caption("※ 모든 건 사실 수집 및 커뮤니티 및 임직원의 의견을 반영합니다.")
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 st.markdown("---")
@@ -335,11 +370,11 @@ with tab1:
                     p_txt = "**1. 가격은 저렴한가 (안전마진)?**<br>"
                     if pmos > 0: p_txt += f"PER 기준: <span class='good'>합격 (+{pmos:.1f}% 저평가)</span><br>"
                     elif pmos < 0: p_txt += f"PER 기준: <span class='highlight'>주의 ({pmos:.1f}% 고평가)</span><br>"
-                    else: p_txt += "PER 기준: (확인이 필요한 부분입니다)<br>"
+                    else: p_txt += "PER 기준: (이건 확인이 필요한 부분입니다)<br>"
                     
                     if mos > 0: p_txt += f"DCF 기준: <span class='good'>합격 (+{mos:.1f}% 저평가)</span>"
                     elif mos < 0: p_txt += f"DCF 기준: <span class='highlight'>주의 ({mos:.1f}% 고평가)</span>"
-                    else: p_txt += "DCF 기준: (확인이 필요한 부분입니다)"
+                    else: p_txt += "DCF 기준: (이건 확인이 필요한 부분입니다)"
                     
                     st.markdown(p_txt, unsafe_allow_html=True)
                     
@@ -387,82 +422,45 @@ with tab1:
                 st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
 
 # ==========================================
-# 탭 2: 거장들의 13F 포트폴리오
+# 탭 2: 거장들의 실시간 13F 포트폴리오
 # ==========================================
 with tab2:
-    st.subheader("글로벌 투자 거장 13F 포트폴리오")
-    st.caption("※ SEC 보안 규정으로 인해 내장된 최신 13F 분기 데이터를 기반으로 포트폴리오 비중을 표출합니다.")
+    st.subheader("글로벌 가치투자 거장 13F 실시간 포트폴리오")
+    st.caption("※ 미국의 13F 공시를 실시간으로 크롤링하여 최신 비중을 표출합니다.")
     
-    guru_option = st.selectbox("포트폴리오를 조회할 거장을 선택하세요:", 
-                               ["워런 버핏 (Berkshire Hathaway)", 
-                                "리 루 (Himalaya Capital)", 
-                                "레이 달리오 (Bridgewater Associates)", 
-                                "켄 피셔 (Fisher Asset Management)"])
-
-    # 최신 13F 공시 기반 하드코딩 데이터 구축
-    portfolio_data = {
-        "워런 버핏 (Berkshire Hathaway)": [
-            {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 40.8},
-            {"티커": "BAC", "기업명": "Bank of America Corp", "비중(%)": 11.8},
-            {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 10.4},
-            {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 7.2},
-            {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 5.8},
-            {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.6},
-            {"티커": "KHC", "기업명": "Kraft Heinz Co", "비중(%)": 3.2},
-            {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 2.7},
-            {"티커": "CB", "기업명": "Chubb Ltd", "비중(%)": 2.0},
-            {"티커": "DVA", "기업명": "DaVita Inc", "비중(%)": 1.1}
-        ],
-        "리 루 (Himalaya Capital)": [
-            {"티커": "BAC", "기업명": "Bank of America Corp", "비중(%)": 26.5},
-            {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 20.2},
-            {"티커": "BRK.B", "기업명": "Berkshire Hathaway", "비중(%)": 18.0},
-            {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 14.8},
-            {"티커": "WFC", "기업명": "Wells Fargo & Co", "비중(%)": 11.5},
-            {"티커": "PFE", "기업명": "Pfizer Inc.", "비중(%)": 9.0}
-        ],
-        "레이 달리오 (Bridgewater Associates)": [
-            {"티커": "IVV", "기업명": "iShares Core S&P 500 ETF", "비중(%)": 5.5},
-            {"티커": "IEMG", "기업명": "iShares Core MSCI Emerging", "비중(%)": 4.2},
-            {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 3.1},
-            {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 2.6},
-            {"티커": "MSFT", "기업명": "Microsoft Corp", "비중(%)": 2.4},
-            {"티커": "PG", "기업명": "Procter & Gamble Co", "비중(%)": 2.1},
-            {"티커": "JNJ", "기업명": "Johnson & Johnson", "비중(%)": 1.9},
-            {"티커": "MCD", "기업명": "McDonald's Corp", "비중(%)": 1.5},
-            {"티커": "PEP", "기업명": "PepsiCo Inc.", "비중(%)": 1.4},
-            {"티커": "WMT", "기업명": "Walmart Inc.", "비중(%)": 1.2}
-        ],
-        "켄 피셔 (Fisher Asset Management)": [
-            {"티커": "MSFT", "기업명": "Microsoft Corp", "비중(%)": 5.2},
-            {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 4.5},
-            {"티커": "NVDA", "기업명": "NVIDIA Corp", "비중(%)": 4.1},
-            {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 3.8},
-            {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 3.1},
-            {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 2.3},
-            {"티커": "LLY", "기업명": "Eli Lilly and Co", "비중(%)": 2.1},
-            {"티커": "TSM", "기업명": "Taiwan Semiconductor", "비중(%)": 2.0},
-            {"티커": "AVGO", "기업명": "Broadcom Inc.", "비중(%)": 1.8},
-            {"티커": "ASML", "기업명": "ASML Holding NV", "비중(%)": 1.5}
-        ]
+    # 딕셔너리 키는 화면에 보일 이름, 값은 Dataroma의 Fund Code
+    guru_map = {
+        "리 루 (Himalaya Capital)": "HC",
+        "워런 버핏 (Berkshire Hathaway)": "BRK",
+        "빌 애크먼 (Pershing Square)": "PSH",
+        "세스 클라만 (Baupost Group)": "BAU",
+        "척 아크레 (Akre Capital)": "AKRE"
     }
+    
+    guru_option = st.selectbox("포트폴리오를 조회할 집중 가치투자 거장을 선택하세요:", list(guru_map.keys()))
 
-    df = pd.DataFrame(portfolio_data[guru_option])
-    df.index = df.index + 1  # 인덱스 1부터 시작
-
-    # Progress Column을 사용하여 비중 시각화
-    st.dataframe(
-        df,
-        column_config={
-            "티커": st.column_config.TextColumn("종목 티커"),
-            "기업명": st.column_config.TextColumn("기업명"),
-            "비중(%)": st.column_config.ProgressColumn(
-                "포트폴리오 비중(%)",
-                format="%.1f%%",
-                min_value=0,
-                max_value=max(df["비중(%)"]) + 5,
-            ),
-        },
-        use_container_width=True,
-        hide_index=False
-    )
+    with st.spinner("미국 SEC 공시 기반 최신 포트폴리오 데이터 크롤링 중..."):
+        code = guru_map[guru_option]
+        scraped_data = get_13f_portfolio(code)
+        
+        if scraped_data and scraped_data[0].get("비중(%)", 0) > 0:
+            df = pd.DataFrame(scraped_data)
+            df.index = df.index + 1
+            
+            st.dataframe(
+                df,
+                column_config={
+                    "티커": st.column_config.TextColumn("종목 티커"),
+                    "기업명": st.column_config.TextColumn("기업명"),
+                    "비중(%)": st.column_config.ProgressColumn(
+                        "포트폴리오 비중(%)",
+                        format="%.2f%%",
+                        min_value=0,
+                        max_value=max(df["비중(%)"]) + 5 if len(df) > 0 else 100,
+                    ),
+                },
+                use_container_width=True,
+                hide_index=False
+            )
+        else:
+            st.warning("현재 해당 거장의 포트폴리오 데이터를 실시간으로 불러오는 데 실패했습니다. 잠시 후 다시 시도해 주세요.")
