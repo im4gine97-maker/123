@@ -45,6 +45,7 @@ def clean_ceo_name(name):
             break
     return k_name
 
+# 유명 가치투자자들의 최신 13F 하드코딩 데이터
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85},
@@ -79,6 +80,18 @@ fallback_13f_data = {
         {"티커": "KKR", "기업명": "KKR & Co. Inc.", "비중(%)": 10.16},
         {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
         {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 8.10}
+    ],
+    "PI": [
+        {"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 39.89},
+        {"티커": "RIG", "기업명": "Transocean Ltd", "비중(%)": 31.97},
+        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources", "비중(%)": 28.14}
+    ],
+    "AQUA": [
+        {"티커": "BRK.B", "기업명": "Berkshire Hathaway Class B", "비중(%)": 34.57},
+        {"티커": "BRK.A", "기업명": "Berkshire Hathaway Class A", "비중(%)": 15.92},
+        {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 14.77},
+        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}
     ]
 }
 
@@ -233,7 +246,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
 st.title("AGIE Deep Value Terminal")
 st.caption("시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
 
-tab1, tab2 = st.tabs(["개별 기업 가치분석", "거장들의 13F 포트폴리오"])
+tab1, tab2 = st.tabs(["개별 기업 가치분석", "유명 가치투자자 13F 포트폴리오"])
 
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL",
@@ -272,20 +285,23 @@ ai_ceo_db = {
     "BRK-B": "정직함과 주주 친화 정책의 대명사이며 어떠한 범죄나 사기 이력도 없습니다. 가장 신뢰할 수 있는 경영자 중 한 명입니다."
 }
 
+if "search_tk" not in st.session_state:
+    st.session_state.search_tk = None
+if "stock_input_val" not in st.session_state:
+    st.session_state.stock_input_val = ""
+
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
 with tab1:
-    if "search_tk" not in st.session_state:
-        st.session_state.search_tk = None
-
-    ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: AAPL, GOOGL, 005930.KS")
+    ui = st.text_input("종목명 또는 티커 입력:", value=st.session_state.stock_input_val, placeholder="예: AAPL, GOOGL, 005930.KS", key="stock_input")
     st.caption("※ 한국 주식은 정확한 데이터 스캔을 위해 가급적 티커(예: 005930.KS)로 입력해 주십시오.")
     
     if st.button("가치 분석 스캔 시작", type="primary"):
-        if ui:
-            q = ui.replace(" ", "").upper()
+        if st.session_state.stock_input:
+            q = st.session_state.stock_input.replace(" ", "").upper()
             st.session_state.search_tk = tmap.get(q, q)
+            st.session_state.stock_input_val = st.session_state.stock_input 
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
@@ -442,7 +458,7 @@ with tab1:
                 st.info("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.\n2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.\n3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.")
 
                 st.divider()
-                st.subheader("거장들의 철학 한마디")
+                st.subheader("유명 가치투자자들의 철학 한마디")
                 st.caption("**워런 버핏:** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.")
                 st.caption("**찰리 멍거:** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.")
                 st.caption("**필립 피셔:** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.")
@@ -451,10 +467,10 @@ with tab1:
                 st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
 
 # ==========================================
-# 탭 2: 거장들의 실시간 13F 포트폴리오
+# 탭 2: 유명 가치투자자 13F 포트폴리오
 # ==========================================
 with tab2:
-    st.subheader("글로벌 가치투자 거장 13F 포트폴리오")
+    st.subheader("글로벌 유명 가치투자자 13F 포트폴리오")
     st.caption("※ 미국의 13F 공시를 추적하여 최신 포트폴리오 비중을 표출합니다.")
     
     guru_map = {
@@ -462,10 +478,12 @@ with tab2:
         "워런 버핏 (Berkshire Hathaway)": "BRK",
         "빌 애크먼 (Pershing Square)": "PSH",
         "세스 클라만 (Baupost Group)": "BAU",
-        "척 아크레 (Akre Capital)": "AKRE"
+        "척 아크레 (Akre Capital)": "AKRE",
+        "모니시 파브라이 (Dalal Street)": "PI",
+        "가이 스피어 (Aquamarine Capital)": "AQUA"
     }
     
-    guru_option = st.selectbox("포트폴리오를 조회할 집중 가치투자 거장을 선택하세요:", list(guru_map.keys()))
+    guru_option = st.selectbox("포트폴리오를 조회할 유명 가치투자자를 선택하세요:", list(guru_map.keys()))
 
     with st.spinner("최신 포트폴리오 데이터 연동 중..."):
         code = guru_map[guru_option]
@@ -491,21 +509,21 @@ with tab2:
                 hide_index=False
             )
             
-            # 💡 빠른 분석 기능 추가
             st.markdown("---")
-            st.write("🔍 **포트폴리오 종목 빠른 분석**")
+            st.write("🔍 **포트폴리오 종목 빠른 분석 장전**")
             c_tk, c_btn = st.columns([3, 1])
             with c_tk:
-                fast_tk = st.selectbox("거장의 보유 종목 중 하나를 골라 즉시 내재가치를 스캔합니다.", df["티커"].tolist(), label_visibility="collapsed")
+                fast_tk = st.selectbox("유명 가치투자자의 보유 종목을 검색창에 즉시 장전합니다.", df["티커"].tolist(), label_visibility="collapsed")
             with c_btn:
-                if st.button("이 종목 즉시 분석", use_container_width=True):
-                    st.session_state.search_tk = tmap.get(fast_tk, fast_tk)
-                    st.success(f"✅ '{fast_tk}' 분석 장전 완료! 상단의 **[개별 기업 가치분석]** 탭을 누르시면 결과가 바로 뜹니다.")
+                if st.button("검색창에 장전하기", use_container_width=True):
+                    st.session_state.stock_input_val = fast_tk
+                    st.session_state.search_tk = None
+                    st.success(f"🎯 **{fast_tk}** 장전 완료! 상단의 **[개별 기업 가치분석]** 탭에서 **[스캔 시작]**을 눌러주세요.")
         else:
             st.warning("데이터를 불러오는 데 실패했습니다.")
 
 # ==========================================
-# 💡 하단 면책 조항 및 저작권 명시 구역 (법적 보호 장치)
+# 하단 면책 조항 및 저작권 명시 구역 
 # ==========================================
 st.divider()
 st.markdown("""
