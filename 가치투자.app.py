@@ -74,6 +74,7 @@ with st.sidebar:
     def t(ko, en): return ko if is_ko else en
         
     st.divider()
+    
     st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
@@ -81,7 +82,8 @@ with st.sidebar:
         top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
         for i, (rtk, count) in enumerate(top_5):
             if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
-                st.session_state.search_tk = rtk; st.rerun()
+                st.session_state.search_tk = rtk
+                st.rerun()
                 
     st.divider()
     st.header(t("📚 내 서재", "📚 My Library"))
@@ -92,22 +94,28 @@ with st.sidebar:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True): st.session_state.search_tk = b_tk; st.rerun()
+                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
+                    st.session_state.search_tk = b_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_bk_{b_tk}"): st.session_state.bookmarks.remove(b_tk); st.rerun()
+                if st.button("❌", key=f"del_bk_{b_tk}"):
+                    st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
     else:
-        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True): st.session_state.history = []; st.rerun()
+        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True):
+            st.session_state.history = []; st.rerun()
+            
         for h_tk in reversed(st.session_state.history):
             c1, c2 = st.columns([4, 1])
             with c1:
-                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True): st.session_state.search_tk = h_tk; st.rerun()
+                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
+                    st.session_state.search_tk = h_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_h_{h_tk}"): st.session_state.history.remove(h_tk); st.rerun()
+                if st.button("❌", key=f"del_h_{h_tk}"):
+                    st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
@@ -115,9 +123,10 @@ with st.sidebar:
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
 # ==========================================
-# 💡 메인 UI 스타일 (라이트모드 글씨 뭉개짐 해결)
+# 💡 메인 UI 스타일 및 번역 방지 메타태그
 # ==========================================
 st.markdown("""
+<meta name="google" content="notranslate">
 <style>
 .main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
 h1, h2, h3 {color: #58a6ff; font-weight: 700;}
@@ -130,19 +139,21 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
 .macro-ticker::-webkit-scrollbar { display: none; }
 .macro-ticker { -ms-overflow-style: none; scrollbar-width: none; }
-/* 💡 여기서 라이트모드 텍스트 안보이는 문제 완벽 해결 (글씨색 강제 지정) */
 .comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px; color: #e6edf3;}
 .comment-time {font-size: 0.8rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="padding-top: 5px; padding-bottom: 5px;">
+<div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: #ffffff; letter-spacing: 2px; line-height: 1.2;">
         VALUE
     </span>
 </div>
 """, unsafe_allow_html=True)
+
+# 💡 번역 방지 안내 문구
+st.info(t("💡 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 **'자동 번역' 기능을 꺼주세요.** (앱 자체에 한/영 변환 기능이 있습니다)", "💡 If the text looks distorted, please **disable your browser's auto-translate**. Use the language toggle in the sidebar instead."))
 
 # ==========================================
 # 💡 가로 스크롤 매크로 대시보드
@@ -158,8 +169,7 @@ macro_items = [
     (t("10년물 국채", "10Y Treasury"), f"{macro_data['10Y Treasury']['p']:.3f}%", macro_data['10Y Treasury']['c'], " bp")
 ]
 
-# 라이트 모드 대비 color: #ffffff; 명시적 추가
-macro_html = "<div class='macro-ticker' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
+macro_html = "<div class='macro-ticker' translate='no' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
 for name, val, chg, unit in macro_items:
     color = "#3fb950" if chg > 0 else ("#ff7b72" if chg < 0 else "#8b949e")
     sign = "+" if chg > 0 else ""
@@ -185,11 +195,10 @@ qqq_op, qqq_col = get_market_opinion(qqq_erp)
 with st.expander(t("📉 현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "📉 Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 **주식 위험 프리미엄(ERP)** 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an **Equity Risk Premium (ERP)** analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
-    # 💡 color: #e6edf3; 를 추가하여 하얀 화면(라이트 모드)에서도 텍스트가 무조건 밝게 보이도록 강제 세팅
     with c_m1:
-        st.markdown(f"<div style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -240,7 +249,7 @@ def get_investment_opinion(mos, pmos, roe, fcf):
     elif not dcf_broken and ((mos >= 10 and pmos >= 10) or (mos >= 20 and pmos > 0) or (pmos >= 20 and mos > 0)) and roe >= 10:
         return t("매수 (Buy)", "Buy"), "#3fb950", t("DCF와 PER 기준 모두 충분한 안전마진이 확보된 우량 기업", "Sufficient margin of safety secured across both DCF and PE metrics")
     elif mos <= -20 and pmos <= -20:
-        return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("DCF와 PER 모두 심각한 고평가 상태 (미스터 마켓의 광기)", "Severely overvalued in both DCF and PE metrics (Market Mania)")
+        return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("DCF와 PER 모두 심각 고평가 상태 (미스터 마켓의 광기)", "Severely overvalued in both DCF and PE metrics (Market Mania)")
     elif (mos <= -10 and pmos <= -10) or mos <= -30 or pmos <= -30:
         return t("매도 (Sell)", "Sell"), "#ff7b72", t("내재가치(DCF) 및 상대가치(PER) 기준 고평가 영역 진입 (안전마진 상실)", "Entered overvaluation territory across DCF and PE metrics (Loss of margin of safety)")
     elif dcf_broken:
@@ -383,7 +392,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-# 💡 5개 탭 구조로 확장 (주식 용어 사전 추가)
+# 💡 5개 탭 구조
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
@@ -481,9 +490,8 @@ with tab1:
                 elif pmos_val < 0: per_text, per_color = t(f"🚨 PER: {pmos_val:.1f}% (고평가)", f"🚨 PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
                 else: per_text, per_color = t(f"⚠️ PER: 데이터 확인 필요", f"⚠️ PER: Needs verification"), "#e3b341"
 
-                # 💡 라이트모드 텍스트 뭉개짐을 막기 위해 color: #e6edf3; 추가
                 st.markdown(f"""
-                <div style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
+                <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
                     <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
                     <div style="display: flex; gap: 15px; margin-bottom: 8px; flex-wrap: wrap;">
                         <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {dcf_color}; border: 1px solid {dcf_color}40;">{dcf_text}</span>
@@ -664,7 +672,7 @@ with tab4:
             st.rerun() 
 
 # ==========================================
-# 💡 탭 5: 주식 용어 사전 (맘 테스트 통과용)
+# 탭 5: 주식 용어 사전
 # ==========================================
 with tab5:
     st.subheader(t("📖 가장 쉬운 주식 용어 사전 (엄마도 이해하는 버전)", "📖 The Easiest Stock Glossary (Mom-friendly Edition)"))
@@ -697,8 +705,8 @@ with tab5:
          t("영업이익이 아무리 높아도 공장 짓느라 돈을 다 써버리면 남는 게 없죠. 진짜 부자 회사는 이 FCF(여윳돈)가 두둑한 회사입니다.", "A company might have high profit on paper, but if they spend it all on factory repairs, there's no cash. High FCF means a truly cash-rich company.")),
         
         ("🔮 DCF (현금흐름할인법) & 내재가치", 
-         t("회사가 앞으로 평생 벌어들일 돈을 현재 가치로 끌어와 계산한 '진짜 적정 가격'입니다.", "The 'true fair price' of a stock, calculated by guessing all the cash it will ever make in its lifetime and bringing that value to today."), 
-         t("현재 주가와 이 DCF 내재가치를 비교해서 주가가 더 싸면 매수 찬스입니다.", "If the current stock price is cheaper than this DCF Fair Value, it's a buying opportunity.")),
+         t("이 회사가 앞으로 평생 벌어들일 모든 '여윳돈'을 합쳐서, '그래서 지금 딱 얼마 주고 사면 정상인가?'를 계산해낸 진짜 가격표입니다.", "The 'true fair price' calculated by adding up all the future cash the company will ever make, discounted to today's value."), 
+         t("상가 건물을 살 때, 앞으로 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하죠? 주식도 똑같습니다. 이 DCF 가격표보다 현재 주가가 싸면 '바겐세일', 비싸면 '거품'입니다.", "Just like valuing a rental property based on all future rent you'll collect. If the stock is cheaper than this DCF price, it's a bargain sale!")),
         
         ("☂️ 안전마진 (Margin of Safety)", 
          t("100만 원짜리 명품백을 70만 원에 세일할 때 사는 것과 같습니다.", "Like buying a $1,000 designer bag on sale for $700."), 
@@ -714,7 +722,6 @@ with tab5:
     ]
 
     for term, definition, example in terms:
-        # 라이트모드 텍스트 뭉개짐 해결을 위해 텍스트 색상을 강제 (color: #c9d1d9 및 #e6edf3)
         st.markdown(f"""
         <div style="background-color: #161b22; color: #e6edf3; padding: 20px; border-radius: 12px; border-left: 5px solid #58a6ff; margin-bottom: 15px;">
             <h4 style="margin-top: 0; color: #58a6ff; margin-bottom: 10px;">{term}</h4>
@@ -723,11 +730,17 @@ with tab5:
         </div>
         """, unsafe_allow_html=True)
 
-# 하단 카피라이트
+# ==========================================
+# 💡 하단 경고 및 저작권 명시 구역 (원상 복구)
+# ==========================================
 st.divider()
 st.markdown(f"""
-<div style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>[Copyright]</b> ⓒ 2026 VALUE. All rights reserved.<br>
-    {t('본 터미널의 결과만으로 매수/매도를 권유하지 않으며, 투자 책임은 본인에게 있습니다.', 'Does not solicit purchase/sale; investment responsibility lies with the investor.')}</p>
+<div style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6; padding-bottom: 20px;'>
+    <p><b>{t('[면책 조항 / Disclaimer]', '[Disclaimer]')}</b><br>
+    {t('본 애플리케이션은 가치투자 분석을 돕기 위한 <b>단순 보조 도구</b>일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a <b>simple auxiliary tool</b> to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
+    {t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, <b>최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.</b>', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and <b>all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.</b>')}</p>
+    <p><b>[Copyright]</b><br>
+    ⓒ 2026 VALUE. All rights reserved.<br>
+    {t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')}</p>
 </div>
 """, unsafe_allow_html=True)
