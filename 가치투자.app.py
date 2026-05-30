@@ -6,11 +6,11 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-# 💡 앱 이름 및 기본 세팅
+# 💡 앱 이름 변경
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 💡 세션 상태 초기화 (검색 기록, 북마크)
+# 💡 세션 상태 초기화
 # ==========================================
 if "search_tk" not in st.session_state:
     st.session_state.search_tk = None
@@ -25,7 +25,6 @@ if "lang" not in st.session_state:
 # 💡 사이드바 (서재 및 설정 패널)
 # ==========================================
 with st.sidebar:
-    # 파란 라디오 버튼 대신 깔끔한 텍스트 토글
     if st.session_state.lang == "ko":
         if st.button("🇺🇸 English", use_container_width=True):
             st.session_state.lang = "en"
@@ -44,7 +43,7 @@ with st.sidebar:
     
     st.header(t("📚 내 서재", "📚 My Library"))
     
-    # 1. 북마크 (즐겨찾기) 영역
+    # 북마크
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
@@ -61,7 +60,7 @@ with st.sidebar:
                     
     st.divider()
     
-    # 2. 최근 검색 기록 영역
+    # 검색 기록
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -94,12 +93,9 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .stTabs [data-baseweb="tab-list"] {gap: 20px; border-bottom: 1px solid #30363d;}
 .stTabs [data-baseweb="tab"] {font-size: 1.15rem; font-weight: 600; color: #8b949e; padding-bottom: 10px;}
 .stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
-[data-testid="stMetricValue"] {font-size: 1.8rem; font-weight: bold; color: #ffffff;}
-[data-testid="stMetricLabel"] {font-size: 1rem; color: #8b949e;}
 </style>
 """, unsafe_allow_html=True)
 
-# 💡 흰색 굵은 텍스트 로고 영역 (최상단)
 st.markdown("""
 <div style="padding-top: 10px; padding-bottom: 15px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: #ffffff; letter-spacing: 2px; line-height: 1.2;">
@@ -161,20 +157,40 @@ def analyze_trends(stk):
         pass
     return eps_trend, bps_trend
 
+# 💡 PER과 DCF를 1:1로 엄격하게 반영하는 강화된 투자의견 알고리즘
 def get_investment_opinion(mos, pmos, roe, fcf):
-    if not fcf or fcf <= 0:
-        return t("관망 (Hold)", "Hold"), "#e3b341", t("잉여현금흐름(FCF) 역성장 또는 적자로 인한 밸류에이션 판단 보류", "Valuation suspended due to negative or declining Free Cash Flow")
+    dcf_broken = not fcf or fcf <= 0
     
-    if mos >= 30 and pmos >= 10 and roe >= 15:
-        return t("강력 매수 (Strong Buy)", "Strong Buy"), "#09ab3b", t("압도적인 안전마진과 탁월한 자본수익률(ROE/ROIC)을 보유한 위대한 기업", "Overwhelming margin of safety with excellent ROE/ROIC")
-    elif (mos >= 15) or (mos > 0 and pmos >= 15 and roe >= 10):
-        return t("매수 (Buy)", "Buy"), "#3fb950", t("내재가치 대비 충분히 저평가되어 있으며 양호한 비즈니스 펀더멘털 보유", "Undervalued compared to intrinsic value with solid business fundamentals")
-    elif mos <= -30 and pmos <= -15:
-        return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("내재가치 및 상대가치 대비 심각하게 고평가된 과열 구간 (미스터 마켓의 광기)", "Severely overvalued based on intrinsic and relative valuation (Market Mania)")
-    elif mos <= -15:
-        return t("매도 (Sell)", "Sell"), "#ff7b72", t("안전마진이 완전히 소멸되었으며 밸류에이션 부담이 가중된 상태", "Margin of safety has vanished with significant valuation burden")
+    # 1. 강력 매수: DCF, PER 둘 다 압도적 저평가 + 우수한 수익성
+    if not dcf_broken and mos >= 20 and pmos >= 15 and roe >= 15:
+        return t("강력 매수 (Strong Buy)", "Strong Buy"), "#09ab3b", t("DCF 내재가치와 PER 상대가치 모두에서 압도적 저평가 및 탁월한 수익성 확인", "Overwhelmingly undervalued in both DCF and PE metrics with excellent profitability")
+        
+    # 2. 매수: DCF, PER 둘 다 저평가거나, 하나가 매우 싼데 나머지도 준수할 때
+    elif not dcf_broken and ((mos >= 10 and pmos >= 10) or (mos >= 20 and pmos > 0) or (pmos >= 20 and mos > 0)) and roe >= 10:
+        return t("매수 (Buy)", "Buy"), "#3fb950", t("DCF와 PER 기준 모두 충분한 안전마진이 확보된 우량 기업", "Sufficient margin of safety secured across both DCF and PE metrics")
+        
+    # 3. 강력 매도: 둘 다 미친듯이 비쌀 때
+    elif mos <= -20 and pmos <= -20:
+        return t("강력 매도 (Strong Sell)", "Strong Sell"), "#da3633", t("DCF와 PER 모두 심각한 고평가 상태 (미스터 마켓의 광기)", "Severely overvalued in both DCF and PE metrics (Market Mania)")
+        
+    # 4. 매도: 전반적으로 비싸거나, 하나가 심각하게 비쌀 때
+    elif (mos <= -10 and pmos <= -10) or mos <= -30 or pmos <= -30:
+        return t("매도 (Sell)", "Sell"), "#ff7b72", t("내재가치(DCF) 및 상대가치(PER) 기준 고평가 영역 진입 (안전마진 상실)", "Entered overvaluation territory across DCF and PE metrics (Loss of margin of safety)")
+        
+    # 5. FCF 적자 시 예외 처리
+    elif dcf_broken:
+        if pmos <= -10:
+            return t("매도 (Sell)", "Sell"), "#ff7b72", t("잉여현금흐름 적자 및 PER 고평가로 인한 밸류에이션 리스크 가중", "Negative FCF and PE overvaluation leading to heightened risk")
+        return t("관망 (Hold)", "Hold"), "#e3b341", t("현금흐름(FCF) 적자로 인해 정확한 내재가치 산정 불가 (보수적 접근 필요)", "Unable to calculate intrinsic value due to negative FCF (Conservative approach required)")
+        
+    # 6. 관망: 엇갈린 지표 및 애매한 가격
     else:
-        return t("관망 (Hold)", "Hold"), "#e3b341", t("적정 가치 부근에서 거래 중이거나 추가적인 모니터링이 필요함", "Trading near fair value; requires further monitoring")
+        if mos > 10 and pmos < -10:
+             return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF상 저평가이나 PER상 고평가 (엇갈린 지표, 역성장 여부 모니터링 필요)", "Undervalued on DCF but overvalued on PE (Mixed signals, monitor for degrowth)")
+        elif pmos > 10 and mos < -10:
+             return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
+        else:
+             return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
 fallback_13f_data = {
     "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK.B", "기업명": "Berkshire Hathaway B", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
@@ -234,15 +250,14 @@ def get_nv(cd):
     except: return None
 
 def get_data(tk):
-    # 💡 6자리 숫자만 입력 시 스마트 한국 주식 자동 판별 로직
     if tk.isdigit() and len(tk) == 6:
         test_tk = tk + ".KS"
         stk_test = yf.Ticker(test_tk)
         try:
             _ = stk_test.fast_info['lastPrice']
-            tk = test_tk # 코스피 데이터가 있으면 .KS 채택
+            tk = test_tk 
         except:
-            tk = tk + ".KQ" # 없으면 코스닥(.KQ)으로 시도
+            tk = tk + ".KQ"
 
     if "." not in tk: tk = tk.upper()
     kr = tk.endswith('.KS') or tk.endswith('.KQ')
@@ -324,7 +339,6 @@ with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
         ui = st.text_input(t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), placeholder=t("예: AAPL, GOOGL, 005930", "e.g., AAPL, GOOGL, 005930"), label_visibility="collapsed")
-        # 💡 안내 문구 변경 완료
         st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
@@ -386,28 +400,37 @@ with tab1:
                 eps_trend, bps_trend = analyze_trends(stk)
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
-                op_title, op_color, op_reason = get_investment_opinion(mos if mos else 0, pmos, roe, base_fcf)
+                mos_val = mos if mos else 0
+                pmos_val = pmos if pmos else 0
+                op_title, op_color, op_reason = get_investment_opinion(mos_val, pmos_val, roe, base_fcf)
                 
-                mos_val_text = ""
+                # 💡 DCF와 PER을 동급으로 표시하는 UI 태그 포맷팅
                 if not iv:
-                    mos_val_text = t(f"⚠️ {err}", f"⚠️ {err}")
-                    mos_color = "#e3b341"
-                elif mos > 0:
-                    mos_val_text = t(f"✅ 내재가치 대비 +{mos:.1f}% 안전마진 존재", f"✅ +{mos:.1f}% Margin of Safety exists")
-                    mos_color = "#3fb950"
+                    dcf_text, dcf_color = t(f"⚠️ DCF: {err}", f"⚠️ DCF: {err}"), "#e3b341"
+                elif mos_val > 0:
+                    dcf_text, dcf_color = t(f"✅ DCF: +{mos_val:.1f}% (저평가)", f"✅ DCF: +{mos_val:.1f}% (Undervalued)"), "#3fb950"
                 else:
-                    mos_val_text = t(f"🚨 내재가치 대비 {abs(mos):.1f}% 안전마진 상실 (고평가)", f"🚨 {abs(mos):.1f}% Margin of Safety lost (Overvalued)")
-                    mos_color = "#ff7b72"
-                    
-                pmos_val_text = t(f"(PER 상대가치: {'+' if pmos > 0 else ''}{pmos:.1f}%)", f"(PE Margin of Safety: {'+' if pmos > 0 else ''}{pmos:.1f}%)")
+                    dcf_text, dcf_color = t(f"🚨 DCF: {mos_val:.1f}% (고평가)", f"🚨 DCF: {mos_val:.1f}% (Overvalued)"), "#ff7b72"
+
+                if pmos_val > 0:
+                    per_text, per_color = t(f"✅ PER: +{pmos_val:.1f}% (저평가)", f"✅ PER: +{pmos_val:.1f}% (Undervalued)"), "#3fb950"
+                elif pmos_val < 0:
+                    per_text, per_color = t(f"🚨 PER: {pmos_val:.1f}% (고평가)", f"🚨 PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
+                else:
+                    per_text, per_color = t(f"⚠️ PER: 데이터 확인 필요", f"⚠️ PER: Needs verification"), "#e3b341"
 
                 st.markdown(f"""
                 <div style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; margin-bottom: 25px; margin-top: 10px;">
-                    <h3 style="margin: 0 0 8px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
-                    <p style="margin: 0 0 6px 0; font-size: 1.05rem; font-weight: bold; color: {mos_color};">
-                        {mos_val_text} <span style="font-size: 0.9rem; font-weight: normal; color: #8b949e; margin-left: 8px;">{pmos_val_text}</span>
-                    </p>
-                    <span style="color: #c9d1d9; font-size: 0.95rem; display: block; margin-top: 5px;">{op_reason}</span>
+                    <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
+                    <div style="display: flex; gap: 15px; margin-bottom: 8px; flex-wrap: wrap;">
+                        <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {dcf_color}; border: 1px solid {dcf_color}40;">
+                            {dcf_text}
+                        </span>
+                        <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {per_color}; border: 1px solid {per_color}40;">
+                            {per_text}
+                        </span>
+                    </div>
+                    <span style="color: #c9d1d9; font-size: 0.95rem; display: block; margin-top: 8px;">💡 {op_reason}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -472,8 +495,8 @@ with tab1:
                 elif pmos < 0: p_txt += f"- PER: <span class='highlight'>{t('주의', 'Warning')} ({pmos:.1f}%)</span>\n"
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
                 
-                if mos > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos:.1f}%)</span>"
-                elif mos < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos:.1f}%)</span>"
+                if mos_val > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos_val:.1f}%)</span>"
+                elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos_val:.1f}%)</span>"
                 else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
