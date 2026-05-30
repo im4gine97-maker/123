@@ -7,7 +7,7 @@ import time
 import pandas as pd
 
 # 💡 앱 이름 변경
-st.set_page_config(page_title="DEEP VALUE TERMINAL", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
 # 💡 세션 상태 초기화 (검색 기록, 북마크)
@@ -89,11 +89,11 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 </style>
 """, unsafe_allow_html=True)
 
-# 💡 텍스트 로고 영역 (최상단)
+# 💡 흰색 굵은 텍스트 로고 영역 (최상단)
 st.markdown("""
 <div style="padding-top: 10px; padding-bottom: 15px;">
-    <span style="font-size: 2.8rem; font-weight: 900; color: #58a6ff; letter-spacing: 1.5px; line-height: 1.2;">
-        DEEP VALUE TERMINAL
+    <span style="font-size: 3.2rem; font-weight: 900; color: #ffffff; letter-spacing: 2px; line-height: 1.2;">
+        VALUE
     </span>
 </div>
 """, unsafe_allow_html=True)
@@ -384,7 +384,7 @@ with tab1:
                     if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+{mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
                     else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>{mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
                 else:
-                    st.error(f"{err} {t('(이건 확인이 필요한 부분입니다)', '(Needs manual verification)')}")
+                    st.error(f"{err} {t('(확인이 필요한 부분입니다)', '(Needs manual verification)')}")
                 
                 # 3. 질적 분석
                 st.divider()
@@ -510,7 +510,7 @@ st.markdown(f"""
     {t('본 애플리케이션은 가치투자 분석을 돕기 위한 <b>단순 보조 도구</b>일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a <b>simple auxiliary tool</b> to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
     {t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, <b>최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.</b>', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and <b>all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.</b>')}</p>
     <p><b>[Copyright]</b><br>
-    ⓒ 2026 DEEP VALUE TERMINAL. All rights reserved.<br>
+    ⓒ 2026 VALUE. All rights reserved.<br>
     {t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')}</p>
 </div>
 """, unsafe_allow_html=True)
