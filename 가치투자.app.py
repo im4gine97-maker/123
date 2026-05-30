@@ -3,8 +3,10 @@ import yfinance as yf
 from deep_translator import GoogleTranslator
 import time
 
+# 앱 설정
 st.set_page_config(page_title="JB Value Terminal", page_icon="⚡", layout="centered")
 
+# 디자인 설정
 st.markdown("""
     <style>
     .main {background-color: #0d1117; color: #c9d1d9;}
@@ -15,6 +17,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# 번역 함수
 def safe_translate(text):
     if not text or not isinstance(text, str) or len(text) < 2: return text
     try:
@@ -22,13 +25,12 @@ def safe_translate(text):
     except:
         return text
 
+# 데이터 가져오기 (방어 로직 포함)
 def get_stock_data(ticker_symbol):
     stock = yf.Ticker(ticker_symbol)
     for i in range(3):
         try:
-            # 1. 가격 먼저 확보
             price = stock.fast_info['lastPrice']
-            # 2. 정보 확보 (실패 시 빈 딕셔너리 반환)
             info = stock.info
             if not isinstance(info, dict): info = {}
             return price, info
@@ -37,7 +39,7 @@ def get_stock_data(ticker_symbol):
     return None, {}
 
 st.title("⚡ JB Value Terminal PRO")
-st.error("🚨 서버 상태에 따라 데이터 로딩이 늦어질 수 있습니다. 오류 시 1분 후 재시도하세요.")
+st.error("🚨 서버 통신 오류 발생 시 1~2분 후 새로고침하세요.")
 
 ticker_map = {
     "애플": "AAPL", "구글": "GOOGL", "알파벳": "GOOGL", "마이크로소프트": "MSFT", 
@@ -50,28 +52,21 @@ user_input = st.text_input("기업명 또는 티커 입력", placeholder="예: �
 
 if st.button("가치 분석 실행", type="primary"):
     if user_input:
-        with st.spinner('실시간 서버 통신 및 분석 중...'):
+        with st.spinner('실시간 분석 중...'):
             search_ticker = ticker_map.get(user_input.strip(), user_input.strip().upper())
             price, info = get_stock_data(search_ticker)
             
-            # 여기서 info가 비어있어도 에러가 나지 않도록 체크
             if price:
                 name = info.get('shortName', search_ticker)
                 sector = info.get('sector', 'Unknown')
-                
-                # 경영진 정보 보호
                 officers = info.get('companyOfficers', [])
                 ceo_name = officers[0].get('name', '정보 없음') if officers else '정보 없음'
-                
-                # 비즈니스 설명 보호
                 summary = info.get('longBusinessSummary', '비즈니스 설명 데이터가 없습니다.')
                 
                 st.success(f"🏢 {name} / 업종: {safe_translate(sector)}")
                 st.subheader("🕵️‍♂️ 질적 분석")
                 st.markdown(f"- **핵심 경영진:** <span class='good'>{safe_translate(ceo_name)}</span>", unsafe_allow_html=True)
                 st.markdown(f"- **비즈니스 모델:**\n> {safe_translate(summary)}")
-                st.info("💡 위 비즈니스 모델을 논리적으로 설명할 수 없다면 내 '능력 범위' 밖입니다.")
+                st.info("💡 위 비즈니스 모델을 설명할 수 없다면 내 '능력 범위' 밖입니다.")
             else:
-                st.error("데이터를 가져오는 데 실패했습니다. 티커가 정확한지 확인하거나 잠시 후 다시 시도해 주세요.")
-    else:
-        st.warning("기업명이나 티커를 입력해주세요.")
+                st.error("데이터를 가져오는 데 실패했습니다. 잠시 후 다시 시도해 주세요.")
