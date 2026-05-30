@@ -87,7 +87,6 @@ with st.sidebar:
                 st.rerun()
                 
     st.divider()
-    
     st.header(t("📚 내 서재", "📚 My Library"))
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
@@ -103,7 +102,6 @@ with st.sidebar:
                     st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
-    
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -121,7 +119,6 @@ with st.sidebar:
                     st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
-    
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
@@ -132,7 +129,8 @@ with st.sidebar:
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
-.main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
+/* 반응형 적용을 위해 .main의 강제 배경색/글자색 지정 삭제 */
+.main {font-family: 'Pretendard', sans-serif;}
 h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .box {background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px;}
 .guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 15px; margin-bottom: 12px; background: #1c2128; padding: 15px; border-radius: 0 8px 8px 0;}
@@ -148,9 +146,10 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 </style>
 """, unsafe_allow_html=True)
 
+# 💡 강제 #ffffff(흰색)을 빼고 var(--text-color)로 변경하여 테마 자동 적응
 st.markdown("""
 <div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
-    <span style="font-size: 3.2rem; font-weight: 900; color: #ffffff; letter-spacing: 2px; line-height: 1.2;">
+    <span style="font-size: 3.2rem; font-weight: 900; color: var(--text-color); letter-spacing: 2px; line-height: 1.2;">
         VALUE
     </span>
 </div>
@@ -579,6 +578,21 @@ with tab1:
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
                 st.divider()
+                st.subheader(t("5. 기업 해부 및 학문적 모델 적용", "5. Corporate Anatomy & Academic Models"))
+                if final_g > 0: math_eval = f"<span class='good'>{t(f'연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('현금흐름 역성장 (복리 팽창 구간 아님).', 'Negative FCF (Not a compounding phase).')}</span>"
+                    
+                st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
+                st.write(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {t('부채 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.', 'Check Darwinian survivability regarding debt structure.')}")
+                st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 것은 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
+                st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
+
+                st.divider()
+                st.subheader(t("6. 매도 3원칙 (오직 다음 경우에만 매도)", "6. Sell 3-Principles (Sell ONLY if:)"))
+                sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
+                st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
+
+                st.divider()
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
@@ -733,8 +747,8 @@ with tab5:
          t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
         
         ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
-         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
+         t("이 회사가 앞으로 평생 벌어들일 모든 '여윳돈'을 합쳐서, '그래서 지금 딱 얼마 주고 사면 정상인가?'를 계산해낸 진짜 가격표입니다.", "The 'true fair price' calculated by adding up all the future cash the company will ever make, discounted to today's value."), 
+         t("상가 건물을 살 때, 앞으로 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하죠? 주식도 똑같습니다. 이 가격표보다 현재 주가가 싸면 '바겐세일', 비싸면 '거품'입니다.", "Just like valuing a rental property based on all future rent you'll collect. If the stock is cheaper than this DCF price, it's a bargain sale!")),
         
         ("안전마진 (Margin of Safety)", 
          t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
@@ -751,7 +765,7 @@ with tab5:
 
     for term, definition, example in terms:
         st.markdown(f"""
-        <div style="background-color: #161b22; color: #e6edf3; padding: 20px; border-radius: 12px; border-left: 5px solid #58a6ff; margin-bottom: 15px;">
+        <div translate="no" style="background-color: #161b22; color: #e6edf3; padding: 20px; border-radius: 12px; border-left: 5px solid #58a6ff; margin-bottom: 15px;">
             <h4 style="margin-top: 0; color: #58a6ff; margin-bottom: 10px;">{term}</h4>
             <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
             <div style="font-size: 0.95rem; color: #8b949e;"><b>{t('이해하기:', 'Analogy:')}</b> {example}</div>
@@ -761,7 +775,7 @@ with tab5:
 # 하단 카피라이트
 st.divider()
 st.markdown(f"""
-<div style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
+<div translate="no" style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
     <p><b>{t('[면책 조항 / Disclaimer]', '[Disclaimer]')}</b><br>
     {t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
     {t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')}</p>
