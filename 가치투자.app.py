@@ -25,6 +25,27 @@ def tr(txt):
     except:
         return txt
 
+# 💡 위키피디아 API를 활용해 CEO 인물 정보를 자동으로 긁어오는 함수
+def get_ceo_bio(name):
+    if not name or name == '누락': return "CEO 정보 누락"
+    try:
+        # 1. 영문 위키피디아 먼저 검색 (글로벌 CEO 커버)
+        nm = name.replace(" ", "_")
+        h = {'User-Agent': 'Mozilla/5.0'}
+        url_en = f"https://en.wikipedia.org/api/rest_v1/page/summary/{nm}"
+        r_en = requests.get(url_en, headers=h, timeout=2).json()
+        if 'extract' in r_en:
+            return tr(r_en['extract']) # 번역해서 반환
+            
+        # 2. 한글 위키피디아 검색 (한국 CEO 커버)
+        url_ko = f"https://ko.wikipedia.org/api/rest_v1/page/summary/{nm}"
+        r_ko = requests.get(url_ko, headers=h, timeout=2).json()
+        if 'extract' in r_ko:
+            return r_ko['extract']
+    except:
+        pass
+    return "자동 검색된 프로필이 없습니다. (이건 구글링을 통한 직접 확인이 필요한 부분입니다.)"
+
 def get_nv(cd):
     url = "https://finance.naver.com/item/main.naver?code=" + cd
     h = {'User-Agent': 'Mozilla/5.0'}
@@ -123,29 +144,35 @@ st.title("⚡ AGIE Value Terminal")
 st.error("🚨 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
 
 tmap = {
-    "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL",
-    "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
-    "테슬라":"TSLA", "엔비디아":"NVDA", "메타":"META", "페이스북":"META",
-    "크록스":"CROX", "디어":"DE", "존디어":"DE", "캐터필러":"CAT", "캐타필러":"CAT",
-    "TSMC":"TSM", "ASML":"ASML", "AMD":"AMD", "인텔":"INTC", "퀄컴":"QCOM",
-    "일라이릴리":"LLY", "노보노디스크":"NVO", "유나이티드헬스":"UNH",
-    "존슨앤존슨":"JNJ", "P&G":"PG", "월마트":"WMT", "코스트코":"COST",
-    "홈디포":"HD", "비자":"V", "마스터카드":"MA", "무디스":"MCO",
-    "코카콜라":"KO", "펩시":"PEP", "맥도날드":"MCD", "스타벅스":"SBUX",
-    "넷플릭스":"NFLX", "디즈니":"DIS", "버크셔":"BRK-B", "보잉":"BA",
-    "록히드마틴":"LMT", "GE":"GE", "브로드컴":"AVGO",
-    "삼성전자":"005930.KS", "SK하이닉스":"000660.KS", "현대차":"005380.KS",
-    "기아":"000270.KS", "KB금융":"105560.KS", "신한지주":"055550.KS",
-    "하나금융지주":"086790.KS", "메리츠금융지주":"138040.KS",
-    "네이버":"035420.KS", "카카오":"035720.KS", "에코프로":"086520.KQ",
+    "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", 
+    "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", 
+    "마소":"MSFT", "아마존":"AMZN", "테슬라":"TSLA", 
+    "엔비디아":"NVDA", "메타":"META", "페이스북":"META",
+    "크록스":"CROX", "디어":"DE", "존디어":"DE", 
+    "캐터필러":"CAT", "캐타필러":"CAT", "TSMC":"TSM", 
+    "ASML":"ASML", "AMD":"AMD", "인텔":"INTC", 
+    "퀄컴":"QCOM", "일라이릴리":"LLY", "노보노디스크":"NVO", 
+    "유나이티드헬스":"UNH", "존슨앤존슨":"JNJ", "P&G":"PG", 
+    "월마트":"WMT", "코스트코":"COST", "홈디포":"HD", 
+    "비자":"V", "마스터카드":"MA", "무디스":"MCO",
+    "코카콜라":"KO", "펩시":"PEP", "맥도날드":"MCD", 
+    "스타벅스":"SBUX", "넷플릭스":"NFLX", "디즈니":"DIS", 
+    "버크셔":"BRK-B", "보잉":"BA", "록히드마틴":"LMT", 
+    "GE":"GE", "브로드컴":"AVGO", "삼성전자":"005930.KS", 
+    "SK하이닉스":"000660.KS", "현대차":"005380.KS", 
+    "기아":"000270.KS", "KB금융":"105560.KS", 
+    "신한지주":"055550.KS", "하나금융지주":"086790.KS", 
+    "메리츠금융지주":"138040.KS", "네이버":"035420.KS", 
+    "카카오":"035720.KS", "에코프로":"086520.KQ",
     "에코프로비엠":"247540.KQ", "셀트리온":"068270.KS",
-    "LG엔솔":"373220.KS", "포스코홀딩스":"005490.KS", "삼성바이오로직스":"207940.KS"
+    "LG엔솔":"373220.KS", "포스코홀딩스":"005490.KS", 
+    "삼성바이오로직스":"207940.KS"
 }
 
 ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: 크록스, 디어, 캐터필러, 삼성전자")
 if st.button("가치 분석 심층 스캔", type="primary"):
     if ui:
-        with st.spinner("데이터 스캔 중..."):
+        with st.spinner("기업 정보 구글링 및 10년 DCF 스캔 중..."):
             q = ui.replace(" ", "").upper()
             tk = tmap.get(q, q)
             stk, p, i, kr = get_data(tk)
@@ -166,10 +193,15 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 pbr = i.get('priceToBook', 0)
                 div = i.get('dividendYield', 0) * 100
                 roe = i.get('returnOnEquity', 0) * 100
+                
                 a_pe = i.get('fiveYearAvgPE')
                 if not a_pe: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
-                ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 
+                pmos = 0
+                if f_pe > 0 and a_pe > 0:
+                    pmos = ((a_pe - f_pe) / a_pe) * 100
+                    
+                ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 iv, mos, err, g_rate = run_dcf(stk, i, p, ty)
                 
                 with c1:
@@ -184,12 +216,10 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.write(f"- **Fwd PER:** {f_pe:.2f}배")
                     st.write(f"- **5~10년 평균 PER:** {a_pe:.2f}배")
                     
-                    if f_pe > 0 and a_pe > 0:
-                        pmos = ((a_pe - f_pe) / a_pe) * 100
-                        if pmos > 0:
-                            st.markdown(f"▶ **PER 안전마진:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"▶ **PER 안전마진:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
+                    if pmos > 0:
+                        st.markdown(f"▶ **PER 안전마진:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
+                    elif pmos < 0:
+                        st.markdown(f"▶ **PER 안전마진:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
                     
                     st.write(f"- **PBR:** {pbr:.2f}배 (한국 주식은 PBR 위주)") if kr else st.write(f"- **PBR:** {pbr:.2f}배")
                     st.write(f"- **ROIC(ROE대체):** {roe:.2f}%")
@@ -210,26 +240,30 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                         else:
                             st.markdown(f"▶ **DCF 안전마진:** <span class='highlight'>{mos:.1f}% (고평가)</span>", unsafe_allow_html=True)
                     else:
-                        st.error(f"⚠️ {err} (확인이 필요한 부분입니다)")
+                        st.error(f"⚠️ {err} (이건 확인이 필요한 부분입니다)")
                     st.markdown("</div>", unsafe_allow_html=True)
                     
                 with c2:
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
                     st.subheader("🕵️‍♂️ 2. 질적 분석")
                     off = i.get('companyOfficers', [])
-                    ceo = off[0].get('name') if off else '누락'
-                    st.markdown(f"- **CEO:** <span class='good'>{tr(ceo)}</span>", unsafe_allow_html=True)
-                    st.info("💡 경영진의 정직함이 가장 중요합니다. 도덕적 결함이 없는지 반드시 사실 수집 요망.")
+                    ceo_name = off[0].get('name', '누락') if off else '누락'
+                    ceo_title = off[0].get('title', '정보없음') if off else '정보없음'
                     
+                    st.markdown(f"- **CEO:** <span class='good'>{tr(ceo_name)}</span> ({tr(ceo_title)})", unsafe_allow_html=True)
+                    
+                    # 💡 추가된 CEO 인물 검색 백과사전 연동
+                    ceo_bio = get_ceo_bio(ceo_name)
+                    st.write("**[CEO 인물 프로필 요약]**")
+                    st.markdown(f"> {ceo_bio[:400]}...")
+                    st.caption("※ 경영자의 도덕적 결함 및 과거 자본 배분 이력은 직접 구글링을 통한 팩트체크가 필요합니다.")
+                    
+                    st.markdown("---")
                     sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
                     st.markdown(f"- **비즈니스 요약:**\n> {tr(sum_t)[:350]}...")
                     st.caption("※ 모든 판단은 사실 수집 및 임직원 의견을 반영하여 교차 검증하십시오.")
                     st.markdown("</div>", unsafe_allow_html=True)
 
-                # ========================================================
-                # 💡 추가된 [AI 자동 투자의견 및 해부 리포트]
-                # 위에서 계산된 안전마진과 ROE, 성장률 데이터를 통해 문장을 알아서 완성합니다.
-                # ========================================================
                 st.markdown("---")
                 st.subheader("🤖 3. 데이터 기반 투자의견 자동 판별 (AI Report)")
                 c3, c4 = st.columns(2)
@@ -238,25 +272,26 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
                     st.write("**[매수 6원칙 자동 체크]**")
                     
-                    # 1. 가격 저렴성 평가
-                    if mos > 0:
-                        price_eval = f"<span class='good'>합격 (DCF 기준 안전마진 +{mos:.1f}% 확보됨)</span>"
-                    elif mos == 0:
-                        price_eval = "<span class='highlight'>보류 (재무제표 데이터 부족으로 팩트체크 필요)</span>"
-                    else:
-                        price_eval = f"<span class='highlight'>주의 (현재 {mos:.1f}% 고평가 구간. 프리미엄 지불 중)</span>"
-                    st.markdown(f"**1. 가격은 저렴한가?** 👉 {price_eval}", unsafe_allow_html=True)
+                    p_txt = "**1. 가격은 저렴한가 (안전마진)?**<br>"
+                    if pmos > 0: p_txt += f"▶ PER 기준: <span class='good'>합격 (+{pmos:.1f}% 저평가)</span><br>"
+                    elif pmos < 0: p_txt += f"▶ PER 기준: <span class='highlight'>주의 ({pmos:.1f}% 고평가)</span><br>"
+                    else: p_txt += "▶ PER 기준: (확인이 필요한 부분입니다)<br>"
                     
-                    # 2. 비즈니스 퀄리티 평가
+                    if mos > 0: p_txt += f"▶ DCF 기준: <span class='good'>합격 (+{mos:.1f}% 저평가)</span>"
+                    elif mos < 0: p_txt += f"▶ DCF 기준: <span class='highlight'>주의 ({mos:.1f}% 고평가)</span>"
+                    else: p_txt += "▶ DCF 기준: (확인이 필요한 부분입니다)"
+                    
+                    st.markdown(p_txt, unsafe_allow_html=True)
+                    
                     if roe >= 15:
                         biz_eval = f"<span class='good'>우수 (ROE {roe:.2f}%로 자본효율이 탁월하며 해자가 있을 확률이 높음)</span>"
                     elif roe > 0:
                         biz_eval = f"보통 (ROE {roe:.2f}%. 압도적 해자가 있는지 제품/서비스 독점력 추가 확인 필요)"
                     else:
                         biz_eval = f"<span class='highlight'>경고 (ROE {roe:.2f}%. 비즈니스 구조 훼손 가능성 점검 시급)</span>"
-                    st.markdown(f"**2. 좋은 비즈니스인가?** 👉 {biz_eval}", unsafe_allow_html=True)
+                    st.markdown(f"**2. 좋은 비즈니스인가?**<br>👉 {biz_eval}", unsafe_allow_html=True)
                     
-                    st.write("**3. 경영진은 신뢰할 수 있는가?** 👉 (이건 확인이 필요한 부분입니다. 과거 자본배분 이력 및 평판 조사 요망)")
+                    st.write("**3. 경영진은 신뢰할 수 있는가?** 👉 위 프로필 요약을 참고하되, 과거 횡령/주주기만 여부는 직접 확인해야 하는 부분입니다.")
                     st.write("**4. 놓친 리스크는 없는가?** 👉 현재 주가 하락이 단순한 '미스터 마켓의 우울증'인지 영구적 손상인지 확인하세요.")
                     st.write("**5~6. 능력 범위 안인가?** 👉 이 비즈니스 모델을 타인에게 논리적으로 재반박하며 설명할 수 있습니까?")
                     st.markdown("</div>", unsafe_allow_html=True)
@@ -265,11 +300,10 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
                     st.write("**[기업 해부 및 학문적 모델 적용]**")
                     
-                    # 수학적 복리 모델 평가
                     if g_rate > 0:
                         math_eval = f"<span class='good'>최근 주주이익(FCF) 기반 연평균 {g_rate*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
                     else:
-                        math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아님.</span>"
+                        math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아닙니다.</span>"
                         
                     st.markdown(f"- **수학 (복리 모형):** {math_eval}", unsafe_allow_html=True)
                     st.write("- **생물학 (생존력):** 부채 및 유동자산 구조를 볼 때 불황에도 견딜 '다윈주의적 생존력'이 있는지 확인 요망.")
@@ -281,7 +315,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 st.subheader("🛑 4. 매도 3원칙 (오직 다음 경우에만 매도)")
                 st.markdown("<div class='guru-quote'>1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.</div>", unsafe_allow_html=True)
                 st.markdown("<div class='guru-quote'>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.</div>", unsafe_allow_html=True)
-                st.markdown("<div class='guru-quote'>3. 더 확실하고 안전한 기회(기회비용)를 발견했을 때.</div>", unsafe_allow_html=True)
+                st.markdown("<div class='guru-quote'>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.</div>", unsafe_allow_html=True)
 
             else:
                 st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
