@@ -101,7 +101,7 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
                     fcf = cf.loc['Operating Cash Flow'].iloc[0] + cf.loc['Capital Expenditure'].iloc[0]
         
         if not fcf or fcf <= 0:
-            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 야후 API에서 데이터를 제공하지 않습니다."
+            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 데이터 제공을 지원하지 않습니다."
 
         shares = info.get('sharesOutstanding')
         if not shares or shares == 0:
@@ -134,17 +134,39 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
 
 st.title("⚡ AGIE")
 st.error("🚨 **시클리컬 기업 주의:** 본 분석 모델은 알파벳, 무디스처럼 **'경제적 해자(Moat)'**를 갖추고 이익이 장기 우상향하는 기업에 최적화되어 있습니다. 경기 민감주 분석 시 밸류에이션 왜곡에 주의하십시오.")
-st.info("💡 **검색 팁:** 제이피모건, jp모건, 애플, 삼성전자 등 대충 입력해도 찰떡같이 알아듣습니다.")
+st.info("💡 **검색 팁:** 제이피모건, jp모건, 애플, 삼성전자 등 편하게 입력하세요.")
 
-# 대규모 유도리 검색 사전 (띄어쓰기, 대소문자 무시를 위해 모두 띄어쓰기 없고 대문자로 맵핑)
+# 글자가 짤리지 않도록 짧게 줄바꿈 처리한 맵핑 사전
 ticker_map = {
-    # 금융
     "제이피모건": "JPM", "JP모건": "JPM", "JPMORGAN": "JPM", "제이피모건체이스": "JPM",
     "골드만삭스": "GS", "모건스탠리": "MS", "뱅크오브아메리카": "BAC", "BOFA": "BAC",
     "씨티은행": "C", "씨티그룹": "C", "시티그룹": "C", "블랙록": "BLK", "웰스파고": "WFC",
-    
-    # 반도체 & IT & 통신
     "애플": "AAPL", "구글": "GOOGL", "알파벳": "GOOGL", "마이크로소프트": "MSFT", "마소": "MSFT",
     "아마존": "AMZN", "테슬라": "TSLA", "엔비디아": "NVDA", "메타": "META", "페이스북": "META",
     "TSMC": "TSM", "티에스엠씨": "TSM", "ASML": "ASML", "에이에스엠엘": "ASML", 
-    "AMD": "AMD", "에이엠디": "AMD", "인텔": "INT
+    "AMD": "AMD", "에이엠디": "AMD", "인텔": "INTC", "퀄컴": "QCOM", "브로드컴": "AVGO",
+    "암": "ARM", "암홀딩스": "ARM", "팔란티어": "PLTR", "세일즈포스": "CRM", "어도비": "ADBE",
+    "일라이릴리": "LLY", "릴리": "LLY", "노보노디스크": "NVO", 
+    "유나이티드헬스": "UNH", "유나이티드헬스그룹": "UNH",
+    "존슨앤존슨": "JNJ", "P&G": "PG", "피앤지": "PG", 
+    "월마트": "WMT", "코스트코": "COST", "타겟": "TGT", "홈디포": "HD",
+    "비자": "V", "마스터카드": "MA", "아메리칸익스프레스": "AXP", "무디스": "MCO",
+    "코카콜라": "KO", "펩시": "PEP", "맥도날드": "MCD", "스타벅스": "SBUX", 
+    "넷플릭스": "NFLX", "디즈니": "DIS", "크록스": "CROX", 
+    "버크셔": "BRK-B", "버크셔해서웨이": "BRK-B",
+    "디어": "DE", "존디어": "DE", "캐터필러": "CAT", "캐타필러": "CAT", 
+    "보잉": "BA", "록히드마틴": "LMT", "GE": "GE", "제너럴일렉트릭": "GE", 
+    "엑슨모빌": "XOM", "쉐브론": "CVX", "셰브론": "CVX",
+    "삼성전자": "005930.KS", "SK하이닉스": "000660.KS", "현대차": "005380.KS", "현대자동차": "005380.KS",
+    "기아": "000270.KS", "기아차": "000270.KS", "KB금융": "105560.KS", "신한지주": "055550.KS",
+    "하나금융지주": "086790.KS", "메리츠금융지주": "138040.KS", "네이버": "035420.KS", "카카오": "035720.KS",
+    "에코프로": "086520.KQ", "에코프로비엠": "247540.KQ", "셀트리온": "068270.KS", 
+    "LG엔솔": "373220.KS", "LG에너지솔루션": "373220.KS", 
+    "포스코홀딩스": "005490.KS", "POSCO홀딩스": "005490.KS", "삼성바이오로직스": "207940.KS"
+}
+
+user_input = st.text_input("기업명 또는 티커를 자유롭게 입력하세요", placeholder="예: JP 모건, 제이피모건, AAPL, 삼성전자")
+
+if st.button("가치 분석 심층 스캔", type="primary"):
+    if user_input:
+        with st.spinner('실시간 재무 데이터 추출 및 가치 평가
