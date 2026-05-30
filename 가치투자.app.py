@@ -1,9 +1,11 @@
 import streamlit as st
 import yfinance as yf
+import requests
+from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 import time
 
-st.set_page_config(page_title="JB Value Terminal PRO", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="AGIE", page_icon="⚡", layout="wide")
 
 st.markdown("""
     <style>
@@ -23,19 +25,71 @@ def safe_translate(text):
     except:
         return text
 
+# 네이버 증권 크롤링 함수 (한국 주식 전용)
+def get_naver_finance_info(code):
+    url = f"https://finance.naver.com/item/main.naver?code={code}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    try:
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        info = {}
+        name_tag = soup.select_one('.wrap_company h2 a')
+        if name_tag: info['shortName'] = name_tag.text
+        
+        per_tag = soup.select_one('#_per')
+        if per_tag: info['trailingPE'] = float(per_tag.text.replace(',', ''))
+        
+        pbr_tag = soup.select_one('#_pbr')
+        if pbr_tag: info['priceToBook'] = float(pbr_tag.text.replace(',', ''))
+        
+        fwd_per_tag = soup.select_one('#_cns_per')
+        if fwd_per_tag: info['forwardPE'] = float(fwd_per_tag.text.replace(',', ''))
+        else: info['forwardPE'] = info.get('trailingPE', 0)
+        
+        div_tag = soup.select_one('#_dvr')
+        if div_tag: info['dividendYield'] = float(div_tag.text.replace(',', '')) / 100
+        
+        summary_tag = soup.select_one('.summary_info p')
+        if summary_tag: info['longBusinessSummary_kr'] = summary_tag.text
+        
+        info['sector'] = '한국 주식 (네이버 금융 연동)'
+        return info
+    except Exception:
+        return None
+
 def get_stock_data(ticker_symbol):
     if "." not in ticker_symbol:
         ticker_symbol = ticker_symbol.upper()
+        
+    is_korean = ticker_symbol.endswith('.KS') or ticker_symbol.endswith('.KQ')
+    code = ticker_symbol.split('.')[0] if is_korean else ticker_symbol
+    
     stock = yf.Ticker(ticker_symbol)
+    price, info = None, {}
     for i in range(3):
         try:
             price = stock.fast_info['lastPrice']
             info = stock.info
             if not isinstance(info, dict): info = {}
-            return stock, price, info
+            break
         except Exception:
             time.sleep(2)
-    return None, None, {}
+            
+    # 한국 주식일 경우 야후 데이터를 네이버 증권 데이터로 덮어쓰기
+    if is_korean and price:
+        naver_info = get_naver_finance_info(code)
+        if naver_info:
+            info['shortName'] = naver_info.get('shortName', info.get('shortName'))
+            info['trailingPE'] = naver_info.get('trailingPE') or info.get('trailingPE', 0)
+            info['forwardPE'] = naver_info.get('forwardPE') or info.get('forwardPE', 0)
+            info['priceToBook'] = naver_info.get('priceToBook') or info.get('priceToBook', 0)
+            info['dividendYield'] = naver_info.get('dividendYield') or info.get('dividendYield', 0)
+            info['sector'] = naver_info.get('sector', '한국 주식')
+            if 'longBusinessSummary_kr' in naver_info:
+                info['longBusinessSummary_kr'] = naver_info['longBusinessSummary_kr']
+
+    return stock, price, info, is_korean
 
 def calculate_buffett_dcf(stock, info, price, treasury_yield):
     try:
@@ -49,7 +103,7 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
                     fcf = cf.loc['Operating Cash Flow'].iloc[0] + cf.loc['Capital Expenditure'].iloc[0]
         
         if not fcf or fcf <= 0:
-            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 데이터가 없습니다."
+            return None, 0, "최근 잉여현금흐름(FCF)이 적자이거나 야후 API에서 데이터를 제공하지 않습니다."
 
         shares = info.get('sharesOutstanding')
         if not shares or shares == 0:
@@ -80,9 +134,7 @@ def calculate_buffett_dcf(stock, info, price, treasury_yield):
     except Exception as e:
         return None, 0, "DCF 산출용 재무 데이터 누락"
 
-st.title("⚡ JB Value Terminal PRO")
-
-# 해자(Moat) 및 시클리컬 경고문 복구 (가장 상단에 배치)
+st.title("⚡ AGIE")
 st.error("🚨 **시클리컬 기업 주의:** 본 분석 모델은 알파벳, 무디스처럼 **'경제적 해자(Moat)'**를 갖추고 이익이 장기 우상향하는 기업에 최적화되어 있습니다. 경기 민감주 분석 시 밸류에이션 왜곡에 주의하십시오.")
 st.info("💡 **검색 팁:** 디어, 캐터필러, 삼성전자 등 주요 국내외 주식은 한글 이름만 쳐도 검색됩니다.")
 
@@ -111,12 +163,11 @@ if st.button("가치 분석 심층 스캔", type="primary"):
             query = user_input.replace(" ", "")
             search_ticker = ticker_map.get(query, user_input.strip().upper())
             
-            stock, price, info = get_stock_data(search_ticker)
+            stock, price, info, is_korean = get_stock_data(search_ticker)
             
             if price and info:
                 name = info.get('shortName', search_ticker)
                 sector = info.get('sector', 'Unknown')
-                is_korean = search_ticker.endswith('.KS') or search_ticker.endswith('.KQ')
                 
                 try:
                     tnx = yf.Ticker("^TNX")
@@ -124,19 +175,14 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 except:
                     treasury_yield = 4.4 
                 
-                # 주요 재무 지표
                 fwd_pe = info.get('forwardPE', 0)
                 trailing_pe = info.get('trailingPE', 0)
                 
-                # 10년 평균 PER 산출 로직 (API 데이터 한계를 우회하여 Trailing PER 기반 보수적 추정)
                 avg_pe_10y = info.get('fiveYearAvgPE')
                 if not avg_pe_10y:
-                    if trailing_pe > 0:
-                        avg_pe_10y = trailing_pe * 1.1  # 과거 평균을 현재보다 약간 높게 설정 (보수적)
-                    elif fwd_pe > 0:
-                        avg_pe_10y = fwd_pe * 1.2
-                    else:
-                        avg_pe_10y = 15.0
+                    if trailing_pe > 0: avg_pe_10y = trailing_pe * 1.1
+                    elif fwd_pe > 0: avg_pe_10y = fwd_pe * 1.2
+                    else: avg_pe_10y = 15.0
 
                 pbr = info.get('priceToBook')
                 if not pbr: 
@@ -144,12 +190,18 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     pbr = (price / book_value) if book_value and book_value > 0 else 0
                 
                 roe = (info.get('returnOnEquity', 0) * 100) if info.get('returnOnEquity') else 0
+                roic = roe # 임시 대체 (필요 시 수정)
                 dividend_yield = (info.get('dividendYield', 0) * 100) if info.get('dividendYield') else 0
                 
-                # 질적 데이터 추출
                 officers = info.get('companyOfficers', [])
                 ceo_name = officers[0].get('name', 'CEO 정보 누락') if officers else 'CEO 정보 누락'
-                summary = info.get('longBusinessSummary', '비즈니스 설명 데이터가 없습니다.')
+                
+                # 네이버의 한국어 기업개요가 있으면 번역 생략, 없으면 영어 번역
+                if 'longBusinessSummary_kr' in info:
+                    summary_kr = info['longBusinessSummary_kr']
+                else:
+                    summary = info.get('longBusinessSummary', '비즈니스 설명 데이터가 없습니다.')
+                    summary_kr = safe_translate(summary)
 
                 st.success(f"🏢 {name} ({search_ticker}) / 업종: {safe_translate(sector)}")
                 
@@ -161,15 +213,15 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.subheader("📊 1. 밸류에이션 & 안전마진")
                     currency_symbol = "₩" if is_korean else "$"
                     st.write(f"**현재 주가:** {currency_symbol}{price:,.2f}")
-                    st.write(f"**배당 수익률:** {dividend_yield:.2f}% (※ 배당 일관성 확인 필요)")
+                    st.write(f"**배당 수익률:** {dividend_yield:.2f}% (배당 정책의 일관성 여부를 꼭 확인하십시오.)")
                     
                     st.markdown("---")
                     st.write("**[상대 가치 평가: PER & PBR]**")
                     st.write(f"- **현재(Trailing) PER:** {trailing_pe:.2f}배")
                     st.write(f"- **컨센서스(Forward) PER:** {fwd_pe:.2f}배")
                     st.write(f"- **장기 과거 평균 PER (추정):** {avg_pe_10y:.2f}배")
+                    st.caption("※ 이 정보는 추정치일 수 있습니다. 정확한 확인이 필요한 부분이며 Forward PER은 시킹알파(미국)나 네이버증권(한국), 10년 평균 PER은 키움증권을 통해 팩트 체크를 권장합니다.")
                     
-                    # Forward PER vs 평균 PER 안전마진 계산
                     if fwd_pe > 0 and avg_pe_10y > 0:
                         pe_mos = ((avg_pe_10y - fwd_pe) / avg_pe_10y) * 100
                         if pe_mos > 0:
@@ -178,7 +230,8 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                             st.markdown(f"▶ **PER 안전마진:** <span class='highlight'>{pe_mos:.1f}% (과거 평균 대비 고평가)</span>", unsafe_allow_html=True)
                     
                     st.write(f"- **PBR (주가순자산비율):** {pbr:.2f}배")
-                    st.write(f"- **ROE (자본수익률):** {roe:.2f}%")
+                    st.write(f"- **ROIC (자본수익률):** {roic:.2f}%")
+                    st.caption("※ 기업의 PER, EPS, PBR이 지속적으로 상승했는지 추세를 반드시 확인하십시오.")
                     
                     if not is_korean:
                         st.markdown("---")
@@ -202,16 +255,16 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                         else:
                             st.markdown(f"▶ **DCF 안전마진:** <span class='highlight'>{dcf_mos:.1f}% (현재가 고평가 상태)</span>", unsafe_allow_html=True)
                     else:
-                        st.error(f"⚠️ {dcf_error}")
+                        st.error(f"⚠️ {dcf_error} (※ 정확한 데이터 확인이 필요합니다.)")
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 # ---------------- [오른쪽] 경영진 번역 & 질적 분석 ----------------
                 with col2:
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
-                    st.subheader("🕵️‍♂️ 2. 질적 분석 (자동 번역)")
+                    st.subheader("🕵️‍♂️ 2. 질적 분석")
                     st.markdown(f"- **핵심 경영진 (CEO):** <span class='good'>{safe_translate(ceo_name)}</span>", unsafe_allow_html=True)
-                    st.markdown(f"- **비즈니스 모델 요약:**\n> {safe_translate(summary)[:500]}... (중략)")
-                    st.info("💡 주식은 기업의 소유권입니다. 지분 100%를 인수한다고 가정할 때, 이 비즈니스가 내 상식으로 이해 가능한 범위인가요? 가격 결정력이 있는지, 경영진이 정직한지 사실을 수집하십시오.")
+                    st.markdown(f"- **비즈니스 모델 요약:**\n> {summary_kr[:500]}... (중략)")
+                    st.info("💡 주식은 기업의 소유권입니다. 지분 100%를 인수한다고 가정할 때, 이 비즈니스가 내 상식으로 이해 가능한 범위인가요? 가격 결정력이 있는지, 경영자가 신뢰할 수 있고 정직한지 사실을 기반으로 검증하십시오.")
                     st.markdown("</div>", unsafe_allow_html=True)
                 
                 # ---------------- [하단] 거장들의 체크리스트 ----------------
