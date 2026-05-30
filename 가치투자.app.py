@@ -87,6 +87,7 @@ with st.sidebar:
                 st.rerun()
                 
     st.divider()
+    
     st.header(t("📚 내 서재", "📚 My Library"))
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
@@ -102,6 +103,7 @@ with st.sidebar:
                     st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
+    
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -119,6 +121,7 @@ with st.sidebar:
                     st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
+    
     st.header(t("🎧 고객 센터", "🎧 Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
@@ -223,31 +226,22 @@ def clean_ceo_name(name):
         return k_name
     return name
 
-# 💡 진정한 ROIC 계산 로직 추가 (꼼수 제거, 재무제표 직접 스캔)
 def get_real_roic(stk, i):
     try:
-        # 야후 파이낸스가 자체 계산한 값이 확실히 있다면 우선 사용
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
             return i['returnOnCapitalEmployed'] * 100
-
-        # 없다면 손익계산서와 대차대조표에서 직접 추출하여 계산
         inc = stk.income_stmt
         bs = stk.balance_sheet
-        
         if inc is not None and not inc.empty and bs is not None and not bs.empty:
             ebit = inc.loc['EBIT'].iloc[0] if 'EBIT' in inc.index else (inc.loc['Operating Income'].iloc[0] if 'Operating Income' in inc.index else 0)
             pretax = inc.loc['Pretax Income'].iloc[0] if 'Pretax Income' in inc.index else 0
             tax = inc.loc['Tax Provision'].iloc[0] if 'Tax Provision' in inc.index else 0
-            
             tax_rate = tax / pretax if pretax > 0 else 0.25
             nopat = ebit * (1 - tax_rate)
-            
             total_debt = bs.loc['Total Debt'].iloc[0] if 'Total Debt' in bs.index else 0
             total_equity = bs.loc['Stockholders Equity'].iloc[0] if 'Stockholders Equity' in bs.index else 0
             cash = bs.loc['Cash And Cash Equivalents'].iloc[0] if 'Cash And Cash Equivalents' in bs.index else 0
-            
             invested_capital = total_debt + total_equity - cash
-            
             if invested_capital > 0:
                 roic = (nopat / invested_capital) * 100
                 return roic
@@ -487,7 +481,6 @@ with tab1:
                 
                 roe = i.get('returnOnEquity', 0) * 100
                 
-                # 💡 진정한 ROIC 계산을 호출하여 독립적으로 표시
                 real_roic = get_real_roic(stk, i)
                 if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                 else: roic_str = t("데이터 부족 (직접 확인 요망)", "N/A (Needs verification)")
@@ -535,7 +528,7 @@ with tab1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
                     st.write(f"- **{t('배당 수익률', 'Dividend Yield')}:** {div:.2f}%")
                     st.write(f"- **ROE:** {roe:.2f}%")
-                    st.write(f"- **ROIC:** {roic_str}") # 💡 ROE와 별도로 분리된 순수 ROIC 지표 출력
+                    st.write(f"- **ROIC:** {roic_str}") 
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
@@ -587,8 +580,11 @@ with tab1:
 
                 st.divider()
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
-                st.caption(t("**워런 버핏:** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett:** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
-                st.caption(t("**찰리 멍거:** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 낫습니다.", "**Charlie Munger:** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
+                st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
+                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+                st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
+                st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
                 st.divider()
                 st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
