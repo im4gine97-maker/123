@@ -52,6 +52,20 @@ if st.button("가치 분석 즉시 실행", type="primary"):
                 pbr = info.get('priceToBook')
                 roe = (info.get('returnOnEquity', 0) * 100) if info.get('returnOnEquity') else 10.0
                 
+                # 경영진 및 비즈니스 데이터 추출
+                business_summary = info.get('longBusinessSummary', '비즈니스 설명 데이터가 제공되지 않았습니다.')
+                officers = info.get('companyOfficers', [])
+                ceo_info = "CEO 정보 누락 (구글링 등 직접 검색 요망)"
+                
+                if officers:
+                    for o in officers:
+                        title = o.get('title', '').upper()
+                        if 'CEO' in title or 'CHIEF EXECUTIVE' in title:
+                            ceo_info = f"{o.get('name')} ({o.get('title')})"
+                            break
+                    if ceo_info == "CEO 정보 누락 (구글링 등 직접 검색 요망)":
+                        ceo_info = f"{officers[0].get('name')} ({officers[0].get('title')})"
+                
                 try:
                     tnx = yf.Ticker("^TNX")
                     treasury = tnx.fast_info['lastPrice']
@@ -113,14 +127,21 @@ if st.button("가치 분석 즉시 실행", type="primary"):
                     else:
                         st.markdown("- 안전마진: <span class='highlight'>0% (고평가 영역)</span>", unsafe_allow_html=True)
                 
+                # --- 신규 추가된 질적 분석 (경영진) 섹션 ---
                 st.markdown("---")
-                st.subheader("🧠 2. 거장들의 멘탈 모델")
+                st.subheader("🕵️‍♂️ 2. 질적 분석 (능력범위 & 경영진 파악)")
+                st.markdown(f"- **핵심 경영진:** <span class='highlight'>{ceo_info}</span>", unsafe_allow_html=True)
+                st.markdown(f"- **비즈니스 모델 요약:**\n> {business_summary[:400]}... (중략)")
+                st.info("💡 위 비즈니스 모델을 다른 사람에게 논리적으로 설명할 수 없다면 내 '능력 범위' 밖입니다. 검색된 경영자의 이름으로 과거 주주 기만 이력이나 정직성에 위배되는 기사가 없는지 반드시 사실 수집을 진행하십시오.")
+
+                st.markdown("---")
+                st.subheader("🧠 3. 거장들의 멘탈 모델")
                 st.markdown("<div class='guru-quote'><b>워런 버핏:</b> 이익이 10년물 국채를 이기고 복리로 팽창하는가? 무엇보다 <span class='highlight'>경영자가 정직한가?</span> 도덕성이 의심되면 즉각 손절하게.</div>", unsafe_allow_html=True)
                 st.markdown("<div class='guru-quote'><b>필립 피셔:</b> 이 하락이 ①상업화 초기 문제 ②미스터 마켓의 우울증 ③해결 가능한 악재 중 하나라면 영혼을 걸고 매수하시오.</div>", unsafe_allow_html=True)
                 st.markdown("<div class='guru-quote'><b>찰리 멍거:</b> 단일 실패 지점은 없는가? 전문가의 반론을 재반박할 수 없다면 당신의 능력 범위 밖이네.</div>", unsafe_allow_html=True)
 
                 st.markdown("---")
-                st.subheader("🚨 3. 액션 플랜 (절대 매도 3원칙)")
+                st.subheader("🚨 4. 액션 플랜 (절대 매도 3원칙)")
                 st.write("☑️ **최종 점검:** 가격, 비즈니스, 경영진, 리스크, 사실수집, 능력범위")
                 st.markdown("""
                 <div style='background-color:#2d1114; padding:10px; border-radius:5px; border-left:4px solid #da3633;'>
