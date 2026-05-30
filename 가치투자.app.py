@@ -3,6 +3,13 @@ import yfinance as yf
 import time
 from deep_translator import GoogleTranslator
 
+def safe_translate(text):
+    if not text or not isinstance(text, str): return text
+    try:
+        return GoogleTranslator(source='en', target='ko').translate(text[:3000])
+    except:
+        return text
+
 st.set_page_config(page_title="JB Value Terminal", page_icon="⚡", layout="centered")
 
 st.markdown("""
