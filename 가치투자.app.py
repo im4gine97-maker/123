@@ -6,21 +6,13 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 
-st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="AGIE Deep Value Terminal", layout="wide")
 
+# 💡 모바일 호환성을 위해 강제 색상 지정 CSS를 모두 삭제하고 핵심 포인트 컬러만 남겼습니다.
 st.markdown("""
 <style>
-.main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
-h1, h2, h3 {color: #58a6ff; font-weight: 700;}
-.box {background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px;}
-.guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 15px; margin-bottom: 12px; background: #1c2128; padding: 15px; border-radius: 0 8px 8px 0;}
-.highlight {color: #ff7b72; font-weight: bold;}
-.good {color: #3fb950; font-weight: bold;}
-.stTabs [data-baseweb="tab-list"] {gap: 20px; border-bottom: 1px solid #30363d;}
-.stTabs [data-baseweb="tab"] {font-size: 1.15rem; font-weight: 600; color: #8b949e; padding-bottom: 10px;}
-.stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
-[data-testid="stMetricValue"] {font-size: 1.8rem; font-weight: bold; color: #ffffff;}
-[data-testid="stMetricLabel"] {font-size: 1rem; color: #8b949e;}
+.highlight {color: #ff4b4b; font-weight: bold;}
+.good {color: #09ab3b; font-weight: bold;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,7 +37,7 @@ def clean_ceo_name(name):
             break
     return k_name
 
-# 💡 최신 2026년 1분기 완벽 반영된 하드코딩 데이터
+# 최신 2026년 1분기 완벽 반영된 13F 하드코딩 데이터
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85},
@@ -335,34 +327,32 @@ with tab1:
                 else:
                     p_str = f"${p:,.2f}"
 
-                st.markdown("<div class='box'>", unsafe_allow_html=True)
+                # 💡 안전하고 직관적인 마크다운 텍스트 폼으로 복원
+                st.divider()
                 st.subheader("1. 핵심 밸류에이션 지표")
-                m1, m2, m3 = st.columns(3)
-                m1.metric(label="현재 주가", value=p_str)
-                m2.metric(label="배당 수익률", value=f"{div:.2f}%")
-                m3.metric(label="ROIC (ROE 대체)", value=f"{roe:.2f}%")
-                
-                st.markdown("---")
-                m4, m5, m6 = st.columns(3)
-                m4.metric(label="현재 PER", value=f"{t_pe:.2f}배")
-                m5.metric(label="Fwd PER", value=f"{f_pe:.2f}배")
-                m6.metric(label="5~10년 평균 PER", value=f"{a_pe:.2f}배")
                 
                 c1, c2 = st.columns(2)
                 with c1:
-                    if pmos > 0:
-                        st.markdown(f"**PER 안전마진:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
-                    elif pmos < 0:
-                        st.markdown(f"**PER 안전마진:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
-                    st.write(f"- **PBR:** {pbr:.2f}배")
-                    st.caption("※ 확인이 필요한 부분: PER, EPS, PBR 지속 상승 추세 여부")
+                    st.write(f"- **현재 주가:** {p_str}")
+                    st.write(f"- **배당 수익률:** {div:.2f}%")
+                    st.write(f"- **ROIC (ROE 대체):** {roe:.2f}%")
+                    st.write(f"- **현재 PER:** {t_pe:.2f}배")
+                    st.write(f"- **Fwd PER:** {f_pe:.2f}배")
+                    st.write(f"- **5~10년 평균 PER:** {a_pe:.2f}배")
                 
                 with c2:
+                    if pmos > 0:
+                        st.markdown(f"- **PER 안전마진:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
+                    elif pmos < 0:
+                        st.markdown(f"- **PER 안전마진:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
+                    
+                    st.write(f"- **PBR:** {pbr:.2f}배")
+                    st.caption("※ 확인이 필요한 부분: PER, EPS, PBR 지속 상승 추세 여부")
+                    
                     st.write(f"- **10년물 미국채 금리:** {ty:.2f}%")
                     st.write(f"- **예상 이익수익률:** {ey:.2f}%")
-                st.markdown("</div>", unsafe_allow_html=True)
 
-                st.markdown("<div class='box'>", unsafe_allow_html=True)
+                st.divider()
                 st.subheader("2. 10년 DCF (내재가치)")
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
@@ -370,100 +360,86 @@ with tab1:
                     if kr: iv_str = f"{int(iv):,}원"
                     else: iv_str = f"${iv:,.2f}"
                     
-                    st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {data_len}년 치 데이터 자동 산출)")
+                    st.write(f"- **FCF 연평균 성장률:** {final_g*100:.1f}% (최대 가용 {data_len}년 치 데이터 바탕 자동 산출)")
                     st.write(f"- **추정 적정가:** {iv_str}")
                     
                     if mos > 0:
-                        st.markdown(f"**DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
+                        st.markdown(f"- **DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"**DCF 안전마진:** <span class='highlight'>{mos:.1f}% (고평가)</span>", unsafe_allow_html=True)
+                        st.markdown(f"- **DCF 안전마진:** <span class='highlight'>{mos:.1f}% (고평가)</span>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err} (이건 확인이 필요한 부분입니다)")
-                st.markdown("</div>", unsafe_allow_html=True)
                 
-                c3, c4 = st.columns(2)
-                with c3:
-                    st.markdown("<div class='box'>", unsafe_allow_html=True)
-                    st.subheader("3. 질적 분석")
-                    
-                    off = i.get('companyOfficers', [])
-                    ceo_raw = off[0].get('name') if off else '누락'
-                    ceo_clean = clean_ceo_name(ceo_raw)
-                    
-                    st.markdown(f"- **CEO:** <span class='good'>{ceo_clean}</span>", unsafe_allow_html=True)
-                    
-                    ceo_eval = ai_ceo_db.get(tk, None)
-                    if ceo_eval:
-                        ceo_report_text = ceo_eval
-                    else:
-                        ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)"
+                st.divider()
+                st.subheader("3. 질적 분석")
+                
+                off = i.get('companyOfficers', [])
+                ceo_raw = off[0].get('name') if off else '누락'
+                ceo_clean = clean_ceo_name(ceo_raw)
+                
+                st.markdown(f"- **CEO:** {ceo_clean}")
+                
+                ceo_eval = ai_ceo_db.get(tk, None)
+                if ceo_eval:
+                    ceo_report_text = ceo_eval
+                else:
+                    ceo_report_text = "현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 횡령, 배임, 사기 등 중범죄 이력은 두드러지지 않습니다. (안전을 위해 교차 검증은 필수입니다.)"
 
-                    st.write("**[도덕성/리스크 리포트]**")
-                    st.markdown(f"> {ceo_report_text}")
-                    
-                    st.markdown("---")
-                    sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
-                    st.markdown(f"- **비즈니스 요약:**\n> {tr(sum_t)[:350]}...")
-                    st.caption("※ 모든 판단은 사실 수집 및 임직원 의견을 반영하여 교차 검증하십시오.")
-                    st.markdown("</div>", unsafe_allow_html=True)
+                st.write("**[도덕성/리스크 리포트]**")
+                st.info(ceo_report_text)
+                
+                sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
+                st.write("**[비즈니스 요약]**")
+                st.caption(f"{tr(sum_t)[:350]}...")
+                st.caption("※ 모든 판단은 사실 수집 및 임직원 의견을 반영하여 교차 검증하십시오.")
 
-                with c4:
-                    st.markdown("<div class='box'>", unsafe_allow_html=True)
-                    st.subheader("4. 매수 6원칙 자동 체크")
-                    
-                    p_txt = "**1. 가격은 저렴한가 (안전마진)?**<br>"
-                    if pmos > 0: p_txt += f"PER 기준: <span class='good'>합격 (+{pmos:.1f}% 저평가)</span><br>"
-                    elif pmos < 0: p_txt += f"PER 기준: <span class='highlight'>주의 ({pmos:.1f}% 고평가)</span><br>"
-                    else: p_txt += "PER 기준: (확인이 필요한 부분입니다)<br>"
-                    
-                    if mos > 0: p_txt += f"DCF 기준: <span class='good'>합격 (+{mos:.1f}% 저평가)</span>"
-                    elif mos < 0: p_txt += f"DCF 기준: <span class='highlight'>주의 ({mos:.1f}% 고평가)</span>"
-                    else: p_txt += "DCF 기준: (확인이 필요한 부분입니다)"
-                    
-                    st.markdown(p_txt, unsafe_allow_html=True)
-                    
-                    if roe >= 15:
-                        biz_eval = f"<span class='good'>우수 (ROE {roe:.2f}%로 자본효율이 탁월하며 해자가 있을 확률이 높음)</span>"
-                    elif roe > 0:
-                        biz_eval = f"보통 (ROE {roe:.2f}%. 독점력 추가 확인 필요)"
-                    else:
-                        biz_eval = f"<span class='highlight'>경고 (ROE {roe:.2f}%. 구조 훼손 점검 시급)</span>"
-                    st.markdown(f"**2. 좋은 비즈니스인가?**<br>{biz_eval}", unsafe_allow_html=True)
-                    
-                    st.markdown(f"**3. 경영진은 신뢰할 수 있는가?** {ceo_report_text}")
-                    st.write("**4. 놓친 리스크는 없는가?** 현재 주가 하락이 단순한 미스터 마켓의 우울증인지 영구적 손상인지 확인하세요.")
-                    st.write("**5~6. 능력 범위 안인가?** 이 비즈니스 모델을 타인에게 논리적으로 재반박하며 설명할 수 있습니까?")
-                    st.markdown("</div>", unsafe_allow_html=True)
+                st.divider()
+                st.subheader("4. 매수 6원칙 자동 체크")
+                
+                p_txt = "**1. 가격은 저렴한가 (안전마진)?**\n"
+                if pmos > 0: p_txt += f"- PER 기준: <span class='good'>합격 (+{pmos:.1f}% 저평가)</span>\n"
+                elif pmos < 0: p_txt += f"- PER 기준: <span class='highlight'>주의 ({pmos:.1f}% 고평가)</span>\n"
+                else: p_txt += "- PER 기준: (확인이 필요한 부분입니다)\n"
+                
+                if mos > 0: p_txt += f"- DCF 기준: <span class='good'>합격 (+{mos:.1f}% 저평가)</span>"
+                elif mos < 0: p_txt += f"- DCF 기준: <span class='highlight'>주의 ({mos:.1f}% 고평가)</span>"
+                else: p_txt += "- DCF 기준: (확인이 필요한 부분입니다)"
+                
+                st.markdown(p_txt, unsafe_allow_html=True)
+                
+                if roe >= 15:
+                    biz_eval = f"<span class='good'>우수 (ROE {roe:.2f}%로 자본효율이 탁월하며 해자가 있을 확률이 높음)</span>"
+                elif roe > 0:
+                    biz_eval = f"보통 (ROE {roe:.2f}%. 독점력 추가 확인 필요)"
+                else:
+                    biz_eval = f"<span class='highlight'>경고 (ROE {roe:.2f}%. 구조 훼손 점검 시급)</span>"
+                st.markdown(f"**2. 좋은 비즈니스인가?** {biz_eval}", unsafe_allow_html=True)
+                
+                st.markdown(f"**3. 경영진은 신뢰할 수 있는가?** {ceo_report_text}")
+                st.write("**4. 놓친 리스크는 없는가?** 현재 주가 하락이 단순한 미스터 마켓의 우울증인지 영구적 손상인지 확인하세요.")
+                st.write("**5~6. 능력 범위 안인가?** 이 비즈니스 모델을 타인에게 논리적으로 재반박하며 설명할 수 있습니까?")
 
-                c5, c6 = st.columns(2)
-                with c5:
-                    st.markdown("<div class='box'>", unsafe_allow_html=True)
-                    st.write("**[기업 해부 및 학문적 모델 적용]**")
+                st.divider()
+                st.subheader("5. 기업 해부 및 학문적 모델 적용")
+                if final_g > 0:
+                    math_eval = f"<span class='good'>자동 추출된 재무제표를 바탕으로 연평균 {final_g*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
+                else:
+                    math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아닙니다.</span>"
                     
-                    if final_g > 0:
-                        math_eval = f"<span class='good'>자동 추출된 재무제표를 바탕으로 연평균 {final_g*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
-                    else:
-                        math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아닙니다.</span>"
-                        
-                    st.markdown(f"- **수학 (복리 모형):** {math_eval}", unsafe_allow_html=True)
-                    st.write("- **생물학 (생존력):** 부채 및 유동자산 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.")
-                    st.write("- **심리학 (오판 점검):** 투자 결정 전 희망 회로나 확증 편향에 빠진 것은 아닌지 스스로 점검하십시오.")
-                    st.write("- **파급력:** 기술 변화가 이 기업에 득인가 독인가?")
-                    st.markdown("</div>", unsafe_allow_html=True)
-                    
-                with c6:
-                    st.markdown("<div class='box'>", unsafe_allow_html=True)
-                    st.subheader("매도 3원칙 (오직 다음 경우에만 매도)")
-                    st.markdown("<div class='guru-quote'>1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.</div>", unsafe_allow_html=True)
-                    st.markdown("<div class='guru-quote'>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.</div>", unsafe_allow_html=True)
-                    st.markdown("<div class='guru-quote'>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.</div>", unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown(f"- **수학 (복리 모형):** {math_eval}", unsafe_allow_html=True)
+                st.write("- **생물학 (생존력):** 부채 및 유동자산 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.")
+                st.write("- **심리학 (오판 점검):** 투자 결정 전 희망 회로나 확증 편향에 빠진 것은 아닌지 스스로 점검하십시오.")
+                st.write("- **파급력:** 기술 변화가 이 기업에 득인가 독인가?")
 
-                st.markdown("---")
+                st.divider()
+                st.subheader("6. 매도 3원칙 (오직 다음 경우에만 매도)")
+                st.info("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.\n2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.\n3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.")
+
+                st.divider()
                 st.subheader("거장들의 철학 한마디")
-                st.markdown("<div class='guru-quote'><b>워런 버핏:</b> \"주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.\"</div>", unsafe_allow_html=True)
-                st.markdown("<div class='guru-quote'><b>찰리 멍거:</b> \"당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.\"</div>", unsafe_allow_html=True)
-                st.markdown("<div class='guru-quote'><b>필립 피셔:</b> \"가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.\"</div>", unsafe_allow_html=True)
+                st.caption("**워런 버핏:** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오. 미스터 마켓은 도구일 뿐 선생님이 아닙니다.")
+                st.caption("**찰리 멍거:** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.")
+                st.caption("**필립 피셔:** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.")
 
             else:
                 st.error("데이터를 불러올 수 없습니다. 팩트 체크가 필수로 필요합니다.")
@@ -514,9 +490,9 @@ with tab2:
 # ==========================================
 # 💡 하단 면책 조항 및 저작권 명시 구역 (법적 보호 장치)
 # ==========================================
-st.markdown("---")
+st.divider()
 st.markdown("""
-<div style='text-align: center; color: #8b949e; font-size: 0.85rem; padding: 20px 0; line-height: 1.6;'>
+<div style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
     <p><b>[면책 조항 / Disclaimer]</b><br>
     본 애플리케이션은 가치투자 분석을 돕기 위한 <b>단순 보조 도구</b>일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.<br>
     본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, <b>최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.</b></p>
