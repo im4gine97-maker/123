@@ -151,7 +151,6 @@ def analyze_trends(stk):
         pass
     return eps_trend, bps_trend
 
-# 💡 투자의견 도출 알고리즘
 def get_investment_opinion(mos, pmos, roe, fcf):
     if not fcf or fcf <= 0:
         return t("관망 (Hold)", "Hold"), "#e3b341", t("잉여현금흐름(FCF) 역성장 또는 적자로 인한 밸류에이션 판단 보류", "Valuation suspended due to negative or declining Free Cash Flow")
@@ -365,13 +364,30 @@ with tab1:
                 eps_trend, bps_trend = analyze_trends(stk)
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
-                # 💡 투자의견 판별 및 출력
+                # 💡 투자의견 판별 및 명시적 안전마진 수치 도출
                 op_title, op_color, op_reason = get_investment_opinion(mos if mos else 0, pmos, roe, base_fcf)
                 
+                # 명시적 안전마진 수치 포맷팅
+                mos_val_text = ""
+                if not iv:
+                    mos_val_text = t(f"⚠️ {err}", f"⚠️ {err}")
+                    mos_color = "#e3b341"
+                elif mos > 0:
+                    mos_val_text = t(f"✅ 내재가치 대비 +{mos:.1f}% 안전마진 존재", f"✅ +{mos:.1f}% Margin of Safety exists")
+                    mos_color = "#3fb950"
+                else:
+                    mos_val_text = t(f"🚨 내재가치 대비 {abs(mos):.1f}% 안전마진 상실 (고평가)", f"🚨 {abs(mos):.1f}% Margin of Safety lost (Overvalued)")
+                    mos_color = "#ff7b72"
+                    
+                pmos_val_text = t(f"(PER 상대가치: {'+' if pmos > 0 else ''}{pmos:.1f}%)", f"(PE Margin of Safety: {'+' if pmos > 0 else ''}{pmos:.1f}%)")
+
                 st.markdown(f"""
-                <div style="padding: 15px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; margin-bottom: 25px; margin-top: 10px;">
-                    <h3 style="margin: 0 0 5px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
-                    <span style="color: #c9d1d9; font-size: 0.95rem;">{op_reason}</span>
+                <div style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; margin-bottom: 25px; margin-top: 10px;">
+                    <h3 style="margin: 0 0 8px 0; color: {op_color}; font-size: 1.4rem;">🎯 AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
+                    <p style="margin: 0 0 6px 0; font-size: 1.05rem; font-weight: bold; color: {mos_color};">
+                        {mos_val_text} <span style="font-size: 0.9rem; font-weight: normal; color: #8b949e; margin-left: 8px;">{pmos_val_text}</span>
+                    </p>
+                    <span style="color: #c9d1d9; font-size: 0.95rem; display: block; margin-top: 5px;">{op_reason}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
