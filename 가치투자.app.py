@@ -74,6 +74,29 @@ def get_data(tk):
             if 'sum' in nv: i['kr_sum'] = nv['sum']
     return stk, p, i, kr
 
+# 실시간 CEO 리스크 구글 뉴스 파싱 함수
+def get_ceo_news(ceo, kr):
+    if not ceo or ceo == '누락': return []
+    try:
+        if kr:
+            q = urllib.parse.quote(f'"{ceo}" 횡령 OR 배임 OR 사기 OR 논란')
+            url = f"https://news.google.com/rss/search?q={q}&hl=ko&gl=KR&ceid=KR:ko"
+        else:
+            q = urllib.parse.quote(f'"{ceo}" fraud OR scandal OR embezzlement')
+            url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+        
+        h = {'User-Agent': 'Mozilla/5.0'}
+        r = requests.get(url, headers=h, timeout=3)
+        s = BeautifulSoup(r.text, 'html.parser')
+        items = s.find_all('item')[:3]
+        res = []
+        for item in items:
+            t = item.title.text if item.title else ''
+            if t: res.append(t)
+        return res
+    except:
+        return []
+
 def run_dcf(stk, i, p, ty):
     try:
         fcf_s = None
@@ -123,6 +146,7 @@ def run_dcf(stk, i, p, ty):
 st.title("⚡ AGIE Value Terminal")
 st.error("🚨 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
 
+# 바로가기용 사전일 뿐, 여기에 없는 티커(예: OXY, INTC 등)도 입력하면 모두 검색됩니다.
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL",
     "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
@@ -143,10 +167,10 @@ tmap = {
     "LG엔솔":"373220.KS", "포스코홀딩스":"005490.KS", "삼성바이오로직스":"207940.KS"
 }
 
-ui = st.text_input("종목명 또는 티커 입력:", placeholder="예: 구글, 메리츠금융지주, 캐터필러")
+ui = st.text_input("종목명 또는 티커 입력:", placeholder="아무 종목의 티커나 이름을 입력하세요 (예: AAPL, 구글, 005930.KS)")
 if st.button("가치 분석 심층 스캔", type="primary"):
     if ui:
-        with st.spinner("데이터 스캔 중..."):
+        with st.spinner("데이터 스캔 및 실시간 뉴스 파싱 중..."):
             q = ui.replace(" ", "").upper()
             tk = tmap.get(q, q)
             stk, p, i, kr = get_data(tk)
@@ -225,16 +249,17 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     
                     st.markdown(f"- **CEO:** <span class='good'>{tr(ceo)}</span>", unsafe_allow_html=True)
                     
-                    # 💡 추가된 실시간 자동 구글링 연동 기능 (범죄, 횡령, 사기)
-                    if ceo != '누락':
-                        if kr:
-                            g_query = f'"{ceo}" 횡령 OR 배임 OR 사기 OR 논란 OR 재판'
-                        else:
-                            g_query = f'"{ceo}" fraud OR scandal OR lawsuit OR embezzlement'
-                            
-                        search_url = f"https://www.google.com/search?q={urllib.parse.quote(g_query)}"
-                        st.markdown(f"👉 **[🚨 CEO 도덕성/범죄이력 팩트체크 바로가기]({search_url})**")
-                        st.info("💡 경영진의 정직함이 가장 중요합니다. 위 버튼을 눌러 과거 자본 배분 이력 및 도덕적 결함을 즉시 확인하십시오.")
+                    # 💡 실시간 구글 뉴스 파싱 요약 적용
+                    st.markdown("**[🚨 실시간 경영진 리스크 뉴스 점검]**")
+                    ceo_news = get_ceo_news(ceo, kr)
+                    if ceo_news:
+                        for news in ceo_news:
+                            headline = news if kr else tr(news)
+                            st.markdown(f"> - {headline}")
+                        st.caption("※ 구글 뉴스 자동 검색 결과입니다. 정확하지 않은 정보일 수 있으니 팩트 체크가 필수인 부분입니다.")
+                    else:
+                        st.write("> 현재 구글 뉴스에 노출된 주요 횡령/사기/논란 헤드라인이 없습니다.")
+                        st.caption("※ 정보 누락일 수 있으니, 직접 교차 검증은 필수입니다.")
                     
                     st.markdown("---")
                     sum_t = i.get('kr_sum', i.get('longBusinessSummary',''))
@@ -269,7 +294,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                         biz_eval = f"<span class='highlight'>경고 (ROE {roe:.2f}%. 비즈니스 구조 훼손 가능성 점검 시급)</span>"
                     st.markdown(f"**2. 좋은 비즈니스인가?**<br>👉 {biz_eval}", unsafe_allow_html=True)
                     
-                    st.write("**3. 경영진은 신뢰할 수 있는가?** 👉 위 '도덕성 팩트체크 버튼'을 눌러 횡령/주주기만 여부를 필히 확인하십시오.")
+                    st.write("**3. 경영진은 신뢰할 수 있는가?** 👉 위 실시간 뉴스 점검 탭을 확인하여 오너 리스크를 점검하십시오.")
                     st.write("**4. 놓친 리스크는 없는가?** 👉 현재 주가 하락이 단순한 '미스터 마켓의 우울증'인지 영구적 손상인지 확인하세요.")
                     st.write("**5~6. 능력 범위 안인가?** 👉 이 비즈니스 모델을 타인에게 논리적으로 재반박하며 설명할 수 있습니까?")
                     st.markdown("</div>", unsafe_allow_html=True)
