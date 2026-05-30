@@ -12,20 +12,58 @@ st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="exp
 # ==========================================
 # 💡 세션 상태 초기화 (검색 기록, 북마크)
 # ==========================================
-if "search_tk" not in st.session_state:
-    st.session_state.search_tk = None
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "bookmarks" not in st.session_state:
-    st.session_state.bookmarks = []
-if "lang" not in st.session_state:
-    st.session_state.lang = "ko"
+if "search_tk" not in st.session_state: st.session_state.search_tk = None
+if "history" not in st.session_state: st.session_state.history = []
+if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
+if "lang" not in st.session_state: st.session_state.lang = "ko"
+if "main_input" not in st.session_state: st.session_state.main_input = ""
 
-# 💡 엔터키 및 원클릭 즉시 반응을 위한 콜백 함수
 def trigger_scan():
     if st.session_state.get("main_input"):
         q = st.session_state.main_input.replace(" ", "").upper()
         st.session_state.search_tk = tmap.get(q, q)
+
+# ==========================================
+# 💡 글로벌 매크로 실시간 데이터 패치 로직
+# ==========================================
+@st.cache_data(ttl=900) # 15분마다 갱신 (속도 최적화)
+def get_macro_data():
+    macro_symbols = {
+        "S&P 500": "^GSPC",
+        "Nasdaq 100": "^NDX",
+        "Nasdaq Futures": "NQ=F",
+        "USD/KRW": "KRW=X",
+        "WTI Crude": "CL=F",
+        "10Y Treasury": "^TNX",
+        "SPY": "SPY", # S&P 500 PER 대용
+        "QQQ": "QQQ"  # Nasdaq 100 PER 대용
+    }
+    
+    res = {}
+    for name, tk in macro_symbols.items():
+        try:
+            stk = yf.Ticker(tk)
+            hist = stk.history(period="5d")
+            if len(hist) >= 2:
+                last_p = hist['Close'].iloc[-1]
+                prev_p = hist['Close'].iloc[-2]
+                change = last_p - prev_p
+                pct = (change / prev_p) * 100
+                res[name] = {"p": last_p, "c": change, "pct": pct}
+            else:
+                res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
+        except:
+            res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
+            
+    # SPY, QQQ를 통한 시장 PER 추출
+    try: res["SPY_PE"] = yf.Ticker("SPY").info.get("forwardPE", 22.0)
+    except: res["SPY_PE"] = 22.0
+    try: res["QQQ_PE"] = yf.Ticker("QQQ").info.get("forwardPE", 30.0)
+    except: res["QQQ_PE"] = 30.0
+    
+    return res
+
+macro_data = get_macro_data()
 
 # ==========================================
 # 💡 사이드바 (서재 및 설정 패널)
@@ -42,14 +80,12 @@ with st.sidebar:
             
     is_ko = st.session_state.lang == "ko"
 
-    def t(ko, en):
-        return ko if is_ko else en
+    def t(ko, en): return ko if is_ko else en
         
     st.divider()
     
     st.header(t("📚 내 서재", "📚 My Library"))
     
-    # 1. 북마크 (즐겨찾기) 영역
     st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
@@ -57,7 +93,6 @@ with st.sidebar:
         for b_tk in st.session_state.bookmarks:
             c1, c2 = st.columns([4, 1])
             with c1:
-                # 💡 강제 새로고침(st.rerun)을 통해 1번 누르면 즉시 반응하도록 수정
                 if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
                     st.session_state.search_tk = b_tk
                     st.rerun()
@@ -68,7 +103,6 @@ with st.sidebar:
                     
     st.divider()
     
-    # 2. 최근 검색 기록 영역
     st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
@@ -89,7 +123,7 @@ with st.sidebar:
                     st.rerun()
 
 # ==========================================
-# 💡 메인 UI 스타일
+# 💡 메인 UI 스타일 및 전역 매크로 대시보드
 # ==========================================
 st.markdown("""
 <style>
@@ -106,14 +140,71 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="padding-top: 10px; padding-bottom: 15px;">
+<div style="padding-top: 5px; padding-bottom: 10px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: #ffffff; letter-spacing: 2px; line-height: 1.2;">
         VALUE
     </span>
 </div>
 """, unsafe_allow_html=True)
 
-st.caption(t("※ 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.", "※ Warning: This model is optimized for companies with an economic moat, not highly cyclical businesses."))
+# 💡 전역 매크로 대시보드 (어떤 탭에서도 보이게 최상단 배치)
+m1, m2, m3, m4, m5, m6 = st.columns(6)
+m1.metric(t("S&P 500", "S&P 500"), f"{macro_data['S&P 500']['p']:,.2f}", f"{macro_data['S&P 500']['pct']:.2f}%")
+m2.metric(t("Nasdaq 100", "Nasdaq 100"), f"{macro_data['Nasdaq 100']['p']:,.2f}", f"{macro_data['Nasdaq 100']['pct']:.2f}%")
+m3.metric(t("NQ 선물", "Nasdaq Fut"), f"{macro_data['Nasdaq Futures']['p']:,.2f}", f"{macro_data['Nasdaq Futures']['pct']:.2f}%")
+m4.metric(t("환율 (KRW/USD)", "USD/KRW"), f"{macro_data['USD/KRW']['p']:,.2f}", f"{macro_data['USD/KRW']['pct']:.2f}%")
+m5.metric(t("WTI 원유", "WTI Crude"), f"${macro_data['WTI Crude']['p']:,.2f}", f"{macro_data['WTI Crude']['pct']:.2f}%")
+m6.metric(t("10년물 국채", "10Y Treasury"), f"{macro_data['10Y Treasury']['p']:.3f}%", f"{macro_data['10Y Treasury']['c']:.3f} bp")
+
+# 💡 시장 이익수익률 기반 매력도 판독 로직
+spy_ey = (1 / macro_data["SPY_PE"]) * 100 if macro_data["SPY_PE"] > 0 else 0
+qqq_ey = (1 / macro_data["QQQ_PE"]) * 100 if macro_data["QQQ_PE"] > 0 else 0
+tnx = macro_data["10Y Treasury"]["p"]
+
+spy_erp = spy_ey - tnx
+qqq_erp = qqq_ey - tnx
+
+def get_market_opinion(erp):
+    if erp > 3.0: return t("강력 매수 (역사적 저평가)", "Strong Buy (Historic Undervaluation)"), "#3fb950"
+    elif erp > 1.0: return t("적립식 매수 (안전마진 존재)", "Buy (Margin of safety exists)"), "#58a6ff"
+    elif erp > -1.0: return t("관망 (채권과 주식 매력도 유사)", "Hold (Equities & Bonds equally attractive)"), "#e3b341"
+    else: return t("매도 경고 (채권이 압도적으로 유리한 버블 구간)", "Sell Warning (Bonds vastly superior, Bubble risk)"), "#ff7b72"
+
+spy_op, spy_col = get_market_opinion(spy_erp)
+qqq_op, qqq_col = get_market_opinion(qqq_erp)
+
+with st.expander(t("📉 현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "📉 Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
+    st.write(t(f"주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 **주식 위험 프리미엄(ERP)** 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", 
+               f"This is an **Equity Risk Premium (ERP)** analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield. (Higher ERP means stocks are cheap; negative means bonds are better.)"))
+    
+    c_m1, c_m2 = st.columns(2)
+    with c_m1:
+        st.markdown(f"""
+        <div style='background-color:#161b22; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'>
+            <h4>S&P 500 밸류에이션</h4>
+            <p style='margin:2px;'>- Fwd PER: <b>{macro_data["SPY_PE"]:.1f}배</b></p>
+            <p style='margin:2px;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p>
+            <p style='margin:2px;'>- 10년물 국채: <b>{tnx:.2f}%</b></p>
+            <p style='margin:2px;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p>
+            <hr style='margin:10px 0;'>
+            <b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with c_m2:
+        st.markdown(f"""
+        <div style='background-color:#161b22; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'>
+            <h4>Nasdaq 100 밸류에이션</h4>
+            <p style='margin:2px;'>- Fwd PER: <b>{macro_data["QQQ_PE"]:.1f}배</b></p>
+            <p style='margin:2px;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p>
+            <p style='margin:2px;'>- 10년물 국채: <b>{tnx:.2f}%</b></p>
+            <p style='margin:2px;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p>
+            <hr style='margin:10px 0;'>
+            <b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
 def tr_text(txt):
     if not txt: return txt
@@ -125,16 +216,14 @@ def tr_text(txt):
 def clean_ceo_name(name):
     if not name or name == '누락': return 'N/A' if not is_ko else '누락'
     for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
-        if name.startswith(prefix):
-            name = name[len(prefix):]
+        if name.startswith(prefix): name = name[len(prefix):]
     if is_ko:
         k_name = tr_text(name)
         if not k_name: return '누락'
         suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
         for s in suffixes:
             if k_name.endswith(s):
-                k_name = k_name[:-len(s)].strip()
-                break
+                k_name = k_name[:-len(s)].strip(); break
         return k_name
     return name
 
@@ -144,26 +233,20 @@ def analyze_trends(stk):
     try:
         inc = stk.income_stmt
         bs = stk.balance_sheet
-        
         if inc is not None and not inc.empty:
             target_col = 'Basic EPS' if 'Basic EPS' in inc.index else ('Diluted EPS' if 'Diluted EPS' in inc.index else None)
             if target_col:
                 eps_vals = inc.loc[target_col].dropna().values[:4][::-1] 
                 if len(eps_vals) >= 3:
-                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]:
-                        eps_trend = t("✅ 4년 지속 상승 추세", "✅ 4Y Consistent Upward Trend")
-                    else:
-                        eps_trend = t("⚠️ 변동/하락 (이건 확인이 필요한 부분입니다)", "⚠️ Fluctuating/Declining (Needs verification)")
+                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: eps_trend = t("✅ 4년 지속 상승 추세", "✅ 4Y Consistent Upward Trend")
+                    else: eps_trend = t("⚠️ 변동/하락 (이건 확인이 필요한 부분입니다)", "⚠️ Fluctuating/Declining (Needs verification)")
                         
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
-                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]:
-                    bps_trend = t("✅ 4년 자본 지속 증가 (PBR 안정)", "✅ 4Y Consistent Equity Growth")
-                else:
-                    bps_trend = t("⚠️ 자본 변동/감소 (이건 확인이 필요한 부분입니다)", "⚠️ Equity Fluctuating/Declining (Needs verification)")
-    except:
-        pass
+                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: bps_trend = t("✅ 4년 자본 지속 증가 (PBR 안정)", "✅ 4Y Consistent Equity Growth")
+                else: bps_trend = t("⚠️ 자본 변동/감소 (이건 확인이 필요한 부분입니다)", "⚠️ Equity Fluctuating/Declining (Needs verification)")
+    except: pass
     return eps_trend, bps_trend
 
 def get_investment_opinion(mos, pmos, roe, fcf):
@@ -330,20 +413,18 @@ tmap = {
 with tab1:
     col_input, col_btn = st.columns([4, 1])
     with col_input:
-        # 💡 on_change 콜백으로 엔터키 즉시 스캔 적용
         ui = st.text_input(
             t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
-            placeholder=t("예: AAPL, GOOGL, 005930", "e.g., AAPL, GOOGL, 005930"), 
+            placeholder=t("예: AAPL, GOOGL, 005930 (입력 후 Enter)", "e.g., AAPL, GOOGL, 005930 (Press Enter)"), 
             label_visibility="collapsed",
             key="main_input",
-            on_change=trigger_scan
+            on_change=trigger_scan # 💡 엔터키 즉시 스캔
         )
         st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
-    
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan()
-            st.rerun() # 클릭 시 딜레이 없는 강제 실행
+            st.rerun() # 💡 원클릭 강제 새로고침
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
@@ -356,7 +437,7 @@ with tab1:
             stk, p, i, kr = get_data(tk)
             
             if p:
-                try: ty = yf.Ticker("^TNX").fast_info['lastPrice']
+                try: ty = macro_data["10Y Treasury"]["p"]
                 except: ty = 4.4
                 
                 c_title, c_star = st.columns([4, 1])
@@ -568,17 +649,17 @@ with tab2:
                 use_container_width=True
             )
             
-            # 💡 빠른 장전 원클릭 적용 완료
             st.markdown("---")
             st.write(t("🔍 **포트폴리오 종목 빠른 분석 장전**", "🔍 **Fast Load for Analysis**"))
             c_tk, c_btn = st.columns([3, 1])
             with c_tk:
                 fast_tk = st.selectbox("Ticker", df["티커"].tolist(), label_visibility="collapsed")
             with c_btn:
+                # 💡 장전하기 원클릭 처리 + 토스트 알림
                 if st.button(t("검색창에 장전하기", "Load to Search"), use_container_width=True):
                     st.session_state.search_tk = fast_tk
                     st.toast(t(f"🎯 {fast_tk} 분석 장전 완료! 상단의 [개별 기업 가치분석] 탭을 클릭하세요.", f"🎯 {fast_tk} Loaded! Click [Company Value Analysis] tab."), icon="✅")
-                    st.rerun() # 원클릭 강제 실행
+                    st.rerun() 
         else:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
