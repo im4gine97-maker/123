@@ -1,2 +1,5 @@
+streamlit
 yfinance
 deep-translator
+requests
+beautifulsoup4
