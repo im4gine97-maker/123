@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 import time
+import urllib.parse
 
 st.set_page_config(page_title="AGIE", page_icon="⚡", layout="wide")
 
@@ -85,13 +86,16 @@ def run_dcf(stk, i, p, ty):
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
         fcf = fcf_s.iloc[0] if (fcf_s is not None and not fcf_s.empty) else i.get('freeCashflow')
-        if not fcf or fcf <= 0: return 0, 0, "주주이익(FCF) 적자", 0
+        if not fcf or fcf <= 0: return 0, 0, "주주이익(FCF) 적자", 0, 0
         
         sh = i.get('sharesOutstanding')
-        if not sh: return 0, 0, "주식수 누락", 0
+        if not sh: return 0, 0, "주식수 누락", 0, 0
         
         g = 0.05
+        y_cnt = 0
         if fcf_s is not None and len(fcf_s) >= 2:
+            # 💡 최대 10년치 과거 데이터 접근 로직
+            fcf_s = fcf_s.head(10) 
             c = fcf_s.iloc[0]
             o = fcf_s.iloc[-1]
             y_cnt = len(fcf_s) - 1
@@ -115,9 +119,9 @@ def run_dcf(stk, i, p, ty):
         
         iv = (sum(fut) + dtv) / sh
         mos = ((iv - p) / iv) * 100
-        return iv, mos, None, g
+        return iv, mos, None, g, y_cnt
     except:
-        return 0, 0, "DCF 연산 에러", 0
+        return 0, 0, "DCF 연산 에러", 0, 0
 
 st.title("⚡ AGIE Value Terminal")
 st.error("🚨 시클리컬 기업 주의: 본 모델은 경제적 해자(Moat)를 갖춘 기업에 최적화되어 있습니다.")
@@ -142,7 +146,6 @@ tmap = {
     "LG엔솔":"373220.KS", "포스코홀딩스":"005490.KS", "삼성바이오로직스":"207940.KS"
 }
 
-# 💡 제미나이의 지식을 코드에 박아넣은 CEO 리스크 판단 DB
 ai_ceo_db = {
     "AAPL": "탁월한 공급망 관리자. 횡령, 배임, 사기 등의 범죄 이력은 없으며 평판이 매우 양호합니다.",
     "GOOGL": "엔지니어 출신으로 안정적 리더십을 보여줍니다. 사기나 범죄 이력은 없으나, 기업 차원의 반독점법 소송 리스크가 존재합니다.",
@@ -187,7 +190,6 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                 a_pe = i.get('fiveYearAvgPE')
                 if not a_pe: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
                 
-                # 💡 야후 API 배당률 표기 버그 방지 및 정확한 배당금 산출
                 div = 0
                 if kr:
                     div = i.get('dividendYield', 0) * 100
@@ -205,7 +207,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     pmos = ((a_pe - f_pe) / a_pe) * 100
                     
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
-                iv, mos, err, g_rate = run_dcf(stk, i, p, ty)
+                iv, mos, err, g_rate, y_cnt = run_dcf(stk, i, p, ty)
                 
                 with c1:
                     st.markdown("<div class='box'>", unsafe_allow_html=True)
@@ -236,7 +238,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.markdown("---")
                     st.write("**[버핏식 주주이익(Owner Earnings) 10-Year DCF]**")
                     if iv:
-                        st.write(f"- **적용된 FCF 연평균 성장률:** {g_rate*100:.1f}% (재무제표 기반)")
+                        st.write(f"- **적용된 FCF 연평균 성장률:** {g_rate*100:.1f}% (과거 {y_cnt}년치 재무제표 기반)")
                         st.write(f"**추정 적정가:** {iv:,.2f}")
                         if mos > 0:
                             st.markdown(f"▶ **DCF 안전마진:** <span class='good'>+{mos:.1f}% (저평가)</span>", unsafe_allow_html=True)
@@ -254,7 +256,6 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     
                     st.markdown(f"- **CEO:** <span class='good'>{tr(ceo)}</span>", unsafe_allow_html=True)
                     
-                    # 💡 제미나이 리포트 다이렉트 출력
                     ceo_eval = ai_ceo_db.get(tk, None)
                     st.write("**[🤖 제미나이 도덕성/리스크 리포트]**")
                     if ceo_eval:
@@ -305,7 +306,7 @@ if st.button("가치 분석 심층 스캔", type="primary"):
                     st.write("**[기업 해부 및 학문적 모델 적용]**")
                     
                     if g_rate > 0:
-                        math_eval = f"<span class='good'>최근 주주이익(FCF) 기반 연평균 {g_rate*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
+                        math_eval = f"<span class='good'>최근 과거 {y_cnt}년 주주이익(FCF) 기반 연평균 {g_rate*100:.1f}%씩 성장하며 '복리 모형'에 탑승 중.</span>"
                     else:
                         math_eval = "<span class='highlight'>현금흐름이 역성장 또는 적자이므로 복리 팽창 구간이 아닙니다.</span>"
                         
