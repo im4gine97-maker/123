@@ -24,7 +24,7 @@ if "stock_comments" not in st.session_state: st.session_state.stock_comments = {
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터 (캐싱 오류 방지를 위해 최상단 배치)
+# [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
@@ -456,41 +456,26 @@ with st.sidebar:
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
-# 💡 모바일 스크롤 멈춤(Freezing) 방지를 위한 강력한 투명막 CSS 처리
+# 메인화면 스타일 렌더링 (모든 주석 및 공백 제거된 클린 CSS)
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
-.main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
-h1, h2, h3 {color: #58a6ff; font-weight: 700;}
-.box {background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px;}
-.guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 15px; margin-bottom: 12px; background: #1c2128; padding: 15px; border-radius: 0 8px 8px 0;}
-.highlight {color: #ff7b72; font-weight: bold;}
-.good {color: #3fb950; font-weight: bold;}
-.stTabs [data-baseweb="tab-list"] {gap: 20px; border-bottom: 1px solid #30363d;}
-.stTabs [data-baseweb="tab"] {font-size: 1.15rem; font-weight: 600; color: #8b949e; padding-bottom: 10px;}
-.stTabs [aria-selected="true"] {color: #58a6ff; border-bottom: 2px solid #58a6ff;}
-.macro-ticker::-webkit-scrollbar { display: none; }
-.macro-ticker { -ms-overflow-style: none; scrollbar-width: none; }
-.comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px; color: #e6edf3;}
-.comment-time {font-size: 0.8rem; color: #8b949e;}
-
-/* 1. 차트 영역 위를 덮어 터치를 완전히 차단 (툴팁이 뜨지 않아 먹통 해결) */
-div[data-testid="stArrowVegaLiteChart"] > div, 
-div[data-testid="stVegaLiteChart"] > div {
-    pointer-events: none !important;
-}
-/* 만약의 경우를 대비한 차트 툴팁 완전 제거 */
-#vg-tooltip-element, .vg-tooltip {
-    display: none !important;
-    opacity: 0 !important;
-}
-
-/* 2. 테이블 우측 상단 거추장스러운 툴바(점 3개 아이콘 등) 완전 삭제 */
-[data-testid="stElementToolbar"] {
-    display: none !important;
-}
-
-/* 3. 주의: [data-testid="stDataFrame"] 에는 pointer-events: none을 넣지 않아 좌우 스크롤 부활시킴 */
+.main{background-color:#0e1117;color:#c9d1d9;font-family:'Pretendard',sans-serif;}
+h1,h2,h3{color:#58a6ff;font-weight:700;}
+.box{background-color:#161b22;padding:25px;border-radius:12px;border:1px solid #30363d;margin-bottom:20px;}
+.guru-quote{font-style:italic;color:#8b949e;border-left:3px solid #58a6ff;padding-left:15px;margin-bottom:12px;background:#1c2128;padding:15px;border-radius:0 8px 8px 0;}
+.highlight{color:#ff7b72;font-weight:bold;}
+.good{color:#3fb950;font-weight:bold;}
+.stTabs [data-baseweb="tab-list"]{gap:20px;border-bottom:1px solid #30363d;}
+.stTabs [data-baseweb="tab"]{font-size:1.15rem;font-weight:600;color:#8b949e;padding-bottom:10px;}
+.stTabs [aria-selected="true"]{color:#58a6ff;border-bottom:2px solid #58a6ff;}
+.macro-ticker::-webkit-scrollbar{display:none;}
+.macro-ticker{-ms-overflow-style:none;scrollbar-width:none;}
+.comment-box{background-color:#1c2128;padding:15px;border-radius:8px;border-left:4px solid #8b949e;margin-bottom:10px;color:#e6edf3;}
+.comment-time{font-size:0.8rem;color:#8b949e;}
+div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
+#vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
+[data-testid="stElementToolbar"]{display:none!important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -552,6 +537,7 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
+# 오리지널 탭 구조
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
@@ -755,7 +741,7 @@ with tab1:
                 st.markdown(p_txt, unsafe_allow_html=True)
                 if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
                 elif roe > 0: biz_eval = t("[보통] 독점력 추가 확인 필요", "[Average] Requires moat verification")
-                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼 단 점검 시급', '[Warning] Structural damage check urgent')}</span>"
+                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼손 점검 시급', '[Warning] Structural damage check urgent')}</span>"
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 리포트 참조', 'Refer to the report above')}")
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
@@ -907,70 +893,48 @@ with tab5:
 
     terms = [
         ("시가총액 (Market Cap)", 
-         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", 
-           "The price tag to buy the ENTIRE company at once."), 
-         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", 
-           "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
+         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
+         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
         
         ("PER (주가수익비율)", 
-         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", 
-           "How many years it will take for the company to earn back your investment."), 
-         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", 
-           "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
+         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
+         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
         
         ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", 
-           "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
-         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", 
-           "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
+         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
+         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
         
         ("PBR (주가순자산비율)", 
-         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", 
-           "If the company closes tomorrow and sells its assets, will you get your money back?"), 
-         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", 
-           "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
+         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company closes tomorrow and sells its assets, will you get your money back?"), 
+         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
         
         ("ROE (자기자본이익률)", 
-         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", 
-           "Shows how efficiently the company multiplies its equity capital."), 
-         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", 
-           "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
+         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its equity capital."), 
+         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
         
         ("ROIC (투하자본수익률)", 
-         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", 
-           "The true return on all capital invested (debt + equity), removing leverage distortions."), 
-         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", 
-           "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
+         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", "The true return on all capital invested (debt + equity), removing leverage distortions."), 
+         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
         
         ("FCF (잉여현금흐름)", 
-         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", 
-           "The pure 'leftover cash' after paying all expenses and capital investments."), 
-         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", 
-           "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
+         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' after paying all expenses and capital investments."), 
+         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
         
         ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", 
-           "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
-         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", 
-           "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
+         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
+         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", 
-           "Like buying a $1,000 item on sale for $700."), 
-         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", 
-           "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
+         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
-         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", 
-           "If a stock were a bank account, this is the annual interest rate it yields."), 
-         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", 
-           "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
+         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", "If a stock were a bank account, this is the annual interest rate it yields."), 
+         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
         
         ("주식 위험 프리미엄 (ERP)", 
-         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", 
-           "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
-         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", 
-           "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
+         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
+         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
     ]
 
     lbl_analogy = t('이해하기:', 'Analogy:')
