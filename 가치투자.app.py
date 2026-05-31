@@ -597,6 +597,9 @@ st.markdown("""
 
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
+# 💡 시클리컬 기업 주의 문구 추가
+st.warning(t("⚠️ [참고] 본 가치투자 분석 모델은 해운, 철강, 화학 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "⚠️ [Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., shipping, steel, chemicals) with extreme earnings volatility."))
+
 k_p, k_c, k_pct = get_safe_macro("KOSPI")
 kq_p, kq_c, kq_pct = get_safe_macro("KOSDAQ")
 sp_p, sp_c, sp_pct = get_safe_macro("S&P 500")
