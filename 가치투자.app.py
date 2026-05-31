@@ -456,7 +456,7 @@ with tab1:
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("[안내] 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "[Info] For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
+        st.caption(t("[안내] 한국 주식은 가급적 종목 코드(6자리 숫자)를 입력해 주십시오 (예: 005930).", "[Info] For Korean stocks, please preferably enter the 6-digit stock code (e.g., 005930)."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
@@ -791,7 +791,6 @@ with tab6:
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     
-    # [선언문] 문구를 담백하게 변경
     phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
     phil_decl = t("> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>**VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**", "> **A Compass for 'True Investment', Not Speculation**<br><br>Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>**VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>**Join VALUE on the journey to becoming a true investor who contributes to society, not a speculator.**")
 
