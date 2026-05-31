@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# [1] 세션 상태 초기화
+# [1] 세션 상태 초기화 및 글로벌 유틸리티
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "history" not in st.session_state: st.session_state.history = []
@@ -29,6 +29,13 @@ def safe_float(val, default=0.0):
         return float(val)
     except:
         return default
+
+# 💡 문자열 포맷팅 크래시를 100% 막아주는 방탄 포맷터
+def fmt_f(val, decimals=1):
+    try:
+        return f"{float(val):.{decimals}f}"
+    except:
+        return "0.0" if decimals == 1 else "0.00"
 
 def trigger_scan():
     if st.session_state.get("main_input"):
@@ -160,10 +167,11 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 (타입 방어 완벽 적용)
+# [3] 데이터 가져오기 
 # ==========================================
+# 💡 강제 캐시 삭제를 위해 함수 이름 변경 (fetch_macro_realtime_v2)
 @st.cache_data(ttl=900) 
-def fetch_realtime_macro_data():
+def fetch_macro_realtime_v2():
     macro_symbols = {
         "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
@@ -226,7 +234,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     elif cd == "005380":
         return "정의선/경영진 - 전기차(EV) 캐즘 구간에서의 대규모 투자 집행에 따른 단기 수익성 변동 우려, 노조와의 임단협 및 국내외 노동 비용 상승 압박 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
     else:
-        return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절한 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
+        return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
 def get_nv(cd):
     url = f"https://finance.naver.com/item/main.naver?code={cd}"
@@ -436,7 +444,7 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
-macro_data = fetch_realtime_macro_data()
+macro_data = fetch_macro_realtime_v2()
 
 # 사이드바 렌더링
 with st.sidebar:
@@ -564,6 +572,7 @@ for name, val, chg, unit in macro_items:
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
+# 💡 캐시에서 꺼내온 값이 혹시나 문자열이어도 다시 한번 확실하게 숫자로 바꿈
 spy_pe = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
 qqq_pe = safe_float(macro_data.get("QQQ_PE", 30.0), 30.0)
 tnx_val = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
@@ -573,13 +582,26 @@ spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
 spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 
+spy_op, spy_col = get_market_opinion(spy_erp)
+qqq_op, qqq_col = get_market_opinion(qqq_erp)
+
+# 💡 문자열 포맷팅 오류를 원천 차단하기 위한 사전 포맷팅 (방어 로직)
+spy_pe_str = fmt_f(spy_pe, 1)
+spy_ey_str = fmt_f(spy_ey, 2)
+tnx_val_str = fmt_f(tnx_val, 2)
+spy_erp_str = fmt_f(spy_erp, 2)
+
+qqq_pe_str = fmt_f(qqq_pe, 1)
+qqq_ey_str = fmt_f(qqq_ey, 2)
+qqq_erp_str = fmt_f(qqq_erp, 2)
+
 with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 [주식 위험 프리미엄(ERP)] 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an [Equity Risk Premium (ERP)] analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
     with c_m1:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{spy_pe:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{spy_pe_str}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey_str}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp_str}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{qqq_pe:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{qqq_pe_str}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey_str}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp_str}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
