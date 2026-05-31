@@ -413,7 +413,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 AI 투자의견 평가 엔진 (경영진 40, ROE/ROIC 20, ERP 10, 복리성장 10, PER 10, DCF 10)
+# 💡 AI 투자의견 평가 엔진 (경영진 40, ROE/ROIC 20, PER 15, ERP 10, 복리성장 10, DCF 10)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     
@@ -423,11 +423,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         score -= 40
         
-    # 2. 상대가치 PER 할인지표 (±10점)
-    if pmos > 15: score += 10
-    elif pmos > 0: score += 5
-    elif pmos < -15: score -= 10
-    else: score -= 5
+    # 2. 상대가치 PER 할인지표 (±15점)
+    if pmos > 15: score += 15
+    elif pmos > 0: score += 7
+    elif pmos < -15: score -= 15
+    else: score -= 7
 
     # 3. 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점)
     if roe >= 15: score += 10
@@ -449,7 +449,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif mos < -15: score -= 10
     else: score -= 5
 
-    # 최종 등급 산출 (총점: 대략 -100 ~ +100)
+    # 최종 등급 산출
     if score >= 60:
         return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/DCF/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
     elif score >= 20:
