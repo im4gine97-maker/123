@@ -24,15 +24,15 @@ if "stock_comments" not in st.session_state: st.session_state.stock_comments = {
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
 # ==========================================
-# [2] 글로벌 상수 및 예비 데이터 (캐싱 오류 방지를 위해 최상단 배치)
+# [2] 글로벌 상수 및 고정 데이터 (스크래핑 무시, 최우선 표출)
 # ==========================================
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
     "테슬라":"TSLA", "엔비디아":"NVDA", "메타":"META", "페이스북":"META", "삼성전자":"005930.KS", "SK하이닉스":"000660.KS", "현대차":"005380.KS"
 }
 
-# 💡 차장님이 주신 최신 13F 포트폴리오 전체 데이터 완벽 복원
-fallback_13f_data = {
+# 💡 외부 스크래핑을 끊고 차장님이 제공한 최신 데이터를 영구 엔진으로 고정
+guru_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
         {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 21.96},
@@ -67,8 +67,8 @@ fallback_13f_data = {
         {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
         {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
         {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
-        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ],
     "PSH": [
         {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
@@ -76,10 +76,10 @@ fallback_13f_data = {
         {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
         {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
         {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
-        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ],
     "BAU": [
         {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
@@ -119,9 +119,9 @@ fallback_13f_data = {
         {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
         {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
         {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
-        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ],
     "PI": [
         {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
@@ -134,8 +134,8 @@ fallback_13f_data = {
         {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
         {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
         {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
-        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
-        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ]
 }
 
@@ -187,35 +187,10 @@ def get_macro_data():
     
     return res
 
-@st.cache_data(ttl=43200) 
+# 💡 외부 스크래핑 로직 완전 제거. 오직 차장님의 프리미엄 데이터만 즉시 반환!
+@st.cache_data
 def get_13f_portfolio(guru_code):
-    url = f"https://www.dataroma.com/m/holdings.php?m={guru_code}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    valid_data = []
-    try:
-        res = requests.get(url, headers=headers, timeout=5)
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            table = soup.find('table', {'id': 'grid'})
-            if table:
-                rows = table.find('tbody').find_all('tr')
-                for row in rows[:20]:
-                    cols = row.find_all('td')
-                    if len(cols) >= 3:
-                        stock_text = cols[0].text.strip()
-                        if not stock_text or stock_text == '≡' or stock_text == '=': continue
-                        if "-" in stock_text:
-                            tick = stock_text.split("-")[0].strip()
-                            name = "-".join(stock_text.split("-")[1:]).strip()
-                        else:
-                            tick = stock_text; name = stock_text
-                        pct_text = cols[1].text.strip().replace('%', '')
-                        try: pct = float(pct_text)
-                        except: pct = 0.0
-                        if pct > 0: valid_data.append({"티커": tick, "기업명": name, "비중(%)": pct})
-    except: pass
-    if not valid_data: return fallback_13f_data.get(guru_code, [])
-    return valid_data
+    return guru_13f_data.get(guru_code, [])
 
 def get_nv(cd):
     url = f"https://finance.naver.com/item/main.naver?code={cd}"
