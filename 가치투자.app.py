@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# [1] 세션 상태 초기화 및 글로벌 유틸리티
+# [1] 세션 상태 초기화
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "history" not in st.session_state: st.session_state.history = []
@@ -22,25 +22,6 @@ if "main_input" not in st.session_state: st.session_state.main_input = ""
 if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
-
-def safe_float(val, default=0.0):
-    try:
-        if val is None or pd.isna(val): return default
-        return float(val)
-    except:
-        return default
-
-def fmt_f(val, decimals=1):
-    try:
-        return f"{float(val):.{decimals}f}"
-    except:
-        return "0.0" if decimals == 1 else "0.00"
-
-def trigger_scan():
-    if st.session_state.get("main_input"):
-        q = st.session_state.main_input.replace(" ", "").upper()
-        tk = tmap.get(q, q)
-        st.session_state.search_tk = tk
 
 # ==========================================
 # [2] 글로벌 상수 및 고정 데이터
@@ -165,11 +146,17 @@ kr_top30 = [
     {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
 
+def trigger_scan():
+    if st.session_state.get("main_input"):
+        q = st.session_state.main_input.replace(" ", "").upper()
+        tk = tmap.get(q, q)
+        st.session_state.search_tk = tk
+
 # ==========================================
 # [3] 데이터 가져오기 (함수들)
 # ==========================================
 @st.cache_data(ttl=900) 
-def fetch_macro_realtime_v3():
+def get_macro_data():
     macro_symbols = {
         "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
@@ -181,58 +168,27 @@ def fetch_macro_realtime_v3():
             stk = yf.Ticker(tk)
             hist = stk.history(period="5d")
             if len(hist) >= 2:
-                last_p = safe_float(hist['Close'].iloc[-1])
-                prev_p = safe_float(hist['Close'].iloc[-2])
-                if prev_p != 0:
-                    change = last_p - prev_p
-                    pct = (change / prev_p) * 100
-                else:
-                    change, pct = 0.0, 0.0
+                last_p, prev_p = float(hist['Close'].iloc[-1]), float(hist['Close'].iloc[-2])
+                change, pct = last_p - prev_p, ((last_p - prev_p) / prev_p) * 100
                 res[name] = {"p": last_p, "c": change, "pct": pct}
             else: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
         except: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
             
-    res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
-    res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
+    try: 
+        spy_pe = yf.Ticker("SPY").info.get("forwardPE")
+        res["SPY_PE"] = float(spy_pe) if spy_pe is not None else 22.0
+    except: res["SPY_PE"] = 22.0
+    
+    try: 
+        qqq_pe = yf.Ticker("QQQ").info.get("forwardPE")
+        res["QQQ_PE"] = float(qqq_pe) if qqq_pe is not None else 30.0
+    except: res["QQQ_PE"] = 30.0
     
     return res
 
 @st.cache_data
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
-
-def fetch_naver_finance_news(cd):
-    url = f"https://finance.naver.com/item/news_news.naver?code={cd}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    news_list = []
-    try:
-        r = requests.get(url, headers=headers, timeout=5)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        titles = soup.select('td.title a')
-        for a in titles[:3]:
-            title_text = a.text.strip()
-            link = "https://finance.naver.com" + a['href'] if a.has_attr('href') else f"https://finance.naver.com/item/news.naver?code={cd}"
-            news_list.append({"title": title_text, "link": link, "publisher": "네이버금융"})
-    except:
-        pass
-    return news_list
-
-def fetch_governance_criticism(tk, cd, ceo_name):
-    tk_clean = str(tk).strip().upper()
-    if "TSLA" in tk_clean:
-        return "일론 머스크 (Elon Musk) - 과도한 트위터(X) 인수 및 정치적 발언으로 인한 브랜드 이미지 소모 리스크, 테슬라 지분 담보 대출 및 대량 매도에 따른 주가 변동성 야기, 다수의 기업 동시 경영으로 인한 집중도 분산 비판이 존재합니다. (이건 확인이 필요한 부분입니다)"
-    elif "AAPL" in tk_clean:
-        return "팀 쿡 (Tim Cook) - 혁신적 신제품(해자 개척) 부재에 대한 비판, 자사주 매입 및 배당 위주의 보수적 자본배분, 중국 공급망 의존도 과다에 따른 지정학적 리스크 노출 비판이 있습니다. (이건 확인이 필요한 부분입니다)"
-    elif "GOOG" in tk_clean:
-        return "순다르 피차이 (Sundar Pichai) - 생성형 AI(Gemini 등) 초기 대응 지연 및 조직 관료화 비판, 반독점 소송(구글 검색 독점) 패소에 따른 사업 분할 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
-    elif "MSFT" in tk_clean:
-        return "사티아 나델라 (Satya Nadella) - 오픈AI 의존도 과다 및 AI 투자 비용 급증에 따른 마진 압박 우려, 반독점 규제 당국의 클라우드/게임 부문 견제 리스크가 제기됩니다. (이건 확인이 필요한 부분입니다)"
-    elif cd == "005930":
-        return "이재용/경영진 - 파운드리(위탁생산) 수율 개선 지연 및 HBM(고대역폭메모리) 시장 초기 주도권 상실 비판, 경직된 조직 문화 및 기술 인재 유출 우려가 지적됩니다. (이건 확인이 필요한 부분입니다)"
-    elif cd == "005380":
-        return "정의선/경영진 - 전기차(EV) 캐즘 구간에서의 대규모 투자 집행에 따른 단기 수익성 변동 우려, 노조와의 임단협 및 국내외 노동 비용 상승 압박 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
-    else:
-        return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절한 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
 def get_nv(cd):
     url = f"https://finance.naver.com/item/main.naver?code={cd}"
@@ -242,10 +198,10 @@ def get_nv(cd):
         i = {}
         t = s.select_one('.wrap_company h2 a'); 
         if t: i['name'] = t.text
-        t = s.select_one('#_per'); i['pe'] = safe_float(t.text.replace(',','')) if t else 0.0
-        t = s.select_one('#_pbr'); i['pbr'] = safe_float(t.text.replace(',','')) if t else 0.0
-        t = s.select_one('#_cns_per'); i['fpe'] = safe_float(t.text.replace(',','')) if t else 0.0
-        t = s.select_one('#_dvr'); i['div'] = safe_float(t.text.replace(',',''))/100 if t else 0.0
+        t = s.select_one('#_per'); i['pe'] = float(t.text.replace(',','')) if t else 0
+        t = s.select_one('#_pbr'); i['pbr'] = float(t.text.replace(',','')) if t else 0
+        t = s.select_one('#_cns_per'); i['fpe'] = float(t.text.replace(',','')) if t else 0
+        t = s.select_one('#_dvr'); i['div'] = float(t.text.replace(',',''))/100 if t else 0
         t = s.select_one('.summary_info p'); 
         if t: i['sum'] = t.text
         return i
@@ -271,7 +227,7 @@ def get_data(tk):
         p, i = None, {}
         for _ in range(3):
             try:
-                p = safe_float(stk.fast_info['lastPrice'])
+                p = stk.fast_info['lastPrice']
                 i = stk.info
                 break
             except: time.sleep(1)
@@ -286,13 +242,13 @@ def get_data(tk):
                 t_name = s.select_one('.wrap_company h2 a')
                 if t_name: i['shortName'] = t_name.text
                 t_pe = s.select_one('#_per')
-                if t_pe: i['trailingPE'] = safe_float(t_pe.text.replace(',',''))
+                if t_pe: i['trailingPE'] = float(t_pe.text.replace(',',''))
                 t_fpe = s.select_one('#_cns_per')
-                if t_fpe: i['forwardPE'] = safe_float(t_fpe.text.replace(',',''))
+                if t_fpe: i['forwardPE'] = float(t_fpe.text.replace(',',''))
                 t_pbr = s.select_one('#_pbr')
-                if t_pbr: i['priceToBook'] = safe_float(t_pbr.text.replace(',',''))
+                if t_pbr: i['priceToBook'] = float(t_pbr.text.replace(',',''))
                 t_div = s.select_one('#_dvr')
-                if t_div: i['dividendYield'] = safe_float(t_div.text.replace(',',''))/100
+                if t_div: i['dividendYield'] = float(t_div.text.replace(',',''))/100
                 t_sum = s.select_one('.summary_info p')
                 if t_sum: i['kr_sum'] = t_sum.text
             except: pass
@@ -311,17 +267,17 @@ def get_base_dcf_data(stk, i):
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
-        fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
-        sh = safe_float(i.get('sharesOutstanding'))
+        fcf = fcf_s.iloc[0] if (fcf_s is not None and not fcf_s.empty) else i.get('freeCashflow')
+        sh = i.get('sharesOutstanding')
         
         g, data_len = 0.05, 0
         if fcf_s is not None and len(fcf_s) >= 2:
-            c, o = safe_float(fcf_s.iloc[0]), safe_float(fcf_s.iloc[-1])
+            c, o = fcf_s.iloc[0], fcf_s.iloc[-1]
             data_len = len(fcf_s)
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
         else:
-            eg = safe_float(i.get('earningsGrowth'))
-            if eg != 0.0: g = eg
+            eg = i.get('earningsGrowth')
+            if eg: g = eg
             data_len = 1
             
         g = max(0.02, min(g, 0.15))
@@ -330,7 +286,7 @@ def get_base_dcf_data(stk, i):
 
 def calc_custom_dcf(fcf, sh, p, ty, g):
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
-    if not sh or sh <= 0: return 0, 0, t("주식수 누락", "Missing Shares Outstanding")
+    if not sh: return 0, 0, t("주식수 누락", "Missing Shares Outstanding")
     try:
         dr = max(ty / 100, 0.09)
         cv = fcf
@@ -349,19 +305,19 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
 def get_real_roic(stk, i):
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
-            return safe_float(i['returnOnCapitalEmployed']) * 100
+            return i['returnOnCapitalEmployed'] * 100
         if stk is None: return None
         inc = stk.income_stmt
         bs = stk.balance_sheet
         if inc is not None and not inc.empty and bs is not None and not bs.empty:
-            ebit = safe_float(inc.loc['EBIT'].iloc[0]) if 'EBIT' in inc.index else (safe_float(inc.loc['Operating Income'].iloc[0]) if 'Operating Income' in inc.index else 0)
-            pretax = safe_float(inc.loc['Pretax Income'].iloc[0]) if 'Pretax Income' in inc.index else 0
-            tax = safe_float(inc.loc['Tax Provision'].iloc[0]) if 'Tax Provision' in inc.index else 0
+            ebit = inc.loc['EBIT'].iloc[0] if 'EBIT' in inc.index else (inc.loc['Operating Income'].iloc[0] if 'Operating Income' in inc.index else 0)
+            pretax = inc.loc['Pretax Income'].iloc[0] if 'Pretax Income' in inc.index else 0
+            tax = inc.loc['Tax Provision'].iloc[0] if 'Tax Provision' in inc.index else 0
             tax_rate = tax / pretax if pretax > 0 else 0.25
             nopat = ebit * (1 - tax_rate)
-            total_debt = safe_float(bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in bs.index else 0
-            total_equity = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if 'Stockholders Equity' in bs.index else 0
-            cash = safe_float(bs.loc['Cash And Cash Equivalents'].iloc[0]) if 'Cash And Cash Equivalents' in bs.index else 0
+            total_debt = bs.loc['Total Debt'].iloc[0] if 'Total Debt' in bs.index else 0
+            total_equity = bs.loc['Stockholders Equity'].iloc[0] if 'Stockholders Equity' in bs.index else 0
+            cash = bs.loc['Cash And Cash Equivalents'].iloc[0] if 'Cash And Cash Equivalents' in bs.index else 0
             invested_capital = total_debt + total_equity - cash
             if invested_capital > 0:
                 roic = (nopat / invested_capital) * 100
@@ -416,19 +372,25 @@ def tr_text(txt):
         except: return txt_str
     return txt_str
 
-def get_safe_macro(key, is_currency=False, is_rate=False):
-    data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
-    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
-    if is_currency: p_str = f"${p:,.2f}"
-    elif is_rate: p_str = f"{p:.3f}%"
-    else: p_str = f"{p:,.2f}"
-    return p_str, c, pct
+def clean_ceo_name(name):
+    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
+    name_str = str(name).strip()
+    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
+        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
+    if is_ko:
+        k_name = tr_text(name_str)
+        if not k_name: return '누락'
+        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
+        for s in suffixes:
+            if k_name.endswith(s):
+                k_name = k_name[:-len(s)].strip(); break
+        return k_name
+    return name_str
 
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
-# 💡 캐시 함수명 변경(v3)으로 과거 찌꺼기 메모리 강제 삭제
-macro_data = fetch_macro_realtime_v3()
+macro_data = get_macro_data()
 
 # 사이드바 렌더링
 with st.sidebar:
@@ -494,6 +456,7 @@ with st.sidebar:
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:csjwo154515@naver.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
+# 메인화면 스타일 렌더링
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
@@ -526,24 +489,16 @@ st.markdown("""
 
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
-k_p, k_c, k_pct = get_safe_macro("KOSPI")
-kq_p, kq_c, kq_pct = get_safe_macro("KOSDAQ")
-sp_p, sp_c, sp_pct = get_safe_macro("S&P 500")
-nd_p, nd_c, nd_pct = get_safe_macro("Nasdaq 100")
-nf_p, nf_c, nf_pct = get_safe_macro("Nasdaq Futures")
-krw_p, krw_c, krw_pct = get_safe_macro("USD/KRW")
-wti_p, wti_c, wti_pct = get_safe_macro("WTI Crude", is_currency=True)
-tnx_p, tnx_c, tnx_pct = get_safe_macro("10Y Treasury", is_rate=True)
-
+# 가로 스크롤 매크로 대시보드
 macro_items = [
-    (t("KOSPI", "KOSPI"), k_p, k_pct, "%"),
-    (t("KOSDAQ", "KOSDAQ"), kq_p, kq_pct, "%"),
-    (t("S&P 500", "S&P 500"), sp_p, sp_pct, "%"),
-    (t("Nasdaq 100", "Nasdaq 100"), nd_p, nd_pct, "%"),
-    (t("NQ 선물", "Nasdaq Fut"), nf_p, nf_pct, "%"),
-    (t("환율(KRW/USD)", "USD/KRW"), krw_p, krw_pct, "%"),
-    (t("WTI 원유", "WTI Crude"), wti_p, wti_pct, "%"),
-    (t("10년물 국채", "10Y Treasury"), tnx_p, tnx_c, " bp")
+    (t("KOSPI", "KOSPI"), f"{macro_data['KOSPI']['p']:,.2f}", macro_data['KOSPI']['pct'], "%"),
+    (t("KOSDAQ", "KOSDAQ"), f"{macro_data['KOSDAQ']['p']:,.2f}", macro_data['KOSDAQ']['pct'], "%"),
+    (t("S&P 500", "S&P 500"), f"{macro_data['S&P 500']['p']:,.2f}", macro_data['S&P 500']['pct'], "%"),
+    (t("Nasdaq 100", "Nasdaq 100"), f"{macro_data['Nasdaq 100']['p']:,.2f}", macro_data['Nasdaq 100']['pct'], "%"),
+    (t("NQ 선물", "Nasdaq Fut"), f"{macro_data['Nasdaq Futures']['p']:,.2f}", macro_data['Nasdaq Futures']['pct'], "%"),
+    (t("환율(KRW/USD)", "USD/KRW"), f"{macro_data['USD/KRW']['p']:,.2f}", macro_data['USD/KRW']['pct'], "%"),
+    (t("WTI 원유", "WTI Crude"), f"${macro_data['WTI Crude']['p']:,.2f}", macro_data['WTI Crude']['pct'], "%"),
+    (t("10년물 국채", "10Y Treasury"), f"{macro_data['10Y Treasury']['p']:.3f}%", macro_data['10Y Treasury']['c'], " bp")
 ]
 
 macro_html = "<div class='macro-ticker' translate='no' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
@@ -555,34 +510,30 @@ for name, val, chg, unit in macro_items:
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
-spy_pe = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-qqq_pe = safe_float(macro_data.get("QQQ_PE", 30.0), 30.0)
-tnx_val = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
-if tnx_val == 0.0: tnx_val = 4.4
+spy_pe = macro_data.get("SPY_PE", 22.0)
+qqq_pe = macro_data.get("QQQ_PE", 30.0)
+tnx = macro_data["10Y Treasury"]["p"] if macro_data["10Y Treasury"]["p"] else 4.4
 
 spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
-spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
+spy_erp, qqq_erp = spy_ey - tnx, qqq_ey - tnx
+
+def get_market_opinion(erp):
+    if erp > 3.0: return t("강력 매수 (역사적 저평가)", "Strong Buy (Historic Undervaluation)"), "#3fb950"
+    elif erp > 1.0: return t("적립식 매수 (안전마진 존재)", "Buy (Margin of safety exists)"), "#58a6ff"
+    elif erp > -1.0: return t("관망 (채권과 주식 매력도 유사)", "Hold (Equities & Bonds equally attractive)"), "#e3b341"
+    else: return t("매도 경고 (채권이 압도적으로 유리한 버블 구간)", "Sell Warning (Bonds vastly superior, Bubble risk)"), "#ff7b72"
 
 spy_op, spy_col = get_market_opinion(spy_erp)
 qqq_op, qqq_col = get_market_opinion(qqq_erp)
-
-spy_pe_str = fmt_f(spy_pe, 1)
-spy_ey_str = fmt_f(spy_ey, 2)
-tnx_val_str = fmt_f(tnx_val, 2)
-spy_erp_str = fmt_f(spy_erp, 2)
-
-qqq_pe_str = fmt_f(qqq_pe, 1)
-qqq_ey_str = fmt_f(qqq_ey, 2)
-qqq_erp_str = fmt_f(qqq_erp, 2)
 
 with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 [주식 위험 프리미엄(ERP)] 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an [Equity Risk Premium (ERP)] analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
     with c_m1:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{spy_pe_str}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey_str}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp_str}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{spy_pe:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{qqq_pe_str}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey_str}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp_str}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{qqq_pe:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -624,9 +575,8 @@ with tab1:
             stk, p, i, kr = get_data(tk)
             
             if p:
-                try: ty = safe_float(macro_data["10Y Treasury"]["p"], 4.4)
+                try: ty = macro_data["10Y Treasury"]["p"] if macro_data["10Y Treasury"]["p"] else 4.4
                 except: ty = 4.4
-                if ty == 0.0: ty = 4.4
                 
                 c_title, c_star = st.columns([4, 1])
                 with c_title:
@@ -639,23 +589,19 @@ with tab1:
                         else: st.session_state.bookmarks.append(tk)
                         st.rerun() 
                 
-                t_pe = safe_float(i.get('trailingPE'))
-                f_pe = safe_float(i.get('forwardPE'))
-                pbr = safe_float(i.get('priceToBook'))
+                t_pe = i.get('trailingPE', 0)
+                f_pe = i.get('forwardPE', 0)
+                pbr = i.get('priceToBook', 0)
                 
-                roe = safe_float(i.get('returnOnEquity')) * 100
+                roe = i.get('returnOnEquity', 0) * 100
                 real_roic = get_real_roic(stk, i)
                 if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                 else: roic_str = t("데이터 부족 (직접 확인 요망)", "N/A (Needs verification)")
                 
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                a_pe = i.get('fiveYearAvgPE')
+                if not a_pe: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
                 
-                div_yield = safe_float(i.get('dividendYield'))
-                div_rate = safe_float(i.get('dividendRate'))
-                if kr: div = div_yield * 100
-                else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
-                
+                div = i.get('dividendYield', 0) * 100 if kr else (i.get('dividendRate', 0) / p * 100 if i.get('dividendRate') else 0)
                 pmos = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 
@@ -665,8 +611,8 @@ with tab1:
                 eps_trend, bps_trend = analyze_trends(stk)
                 iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 
-                mos_val = safe_float(mos)
-                pmos_val = safe_float(pmos)
+                mos_val = mos if mos else 0
+                pmos_val = pmos if pmos else 0
                 op_title, op_color, op_reason = get_investment_opinion(mos_val, pmos_val, roe, base_fcf)
                 
                 if not iv: dcf_text, dcf_color = t(f"DCF: {err}", f"DCF: {err}"), "#e3b341"
@@ -677,6 +623,7 @@ with tab1:
                 elif pmos_val < 0: per_text, per_color = t(f"PER: {pmos_val:.1f}% (고평가)", f"PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
                 else: per_text, per_color = t(f"PER: 데이터 확인 필요", f"PER: Needs verification"), "#e3b341"
 
+                # [최상단] AI 종합 투자의견
                 st.markdown(f"""
                 <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
                     <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">[AI 종합 투자의견] : {op_title}</h3>
@@ -701,8 +648,8 @@ with tab1:
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
                 with c2:
-                    if pmos_val > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+[합격] {pmos_val:.1f}%</span>", unsafe_allow_html=True)
-                    elif pmos_val < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>[주의] {pmos_val:.1f}%</span>", unsafe_allow_html=True)
+                    if pmos > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+[합격] {pmos:.1f}%</span>", unsafe_allow_html=True)
+                    elif pmos < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>[주의] {pmos:.1f}%</span>", unsafe_allow_html=True)
                     st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
                     st.write(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey:.2f}%")
@@ -716,8 +663,8 @@ with tab1:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     st.write(f"- **{t('FCF 연평균 성장률', 'FCF CAGR')}:** {final_g*100:.1f}% ({data_len}{t('년 데이터 자동 산출', ' years of data)')})")
                     st.write(f"- **{t('추정 적정가', 'Estimated Fair Value')}:** {iv_str}")
-                    if mos_val > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos_val:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
-                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos_val:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
+                    if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
+                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
                 
@@ -761,61 +708,31 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
+                st.subheader(t("4. 질적 분석", "4. Qualitative Analysis"))
                 
-                # 💡 누락되었던 CEO 데이터 추출 변수(off) 선언 부분 복구 완료
                 off = i.get('companyOfficers', [])
-                ceo_raw = '누락'
+                ceo_name = '누락'
                 if isinstance(off, list) and len(off) > 0:
-                    if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-                    else: ceo_raw = str(off[0])
-                elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-                elif isinstance(off, str): ceo_raw = off
-                ceo_cleaned = clean_ceo_name(ceo_raw)
+                    if isinstance(off[0], dict):
+                        ceo_name = off[0].get('name', '누락')
+                    else:
+                        ceo_name = str(off[0])
+                elif isinstance(off, dict):
+                    ceo_name = off.get('name', '누락')
+                elif isinstance(off, str):
+                    ceo_name = off
                 
-                st.markdown(f"- **CEO:** {ceo_cleaned}")
+                st.markdown(f"- **CEO:** {clean_ceo_name(ceo_name)}")
                 st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
-                
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
-
-                st.write(t("**최근 주요 뉴스 요약 (실시간 연동)**", "Major Recent News Summary"))
-                with st.spinner(t("최신 뉴스 스트리밍 중...", "Streaming news...")):
-                    try:
-                        if kr:
-                            news_items = fetch_naver_finance_news(tk.split('.')[0])
-                            if news_items:
-                                for item in news_items:
-                                    st.markdown(f"- [{item['title']}]({item['link']}) *(출처: {item['publisher']})*")
-                            else:
-                                st.caption(t("최근 뉴스가 존재하지 않습니다.", "No recent news found."))
-                        else:
-                            news_items = stk.news
-                            if news_items:
-                                for item in news_items[:3]:
-                                    n_title = item.get('title', '')
-                                    n_link = item.get('link', '#')
-                                    n_pub = item.get('publisher', 'N/A')
-                                    st.markdown(f"- [{tr_text(n_title)}]({n_link}) *(출처: {n_pub})*")
-                            else:
-                                st.caption(t("최근 뉴스가 존재하지 않습니다.", "No recent news found."))
-                    except:
-                        st.caption(t("뉴스 피드를 연동하지 못했습니다.", "Failed to load real-time news feed."))
-
-                st.write(t("**경영진 및 지배구조 비판 점검 패널**", "Management & Governance Criticism Panel"))
-                criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
-                st.markdown(f"""
-                <div translate="no" style="background-color: rgba(255, 123, 114, 0.07); color: #ff7b72; padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 123, 114, 0.2); font-size: 0.95rem; line-height: 1.6;">
-                    {criticism_text}
-                </div>
-                """, unsafe_allow_html=True)
 
                 st.divider()
 
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
-                if pmos_val > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}%)</span>\n"
-                elif pmos_val < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}%)</span>\n"
+                if pmos > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos:.1f}%)</span>\n"
+                elif pmos < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos:.1f}%)</span>\n"
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
                 if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}%)</span>"
                 elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}%)</span>"
