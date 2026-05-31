@@ -23,6 +23,11 @@ if "search_ranking" not in st.session_state: st.session_state.search_ranking = {
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
+# 💡 전역 번역 함수 (에러 방지를 위해 최상단 배치)
+def t(ko, en):
+    return ko if st.session_state.lang == "ko" else en
+
+# 💡 타입 에러 방어용 유틸리티 함수들
 def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
@@ -30,7 +35,6 @@ def safe_float(val, default=0.0):
     except:
         return default
 
-# 💡 문자열 포맷팅 크래시를 100% 막아주는 방탄 포맷터
 def fmt_f(val, decimals=1):
     try:
         return f"{float(val):.{decimals}f}"
@@ -167,9 +171,8 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 
+# [3] 데이터 가져오기 (함수들)
 # ==========================================
-# 💡 강제 캐시 삭제를 위해 함수 이름 변경 (fetch_macro_realtime_v2)
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v2():
     macro_symbols = {
@@ -234,7 +237,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     elif cd == "005380":
         return "정의선/경영진 - 전기차(EV) 캐즘 구간에서의 대규모 투자 집행에 따른 단기 수익성 변동 우려, 노조와의 임단협 및 국내외 노동 비용 상승 압박 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
     else:
-        return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
+        return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절한 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
 def get_nv(cd):
     url = f"https://finance.naver.com/item/main.naver?code={cd}"
@@ -392,6 +395,13 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
+# 💡 누락되었던 시장 평가 판별 함수 완벽 복구
+def get_market_opinion(erp):
+    if erp > 3.0: return t("강력 매수 (역사적 저평가)", "Strong Buy (Historic Undervaluation)"), "#3fb950"
+    elif erp > 1.0: return t("적립식 매수 (안전마진 존재)", "Buy (Margin of safety exists)"), "#58a6ff"
+    elif erp > -1.0: return t("관망 (채권과 주식 매력도 유사)", "Hold (Equities & Bonds equally attractive)"), "#e3b341"
+    else: return t("매도 경고 (채권이 압도적으로 유리한 버블 구간)", "Sell Warning (Bonds vastly superior, Bubble risk)"), "#ff7b72"
+
 def get_investment_opinion(mos, pmos, roe, fcf):
     dcf_broken = not fcf or fcf <= 0
     if not dcf_broken and mos >= 20 and pmos >= 15 and roe >= 15:
@@ -456,7 +466,6 @@ with st.sidebar:
             st.session_state.lang = "ko"; st.rerun()
             
     is_ko = st.session_state.lang == "ko"
-    def t(ko, en): return ko if is_ko else en
         
     st.divider()
     
@@ -572,7 +581,7 @@ for name, val, chg, unit in macro_items:
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
-# 💡 캐시에서 꺼내온 값이 혹시나 문자열이어도 다시 한번 확실하게 숫자로 바꿈
+# ERP 분석 로직
 spy_pe = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
 qqq_pe = safe_float(macro_data.get("QQQ_PE", 30.0), 30.0)
 tnx_val = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
@@ -585,7 +594,7 @@ spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 spy_op, spy_col = get_market_opinion(spy_erp)
 qqq_op, qqq_col = get_market_opinion(qqq_erp)
 
-# 💡 문자열 포맷팅 오류를 원천 차단하기 위한 사전 포맷팅 (방어 로직)
+# 💡 문자열 포맷팅 크래시 원천 봉쇄 (에러 시 0.0으로 자동 치환)
 spy_pe_str = fmt_f(spy_pe, 1)
 spy_ey_str = fmt_f(spy_ey, 2)
 tnx_val_str = fmt_f(tnx_val, 2)
