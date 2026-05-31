@@ -169,10 +169,10 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진 (SEC 10-K 완벽 보강)
+# [3] 데이터 가져오기 엔진 (SEC 완전 제거 및 복리/할인 로직 재편)
 # ==========================================
 @st.cache_data(ttl=900) 
-def fetch_macro_realtime_v3():
+def fetch_macro_realtime_v4():
     macro_symbols = {
         "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
@@ -199,59 +199,6 @@ def fetch_macro_realtime_v3():
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
     
     return res
-
-# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진 (어떤 단위도 파싱하도록 보강)
-@st.cache_data(ttl=86400)
-def fetch_sec_cik_map():
-    headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
-    try:
-        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=15)
-        data = r.json()
-        return {str(v['ticker']).upper(): str(v['cik_str']).zfill(10) for k, v in data.items()}
-    except:
-        return {}
-
-@st.cache_data(ttl=86400)
-def fetch_sec_10y_data(ticker):
-    cik_map = fetch_sec_cik_map()
-    cik = cik_map.get(ticker.upper())
-    if not cik: return None, None
-    
-    headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
-    url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code != 200: return None, None
-        us_gaap = r.json().get('facts', {}).get('us-gaap', {})
-        
-        def parse_metric(metric_names, units):
-            if isinstance(metric_names, str): metric_names = [metric_names]
-            if isinstance(units, str): units = [units]
-            
-            for m_name in metric_names:
-                for unit in units:
-                    arr = us_gaap.get(m_name, {}).get('units', {}).get(unit, [])
-                    if arr:
-                        df = pd.DataFrame(arr)
-                        if 'form' in df.columns and 'fy' in df.columns and 'val' in df.columns:
-                            df = df[df['form'] == '10-K'].copy()
-                            if not df.empty:
-                                df['fy'] = pd.to_numeric(df['fy'], errors='coerce')
-                                df = df.dropna(subset=['fy'])
-                                df = df.sort_values(['fy', 'end']).drop_duplicates(subset=['fy'], keep='last')
-                                df.set_index('fy', inplace=True)
-                                df.index = df.index.astype(int)
-                                df.sort_index(inplace=True)
-                                return df['val'].tail(10)
-            return pd.Series(dtype=float)
-
-        ni_s = parse_metric(['NetIncomeLoss', 'ProfitLoss'], ['USD'])
-        # 💡 기업마다 띄어쓰기 여부가 달라 파싱에 실패했던 근본 원인 해결 (단위 복수 검사)
-        eps_s = parse_metric(['EarningsPerShareBasic', 'EarningsPerShareDiluted'], ['USD/shares', 'USD / shares'])
-        
-        return ni_s, eps_s
-    except:
-        return None, None
 
 @st.cache_data
 def get_13f_portfolio(guru_code):
@@ -446,46 +393,51 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 모든 펀더멘털을 점수화하여 가치투자 철학으로 평가하는 궁극의 AI 의견 엔진
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp):
+# 💡 복리모형(성장률), 자본효율(ROE/ROIC), ERP(이익수익률), PER, DCF를 총망라한 궁극의 의견 엔진
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g):
     score = 0
     
-    # 1. 내재가치 안전마진 (DCF)
-    if mos > 15: score += 2
-    elif mos > 0: score += 1
-    elif mos < -15: score -= 2
-    else: score -= 1
+    # 1. 내재가치 (DCF) - 불확실성이 커서 비중 축소 (최대 1점)
+    if mos > 15: score += 1
+    elif mos < -15: score -= 1
 
-    # 2. 상대가치 안전마진 (PER)
+    # 2. 상대가치 (PER 안전마진) - 비중 크게 반영 (최대 2점)
     if pmos > 15: score += 2
     elif pmos > 0: score += 1
     elif pmos < -15: score -= 2
     else: score -= 1
 
-    # 3. 채권 대비 이익수익률 우위 (ERP)
-    if erp > 3: score += 2
-    elif erp > 0: score += 1
-    elif erp < -2: score -= 2
-    else: score -= 1
+    # 3. 이익수익률 매력도 (ERP)
+    if erp > 3: score += 1
+    elif erp < 0: score -= 1
 
     # 4. 자본효율성 (해자 및 비즈니스 퀄리티)
     if roe >= 15: score += 1
     elif roe < 8: score -= 1
-
     if roic and roic >= 12: score += 1
     elif roic and roic < 6: score -= 1
 
-    # 종합 평가 산출
-    if score >= 5:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("DCF, PER, 이익수익률(ERP) 등 가격 지표에서 압도적 저평가 상태이며, 탁월한 자본배치(ROE/ROIC)로 비즈니스 해자가 훌륭하게 검증되었습니다.", "Overwhelmingly undervalued across DCF, PE, and ERP, backed by excellent capital allocation and business moat.")
-    elif score >= 2:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("비즈니스 퀄리티(ROE/ROIC)가 양호하며, 밸류에이션 및 이익수익률 측면에서 안전마진이 확보된 좋은 비즈니스입니다.", "Good business quality with secured margin of safety in valuation and earnings yield.")
-    elif score >= -1:
-        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델은 무난하나, 현재 주가가 내재가치 및 펀더멘털에 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business is fine, but currently trading near its fair value. Not a distinct discount territory.")
+    # 5. 수학적 복리 모형 (FCF/EPS 성장률)
+    if final_g >= 0.10: score += 1
+    elif final_g <= 0.0: score -= 1
+
+    # 최종 등급 산출
+    if score >= 4:
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("압도적인 자본효율과 복리 성장성을 갖췄으며, PER/이익수익률 측면에서 매우 저렴하게 거래 중입니다.", "Overwhelmingly undervalued with excellent capital efficiency and compounding growth.")
+    elif score >= 1:
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("양호한 복리 성장과 자본효율성을 보여주며, 밸류에이션 안전마진이 확보된 훌륭한 비즈니스입니다.", "Good business quality and compounding growth with secured margin of safety in valuation.")
+    elif score >= -2:
+        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델과 성장성은 무난하나, 주가가 펀더멘털에 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business is fine, but currently trading near its fair value. Not a distinct discount territory.")
     elif score >= -4:
-        return t("할증 (Premium)", "Premium"), "#ff7b72", t("자본효율성(ROIC) 대비 밸류에이션이 비싸게 거래 중이며, 국채 대비 기대수익률 매력도 떨어집니다. (안전마진 상실)", "Trading at a premium relative to capital efficiency, and less attractive than risk-free bonds (Loss of Margin of Safety).")
+        return t("할증 (Premium)", "Premium"), "#ff7b72", t("성장성이나 자본효율성 대비 밸류에이션이 비싸게 거래 중이며, 국채 대비 기대수익률 매력도 떨어집니다.", "Trading at a premium relative to its growth and capital efficiency. Less attractive than bonds.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("형편없는 자본효율(ROE/ROIC) 또는 비상식적인 밸류에이션 과열로 미스터 마켓의 투기적 광기가 강하게 반영된 위험 구간입니다.", "Dangerous bubble territory characterized by poor capital efficiency or irrational valuation overheating.")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("형편없는 펀더멘털(역성장, 낮은 ROIC)에도 불구하고 비상식적으로 주가가 과열된 투기적 위험 구간입니다.", "Dangerous bubble territory characterized by poor fundamentals and irrational valuation overheating.")
+
+def get_market_op_simple(erp):
+    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
+    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
+    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
+    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
 
 def tr_text(txt):
     if not txt: return ""
@@ -521,7 +473,7 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
-macro_data = fetch_macro_realtime_v3()
+macro_data = fetch_macro_realtime_v4()
 
 # 사이드바 렌더링
 with st.sidebar:
@@ -656,12 +608,6 @@ spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
 spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 
-def get_market_op_simple(erp):
-    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
-    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
-    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
-    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
-
 spy_op, spy_col = get_market_op_simple(spy_erp)
 qqq_op, qqq_col = get_market_op_simple(qqq_erp)
 
@@ -778,24 +724,6 @@ with tab1:
                 
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
-                
-                # 💡 무조건 10년 치를 물고 늘어지는 SEC 데이터 강제 연동
-                ni_10y, eps_10y = None, None
-                if not kr:
-                    ni_10y, eps_10y = fetch_sec_10y_data(tk)
-                    if eps_10y is not None and not eps_10y.empty and len(eps_10y) >= 4:
-                        eps_clean = eps_10y[eps_10y > 0]
-                        if len(eps_clean) >= 2:
-                            f_val = eps_clean.iloc[0]
-                            l_val = eps_clean.iloc[-1]
-                            y_diff = eps_clean.index[-1] - eps_clean.index[0]
-                            if y_diff > 0:
-                                sec_g = (l_val / f_val) ** (1 / y_diff) - 1
-                                final_g = max(0.02, min(sec_g, 0.15))
-                                data_len = y_diff + 1
-                                dcf_source_txt = f"({data_len}{t('년 미국 SEC 10-K 공식 데이터 자동 산출', ' yrs SEC 10-K Data)')})"
-                    else:
-                        st.warning(t("⚠️ 해당 종목의 미국 SEC 데이터 추출이 지연되어, yfinance 4년치 데이터로 대체 표출합니다.", "⚠️ SEC data fetch delayed. Falling back to yfinance 4-year data."))
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
@@ -803,32 +731,19 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 mos_val = safe_float(mos_val)
                 
-                # 💡 ROE, ROIC, 경영진 등을 싹 다 긁어모아 평가하는 궁극의 AI 의견 엔진
+                # 💡 모든 펀더멘털을 점수화하여 가치투자 철학으로 평가하는 궁극의 AI 의견 엔진
                 roic_val = real_roic if real_roic is not None else 0
-                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp)
-                
-                if not iv: dcf_text, dcf_color = t(f"DCF: {err}", f"DCF: {err}"), "#e3b341"
-                elif mos_val > 0: dcf_text, dcf_color = t(f"DCF: +{mos_val:.1f}% (할인)", f"DCF: +{mos_val:.1f}% (Discount)"), "#3fb950"
-                else: dcf_text, dcf_color = t(f"DCF: {mos_val:.1f}% (할증)", f"DCF: {mos_val:.1f}% (Premium)"), "#ff7b72"
-
-                if pmos_val > 0: per_text, per_color = t(f"PER: +{pmos_val:.1f}% (할인)", f"PER: +{pmos_val:.1f}% (Discount)"), "#3fb950"
-                elif pmos_val < 0: per_text, per_color = t(f"PER: {pmos_val:.1f}% (할증)", f"PER: {pmos_val:.1f}% (Premium)"), "#ff7b72"
-                else: per_text, per_color = t(f"PER: 데이터 확인 필요", f"PER: Needs verification"), "#e3b341"
+                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g)
 
                 st.markdown(f"""
                 <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
                     <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">[AI 종합 투자의견] : {op_title}</h3>
-                    <div style="display: flex; gap: 15px; margin-bottom: 8px; flex-wrap: wrap;">
-                        <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {dcf_color}; border: 1px solid {dcf_color}40;">{dcf_text}</span>
-                        <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {per_color}; border: 1px solid {per_color}40;">{per_text}</span>
-                    </div>
                     <span style="color: #c9d1d9; font-size: 0.95rem; display: block; margin-top: 8px;">{op_reason}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
                 st.divider()
 
-                # 💡 PER 할인 설명 및 뼈때리는 ROE/ROIC 평가 로직 강화
                 if pmos_val > 0:
                     per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 PER {a_pe:.1f}배 대비 저렴하여 할인 구간)</span>"
                 elif pmos_val < 0:
@@ -837,22 +752,22 @@ with tab1:
                     per_mos_str = f"확인 필요"
 
                 if roe >= 15 and roic_val >= 12:
-                    rr_eval = f"<span class='good'>{t('훌륭함 (자본배치 탁월)', 'Excellent')}</span>"
+                    rr_eval = f"<span class='good'>{t('훌륭함 (자본배분 탁월)', 'Excellent')}</span>"
                 elif roe >= 10 and roic_val >= 8:
                     rr_eval = f"<span style='color:#58a6ff;'>{t('양호함', 'Good')}</span>"
                 else:
                     rr_eval = f"<span class='highlight'>{t('형편없음 (자본효율 낮음)', 'Poor')}</span>"
                     
                 if erp > 0:
-                    ey_str = f"{ey:.2f}% <span class='good'>(국채 대비 {erp:.2f}%p 할인/우위)</span>"
+                    ey_str = f"{ey:.2f}% <span class='good'>(국채 금리 이김! +{erp:.2f}%p 우위 할인)</span>"
                 else:
-                    ey_str = f"{ey:.2f}% <span class='highlight'>(국채 대비 {abs(erp):.2f}%p 할증/열위)</span>"
+                    ey_str = f"{ey:.2f}% <span class='highlight'>(국채 금리에 짐! {abs(erp):.2f}%p 열위 할증)</span>"
 
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
-                    st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('배당 지속성', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
                     st.markdown(f"- **ROE / ROIC:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
@@ -879,53 +794,41 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 3. 장기 재무 시각화 (미국은 SEC 10년치 / 한국은 yfinance 4년치 스위칭)
-                st.subheader(t("3. 장기 재무 시각화 (미국: SEC 10년 / 한국: 4년)", "3. Long-term Financial Visualizations"))
-                
-                if not kr and ni_10y is not None and not ni_10y.empty and eps_10y is not None and not eps_10y.empty:
-                    st.write(t("**[미국 SEC 공식 10-K] 최근 10년 순이익 및 EPS 장기 추이**", "**[SEC Official 10-K] 10-Year Net Income & EPS Trend**"))
-                    c_v1, c_v2 = st.columns(2)
-                    with c_v1:
-                        df_ni = pd.DataFrame({t('순이익 (Net Income)', 'Net Income'): ni_10y})
-                        st.bar_chart(df_ni, color="#3fb950", height=300)
-                    with c_v2:
-                        df_eps = pd.DataFrame({t('주당순이익 (EPS)', 'EPS'): eps_10y})
-                        st.bar_chart(df_eps, color="#58a6ff", height=300)
-                else:
-                    try:
-                        inc = stk.income_stmt if stk else None
-                        cf = stk.cash_flow if stk else None
-                        if inc is not None and not inc.empty:
-                            cols = inc.columns[:4]
-                            years = [str(c)[:4] for c in cols][::-1]
-                            
-                            rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
-                            ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
-                            
-                            fcf_chart = []
-                            if cf is not None and not cf.empty:
-                                if 'Free Cash Flow' in cf.index:
-                                    fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
-                                elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                    fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
-                            
-                            c_v1, c_v2 = st.columns(2)
-                            with c_v1:
-                                if len(rev) == len(years) and len(ni) == len(years):
-                                    df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
-                                    st.write(t("**[매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
-                                    st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
-                                else:
-                                    st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
-                            with c_v2:
-                                if len(fcf_chart) == len(years):
-                                    df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
-                                    st.write(t("**[잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
-                                    st.bar_chart(df_fcf, color="#e3b341", height=300)
-                                else:
-                                    st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
-                    except Exception as e:
-                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
+                st.subheader(t("3. 최근 4년 재무 시각화", "3. 4-Year Financial Visualizations"))
+                try:
+                    inc = stk.income_stmt if stk else None
+                    cf = stk.cash_flow if stk else None
+                    if inc is not None and not inc.empty:
+                        cols = inc.columns[:4]
+                        years = [str(c)[:4] for c in cols][::-1]
+                        
+                        rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
+                        ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
+                        
+                        fcf_chart = []
+                        if cf is not None and not cf.empty:
+                            if 'Free Cash Flow' in cf.index:
+                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
+                            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
+                        
+                        c_v1, c_v2 = st.columns(2)
+                        with c_v1:
+                            if len(rev) == len(years) and len(ni) == len(years):
+                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
+                                st.write(t("**[매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
+                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
+                            else:
+                                st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                        with c_v2:
+                            if len(fcf_chart) == len(years):
+                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
+                                st.write(t("**[잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
+                                st.bar_chart(df_fcf, color="#e3b341", height=300)
+                            else:
+                                st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
+                except Exception as e:
+                    st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
 
                 st.divider()
 
