@@ -23,11 +23,6 @@ if "search_ranking" not in st.session_state: st.session_state.search_ranking = {
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
-# 💡 전역 번역 함수 (에러 방지를 위해 최상단 배치)
-def t(ko, en):
-    return ko if st.session_state.lang == "ko" else en
-
-# 💡 타입 에러 방어용 유틸리티 함수들
 def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
@@ -174,7 +169,7 @@ kr_top30 = [
 # [3] 데이터 가져오기 (함수들)
 # ==========================================
 @st.cache_data(ttl=900) 
-def fetch_macro_realtime_v2():
+def fetch_macro_realtime_v3():
     macro_symbols = {
         "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
@@ -395,13 +390,6 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 누락되었던 시장 평가 판별 함수 완벽 복구
-def get_market_opinion(erp):
-    if erp > 3.0: return t("강력 매수 (역사적 저평가)", "Strong Buy (Historic Undervaluation)"), "#3fb950"
-    elif erp > 1.0: return t("적립식 매수 (안전마진 존재)", "Buy (Margin of safety exists)"), "#58a6ff"
-    elif erp > -1.0: return t("관망 (채권과 주식 매력도 유사)", "Hold (Equities & Bonds equally attractive)"), "#e3b341"
-    else: return t("매도 경고 (채권이 압도적으로 유리한 버블 구간)", "Sell Warning (Bonds vastly superior, Bubble risk)"), "#ff7b72"
-
 def get_investment_opinion(mos, pmos, roe, fcf):
     dcf_broken = not fcf or fcf <= 0
     if not dcf_broken and mos >= 20 and pmos >= 15 and roe >= 15:
@@ -428,21 +416,6 @@ def tr_text(txt):
         except: return txt_str
     return txt_str
 
-def clean_ceo_name(name):
-    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
-    name_str = str(name).strip()
-    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
-        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
-    if is_ko:
-        k_name = tr_text(name_str)
-        if not k_name: return '누락'
-        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
-        for s in suffixes:
-            if k_name.endswith(s):
-                k_name = k_name[:-len(s)].strip(); break
-        return k_name
-    return name_str
-
 def get_safe_macro(key, is_currency=False, is_rate=False):
     data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
     p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
@@ -454,7 +427,8 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
-macro_data = fetch_macro_realtime_v2()
+# 💡 캐시 함수명 변경(v3)으로 과거 찌꺼기 메모리 강제 삭제
+macro_data = fetch_macro_realtime_v3()
 
 # 사이드바 렌더링
 with st.sidebar:
@@ -466,6 +440,7 @@ with st.sidebar:
             st.session_state.lang = "ko"; st.rerun()
             
     is_ko = st.session_state.lang == "ko"
+    def t(ko, en): return ko if is_ko else en
         
     st.divider()
     
@@ -551,7 +526,6 @@ st.markdown("""
 
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
-# 가로 스크롤 매크로 대시보드
 k_p, k_c, k_pct = get_safe_macro("KOSPI")
 kq_p, kq_c, kq_pct = get_safe_macro("KOSDAQ")
 sp_p, sp_c, sp_pct = get_safe_macro("S&P 500")
@@ -581,7 +555,6 @@ for name, val, chg, unit in macro_items:
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
-# ERP 분석 로직
 spy_pe = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
 qqq_pe = safe_float(macro_data.get("QQQ_PE", 30.0), 30.0)
 tnx_val = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
@@ -594,7 +567,6 @@ spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 spy_op, spy_col = get_market_opinion(spy_erp)
 qqq_op, qqq_col = get_market_opinion(qqq_erp)
 
-# 💡 문자열 포맷팅 크래시 원천 봉쇄 (에러 시 0.0으로 자동 치환)
 spy_pe_str = fmt_f(spy_pe, 1)
 spy_ey_str = fmt_f(spy_ey, 2)
 tnx_val_str = fmt_f(tnx_val, 2)
@@ -791,6 +763,8 @@ with tab1:
 
                 st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
                 
+                # 💡 누락되었던 CEO 데이터 추출 변수(off) 선언 부분 복구 완료
+                off = i.get('companyOfficers', [])
                 ceo_raw = '누락'
                 if isinstance(off, list) and len(off) > 0:
                     if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
