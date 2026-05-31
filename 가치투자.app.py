@@ -23,12 +23,6 @@ if "search_ranking" not in st.session_state: st.session_state.search_ranking = {
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
-def trigger_scan():
-    if st.session_state.get("main_input"):
-        q = st.session_state.main_input.replace(" ", "").upper()
-        tk = tmap.get(q, q)
-        st.session_state.search_tk = tk
-
 # ==========================================
 # [2] 글로벌 상수 및 예비 데이터 (캐싱 오류 방지를 위해 최상단 배치)
 # ==========================================
@@ -37,14 +31,112 @@ tmap = {
     "테슬라":"TSLA", "엔비디아":"NVDA", "메타":"META", "페이스북":"META", "삼성전자":"005930.KS", "SK하이닉스":"000660.KS", "현대차":"005380.KS"
 }
 
+# 💡 차장님이 주신 최신 13F 포트폴리오 데이터 적용 및 "이건 확인이 필요한 부분입니다" 코멘트 반영
 fallback_13f_data = {
-    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
-    "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.52}, {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 6.64}],
-    "PSH": [{"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 25.00}, {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 19.19}, {"티커": "MSFT", "기업명": "Microsoft Corp", "비중(%)": 15.26}, {"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 6.55}],
-    "BAU": [{"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 12.70}, {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 11.67}, {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 7.69}, {"티커": "UNP", "기업명": "Union Pacific Corp", "비중(%)": 7.31}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 7.30}],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co. Inc.", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 8.10}],
-    "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 39.89}, {"티커": "RIG", "기업명": "Transocean Ltd", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical", "비중(%)": 28.14}],
-    "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway", "비중(%)": 34.57}, {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}]
+    "HC": [
+        {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 21.96},
+        {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70},
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43},
+        {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25},
+        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
+        {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
+        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
+        {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
+        {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87},
+        {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}
+    ],
+    "BRK": [
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99},
+        {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43},
+        {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56},
+        {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52},
+        {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64},
+        {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24},
+        {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78},
+        {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76},
+        {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38},
+        {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01},
+        {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39},
+        {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38},
+        {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33},
+        {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17},
+        {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
+        {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
+        {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+    ],
+    "PSH": [
+        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
+        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
+        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
+        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
+        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+    ],
+    "BAU": [
+        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
+        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
+        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
+        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
+        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
+        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
+        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
+        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
+        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
+        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
+        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
+        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
+        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
+        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
+        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
+        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
+        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
+        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
+        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
+    ],
+    "AKRE": [
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
+        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
+        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
+        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
+        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
+        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
+        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
+        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
+        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
+        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
+        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
+        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
+        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
+        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+    ],
+    "PI": [
+        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
+        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
+        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
+    ],
+    "AQUA": [
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
+        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
+        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
+        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 이건 확인이 필요한 부분입니다)", "비중(%)": 0.00}
+    ]
 }
 
 us_top30 = [
@@ -54,6 +146,12 @@ us_top30 = [
 kr_top30 = [
     {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
+
+def trigger_scan():
+    if st.session_state.get("main_input"):
+        q = st.session_state.main_input.replace(" ", "").upper()
+        tk = tmap.get(q, q)
+        st.session_state.search_tk = tk
 
 # ==========================================
 # [3] 데이터 가져오기 (함수들)
@@ -736,7 +834,6 @@ with tab2:
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
             df.index = df.index + 1
-            # 💡 모바일 스크롤 트랩 방지 (height 고정)
             st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
             st.markdown("---")
@@ -793,7 +890,6 @@ with tab4:
     mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
     df_mkt = pd.DataFrame(us_top30) if "US" in mkt or "미국" in mkt else pd.DataFrame(kr_top30)
         
-    # 💡 모바일 스크롤 트랩 방지 (height 고정하여 이중 스크롤 제거)
     st.dataframe(df_mkt, height=1200, use_container_width=True, hide_index=True, column_config={
         "순위": st.column_config.NumberColumn(t("순위", "Rank")),
         "티커": st.column_config.TextColumn(t("티커", "Ticker")),
@@ -886,7 +982,7 @@ with tab6:
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
-    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 신으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
+    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     
     phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
