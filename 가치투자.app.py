@@ -169,7 +169,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 및 타입 방어 완벽 적용
+# [3] 데이터 가져오기 엔진 (SEC 10-K 완벽 보강)
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v3():
@@ -200,12 +200,12 @@ def fetch_macro_realtime_v3():
     
     return res
 
-# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진
+# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진 (어떤 단위도 파싱하도록 보강)
 @st.cache_data(ttl=86400)
 def fetch_sec_cik_map():
     headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
     try:
-        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=10)
+        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=15)
         data = r.json()
         return {str(v['ticker']).upper(): str(v['cik_str']).zfill(10) for k, v in data.items()}
     except:
@@ -220,28 +220,34 @@ def fetch_sec_10y_data(ticker):
     headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
     url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
     try:
-        r = requests.get(url, headers=headers, timeout=10)
+        r = requests.get(url, headers=headers, timeout=15)
         if r.status_code != 200: return None, None
         us_gaap = r.json().get('facts', {}).get('us-gaap', {})
         
-        def parse_metric(metric_names, unit='USD'):
+        def parse_metric(metric_names, units):
             if isinstance(metric_names, str): metric_names = [metric_names]
+            if isinstance(units, str): units = [units]
+            
             for m_name in metric_names:
-                arr = us_gaap.get(m_name, {}).get('units', {}).get(unit, [])
-                if arr:
-                    df = pd.DataFrame(arr)
-                    if 'form' in df.columns and 'fy' in df.columns and 'val' in df.columns:
-                        df = df[df['form'] == '10-K']
-                        if not df.empty:
-                            df = df.sort_values(['fy', 'end']).drop_duplicates(subset=['fy'], keep='last')
-                            df.set_index('fy', inplace=True)
-                            df.index = df.index.astype(int)
-                            df.sort_index(inplace=True)
-                            return df['val'].tail(10)
+                for unit in units:
+                    arr = us_gaap.get(m_name, {}).get('units', {}).get(unit, [])
+                    if arr:
+                        df = pd.DataFrame(arr)
+                        if 'form' in df.columns and 'fy' in df.columns and 'val' in df.columns:
+                            df = df[df['form'] == '10-K'].copy()
+                            if not df.empty:
+                                df['fy'] = pd.to_numeric(df['fy'], errors='coerce')
+                                df = df.dropna(subset=['fy'])
+                                df = df.sort_values(['fy', 'end']).drop_duplicates(subset=['fy'], keep='last')
+                                df.set_index('fy', inplace=True)
+                                df.index = df.index.astype(int)
+                                df.sort_index(inplace=True)
+                                return df['val'].tail(10)
             return pd.Series(dtype=float)
 
-        ni_s = parse_metric(['NetIncomeLoss', 'ProfitLoss'], 'USD')
-        eps_s = parse_metric(['EarningsPerShareBasic', 'EarningsPerShareDiluted'], 'USD/shares')
+        ni_s = parse_metric(['NetIncomeLoss', 'ProfitLoss'], ['USD'])
+        # 💡 기업마다 띄어쓰기 여부가 달라 파싱에 실패했던 근본 원인 해결 (단위 복수 검사)
+        eps_s = parse_metric(['EarningsPerShareBasic', 'EarningsPerShareDiluted'], ['USD/shares', 'USD / shares'])
         
         return ni_s, eps_s
     except:
@@ -440,30 +446,46 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 가치투자 철학에 맞춘 용어 변경 (할인/할증)
-def get_market_opinion(erp):
-    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount (Historic Undervaluation)"), "#3fb950"
-    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount (Margin of safety exists)"), "#58a6ff"
-    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value (Equities & Bonds equally attractive)"), "#e3b341"
-    else: return t("과도한 할증 경고 (채권이 압도적으로 유리한 버블 구간)", "Excessive Premium Warning (Bonds vastly superior)"), "#ff7b72"
+# 💡 모든 펀더멘털을 점수화하여 가치투자 철학으로 평가하는 궁극의 AI 의견 엔진
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp):
+    score = 0
+    
+    # 1. 내재가치 안전마진 (DCF)
+    if mos > 15: score += 2
+    elif mos > 0: score += 1
+    elif mos < -15: score -= 2
+    else: score -= 1
 
-def get_investment_opinion(mos, pmos, roe, fcf):
-    dcf_broken = not fcf or fcf <= 0
-    if not dcf_broken and mos >= 20 and pmos >= 15 and roe >= 15:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("DCF 내재가치와 PER 상대가치 모두에서 압도적 저평가 및 탁월한 수익성 확인", "Overwhelmingly undervalued in both DCF and PE metrics with excellent profitability")
-    elif not dcf_broken and ((mos >= 10 and pmos >= 10) or (mos >= 20 and pmos > 0) or (pmos >= 20 and mos > 0)) and roe >= 10:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("DCF와 PER 기준 모두 충분한 안전마진이 확보된 우량 기업", "Sufficient margin of safety secured across both DCF and PE metrics")
-    elif mos <= -20 and pmos <= -20:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("DCF와 PER 모두 심각 고평가 상태 (미스터 마켓의 광기)", "Severely overvalued in both DCF and PE metrics (Market Mania)")
-    elif (mos <= -10 and pmos <= -10) or mos <= -30 or pmos <= -30:
-        return t("할증 (Premium)", "Premium"), "#ff7b72", t("내재가치(DCF) 및 상대가치(PER) 기준 고평가 영역 진입 (안전마진 상실)", "Entered overvaluation territory across DCF and PE metrics (Loss of margin of safety)")
-    elif dcf_broken:
-        if pmos <= -10: return t("할증 (Premium)", "Premium"), "#ff7b72", t("잉여현금흐름 적자 및 PER 고평가로 인한 밸류에이션 리스크 가중", "Negative FCF and PE overvaluation leading to heightened risk")
-        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("현금흐름(FCF) 적자로 인해 정확한 내재가치 산정 불가 (보수적 접근 필요)", "Unable to calculate intrinsic value due to negative FCF (Conservative approach required)")
+    # 2. 상대가치 안전마진 (PER)
+    if pmos > 15: score += 2
+    elif pmos > 0: score += 1
+    elif pmos < -15: score -= 2
+    else: score -= 1
+
+    # 3. 채권 대비 이익수익률 우위 (ERP)
+    if erp > 3: score += 2
+    elif erp > 0: score += 1
+    elif erp < -2: score -= 2
+    else: score -= 1
+
+    # 4. 자본효율성 (해자 및 비즈니스 퀄리티)
+    if roe >= 15: score += 1
+    elif roe < 8: score -= 1
+
+    if roic and roic >= 12: score += 1
+    elif roic and roic < 6: score -= 1
+
+    # 종합 평가 산출
+    if score >= 5:
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("DCF, PER, 이익수익률(ERP) 등 가격 지표에서 압도적 저평가 상태이며, 탁월한 자본배치(ROE/ROIC)로 비즈니스 해자가 훌륭하게 검증되었습니다.", "Overwhelmingly undervalued across DCF, PE, and ERP, backed by excellent capital allocation and business moat.")
+    elif score >= 2:
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("비즈니스 퀄리티(ROE/ROIC)가 양호하며, 밸류에이션 및 이익수익률 측면에서 안전마진이 확보된 좋은 비즈니스입니다.", "Good business quality with secured margin of safety in valuation and earnings yield.")
+    elif score >= -1:
+        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델은 무난하나, 현재 주가가 내재가치 및 펀더멘털에 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business is fine, but currently trading near its fair value. Not a distinct discount territory.")
+    elif score >= -4:
+        return t("할증 (Premium)", "Premium"), "#ff7b72", t("자본효율성(ROIC) 대비 밸류에이션이 비싸게 거래 중이며, 국채 대비 기대수익률 매력도 떨어집니다. (안전마진 상실)", "Trading at a premium relative to capital efficiency, and less attractive than risk-free bonds (Loss of Margin of Safety).")
     else:
-        if mos > 10 and pmos < -10: return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("DCF상 저평가이나 PER상 고평가 (엇갈린 지표, 역성장 여부 모니터링 필요)", "Undervalued on DCF but overvalued on PE (Mixed signals, monitor for degrowth)")
-        elif pmos > 10 and mos < -10: return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
-        else: return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("형편없는 자본효율(ROE/ROIC) 또는 비상식적인 밸류에이션 과열로 미스터 마켓의 투기적 광기가 강하게 반영된 위험 구간입니다.", "Dangerous bubble territory characterized by poor capital efficiency or irrational valuation overheating.")
 
 def tr_text(txt):
     if not txt: return ""
@@ -634,8 +656,14 @@ spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
 spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 
-spy_op, spy_col = get_market_opinion(spy_erp)
-qqq_op, qqq_col = get_market_opinion(qqq_erp)
+def get_market_op_simple(erp):
+    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
+    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
+    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
+    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
+
+spy_op, spy_col = get_market_op_simple(spy_erp)
+qqq_op, qqq_col = get_market_op_simple(qqq_erp)
 
 spy_pe_str = fmt_f(spy_pe, 1)
 spy_ey_str = fmt_f(spy_ey, 2)
@@ -690,7 +718,9 @@ with tab1:
         st.session_state.history.append(tk)
         st.session_state.search_ranking[tk] = st.session_state.search_ranking.get(tk, 0) + 1
 
-        with st.spinner(t("데이터 스캔 중...", "Scanning Data...")):
+        st_container = st.empty()
+        with st_container.container():
+            st.toast(t("데이터를 불러오는 중입니다...", "Fetching data..."), icon="⏳")
             stk, p, i, kr = get_data(tk)
             
             if p:
@@ -726,7 +756,6 @@ with tab1:
                 if kr: div = div_yield * 100
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
-                # 💡 배당 지속 상승 검증
                 div_trend = t("확인 불가", "N/A")
                 try:
                     div_history = stk.dividends
@@ -742,14 +771,15 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except:
                     pass
-
-                pmos = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+                
+                pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
+                erp = ey - ty
                 
-                # 💡 SEC 10-Year logic overriding base yfinance data if available
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
-                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 자동 산출', ' years yfinance data)')})"
+                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
                 
+                # 💡 무조건 10년 치를 물고 늘어지는 SEC 데이터 강제 연동
                 ni_10y, eps_10y = None, None
                 if not kr:
                     ni_10y, eps_10y = fetch_sec_10y_data(tk)
@@ -763,16 +793,19 @@ with tab1:
                                 sec_g = (l_val / f_val) ** (1 / y_diff) - 1
                                 final_g = max(0.02, min(sec_g, 0.15))
                                 data_len = y_diff + 1
-                                dcf_source_txt = f"({data_len}{t('년 미국 SEC 원본 자동 산출', ' years SEC Raw Data)')})"
+                                dcf_source_txt = f"({data_len}{t('년 미국 SEC 10-K 공식 데이터 자동 산출', ' yrs SEC 10-K Data)')})"
+                    else:
+                        st.warning(t("⚠️ 해당 종목의 미국 SEC 데이터 추출이 지연되어, yfinance 4년치 데이터로 대체 표출합니다.", "⚠️ SEC data fetch delayed. Falling back to yfinance 4-year data."))
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
-                iv, mos, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
+                iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
+                mos_val = safe_float(mos_val)
                 
-                mos_val = safe_float(mos)
-                pmos_val = safe_float(pmos)
-                op_title, op_color, op_reason = get_investment_opinion(mos_val, pmos_val, roe, base_fcf)
+                # 💡 ROE, ROIC, 경영진 등을 싹 다 긁어모아 평가하는 궁극의 AI 의견 엔진
+                roic_val = real_roic if real_roic is not None else 0
+                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp)
                 
                 if not iv: dcf_text, dcf_color = t(f"DCF: {err}", f"DCF: {err}"), "#e3b341"
                 elif mos_val > 0: dcf_text, dcf_color = t(f"DCF: +{mos_val:.1f}% (할인)", f"DCF: +{mos_val:.1f}% (Discount)"), "#3fb950"
@@ -795,7 +828,7 @@ with tab1:
 
                 st.divider()
 
-                # 💡 PER 할인 설명 및 ROE/ROIC 평가 로직 강화
+                # 💡 PER 할인 설명 및 뼈때리는 ROE/ROIC 평가 로직 강화
                 if pmos_val > 0:
                     per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 PER {a_pe:.1f}배 대비 저렴하여 할인 구간)</span>"
                 elif pmos_val < 0:
@@ -803,19 +836,23 @@ with tab1:
                 else:
                     per_mos_str = f"확인 필요"
 
-                roic_val = real_roic if real_roic is not None else 0
                 if roe >= 15 and roic_val >= 12:
-                    rr_eval = f"<span class='good'>{t('훌륭함 (자본배분 탁월)', 'Excellent')}</span>"
+                    rr_eval = f"<span class='good'>{t('훌륭함 (자본배치 탁월)', 'Excellent')}</span>"
                 elif roe >= 10 and roic_val >= 8:
                     rr_eval = f"<span style='color:#58a6ff;'>{t('양호함', 'Good')}</span>"
                 else:
                     rr_eval = f"<span class='highlight'>{t('형편없음 (자본효율 낮음)', 'Poor')}</span>"
+                    
+                if erp > 0:
+                    ey_str = f"{ey:.2f}% <span class='good'>(국채 대비 {erp:.2f}%p 할인/우위)</span>"
+                else:
+                    ey_str = f"{ey:.2f}% <span class='highlight'>(국채 대비 {abs(erp):.2f}%p 할증/열위)</span>"
 
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
-                    st.markdown(f"- **{t('배당 지속성', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
                     st.markdown(f"- **ROE / ROIC:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
@@ -824,7 +861,7 @@ with tab1:
                     st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
                     st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
-                    st.write(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey:.2f}%")
+                    st.markdown(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}")
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
 
@@ -842,11 +879,11 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 3. 장기 재무 시각화 (미국은 SEC 10년치 / 한국은 yfinance 4년치 자동 스위칭)
+                # 💡 3. 장기 재무 시각화 (미국은 SEC 10년치 / 한국은 yfinance 4년치 스위칭)
                 st.subheader(t("3. 장기 재무 시각화 (미국: SEC 10년 / 한국: 4년)", "3. Long-term Financial Visualizations"))
                 
                 if not kr and ni_10y is not None and not ni_10y.empty and eps_10y is not None and not eps_10y.empty:
-                    st.write(t("**[미국 SEC 공식 10-K] 최근 10년 순이익 및 EPS 추이**", "**[SEC Official 10-K] 10-Year Net Income & EPS Trend**"))
+                    st.write(t("**[미국 SEC 공식 10-K] 최근 10년 순이익 및 EPS 장기 추이**", "**[SEC Official 10-K] 10-Year Net Income & EPS Trend**"))
                     c_v1, c_v2 = st.columns(2)
                     with c_v1:
                         df_ni = pd.DataFrame({t('순이익 (Net Income)', 'Net Income'): ni_10y})
