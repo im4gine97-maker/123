@@ -293,6 +293,30 @@ def get_investment_opinion(mos, pmos, roe, fcf):
         elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
         else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
+# 💡 문자열 포맷팅 및 안전한 CEO 이름 추출을 위한 예외 방어 함수
+def tr_text(txt):
+    if not txt: return ""
+    txt_str = str(txt)
+    if is_ko:
+        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
+        except: return txt_str
+    return txt_str
+
+def clean_ceo_name(name):
+    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
+    name_str = str(name).strip()
+    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
+        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
+    if is_ko:
+        k_name = tr_text(name_str)
+        if not k_name: return '누락'
+        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
+        for s in suffixes:
+            if k_name.endswith(s):
+                k_name = k_name[:-len(s)].strip(); break
+        return k_name
+    return name_str
+
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
@@ -440,7 +464,7 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-# 오리지널 탭 구조
+# 💡 차장님이 익숙하셨던 원래 탭 순서(개별 분석 1번)로 유지
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
@@ -541,7 +565,7 @@ with tab1:
 
                 st.divider()
 
-                # 1. 핵심 밸류에이션 지표 (기존 텍스트 유지)
+                # 💡 차장님이 좋아하셨던 오리지널 분석 항목 순서 롤백
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
@@ -562,8 +586,6 @@ with tab1:
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
 
                 st.divider()
-                
-                # 2. 10년 DCF (내재가치)
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
@@ -576,7 +598,7 @@ with tab1:
                 
                 st.divider()
 
-                # 3. 핵심 재무 시각화 (최근 4년 데이터 기반 막대그래프)
+                # 💡 시각화 데이터는 원래 지표들 바로 밑인 3번에 자연스럽게 연결
                 st.subheader(t("3. 최근 4년 재무 시각화", "3. 4-Year Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
@@ -615,17 +637,27 @@ with tab1:
 
                 st.divider()
 
-                # 4. 질적 분석
                 st.subheader(t("4. 질적 분석", "4. Qualitative Analysis"))
+                
+                # 💡 야후의 알 수 없는 데이터 구조 변경을 방어하는 초강력 CEO 이름 추출 로직
                 off = i.get('companyOfficers', [])
-                st.markdown(f"- **CEO:** {clean_ceo_name(off[0].get('name') if off else '누락')}")
+                ceo_name = '누락'
+                if isinstance(off, list) and len(off) > 0:
+                    if isinstance(off[0], dict):
+                        ceo_name = off[0].get('name', '누락')
+                    else:
+                        ceo_name = str(off[0])
+                elif isinstance(off, dict):
+                    ceo_name = off.get('name', '누락')
+                elif isinstance(off, str):
+                    ceo_name = off
+                
+                st.markdown(f"- **CEO:** {clean_ceo_name(ceo_name)}")
                 st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
                 st.divider()
-
-                # 5. 매수 6원칙 자동 체크
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 if pmos > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos:.1f}%)</span>\n"
@@ -644,8 +676,6 @@ with tab1:
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
                 st.divider()
-
-                # 6. 기업 해부 및 학문적 모델 적용
                 st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
@@ -656,15 +686,11 @@ with tab1:
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
                 st.divider()
-
-                # 7. 비상탈출 (매도 3원칙)
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 매도)", "7. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
                 st.divider()
-
-                # 거장들의 철학 한마디
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
@@ -673,8 +699,6 @@ with tab1:
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
                 st.divider()
-
-                # 종목 토론방
                 st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
                 if tk not in st.session_state.stock_comments: st.session_state.stock_comments[tk] = []
                 for cmt in reversed(st.session_state.stock_comments[tk]):
@@ -691,7 +715,7 @@ with tab1:
                         st.rerun()
 
             else:
-                st.error(t("데이터를 불러올 수 없습니다. 인터넷 연결을 확인하시거나 티커가 올바른지 확인해주세요.", "Cannot fetch data. Please check your connection or the ticker."))
+                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
