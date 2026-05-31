@@ -148,6 +148,7 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 </style>
 """, unsafe_allow_html=True)
 
+# 로고는 화면 테마에 맞춰 검정/흰색으로 변하도록 유지
 st.markdown("""
 <div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: var(--text-color); letter-spacing: 2px; line-height: 1.2;">
@@ -177,7 +178,8 @@ for name, val, chg, unit in macro_items:
     color = "#3fb950" if chg > 0 else ("#ff7b72" if chg < 0 else "#8b949e")
     sign = "+" if chg > 0 else ""
     chg_str = f"{sign}{chg:.3f}{unit}" if unit == " bp" else f"{sign}{chg:.2f}{unit}"
-    macro_html += f"<div style='flex: 0 0 auto; background: #161b22; padding: 15px 20px; border-radius: 10px; border: 1px solid #30363d; min-width: 140px;'><div style='font-size: 0.85rem; color: #8b949e; margin-bottom: 5px; font-weight: 600;'>{name}</div><div style='font-size: 1.3rem; font-weight: bold; color: var(--text-color);'>{val}</div><div style='font-size: 0.95rem; font-weight: bold; color: {color}; margin-top: 2px;'>{chg_str}</div></div>"
+    # 💡 이 영역의 숫자({val})를 color: #ffffff; 로 강제 고정하여 안 보이는 현상 해결
+    macro_html += f"<div style='flex: 0 0 auto; background: #161b22; padding: 15px 20px; border-radius: 10px; border: 1px solid #30363d; min-width: 140px;'><div style='font-size: 0.85rem; color: #8b949e; margin-bottom: 5px; font-weight: 600;'>{name}</div><div style='font-size: 1.3rem; font-weight: bold; color: #ffffff;'>{val}</div><div style='font-size: 0.95rem; font-weight: bold; color: {color}; margin-top: 2px;'>{chg_str}</div></div>"
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
@@ -286,7 +288,6 @@ def get_investment_opinion(mos, pmos, roe, fcf):
         elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
         else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
-# 💡 누락되었던 13F 예비 데이터(Fallback) 복원
 fallback_13f_data = {
     "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc. Class A", "비중(%)": 22.85}, {"티커": "GOOG", "기업명": "Alphabet Inc. Class C", "비중(%)": 21.97}, {"티커": "PDD", "기업명": "Pinduoduo Inc. ADR", "비중(%)": 14.71}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway", "비중(%)": 13.44}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.26}],
     "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.52}, {"티커": "CVX", "기업명": "Chevron Corp", "비중(%)": 6.64}],
@@ -545,8 +546,8 @@ with tab1:
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
                 with c2:
-                    if pmos > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+{pmos:.1f}%</span>", unsafe_allow_html=True)
-                    elif pmos < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>{pmos:.1f}%</span>", unsafe_allow_html=True)
+                    if pmos > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+[합격] {pmos:.1f}%</span>", unsafe_allow_html=True)
+                    elif pmos < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>[주의] {pmos:.1f}%</span>", unsafe_allow_html=True)
                     st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
                     st.write(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey:.2f}%")
@@ -559,8 +560,8 @@ with tab1:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     st.write(f"- **{t('FCF 연평균 성장률', 'FCF CAGR')}:** {final_g*100:.1f}% ({data_len}{t('년 데이터 자동 산출', ' years of data)')})")
                     st.write(f"- **{t('추정 적정가', 'Estimated Fair Value')}:** {iv_str}")
-                    if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+{mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
-                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>{mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
+                    if mos > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
+                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
                 
@@ -568,7 +569,7 @@ with tab1:
                 st.subheader(t("3. 질적 분석", "3. Qualitative Analysis"))
                 off = i.get('companyOfficers', [])
                 st.markdown(f"- **CEO:** {clean_ceo_name(off[0].get('name') if off else '누락')}")
-                st.info(t("현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
+                st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
@@ -580,11 +581,11 @@ with tab1:
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
                 if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}%)</span>"
                 elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}%)</span>"
-                else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
+                else: p_txt += f"- DCF: ({t('직접 확인 필요', 'Needs Check')})"
                 st.markdown(p_txt, unsafe_allow_html=True)
-                if roe >= 15: biz_eval = f"<span class='good'>{t('우수 (자본효율 탁월, 해자 확률 높음)', 'Excellent (Great capital efficiency, high moat probability)')}</span>"
-                elif roe > 0: biz_eval = t("보통 (독점력 추가 확인 필요)", "Average (Requires moat verification)")
-                else: biz_eval = f"<span class='highlight'>{t('경고 (구조 훼손 점검 시급)', 'Warning (Structural damage check urgent)')}</span>"
+                if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
+                elif roe > 0: biz_eval = t("[보통] 독점력 추가 확인 필요", "[Average] Requires moat verification")
+                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼손 점검 시급', '[Warning] Structural damage check urgent')}</span>"
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 리포트 참조', 'Refer to the report above')}")
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
@@ -592,8 +593,8 @@ with tab1:
 
                 st.divider()
                 st.subheader(t("5. 기업 해부 및 학문적 모델 적용", "5. Corporate Anatomy & Academic Models"))
-                if final_g > 0: math_eval = f"<span class='good'>{t(f'연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
-                else: math_eval = f"<span class='highlight'>{t('현금흐름 역성장 (복리 팽창 구간 아님).', 'Negative FCF (Not a compounding phase).')}</span>"
+                if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
                 st.write(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {t('부채 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.', 'Check Darwinian survivability regarding debt structure.')}")
