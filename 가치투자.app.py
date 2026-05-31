@@ -456,7 +456,7 @@ with st.sidebar:
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
-# 메인화면 스타일 렌더링
+# 💡 거추장스러운 툴바와 차트 툴팁만 끄고, 표(테이블)의 가로 스크롤 기능은 부활시킨 최적화 CSS
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
@@ -474,10 +474,11 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px; color: #e6edf3;}
 .comment-time {font-size: 0.8rem; color: #8b949e;}
 
-/* 차트 및 데이터프레임 내부 상호작용 완벽 무효화 */
+/* 차트 내부 상호작용 완벽 무효화 (모바일 툴팁 프리징 방지) */
 [data-testid="stVegaLiteChart"] { pointer-events: none !important; }
-[data-testid="stDataFrame"] { pointer-events: none !important; }
+/* 거추장스러운 툴바(점 3개 아이콘, 돋보기, 전체화면 버튼) 완벽하게 숨김 */
 [data-testid="stElementToolbar"] { display: none !important; }
+/* 테이블(stDataFrame)의 pointer-events를 끄지 않아 좌우 스크롤 100% 동작 가능 */
 </style>
 """, unsafe_allow_html=True)
 
@@ -539,7 +540,7 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-# 오리지널 탭 구조
+# 탭 구조
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
