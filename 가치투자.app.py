@@ -169,7 +169,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 
+# [3] 데이터 가져오기 (SEC EDGAR 10년 엔진 포함)
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v3():
@@ -197,8 +197,54 @@ def fetch_macro_realtime_v3():
             
     res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
-    
     return res
+
+# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진 (User-Agent 무적 방어)
+@st.cache_data(ttl=86400)
+def fetch_sec_cik_map():
+    headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
+    try:
+        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=10)
+        data = r.json()
+        return {str(v['ticker']).upper(): str(v['cik_str']).zfill(10) for k, v in data.items()}
+    except:
+        return {}
+
+@st.cache_data(ttl=86400)
+def fetch_sec_10y_data(ticker):
+    cik_map = fetch_sec_cik_map()
+    cik = cik_map.get(ticker.upper())
+    if not cik: return None, None
+    
+    headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
+    url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200: return None, None
+        us_gaap = r.json().get('facts', {}).get('us-gaap', {})
+        
+        def parse_metric(metric_names, unit='USD'):
+            if isinstance(metric_names, str): metric_names = [metric_names]
+            for m_name in metric_names:
+                arr = us_gaap.get(m_name, {}).get('units', {}).get(unit, [])
+                if arr:
+                    df = pd.DataFrame(arr)
+                    if 'form' in df.columns and 'fy' in df.columns and 'val' in df.columns:
+                        df = df[df['form'] == '10-K']
+                        if not df.empty:
+                            df = df.sort_values(['fy', 'end']).drop_duplicates(subset=['fy'], keep='last')
+                            df.set_index('fy', inplace=True)
+                            df.index = df.index.astype(int)
+                            df.sort_index(inplace=True)
+                            return df['val'].tail(10)
+            return pd.Series(dtype=float)
+
+        ni_s = parse_metric(['NetIncomeLoss', 'ProfitLoss'], 'USD')
+        eps_s = parse_metric(['EarningsPerShareBasic', 'EarningsPerShareDiluted'], 'USD/shares')
+        
+        return ni_s, eps_s
+    except:
+        return None, None
 
 @st.cache_data
 def get_13f_portfolio(guru_code):
@@ -393,7 +439,6 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 가치투자 철학에 맞춘 용어 변경 (매수/매도 -> 할인/할증)
 def get_market_opinion(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount (Historic Undervaluation)"), "#3fb950"
     elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount (Margin of safety exists)"), "#58a6ff"
@@ -682,7 +727,25 @@ with tab1:
                 pmos = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 
+                # 💡 SEC 10-Year logic overriding base yfinance data if available
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
+                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 자동 산출', ' years yfinance data)')})"
+                
+                ni_10y, eps_10y = None, None
+                if not kr:
+                    ni_10y, eps_10y = fetch_sec_10y_data(tk)
+                    if eps_10y is not None and not eps_10y.empty and len(eps_10y) >= 4:
+                        eps_clean = eps_10y[eps_10y > 0]
+                        if len(eps_clean) >= 2:
+                            f_val = eps_clean.iloc[0]
+                            l_val = eps_clean.iloc[-1]
+                            y_diff = eps_clean.index[-1] - eps_clean.index[0]
+                            if y_diff > 0:
+                                sec_g = (l_val / f_val) ** (1 / y_diff) - 1
+                                final_g = max(0.02, min(sec_g, 0.15))
+                                data_len = y_diff + 1
+                                dcf_source_txt = f"({data_len}{t('년 미국 SEC 원본 자동 산출', ' years SEC Raw Data)')})"
+
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
@@ -693,11 +756,11 @@ with tab1:
                 op_title, op_color, op_reason = get_investment_opinion(mos_val, pmos_val, roe, base_fcf)
                 
                 if not iv: dcf_text, dcf_color = t(f"DCF: {err}", f"DCF: {err}"), "#e3b341"
-                elif mos_val > 0: dcf_text, dcf_color = t(f"DCF: +{mos_val:.1f}% (저평가)", f"DCF: +{mos_val:.1f}% (Undervalued)"), "#3fb950"
-                else: dcf_text, dcf_color = t(f"DCF: {mos_val:.1f}% (고평가)", f"DCF: {mos_val:.1f}% (Overvalued)"), "#ff7b72"
+                elif mos_val > 0: dcf_text, dcf_color = t(f"DCF: +{mos_val:.1f}% (할인)", f"DCF: +{mos_val:.1f}% (Discount)"), "#3fb950"
+                else: dcf_text, dcf_color = t(f"DCF: {mos_val:.1f}% (할증)", f"DCF: {mos_val:.1f}% (Premium)"), "#ff7b72"
 
-                if pmos_val > 0: per_text, per_color = t(f"PER: +{pmos_val:.1f}% (저평가)", f"PER: +{pmos_val:.1f}% (Undervalued)"), "#3fb950"
-                elif pmos_val < 0: per_text, per_color = t(f"PER: {pmos_val:.1f}% (고평가)", f"PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
+                if pmos_val > 0: per_text, per_color = t(f"PER: +{pmos_val:.1f}% (할인)", f"PER: +{pmos_val:.1f}% (Discount)"), "#3fb950"
+                elif pmos_val < 0: per_text, per_color = t(f"PER: {pmos_val:.1f}% (할증)", f"PER: {pmos_val:.1f}% (Premium)"), "#ff7b72"
                 else: per_text, per_color = t(f"PER: 데이터 확인 필요", f"PER: Needs verification"), "#e3b341"
 
                 st.markdown(f"""
@@ -737,50 +800,62 @@ with tab1:
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
-                    st.write(f"- **{t('FCF 연평균 성장률', 'FCF CAGR')}:** {final_g*100:.1f}% ({data_len}{t('년 데이터 자동 산출', ' years of data)')})")
+                    st.write(f"- **{t('FCF 연평균 성장률', 'FCF CAGR')}:** {final_g*100:.1f}% {dcf_source_txt}")
                     st.write(f"- **{t('추정 적정가', 'Estimated Fair Value')}:** {iv_str}")
-                    if mos_val > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos_val:.1f}% ({t('저평가', 'Undervalued')})</span>", unsafe_allow_html=True)
-                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos_val:.1f}% ({t('고평가', 'Overvalued')})</span>", unsafe_allow_html=True)
+                    if mos_val > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos_val:.1f}% ({t('할인', 'Discount')})</span>", unsafe_allow_html=True)
+                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos_val:.1f}% ({t('할증', 'Premium')})</span>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
                 
                 st.divider()
 
-                st.subheader(t("3. 최근 4년 재무 시각화", "3. 4-Year Financial Visualizations"))
-                try:
-                    inc = stk.income_stmt if stk else None
-                    cf = stk.cash_flow if stk else None
-                    if inc is not None and not inc.empty:
-                        cols = inc.columns[:4]
-                        years = [str(c)[:4] for c in cols][::-1]
-                        
-                        rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
-                        ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
-                        
-                        fcf_chart = []
-                        if cf is not None and not cf.empty:
-                            if 'Free Cash Flow' in cf.index:
-                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
-                            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
-                        
-                        c_v1, c_v2 = st.columns(2)
-                        with c_v1:
-                            if len(rev) == len(years) and len(ni) == len(years):
-                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
-                                st.write(t("**[매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
-                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
-                            else:
-                                st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
-                        with c_v2:
-                            if len(fcf_chart) == len(years):
-                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
-                                st.write(t("**[잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
-                                st.bar_chart(df_fcf, color="#e3b341", height=300)
-                            else:
-                                st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
-                except Exception as e:
-                    st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
+                # 💡 3. 장기 재무 시각화 (미국은 SEC 10년치 / 한국은 yfinance 4년치 자동 스위칭)
+                st.subheader(t("3. 장기 재무 시각화 (미국: SEC 10년 / 한국: 4년)", "3. Long-term Financial Visualizations"))
+                
+                if not kr and ni_10y is not None and not ni_10y.empty and eps_10y is not None and not eps_10y.empty:
+                    st.write(t("**[미국 SEC 공식 10-K] 최근 10년 순이익 및 EPS 추이**", "**[SEC Official 10-K] 10-Year Net Income & EPS Trend**"))
+                    c_v1, c_v2 = st.columns(2)
+                    with c_v1:
+                        df_ni = pd.DataFrame({t('순이익 (Net Income)', 'Net Income'): ni_10y})
+                        st.bar_chart(df_ni, color="#3fb950", height=300)
+                    with c_v2:
+                        df_eps = pd.DataFrame({t('주당순이익 (EPS)', 'EPS'): eps_10y})
+                        st.bar_chart(df_eps, color="#58a6ff", height=300)
+                else:
+                    try:
+                        inc = stk.income_stmt if stk else None
+                        cf = stk.cash_flow if stk else None
+                        if inc is not None and not inc.empty:
+                            cols = inc.columns[:4]
+                            years = [str(c)[:4] for c in cols][::-1]
+                            
+                            rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
+                            ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
+                            
+                            fcf_chart = []
+                            if cf is not None and not cf.empty:
+                                if 'Free Cash Flow' in cf.index:
+                                    fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
+                                elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                                    fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
+                            
+                            c_v1, c_v2 = st.columns(2)
+                            with c_v1:
+                                if len(rev) == len(years) and len(ni) == len(years):
+                                    df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
+                                    st.write(t("**[매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
+                                    st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
+                                else:
+                                    st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                            with c_v2:
+                                if len(fcf_chart) == len(years):
+                                    df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
+                                    st.write(t("**[잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
+                                    st.bar_chart(df_fcf, color="#e3b341", height=300)
+                                else:
+                                    st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
+                    except Exception as e:
+                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
 
                 st.divider()
 
@@ -1098,7 +1173,7 @@ with tab6:
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", 
                  "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", 
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 전람과는 좋은 거래를 할 수 없습니다.", 
                  "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", 
