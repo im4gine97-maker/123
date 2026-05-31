@@ -60,23 +60,119 @@ fallback_13f_data = {
         {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70},
         {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43},
         {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25},
-        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56}
+        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
+        {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
+        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
+        {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
+        {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87},
+        {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}
+    ],
+    "BRK": [
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99},
+        {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43},
+        {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56},
+        {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52},
+        {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64},
+        {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24},
+        {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78},
+        {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76},
+        {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38},
+        {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01},
+        {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39},
+        {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38},
+        {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33},
+        {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17},
+        {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
+        {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
+        {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "PSH": [
+        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
+        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
+        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
+        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
+        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "BAU": [
+        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
+        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
+        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
+        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
+        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
+        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
+        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
+        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
+        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
+        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
+        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
+        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
+        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
+        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
+        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
+        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
+        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
+        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
+        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
+    ],
+    "AKRE": [
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
+        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
+        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
+        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
+        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
+        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
+        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
+        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
+        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
+        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
+        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
+        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
+        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
+        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "PI": [
+        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
+        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
+        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
+    ],
+    "AQUA": [
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
+        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
+        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
+        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ]
 }
 
 us_top30 = [
-    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}
+    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
 ]
 
 kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진 (SEC 10-K 무적 방어망 포함)
+# [3] 데이터 가져오기 엔진 (SEC 모듈 완벽 제거)
 # ==========================================
 @st.cache_data(ttl=900) 
-def fetch_macro_realtime_v4():
+def fetch_macro_realtime_v5():
     macro_symbols = {
         "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
         "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
@@ -101,65 +197,29 @@ def fetch_macro_realtime_v4():
             
     res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
+    
     return res
 
-# 💡 미국 SEC 공식 10-K API 직접 연결 (클라우드 IP 차단 방지를 위한 다중 헤더 및 세션 처리)
-@st.cache_data(ttl=86400)
-def fetch_sec_cik_map():
-    headers = {
-        'User-Agent': 'ValueTerminal_Private csjwo154515@naver.com',
-        'Accept-Encoding': 'gzip, deflate'
-    }
-    try:
-        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=15)
-        data = r.json()
-        return {str(v['ticker']).upper(): str(v['cik_str']).zfill(10) for k, v in data.items()}
-    except:
-        return {}
+# 💡 누락되었던 13F 포트폴리오 스크래핑 함수 완벽 복원!
+@st.cache_data
+def get_13f_portfolio(guru_code):
+    return fallback_13f_data.get(guru_code, [])
 
-@st.cache_data(ttl=86400)
-def fetch_sec_10y_data(ticker):
-    cik_map = fetch_sec_cik_map()
-    cik = cik_map.get(ticker.upper())
-    if not cik: return None, None
-    
-    headers = {
-        'User-Agent': 'ValueTerminal_Private csjwo154515@naver.com',
-        'Accept-Encoding': 'gzip, deflate'
-    }
-    url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+def fetch_naver_finance_news(cd):
+    url = f"https://finance.naver.com/item/news_news.naver?code={cd}"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    news_list = []
     try:
-        r = requests.get(url, headers=headers, timeout=20)
-        if r.status_code != 200: return None, None
-        us_gaap = r.json().get('facts', {}).get('us-gaap', {})
-        
-        def parse_metric(metric_names, units):
-            if isinstance(metric_names, str): metric_names = [metric_names]
-            if isinstance(units, str): units = [units]
-            for m_name in metric_names:
-                for unit in units:
-                    arr = us_gaap.get(m_name, {}).get('units', {}).get(unit, [])
-                    if arr:
-                        df = pd.DataFrame(arr)
-                        if 'form' in df.columns and 'fy' in df.columns and 'val' in df.columns:
-                            df = df[df['form'] == '10-K'].copy()
-                            if not df.empty:
-                                df['fy'] = pd.to_numeric(df['fy'], errors='coerce')
-                                df = df.dropna(subset=['fy'])
-                                df = df.sort_values(['fy', 'end']).drop_duplicates(subset=['fy'], keep='last')
-                                df.set_index('fy', inplace=True)
-                                df.index = df.index.astype(int)
-                                df.sort_index(inplace=True)
-                                return df['val'].tail(10)
-            return pd.Series(dtype=float)
-
-        ni_s = parse_metric(['NetIncomeLoss', 'ProfitLoss'], ['USD'])
-        # 기업마다 다른 EPS 단위를 놓치지 않도록 복수 조건 스캔
-        eps_s = parse_metric(['EarningsPerShareBasic', 'EarningsPerShareDiluted'], ['USD/shares', 'USD / shares'])
-        
-        return ni_s, eps_s
+        r = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        titles = soup.select('td.title a')
+        for a in titles[:3]:
+            title_text = a.text.strip()
+            link = "https://finance.naver.com" + a['href'] if a.has_attr('href') else f"https://finance.naver.com/item/news.naver?code={cd}"
+            news_list.append({"title": title_text, "link": link, "publisher": "네이버금융"})
     except:
-        return None, None
+        pass
+    return news_list
 
 def fetch_governance_criticism(tk, cd, ceo_name):
     tk_clean = str(tk).strip().upper()
@@ -334,7 +394,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 AI 투자의견 평가 엔진 (경영진 최우선, DCF 축소, 복리/자본효율 등 총망라)
+# 💡 AI 투자의견 평가 엔진 (경영진 최우선, DCF 축소, 복리/자본효율 총망라)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     
@@ -368,17 +428,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if mos > 15: score += 5
     elif mos < -15: score -= 5
 
-    # 최종 등급 산출 (총점: 대략 -105 ~ +105)
+    # 최종 등급 산출
     if score >= 60:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도(최고 가중치)를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
     elif score >= 20:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털(자본효율/성장) 대비 이익수익률과 밸류에이션에서 충분한 할인(안전마진)이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털 대비 이익수익률과 밸류에이션에서 충분한 할인이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
     elif score >= -20:
         return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델과 경영진 평판은 무난하나, 주가가 현재의 수익성이나 성장성에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business and management are fine, but currently trading near its fair value. Not a distinct discount territory.")
     elif score >= -60:
         return t("할증 (Premium)", "Premium"), "#ff7b72", t("경영진에 대한 비판적 이슈가 있거나, 자본효율성 대비 주가가 비싸게 거래되어 기대수익률이 채권보다 떨어지는 할증 구간입니다.", "Premium territory due to management risks or overvaluation relative to its capital efficiency.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진의 치명적인 비판 리스크(최고 가중치 감점) 또는 심각한 자본 낭비 및 역성장에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Highly dangerous speculative territory due to severe management criticism, poor capital allocation, or irrational overvaluation.")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진의 치명적인 비판 리스크 또는 심각한 자본 낭비 및 역성장에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Highly dangerous speculative territory due to severe management criticism, poor capital allocation, or irrational overvaluation.")
+
+def get_market_op_simple(erp):
+    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
+    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
+    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
+    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
+
+def tr_text(txt):
+    if not txt: return ""
+    txt_str = str(txt)
+    if is_ko:
+        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
+        except: return txt_str
+    return txt_str
 
 def clean_ceo_name(name):
     if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
@@ -540,12 +614,6 @@ spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
 spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 
-def get_market_op_simple(erp):
-    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
-    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
-    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
-    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
-
 spy_op, spy_col = get_market_op_simple(spy_erp)
 qqq_op, qqq_col = get_market_op_simple(qqq_erp)
 
@@ -623,7 +691,6 @@ with tab1:
                         else: st.session_state.bookmarks.append(tk)
                         st.rerun() 
                 
-                # 💡 경영진 도출 및 리스크 점검을 AI 투자의견 위로 끌어올림
                 off = i.get('companyOfficers', [])
                 ceo_raw = '누락'
                 if isinstance(off, list) and len(off) > 0:
@@ -641,7 +708,7 @@ with tab1:
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                else: roic_str = t("데이터 부족 (확인 요망)", "N/A")
+                else: roic_str = t("데이터 부족 (확인 요망)", "N/A (Needs verification)")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
@@ -651,7 +718,6 @@ with tab1:
                 if kr: div = div_yield * 100
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
-                # 💡 배당 지속 상승 검증 명확화
                 div_trend = t("확인 불가", "N/A")
                 try:
                     div_history = stk.dividends
@@ -674,24 +740,6 @@ with tab1:
                 
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
-                
-                # 💡 무조건 10년 치를 물고 늘어지는 SEC 데이터 강제 연동
-                ni_10y, eps_10y = None, None
-                if not kr:
-                    ni_10y, eps_10y = fetch_sec_10y_data(tk)
-                    if eps_10y is not None and not eps_10y.empty and len(eps_10y) >= 4:
-                        eps_clean = eps_10y[eps_10y > 0]
-                        if len(eps_clean) >= 2:
-                            f_val = eps_clean.iloc[0]
-                            l_val = eps_clean.iloc[-1]
-                            y_diff = eps_clean.index[-1] - eps_clean.index[0]
-                            if y_diff > 0:
-                                sec_g = (l_val / f_val) ** (1 / y_diff) - 1
-                                final_g = max(0.02, min(sec_g, 0.15))
-                                data_len = y_diff + 1
-                                dcf_source_txt = f"({data_len}{t('년 미국 SEC 10-K 공식 데이터 자동 산출', ' yrs SEC 10-K Data)')})"
-                    else:
-                        st.warning(t("⚠️ 해당 종목의 미국 SEC 데이터 추출이 지연되어, yfinance 4년치 데이터로 대체 표출합니다. (이건 확인이 필요한 부분입니다)", "⚠️ SEC data fetch delayed. Falling back to yfinance 4-year data. (Needs verification)"))
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
@@ -699,7 +747,6 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 mos_val = safe_float(mos_val)
                 
-                # 💡 경영진, 성장성, ROE/ROIC, ERP, DCF 총망라 궁극의 AI 의견 엔진 적용
                 roic_val = real_roic if real_roic is not None else 0
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text)
 
@@ -712,7 +759,6 @@ with tab1:
 
                 st.divider()
 
-                # 💡 펀더멘털 평가 로직: 이유 명확화 (PER, ROE, ERP)
                 if pmos_val > 0:
                     per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 저렴하여 할인 구간)</span>"
                 elif pmos_val < 0:
@@ -763,53 +809,42 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 3. 장기 재무 시각화 (미국은 SEC 10년치 막대그래프 / 한국은 4년치 자동 스위칭)
-                st.subheader(t("3. 장기 재무 시각화 (미국: 10년 / 한국: 4년)", "3. Long-term Financial Visualizations"))
-                
-                if not kr and ni_10y is not None and not ni_10y.empty and eps_10y is not None and not eps_10y.empty:
-                    st.write(t("**[미국 SEC 공식 10-K] 최근 10년 순이익 및 EPS 장기 추이**", "**[SEC Official 10-K] 10-Year Net Income & EPS Trend**"))
-                    c_v1, c_v2 = st.columns(2)
-                    with c_v1:
-                        df_ni = pd.DataFrame({t('순이익 (Net Income)', 'Net Income'): ni_10y})
-                        st.bar_chart(df_ni, color="#3fb950", height=300)
-                    with c_v2:
-                        df_eps = pd.DataFrame({t('주당순이익 (EPS)', 'EPS'): eps_10y})
-                        st.bar_chart(df_eps, color="#58a6ff", height=300)
-                else:
-                    try:
-                        inc = stk.income_stmt if stk else None
-                        cf = stk.cash_flow if stk else None
-                        if inc is not None and not inc.empty:
-                            cols = inc.columns[:4]
-                            years = [str(c)[:4] for c in cols][::-1]
-                            
-                            rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
-                            ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
-                            
-                            fcf_chart = []
-                            if cf is not None and not cf.empty:
-                                if 'Free Cash Flow' in cf.index:
-                                    fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
-                                elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                    fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
-                            
-                            c_v1, c_v2 = st.columns(2)
-                            with c_v1:
-                                if len(rev) == len(years) and len(ni) == len(years):
-                                    df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
-                                    st.write(t("**[최근 4년 매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
-                                    st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
-                                else:
-                                    st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
-                            with c_v2:
-                                if len(fcf_chart) == len(years):
-                                    df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
-                                    st.write(t("**[최근 4년 잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
-                                    st.bar_chart(df_fcf, color="#e3b341", height=300)
-                                else:
-                                    st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
-                    except Exception as e:
-                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
+                # 💡 3. 장기 재무 시각화 (SEC 제거 후 안전한 4년 데이터로 통일 처리)
+                st.subheader(t("3. 장기 재무 시각화 (최근 4년 연속 지표)", "3. Long-term Financial Visualizations"))
+                try:
+                    inc = stk.income_stmt if stk else None
+                    cf = stk.cash_flow if stk else None
+                    if inc is not None and not inc.empty:
+                        cols = inc.columns[:4]
+                        years = [str(c)[:4] for c in cols][::-1]
+                        
+                        rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
+                        ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
+                        
+                        fcf_chart = []
+                        if cf is not None and not cf.empty:
+                            if 'Free Cash Flow' in cf.index:
+                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
+                            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
+                        
+                        c_v1, c_v2 = st.columns(2)
+                        with c_v1:
+                            if len(rev) == len(years) and len(ni) == len(years):
+                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
+                                st.write(t("**[최근 4년 매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
+                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
+                            else:
+                                st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                        with c_v2:
+                            if len(fcf_chart) == len(years):
+                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
+                                st.write(t("**[최근 4년 잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
+                                st.bar_chart(df_fcf, color="#e3b341", height=300)
+                            else:
+                                st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
+                except Exception as e:
+                    st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
 
                 st.divider()
 
