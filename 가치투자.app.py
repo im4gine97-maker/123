@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# [1] 세션 상태 초기화 및 글로벌 유틸리티
+# [1] 세션 상태 초기화
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "history" not in st.session_state: st.session_state.history = []
@@ -127,7 +127,7 @@ fallback_13f_data = {
         {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
         {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
         {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
-        {"티커": "GSHD", "기업head Insurance Inc - A", "비중(%)": 0.31},
+        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
         {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
         {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
         {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
@@ -156,11 +156,11 @@ us_top30 = [
 ]
 
 kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 및 타입 방어 완벽 적용
+# [3] 데이터 가져오기 (타입 방어 완벽 적용)
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_realtime_macro_data():
@@ -195,7 +195,6 @@ def fetch_realtime_macro_data():
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
 
-# 💡 한국 지표 스캔 시 야후 파이낸스 뉴스 공백을 방어하기 위한 네이버 뉴스 스크래퍼
 def fetch_naver_finance_news(cd):
     url = f"https://finance.naver.com/item/news_news.naver?code={cd}"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -212,7 +211,6 @@ def fetch_naver_finance_news(cd):
         pass
     return news_list
 
-# 💡 위키 및 지배구조 비판 점검을 위한 다이내믹 정보 매칭 엔진
 def fetch_governance_criticism(tk, cd, ceo_name):
     tk_clean = str(tk).strip().upper()
     if "TSLA" in tk_clean:
@@ -403,6 +401,29 @@ def get_investment_opinion(mos, pmos, roe, fcf):
         if mos > 10 and pmos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF상 저평가이나 PER상 고평가 (엇갈린 지표, 역성장 여부 모니터링 필요)", "Undervalued on DCF but overvalued on PE (Mixed signals, monitor for degrowth)")
         elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
         else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
+
+def tr_text(txt):
+    if not txt: return ""
+    txt_str = str(txt)
+    if is_ko:
+        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
+        except: return txt_str
+    return txt_str
+
+def clean_ceo_name(name):
+    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
+    name_str = str(name).strip()
+    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
+        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
+    if is_ko:
+        k_name = tr_text(name_str)
+        if not k_name: return '누락'
+        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
+        for s in suffixes:
+            if k_name.endswith(s):
+                k_name = k_name[:-len(s)].strip(); break
+        return k_name
+    return name_str
 
 def get_safe_macro(key, is_currency=False, is_rate=False):
     data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
@@ -653,7 +674,6 @@ with tab1:
                 elif pmos_val < 0: per_text, per_color = t(f"PER: {pmos_val:.1f}% (고평가)", f"PER: {pmos_val:.1f}% (Overvalued)"), "#ff7b72"
                 else: per_text, per_color = t(f"PER: 데이터 확인 필요", f"PER: Needs verification"), "#e3b341"
 
-                # [최상단] AI 종합 투자의견
                 st.markdown(f"""
                 <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
                     <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">[AI 종합 투자의견] : {op_title}</h3>
@@ -667,7 +687,6 @@ with tab1:
 
                 st.divider()
 
-                # 1. 핵심 밸류에이션 지표
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
@@ -689,7 +708,6 @@ with tab1:
 
                 st.divider()
                 
-                # 2. 10년 DCF (내재가치)
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
@@ -702,7 +720,6 @@ with tab1:
                 
                 st.divider()
 
-                # 3. 최근 4년 재무 시각화
                 st.subheader(t("3. 최근 4년 재무 시각화", "3. 4-Year Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
@@ -741,10 +758,8 @@ with tab1:
 
                 st.divider()
 
-                # 4. 질적 분석 (실시간 뉴스 피드 및 위키 리스크 비판 통합 스크리닝)
                 st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
                 
-                # CEO 이름 추출 및 처리
                 ceo_raw = '누락'
                 if isinstance(off, list) and len(off) > 0:
                     if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
@@ -759,7 +774,6 @@ with tab1:
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
-                # 💡 실시간 주요 뉴스 연동 (국내주식 네이버금융 스크래퍼 / 해외주식 야후파이낸스 자동 번역 연동)
                 st.write(t("**최근 주요 뉴스 요약 (실시간 연동)**", "Major Recent News Summary"))
                 with st.spinner(t("최신 뉴스 스트리밍 중...", "Streaming news...")):
                     try:
@@ -783,7 +797,6 @@ with tab1:
                     except:
                         st.caption(t("뉴스 피드를 연동하지 못했습니다.", "Failed to load real-time news feed."))
 
-                # 💡 위키 및 공공 기록 스크리닝 기반 경영진 리스크 비판 점검 패널
                 st.write(t("**경영진 및 지배구조 비판 점검 패널**", "Management & Governance Criticism Panel"))
                 criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
                 st.markdown(f"""
@@ -794,7 +807,6 @@ with tab1:
 
                 st.divider()
 
-                # 5. 매수 6원칙 자동 체크
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 if pmos_val > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}%)</span>\n"
@@ -814,7 +826,6 @@ with tab1:
 
                 st.divider()
 
-                # 6. 기업 해부 및 학문적 모델 적용
                 st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
@@ -826,14 +837,12 @@ with tab1:
 
                 st.divider()
 
-                # 7. 비상탈출 (매도 3원칙)
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 매도)", "7. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
                 st.divider()
 
-                # 거장들의 철학 한마디
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
