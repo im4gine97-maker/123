@@ -60,16 +60,112 @@ fallback_13f_data = {
         {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70},
         {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43},
         {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25},
-        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56}
+        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
+        {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
+        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
+        {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
+        {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87},
+        {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}
+    ],
+    "BRK": [
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99},
+        {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43},
+        {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56},
+        {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52},
+        {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64},
+        {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24},
+        {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78},
+        {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76},
+        {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38},
+        {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01},
+        {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39},
+        {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38},
+        {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33},
+        {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17},
+        {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
+        {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
+        {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "PSH": [
+        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
+        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
+        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
+        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
+        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "BAU": [
+        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
+        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
+        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
+        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
+        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
+        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
+        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
+        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
+        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
+        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
+        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
+        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
+        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
+        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
+        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
+        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
+        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
+        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
+        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
+    ],
+    "AKRE": [
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
+        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
+        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
+        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
+        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
+        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
+        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
+        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
+        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
+        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
+        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
+        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
+        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
+        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+    ],
+    "PI": [
+        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
+        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
+        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
+    ],
+    "AQUA": [
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
+        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
+        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
+        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ]
 }
 
 us_top30 = [
-    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}
+    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
 ]
 
 kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
 
 # ==========================================
@@ -101,6 +197,7 @@ def fetch_macro_realtime_v5():
             
     res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
+    
     return res
 
 @st.cache_data
@@ -123,7 +220,6 @@ def fetch_naver_finance_news(cd):
         pass
     return news_list
 
-# 💡 미국 주식 전용 무적의 RSS 뉴스 스크래퍼 (yfinance 뉴스 버그 완벽 해결)
 def fetch_global_news(tk):
     url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={tk}&region=US&lang=en-US"
     news_list = []
@@ -317,27 +413,45 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
+# 💡 AI 투자의견 평가 엔진 (경영진 40, ROE/ROIC 20, ERP 10, 복리성장 10, PER 10, DCF 10)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
-    if "사법적 리스크나 중범죄 이력은 두드러지지 않습니다" in ceo_text: score += 40
-    else: score -= 40
-    if pmos > 15: score += 20
-    elif pmos > 0: score += 10
-    elif pmos < -15: score -= 20
-    else: score -= 10
+    
+    # 1. 경영진 리스크 (가장 높은 가중치: ±40점)
+    if "사법적 리스크나 중범죄 이력은 두드러지지 않습니다" in ceo_text:
+        score += 40
+    else:
+        score -= 40
+        
+    # 2. 상대가치 PER 할인지표 (±10점)
+    if pmos > 15: score += 10
+    elif pmos > 0: score += 5
+    elif pmos < -15: score -= 10
+    else: score -= 5
+
+    # 3. 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점)
     if roe >= 15: score += 10
     elif roe < 8: score -= 10
     if roic and roic >= 12: score += 10
     elif roic and roic < 6: score -= 10
+
+    # 4. 이익수익률 매력도 ERP (±10점)
     if erp > 3: score += 10
     elif erp < 0: score -= 10
+
+    # 5. 수학적 복리 모형 (FCF/EPS 연평균 성장률) (±10점)
     if final_g >= 0.10: score += 10
     elif final_g <= 0.0: score -= 10
-    if mos > 15: score += 5
-    elif mos < -15: score -= 5
 
+    # 6. 추정 내재가치 DCF (±10점)
+    if mos > 15: score += 10
+    elif mos > 0: score += 5
+    elif mos < -15: score -= 10
+    else: score -= 5
+
+    # 최종 등급 산출 (총점: 대략 -100 ~ +100)
     if score >= 60:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/DCF/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
     elif score >= 20:
         return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털 대비 이익수익률과 밸류에이션에서 충분한 할인이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
     elif score >= -20:
@@ -716,7 +830,6 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 3. 장기 재무 시각화 (안전한 4년 yfinance 데이터로 통일)
                 st.subheader(t("3. 장기 재무 시각화 (최근 4년 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
@@ -763,7 +876,6 @@ with tab1:
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
-                # 💡 무적의 뉴스 스크래퍼 적용부
                 st.write(t("**최근 주요 뉴스 요약 (실시간 연동)**", "Major Recent News Summary"))
                 with st.spinner(t("최신 뉴스 스트리밍 중...", "Streaming news...")):
                     try:
