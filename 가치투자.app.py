@@ -23,6 +23,12 @@ if "search_ranking" not in st.session_state: st.session_state.search_ranking = {
 if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
+def trigger_scan():
+    if st.session_state.get("main_input"):
+        q = st.session_state.main_input.replace(" ", "").upper()
+        tk = tmap.get(q, q)
+        st.session_state.search_tk = tk
+
 # ==========================================
 # [2] 글로벌 상수 및 예비 데이터 (캐싱 오류 방지를 위해 최상단 배치)
 # ==========================================
@@ -48,12 +54,6 @@ us_top30 = [
 kr_top30 = [
     {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
-
-def trigger_scan():
-    if st.session_state.get("main_input"):
-        q = st.session_state.main_input.replace(" ", "").upper()
-        tk = tmap.get(q, q)
-        st.session_state.search_tk = tk
 
 # ==========================================
 # [3] 데이터 가져오기 (함수들)
@@ -293,7 +293,6 @@ def get_investment_opinion(mos, pmos, roe, fcf):
         elif pmos > 10 and mos < -10: return t("관망 (Hold)", "Hold"), "#e3b341", t("PER상 저평가이나 DCF상 고평가 (가치 함정 우려, 이익의 질 점검 필요)", "Undervalued on PE but overvalued on DCF (Value trap risk, check earnings quality)")
         else: return t("관망 (Hold)", "Hold"), "#e3b341", t("DCF 및 PER 기준 적정 가치 부근에서 거래 중 (확실한 안전마진 부족)", "Trading near fair value across DCF and PE metrics (Lacks distinct margin of safety)")
 
-# 💡 문자열 포맷팅 및 안전한 CEO 이름 추출을 위한 예외 방어 함수
 def tr_text(txt):
     if not txt: return ""
     txt_str = str(txt)
@@ -464,7 +463,7 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-# 💡 차장님이 익숙하셨던 원래 탭 순서(개별 분석 1번)로 유지
+# 오리지널 탭 구조
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
@@ -565,7 +564,6 @@ with tab1:
 
                 st.divider()
 
-                # 💡 차장님이 좋아하셨던 오리지널 분석 항목 순서 롤백
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
@@ -586,6 +584,7 @@ with tab1:
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
 
                 st.divider()
+                
                 st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
@@ -598,7 +597,6 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 시각화 데이터는 원래 지표들 바로 밑인 3번에 자연스럽게 연결
                 st.subheader(t("3. 최근 4년 재무 시각화", "3. 4-Year Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
@@ -622,14 +620,14 @@ with tab1:
                             if len(rev) == len(years) and len(ni) == len(years):
                                 df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): rev, t('순이익', 'Net Income'): ni}, index=years)
                                 st.write(t("**[매출 및 순이익 추이]**", "**[Revenue & Net Income Trend]**"))
-                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"])
+                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                         with c_v2:
                             if len(fcf_chart) == len(years):
                                 df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): fcf_chart}, index=years)
                                 st.write(t("**[잉여현금흐름(FCF) 추이]**", "**[Free Cash Flow (FCF) Trend]**"))
-                                st.bar_chart(df_fcf, color="#e3b341")
+                                st.bar_chart(df_fcf, color="#e3b341", height=300)
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                 except Exception as e:
@@ -639,7 +637,6 @@ with tab1:
 
                 st.subheader(t("4. 질적 분석", "4. Qualitative Analysis"))
                 
-                # 💡 야후의 알 수 없는 데이터 구조 변경을 방어하는 초강력 CEO 이름 추출 로직
                 off = i.get('companyOfficers', [])
                 ceo_name = '누락'
                 if isinstance(off, list) and len(off) > 0:
@@ -658,6 +655,7 @@ with tab1:
                 st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
                 st.divider()
+
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 if pmos > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos:.1f}%)</span>\n"
@@ -676,6 +674,7 @@ with tab1:
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
                 st.divider()
+
                 st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
@@ -686,11 +685,13 @@ with tab1:
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
                 st.divider()
+
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 매도)", "7. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
                 st.divider()
+
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
@@ -699,6 +700,7 @@ with tab1:
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
                 st.divider()
+
                 st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
                 if tk not in st.session_state.stock_comments: st.session_state.stock_comments[tk] = []
                 for cmt in reversed(st.session_state.stock_comments[tk]):
@@ -734,7 +736,8 @@ with tab2:
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
             df.index = df.index + 1
-            st.dataframe(df, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
+            # 💡 모바일 스크롤 트랩 방지 (height 고정)
+            st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
             st.markdown("---")
             st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
@@ -790,7 +793,8 @@ with tab4:
     mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
     df_mkt = pd.DataFrame(us_top30) if "US" in mkt or "미국" in mkt else pd.DataFrame(kr_top30)
         
-    st.dataframe(df_mkt, use_container_width=True, hide_index=True, column_config={
+    # 💡 모바일 스크롤 트랩 방지 (height 고정하여 이중 스크롤 제거)
+    st.dataframe(df_mkt, height=1200, use_container_width=True, hide_index=True, column_config={
         "순위": st.column_config.NumberColumn(t("순위", "Rank")),
         "티커": st.column_config.TextColumn(t("티커", "Ticker")),
         "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
@@ -882,7 +886,7 @@ with tab6:
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
-    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
+    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 신으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     
     phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
