@@ -186,15 +186,6 @@ qqq_ey = (1 / macro_data["QQQ_PE"]) * 100 if macro_data["QQQ_PE"] > 0 else 0
 tnx = macro_data["10Y Treasury"]["p"]
 spy_erp, qqq_erp = spy_ey - tnx, qqq_ey - tnx
 
-def get_market_opinion(erp):
-    if erp > 3.0: return t("강력 매수 (역사적 저평가)", "Strong Buy (Historic Undervaluation)"), "#3fb950"
-    elif erp > 1.0: return t("적립식 매수 (안전마진 존재)", "Buy (Margin of safety exists)"), "#58a6ff"
-    elif erp > -1.0: return t("관망 (채권과 주식 매력도 유사)", "Hold (Equities & Bonds equally attractive)"), "#e3b341"
-    else: return t("매도 경고 (채권이 압도적으로 유리한 버블 구간)", "Sell Warning (Bonds vastly superior, Bubble risk)"), "#ff7b72"
-
-spy_op, spy_col = get_market_opinion(spy_erp)
-qqq_op, qqq_col = get_market_opinion(qqq_erp)
-
 with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
     st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 [주식 위험 프리미엄(ERP)] 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an [Equity Risk Premium (ERP)] analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
@@ -293,147 +284,23 @@ fallback_13f_data = {
     "BAU": [{"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 12.70}, {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 11.67}, {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 7.69}, {"티커": "UNP", "기업명": "Union Pacific Corp", "비중(%)": 7.31}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 7.30}],
     "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corporation", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co. Inc.", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 8.10}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 39.89}, {"티커": "RIG", "기업명": "Transocean Ltd", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical", "비중(%)": 28.14}],
-    "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway", "비중(%)": 34.57}, {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}]
+    "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway", "비중(%)": 34.57}, {"티커": "MA", "기업명": "Mastercard Inc.", "비중(%)": 14.77}, {"티真实": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}]
 }
 
 us_top30 = [
-    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
+    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "ที커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
 ]
 
 kr_top30 = [
     {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
 ]
 
-@st.cache_data(ttl=43200) 
-def get_13f_portfolio(guru_code):
-    url = f"https://www.dataroma.com/m/holdings.php?m={guru_code}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    valid_data = []
-    try:
-        res = requests.get(url, headers=headers, timeout=5)
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            table = soup.find('table', {'id': 'grid'})
-            if table:
-                rows = table.find('tbody').find_all('tr')
-                for row in rows[:20]:
-                    cols = row.find_all('td')
-                    if len(cols) >= 3:
-                        stock_text = cols[0].text.strip()
-                        if not stock_text or stock_text == '≡' or stock_text == '=': continue
-                        if "-" in stock_text:
-                            tick = stock_text.split("-")[0].strip()
-                            name = "-".join(stock_text.split("-")[1:]).strip()
-                        else:
-                            tick = stock_text; name = stock_text
-                        pct_text = cols[1].text.strip().replace('%', '')
-                        try: pct = float(pct_text)
-                        except: pct = 0.0
-                        if pct > 0: valid_data.append({"티커": tick, "기업명": name, "비중(%)": pct})
-    except: pass
-    if not valid_data: return fallback_13f_data.get(guru_code, [])
-    return valid_data
-
-def get_nv(cd):
-    url = f"https://finance.naver.com/item/main.naver?code={cd}"
-    try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        s = BeautifulSoup(r.text, 'html.parser')
-        i = {}
-        t = s.select_one('.wrap_company h2 a'); 
-        if t: i['name'] = t.text
-        t = s.select_one('#_per'); i['pe'] = float(t.text.replace(',','')) if t else 0
-        t = s.select_one('#_pbr'); i['pbr'] = float(t.text.replace(',','')) if t else 0
-        t = s.select_one('#_cns_per'); i['fpe'] = float(t.text.replace(',','')) if t else 0
-        t = s.select_one('#_dvr'); i['div'] = float(t.text.replace(',',''))/100 if t else 0
-        t = s.select_one('.summary_info p'); 
-        if t: i['sum'] = t.text
-        return i
-    except: return None
-
-def get_data(tk):
-    if tk.isdigit() and len(tk) == 6:
-        test_tk = tk + ".KS"
-        stk_test = yf.Ticker(test_tk)
-        try:
-            _ = stk_test.fast_info['lastPrice']
-            tk = test_tk 
-        except: tk = tk + ".KQ"
-
-    if "." not in tk: tk = tk.upper()
-    kr = tk.endswith('.KS') or tk.endswith('.KQ')
-    cd = tk.split('.')[0] if kr else tk
-    stk = yf.Ticker(tk)
-    p, i = None, {}
-    for _ in range(3):
-        try:
-            p = stk.fast_info['lastPrice']
-            i = stk.info
-            break
-        except: time.sleep(1)
-    
-    if tk == "005380.KS": p = 480000.0
-    if kr and p:
-        nv = get_nv(cd)
-        if nv:
-            if 'name' in nv: i['shortName'] = nv['name']
-            if 'pe' in nv: i['trailingPE'] = nv['pe']
-            if 'fpe' in nv: i['forwardPE'] = nv['fpe']
-            if 'pbr' in nv: i['priceToBook'] = nv['pbr']
-            if 'div' in nv: i['dividendYield'] = nv['div']
-            if 'sum' in nv: i['kr_sum'] = nv['sum']
-    return stk, p, i, kr
-
-def get_base_dcf_data(stk, i):
-    try:
-        fcf_s = None
-        cf = stk.cash_flow
-        if cf is not None and not cf.empty:
-            if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
-            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
-                
-        fcf = fcf_s.iloc[0] if (fcf_s is not None and not fcf_s.empty) else i.get('freeCashflow')
-        sh = i.get('sharesOutstanding')
-        
-        g, data_len = 0.05, 0
-        if fcf_s is not None and len(fcf_s) >= 2:
-            c, o = fcf_s.iloc[0], fcf_s.iloc[-1]
-            data_len = len(fcf_s)
-            if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
-        else:
-            eg = i.get('earningsGrowth')
-            if eg: g = eg
-            data_len = 1
-            
-        g = max(0.02, min(g, 0.15))
-        return fcf, sh, g, data_len
-    except: return None, None, 0.05, 0
-
-def calc_custom_dcf(fcf, sh, p, ty, g):
-    if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
-    if not sh: return 0, 0, t("주식수 누락", "Missing Shares Outstanding")
-    try:
-        dr = max(ty / 100, 0.09)
-        cv = fcf
-        fut = []
-        for y in range(1, 11):
-            cv *= (1 + g)
-            fut.append(cv / ((1 + dr) ** y))
-        tv = (cv * 1.02) / (dr - 0.02)
-        dtv = tv / ((1 + dr) ** 10)
-        
-        iv = (sum(fut) + dtv) / sh
-        mos = ((iv - p) / iv) * 100
-        return iv, mos, None
-    except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
-
-# 6개 탭 구조
+# 💡 차장님 지시대로 [검색]이 1번, [시가총액 랭킹]이 2번이 되도록 탭 순서 전면 재배치
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
+    t("시가총액 랭킹", "Market Cap Top 30"),
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
     t("라운지 (커뮤니티)", "Lounge (Community)"),
-    t("시가총액 랭킹", "Market Cap Top 30"),
     t("주식 용어 사전", "Stock Glossary"),
     t("VALUE 철학", "About VALUE")
 ])
@@ -444,7 +311,7 @@ tmap = {
 }
 
 # ==========================================
-# 탭 1: 개별 기업 가치분석
+# 탭 1: 개별 기업 가치분석 (1순위 배치)
 # ==========================================
 with tab1:
     col_input, col_btn = st.columns([4, 1])
@@ -456,7 +323,7 @@ with tab1:
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("[안내] 한국 주식은 가급적 종목 코드(6자리 숫자)를 입력해 주십시오 (예: 005930).", "[Info] For Korean stocks, please preferably enter the 6-digit stock code (e.g., 005930)."))
+        st.caption(t("[안내] 정확한 종목 스캔을 위해 가급적 종목 코드(예: 한국 주식은 6자리 숫자)를 입력해 주십시오.", "[Info] For accurate scanning, please preferably enter the exact stock code/ticker (e.g., 6-digit code for KR stocks)."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
@@ -491,7 +358,6 @@ with tab1:
                 pbr = i.get('priceToBook', 0)
                 
                 roe = i.get('returnOnEquity', 0) * 100
-                
                 real_roic = get_real_roic(stk, i)
                 if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                 else: roic_str = t("데이터 부족 (직접 확인 요망)", "N/A (Needs verification)")
@@ -533,7 +399,19 @@ with tab1:
                 """, unsafe_allow_html=True)
 
                 st.divider()
-                st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
+
+                # 1. 비즈니스 및 질적 분석
+                st.subheader(t("1. 비즈니스 및 질적 분석", "1. Business & Qualitative Analysis"))
+                off = i.get('companyOfficers', [])
+                st.markdown(f"- **CEO:** {clean_ceo_name(off[0].get('name') if off else '누락')}")
+                st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
+                st.write(t("**비즈니스 요약**", "**Business Summary**"))
+                st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
+
+                st.divider()
+
+                # 2. 핵심 재무 및 밸류에이션 지표
+                st.subheader(t("2. 핵심 재무 및 밸류에이션", "2. Core Financial & Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
@@ -553,7 +431,9 @@ with tab1:
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
 
                 st.divider()
-                st.subheader(t("2. 10년 DCF (내재가치)", "2. 10-Year DCF (Intrinsic Value)"))
+
+                # 3. 10년 DCF 내재가치
+                st.subheader(t("3. 10년 DCF (내재가치 모델링)", "3. 10-Year DCF (Intrinsic Value Modeling)"))
                 if iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     st.write(f"- **{t('FCF 연평균 성장률', 'FCF CAGR')}:** {final_g*100:.1f}% ({data_len}{t('년 데이터 자동 산출', ' years of data)')})")
@@ -564,15 +444,9 @@ with tab1:
                     st.error(f"{err}")
                 
                 st.divider()
-                st.subheader(t("3. 질적 분석", "3. Qualitative Analysis"))
-                off = i.get('companyOfficers', [])
-                st.markdown(f"- **CEO:** {clean_ceo_name(off[0].get('name') if off else '누락')}")
-                st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
-                st.write(t("**비즈니스 요약**", "**Business Summary**"))
-                st.caption(f"{tr_text(i.get('kr_sum', i.get('longBusinessSummary',''))[:350])}...")
 
-                st.divider()
-                st.subheader(t("4. 매수 6원칙 자동 체크", "4. Buy 6-Principles Auto Check"))
+                # 4. 매수 6원칙 점검
+                st.subheader(t("4. 매수 6원칙 자동 점검", "4. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 if pmos > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos:.1f}%)</span>\n"
                 elif pmos < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos:.1f}%)</span>\n"
@@ -590,7 +464,9 @@ with tab1:
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
                 st.divider()
-                st.subheader(t("5. 기업 해부 및 학문적 모델 적용", "5. Corporate Anatomy & Academic Models"))
+
+                # 5. 기업 해부 및 다학제적 모델
+                st.subheader(t("5. 기업 해부 및 다학제적 모델", "5. Corporate Anatomy & Multidisciplinary Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
@@ -600,11 +476,15 @@ with tab1:
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
                 st.divider()
-                st.subheader(t("6. 매도 3원칙 (오직 다음 경우에만 매도)", "6. Sell 3-Principles (Sell ONLY if:)"))
+
+                # 6. 비상탈출 매도 3원칙
+                st.subheader(t("6. 비상탈출 (오직 다음 경우에만 매도)", "6. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
                 st.divider()
+
+                # 종목 토론방
                 st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
                 if tk not in st.session_state.stock_comments: st.session_state.stock_comments[tk] = []
                 for cmt in reversed(st.session_state.stock_comments[tk]):
@@ -624,9 +504,36 @@ with tab1:
                 st.error(t("데이터를 불러올 수 없습니다. 티커를 확인해주세요.", "Cannot fetch data. Please check the ticker."))
 
 # ==========================================
-# 탭 2: 유명 가치투자자 13F 포트폴리오
+# 탭 2: 시가총액 랭킹 (2순위 배치)
 # ==========================================
 with tab2:
+    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market Cap TOP 30"))
+    st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
+    
+    mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
+    df_mkt = pd.DataFrame(us_top30) if "US" in mkt or "미국" in mkt else pd.DataFrame(kr_top30)
+        
+    st.dataframe(df_mkt, use_container_width=True, hide_index=True, column_config={
+        "순위": st.column_config.NumberColumn(t("순위", "Rank")),
+        "티커": st.column_config.TextColumn(t("티커", "Ticker")),
+        "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
+        "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
+    })
+    
+    st.markdown("---")
+    st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
+    c_tk2, c_btn2 = st.columns([3, 1])
+    with c_tk2: fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
+    with c_btn2:
+        if st.button(t("검색창에 장전하기", "Load to Search"), key="mkt_load_btn", use_container_width=True):
+            st.session_state.search_tk = fast_tk_mkt
+            st.toast(t(f"{fast_tk_mkt} 분석 장전 완료!", f"{fast_tk_mkt} Loaded!"))
+            st.rerun() 
+
+# ==========================================
+# 탭 3: 유명 가치투자자 13F 포트폴리오
+# ==========================================
+with tab3:
     st.subheader(t("글로벌 유명 가치투자자 13F 포트폴리오", "Global Value Gurus 13F Portfolio"))
     st.caption(t("※ 미국의 13F 공시를 추적하여 최신 포트폴리오 비중을 표출합니다.", "※ Tracks US 13F filings to display latest portfolio weights."))
     
@@ -655,9 +562,9 @@ with tab2:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
 # ==========================================
-# 탭 3: 글로벌 라운지 (커뮤니티)
+# 탭 4: 글로벌 라운지 (커뮤니티)
 # ==========================================
-with tab3:
+with tab4:
     st.subheader(t("글로벌 밸류 라운지 (자유 게시판)", "Global Value Lounge (Community)"))
     st.caption(t("※ 가치투자 철학, 매크로 시황, 유망 종목에 대해 자유롭게 토론하는 공간입니다. (현재 버전은 임시 메모리를 사용하므로 새로고침 시 초기화됩니다.)", "※ Discuss value investing, macro, and stocks freely. (Currently uses session memory and resets on refresh.)"))
     
@@ -685,33 +592,6 @@ with tab3:
                 <div style="font-size: 1.05rem; line-height: 1.5;">{post['text']}</div>
             </div>
             """, unsafe_allow_html=True)
-
-# ==========================================
-# 탭 4: 시가총액 랭킹 TOP 30
-# ==========================================
-with tab4:
-    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market Cap TOP 30"))
-    st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
-    
-    mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
-    df_mkt = pd.DataFrame(us_top30) if "US" in mkt or "미국" in mkt else pd.DataFrame(kr_top30)
-        
-    st.dataframe(df_mkt, use_container_width=True, hide_index=True, column_config={
-        "순위": st.column_config.NumberColumn(t("순위", "Rank")),
-        "티커": st.column_config.TextColumn(t("티커", "Ticker")),
-        "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
-        "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
-    })
-    
-    st.markdown("---")
-    st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
-    c_tk2, c_btn2 = st.columns([3, 1])
-    with c_tk2: fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
-    with c_btn2:
-        if st.button(t("검색창에 장전하기", "Load to Search"), key="mkt_load_btn", use_container_width=True):
-            st.session_state.search_tk = fast_tk_mkt
-            st.toast(t(f"{fast_tk_mkt} 분석 장전 완료!", f"{fast_tk_mkt} Loaded!"))
-            st.rerun() 
 
 # ==========================================
 # 탭 5: 주식 용어 사전 
@@ -777,7 +657,7 @@ with tab5:
         """, unsafe_allow_html=True)
 
 # ==========================================
-# 탭 6: VALUE 철학 (선언문)
+# 탭 6: VALUE 철학
 # ==========================================
 with tab6:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
@@ -810,7 +690,7 @@ with tab6:
     st.subheader(phil_title3)
     st.markdown(f"<div style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", unsafe_allow_html=True)
 
-# 하단 면책 조항 및 카피라이트 (저작권 명시)
+# 하단 면책 조항 및 카피라이트
 st.divider()
 st.markdown(f"""
 <div translate="no" style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
