@@ -169,7 +169,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 (SEC EDGAR 10년 엔진 포함)
+# [3] 데이터 가져오기 및 타입 방어 완벽 적용
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v3():
@@ -197,9 +197,10 @@ def fetch_macro_realtime_v3():
             
     res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
+    
     return res
 
-# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진 (User-Agent 무적 방어)
+# 💡 미국 증권거래위원회(SEC) 공식 10-K API 직접 연결 엔진
 @st.cache_data(ttl=86400)
 def fetch_sec_cik_map():
     headers = {'User-Agent': 'VALUE_Terminal csjwo154515@naver.com'}
@@ -439,6 +440,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
+# 💡 가치투자 철학에 맞춘 용어 변경 (할인/할증)
 def get_market_opinion(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount (Historic Undervaluation)"), "#3fb950"
     elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount (Margin of safety exists)"), "#58a6ff"
@@ -724,6 +726,23 @@ with tab1:
                 if kr: div = div_yield * 100
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
+                # 💡 배당 지속 상승 검증
+                div_trend = t("확인 불가", "N/A")
+                try:
+                    div_history = stk.dividends
+                    if not div_history.empty:
+                        yearly_div = div_history.groupby(div_history.index.year).sum()
+                        if len(yearly_div) >= 3:
+                            last_3 = yearly_div.tail(3)
+                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
+                                div_trend = f"<span class='good'>{t('지속 상승', 'Consistently Increasing')}</span>"
+                            elif last_3.iloc[-1] > 0:
+                                div_trend = t("유지/변동", "Maintained/Fluctuating")
+                            else:
+                                div_trend = t("배당 없음", "No Dividend")
+                except:
+                    pass
+
                 pmos = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 
@@ -776,19 +795,33 @@ with tab1:
 
                 st.divider()
 
+                # 💡 PER 할인 설명 및 ROE/ROIC 평가 로직 강화
+                if pmos_val > 0:
+                    per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 PER {a_pe:.1f}배 대비 저렴하여 할인 구간)</span>"
+                elif pmos_val < 0:
+                    per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (과거 평균 PER {a_pe:.1f}배 대비 비싸서 할증 구간)</span>"
+                else:
+                    per_mos_str = f"확인 필요"
+
+                roic_val = real_roic if real_roic is not None else 0
+                if roe >= 15 and roic_val >= 12:
+                    rr_eval = f"<span class='good'>{t('훌륭함 (자본배분 탁월)', 'Excellent')}</span>"
+                elif roe >= 10 and roic_val >= 8:
+                    rr_eval = f"<span style='color:#58a6ff;'>{t('양호함', 'Good')}</span>"
+                else:
+                    rr_eval = f"<span class='highlight'>{t('형편없음 (자본효율 낮음)', 'Poor')}</span>"
+
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
-                    st.write(f"- **{t('배당 수익률', 'Dividend Yield')}:** {div:.2f}%")
-                    st.write(f"- **ROE:** {roe:.2f}%")
-                    st.write(f"- **ROIC:** {roic_str}") 
+                    st.markdown(f"- **{t('배당 지속성', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
+                    st.markdown(f"- **ROE / ROIC:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
                     st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
                 with c2:
-                    if pmos_val > 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='good'>+[합격] {pmos_val:.1f}%</span>", unsafe_allow_html=True)
-                    elif pmos_val < 0: st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** <span class='highlight'>[주의] {pmos_val:.1f}%</span>", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
                     st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
                     st.write(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey:.2f}%")
@@ -1173,7 +1206,7 @@ with tab6:
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", 
                  "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 전람과는 좋은 거래를 할 수 없습니다.", 
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", 
                  "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", 
