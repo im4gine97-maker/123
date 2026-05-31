@@ -171,6 +171,7 @@ kr_top30 = [
 # ==========================================
 # [3] 데이터 가져오기 엔진 (SEC 모듈 완벽 제거)
 # ==========================================
+# 💡 강제 캐시 갱신을 위해 함수명을 v5로 지정
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v5():
     macro_symbols = {
@@ -200,7 +201,6 @@ def fetch_macro_realtime_v5():
     
     return res
 
-# 💡 누락되었던 13F 포트폴리오 스크래핑 함수 완벽 복원!
 @st.cache_data
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
@@ -394,7 +394,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 AI 투자의견 평가 엔진 (경영진 최우선, DCF 축소, 복리/자본효율 총망라)
+# 💡 AI 투자의견 평가 엔진 (경영진 최우선 40, PER 20, 복리성장 10, 자본효율 20, ERP 10, DCF 5)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     
@@ -428,17 +428,17 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if mos > 15: score += 5
     elif mos < -15: score -= 5
 
-    # 최종 등급 산출
+    # 최종 등급 산출 (총점: 대략 -105 ~ +105)
     if score >= 60:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도(최고 가중치)를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
     elif score >= 20:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털 대비 이익수익률과 밸류에이션에서 충분한 할인이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털(자본효율/성장) 대비 이익수익률과 밸류에이션에서 충분한 할인(안전마진)이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
     elif score >= -20:
         return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델과 경영진 평판은 무난하나, 주가가 현재의 수익성이나 성장성에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business and management are fine, but currently trading near its fair value. Not a distinct discount territory.")
     elif score >= -60:
         return t("할증 (Premium)", "Premium"), "#ff7b72", t("경영진에 대한 비판적 이슈가 있거나, 자본효율성 대비 주가가 비싸게 거래되어 기대수익률이 채권보다 떨어지는 할증 구간입니다.", "Premium territory due to management risks or overvaluation relative to its capital efficiency.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진의 치명적인 비판 리스크 또는 심각한 자본 낭비 및 역성장에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Highly dangerous speculative territory due to severe management criticism, poor capital allocation, or irrational overvaluation.")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진의 치명적인 비판 리스크(최고 가중치 감점) 또는 심각한 자본 낭비 및 역성장에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Highly dangerous speculative territory due to severe management criticism, poor capital allocation, or irrational overvaluation.")
 
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
@@ -479,7 +479,8 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
-macro_data = fetch_macro_realtime_v4()
+# 💡 캐시 함수명 변경(v5)으로 무조건 최신 코드가 실행되도록 고정
+macro_data = fetch_macro_realtime_v5()
 
 # 사이드바 렌더링
 with st.sidebar:
@@ -691,6 +692,7 @@ with tab1:
                         else: st.session_state.bookmarks.append(tk)
                         st.rerun() 
                 
+                # 💡 경영진 도출 및 리스크 점검
                 off = i.get('companyOfficers', [])
                 ceo_raw = '누락'
                 if isinstance(off, list) and len(off) > 0:
@@ -718,6 +720,7 @@ with tab1:
                 if kr: div = div_yield * 100
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
+                # 💡 배당 지속 상승 검증 명확화
                 div_trend = t("확인 불가", "N/A")
                 try:
                     div_history = stk.dividends
@@ -747,6 +750,7 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g)
                 mos_val = safe_float(mos_val)
                 
+                # 💡 경영진, 성장성, ROE/ROIC, ERP, DCF 총망라 궁극의 AI 의견 엔진 적용
                 roic_val = real_roic if real_roic is not None else 0
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text)
 
@@ -759,6 +763,7 @@ with tab1:
 
                 st.divider()
 
+                # 💡 펀더멘털 평가 로직: 이유 명확화 (PER, ROE, ERP)
                 if pmos_val > 0:
                     per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 저렴하여 할인 구간)</span>"
                 elif pmos_val < 0:
@@ -809,7 +814,7 @@ with tab1:
                 
                 st.divider()
 
-                # 💡 3. 장기 재무 시각화 (SEC 제거 후 안전한 4년 데이터로 통일 처리)
+                # 💡 3. 장기 재무 시각화 (안전한 4년 yfinance 데이터로 통일 처리)
                 st.subheader(t("3. 장기 재무 시각화 (최근 4년 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
