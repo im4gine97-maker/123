@@ -24,7 +24,7 @@ if "stock_comments" not in st.session_state: st.session_state.stock_comments = {
 if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (캐싱 오류 방지를 위해 최상단 배치)
 # ==========================================
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
@@ -456,7 +456,7 @@ with st.sidebar:
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
-# 💡 거추장스러운 툴바와 차트 툴팁만 끄고, 표(테이블)의 가로 스크롤 기능은 부활시킨 최적화 CSS
+# 💡 모바일 스크롤 멈춤(Freezing) 방지를 위한 강력한 투명막 CSS 처리
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
@@ -474,11 +474,23 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .comment-box {background-color: #1c2128; padding: 15px; border-radius: 8px; border-left: 4px solid #8b949e; margin-bottom: 10px; color: #e6edf3;}
 .comment-time {font-size: 0.8rem; color: #8b949e;}
 
-/* 차트 내부 상호작용 완벽 무효화 (모바일 툴팁 프리징 방지) */
-[data-testid="stVegaLiteChart"] { pointer-events: none !important; }
-/* 거추장스러운 툴바(점 3개 아이콘, 돋보기, 전체화면 버튼) 완벽하게 숨김 */
-[data-testid="stElementToolbar"] { display: none !important; }
-/* 테이블(stDataFrame)의 pointer-events를 끄지 않아 좌우 스크롤 100% 동작 가능 */
+/* 1. 차트 영역 위를 덮어 터치를 완전히 차단 (툴팁이 뜨지 않아 먹통 해결) */
+div[data-testid="stArrowVegaLiteChart"] > div, 
+div[data-testid="stVegaLiteChart"] > div {
+    pointer-events: none !important;
+}
+/* 만약의 경우를 대비한 차트 툴팁 완전 제거 */
+#vg-tooltip-element, .vg-tooltip {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+/* 2. 테이블 우측 상단 거추장스러운 툴바(점 3개 아이콘 등) 완전 삭제 */
+[data-testid="stElementToolbar"] {
+    display: none !important;
+}
+
+/* 3. 주의: [data-testid="stDataFrame"] 에는 pointer-events: none을 넣지 않아 좌우 스크롤 부활시킴 */
 </style>
 """, unsafe_allow_html=True)
 
@@ -540,7 +552,6 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-# 탭 구조
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
@@ -744,7 +755,7 @@ with tab1:
                 st.markdown(p_txt, unsafe_allow_html=True)
                 if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
                 elif roe > 0: biz_eval = t("[보통] 독점력 추가 확인 필요", "[Average] Requires moat verification")
-                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼손 점검 시급', '[Warning] Structural damage check urgent')}</span>"
+                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼 단 점검 시급', '[Warning] Structural damage check urgent')}</span>"
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 리포트 참조', 'Refer to the report above')}")
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
