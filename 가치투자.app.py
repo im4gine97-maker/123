@@ -7,11 +7,11 @@ import time
 import pandas as pd
 from datetime import datetime
 
-# 💡 앱 이름 변경 및 레이아웃
+# 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 💡 세션 상태 초기화
+# 세션 상태 초기화
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "history" not in st.session_state: st.session_state.history = []
@@ -30,7 +30,7 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# 💡 글로벌 매크로 실시간 데이터
+# 글로벌 매크로 실시간 데이터
 # ==========================================
 @st.cache_data(ttl=900) 
 def get_macro_data():
@@ -61,14 +61,14 @@ def get_macro_data():
 macro_data = get_macro_data()
 
 # ==========================================
-# 💡 사이드바
+# 사이드바
 # ==========================================
 with st.sidebar:
     if st.session_state.lang == "ko":
-        if st.button("🇺🇸 English", use_container_width=True):
+        if st.button("English", use_container_width=True):
             st.session_state.lang = "en"; st.rerun()
     else:
-        if st.button("🇰🇷 Korean", use_container_width=True):
+        if st.button("Korean", use_container_width=True):
             st.session_state.lang = "ko"; st.rerun()
             
     is_ko = st.session_state.lang == "ko"
@@ -76,7 +76,7 @@ with st.sidebar:
         
     st.divider()
     
-    st.header(t("🔥 실시간 인기 종목", "🔥 Trending Stocks"))
+    st.header(t("실시간 인기 종목", "Trending Stocks"))
     if not st.session_state.search_ranking:
         st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
     else:
@@ -87,8 +87,9 @@ with st.sidebar:
                 st.rerun()
                 
     st.divider()
-    st.header(t("📚 내 서재", "📚 My Library"))
-    st.subheader(t("⭐ 관심 종목 (즐겨찾기)", "⭐ Bookmarks"))
+    
+    st.header(t("내 서재", "My Library"))
+    st.subheader(t("관심 종목 (즐겨찾기)", "Bookmarks"))
     if not st.session_state.bookmarks:
         st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
     else:
@@ -98,15 +99,16 @@ with st.sidebar:
                 if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
                     st.session_state.search_tk = b_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_bk_{b_tk}"):
+                if st.button("X", key=f"del_bk_{b_tk}"):
                     st.session_state.bookmarks.remove(b_tk); st.rerun()
                     
     st.divider()
-    st.subheader(t("🕒 최근 검색 기록", "🕒 Recent Searches"))
+    
+    st.subheader(t("최근 검색 기록", "Recent Searches"))
     if not st.session_state.history:
         st.caption(t("검색 기록이 없습니다.", "No recent searches."))
     else:
-        if st.button(t("🗑️ 전체 삭제", "🗑️ Clear All History"), use_container_width=True):
+        if st.button(t("전체 삭제", "Clear All History"), use_container_width=True):
             st.session_state.history = []; st.rerun()
             
         for h_tk in reversed(st.session_state.history):
@@ -115,22 +117,22 @@ with st.sidebar:
                 if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
                     st.session_state.search_tk = h_tk; st.rerun()
             with c2:
-                if st.button("❌", key=f"del_h_{h_tk}"):
+                if st.button("X", key=f"del_h_{h_tk}"):
                     st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
-    st.header(t("🎧 고객 센터", "🎧 Customer Center"))
+    
+    st.header(t("고객 센터", "Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
-    st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>✉️ {t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
+    st.markdown(f"<a href='mailto:admin@value-terminal.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
 # ==========================================
-# 💡 메인 UI 스타일
+# 메인 UI 스타일 및 번역 방지 메타태그
 # ==========================================
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
-/* 반응형 적용을 위해 .main의 강제 배경색/글자색 지정 삭제 */
-.main {font-family: 'Pretendard', sans-serif;}
+.main {background-color: #0e1117; color: #c9d1d9; font-family: 'Pretendard', sans-serif;}
 h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 .box {background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px;}
 .guru-quote {font-style: italic; color: #8b949e; border-left: 3px solid #58a6ff; padding-left: 15px; margin-bottom: 12px; background: #1c2128; padding: 15px; border-radius: 0 8px 8px 0;}
@@ -146,7 +148,6 @@ h1, h2, h3 {color: #58a6ff; font-weight: 700;}
 </style>
 """, unsafe_allow_html=True)
 
-# 💡 강제 #ffffff(흰색)을 빼고 var(--text-color)로 변경하여 테마 자동 적응
 st.markdown("""
 <div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: var(--text-color); letter-spacing: 2px; line-height: 1.2;">
@@ -155,10 +156,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.info(t("💡 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 **'자동 번역' 기능을 꺼주세요.** (앱 자체에 한/영 변환 기능이 있습니다)", "💡 If the text looks distorted, please **disable your browser's auto-translate**. Use the language toggle in the sidebar instead."))
+st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
 # ==========================================
-# 💡 가로 스크롤 매크로 대시보드
+# 가로 스크롤 매크로 대시보드
 # ==========================================
 macro_items = [
     (t("KOSPI", "KOSPI"), f"{macro_data['KOSPI']['p']:,.2f}", macro_data['KOSPI']['pct'], "%"),
@@ -176,7 +177,7 @@ for name, val, chg, unit in macro_items:
     color = "#3fb950" if chg > 0 else ("#ff7b72" if chg < 0 else "#8b949e")
     sign = "+" if chg > 0 else ""
     chg_str = f"{sign}{chg:.3f}{unit}" if unit == " bp" else f"{sign}{chg:.2f}{unit}"
-    macro_html += f"<div style='flex: 0 0 auto; background: #161b22; padding: 15px 20px; border-radius: 10px; border: 1px solid #30363d; min-width: 140px;'><div style='font-size: 0.85rem; color: #8b949e; margin-bottom: 5px; font-weight: 600;'>{name}</div><div style='font-size: 1.3rem; font-weight: bold; color: #ffffff;'>{val}</div><div style='font-size: 0.95rem; font-weight: bold; color: {color}; margin-top: 2px;'>{chg_str}</div></div>"
+    macro_html += f"<div style='flex: 0 0 auto; background: #161b22; padding: 15px 20px; border-radius: 10px; border: 1px solid #30363d; min-width: 140px;'><div style='font-size: 0.85rem; color: #8b949e; margin-bottom: 5px; font-weight: 600;'>{name}</div><div style='font-size: 1.3rem; font-weight: bold; color: var(--text-color);'>{val}</div><div style='font-size: 0.95rem; font-weight: bold; color: {color}; margin-top: 2px;'>{chg_str}</div></div>"
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
@@ -194,13 +195,13 @@ def get_market_opinion(erp):
 spy_op, spy_col = get_market_opinion(spy_erp)
 qqq_op, qqq_col = get_market_opinion(qqq_erp)
 
-with st.expander(t("📉 현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "📉 Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
-    st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 **주식 위험 프리미엄(ERP)** 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an **Equity Risk Premium (ERP)** analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
+with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
+    st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 [주식 위험 프리미엄(ERP)] 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an [Equity Risk Premium (ERP)] analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
     c_m1, c_m2 = st.columns(2)
     with c_m1:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {spy_col};'><h4 style='margin-top:0; color:#e6edf3;'>S&P 500 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['SPY_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{spy_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
     with c_m2:
-        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>💡 AI 시장 의견: <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
+        st.markdown(f"<div translate='no' style='background-color:#161b22; color:#e6edf3; padding:15px; border-radius:8px; border-left: 5px solid {qqq_col};'><h4 style='margin-top:0; color:#e6edf3;'>Nasdaq 100 밸류에이션</h4><p style='margin:4px 0;'>- Fwd PER: <b>{macro_data['QQQ_PE']:.1f}배</b></p><p style='margin:4px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey:.2f}%</b></p><p style='margin:4px 0;'>- 10년물 국채: <b>{tnx:.2f}%</b></p><p style='margin:4px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp:.2f}%</b></p><hr style='margin:12px 0; border-color:#30363d;'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
@@ -257,13 +258,13 @@ def analyze_trends(stk):
             if target_col:
                 eps_vals = inc.loc[target_col].dropna().values[:4][::-1] 
                 if len(eps_vals) >= 3:
-                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: eps_trend = t("4년 지속 상승 추세", "4Y Consistent Upward Trend")
-                    else: eps_trend = t("변동/하락 (직접 확인 필요)", "Fluctuating/Declining")
+                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: eps_trend = t("[합격] 4년 지속 상승 추세", "[Pass] 4Y Consistent Upward Trend")
+                    else: eps_trend = t("[주의] 변동/하락 (직접 확인 필요)", "[Warning] Fluctuating/Declining")
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
-                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: bps_trend = t("4년 자본 지속 증가", "4Y Consistent Equity Growth")
-                else: bps_trend = t("자본 변동/감소 (직접 확인 필요)", "Equity Fluctuating/Declining")
+                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: bps_trend = t("[합격] 4년 자본 지속 증가", "[Pass] 4Y Consistent Equity Growth")
+                else: bps_trend = t("[주의] 자본 변동/감소 (직접 확인 필요)", "[Warning] Equity Fluctuating/Declining")
     except: pass
     return eps_trend, bps_trend
 
@@ -417,13 +418,14 @@ def calc_custom_dcf(fcf, sh, p, ty, g):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-# 5개 탭 구조
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+# 6개 탭 구조 (철학 탭 신설)
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
     t("라운지 (커뮤니티)", "Lounge (Community)"),
-    t("시총 랭킹", "Market Cap Top 30"),
-    t("주식 용어 사전", "Stock Glossary")
+    t("시가총액 랭킹", "Market Cap Top 30"),
+    t("주식 용어 사전", "Stock Glossary"),
+    t("VALUE 철학", "About VALUE")
 ])
 
 tmap = {
@@ -444,7 +446,7 @@ with tab1:
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("※ 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "※ For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
+        st.caption(t("[안내] 한국 주식은 6자리 숫자만 입력해도 자동 판별합니다 (예: 005930).", "[Info] For Korean stocks, simply enter the 6-digit code (e.g., 005930) for auto-detection."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
@@ -511,7 +513,7 @@ with tab1:
 
                 st.markdown(f"""
                 <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
-                    <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">AI {t('종합 투자의견', 'Investment Opinion')} : {op_title}</h3>
+                    <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.4rem;">[AI 종합 투자의견] : {op_title}</h3>
                     <div style="display: flex; gap: 15px; margin-bottom: 8px; flex-wrap: wrap;">
                         <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {dcf_color}; border: 1px solid {dcf_color}40;">{dcf_text}</span>
                         <span style="background-color: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; font-weight: bold; color: {per_color}; border: 1px solid {per_color}40;">{per_text}</span>
@@ -562,12 +564,12 @@ with tab1:
                 st.divider()
                 st.subheader(t("4. 매수 6원칙 자동 체크", "4. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
-                if pmos > 0: p_txt += f"- PER: <span class='good'>{t('합격', 'Pass')} (+{pmos:.1f}%)</span>\n"
-                elif pmos < 0: p_txt += f"- PER: <span class='highlight'>{t('주의', 'Warning')} ({pmos:.1f}%)</span>\n"
+                if pmos > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos:.1f}%)</span>\n"
+                elif pmos < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos:.1f}%)</span>\n"
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
-                if mos_val > 0: p_txt += f"- DCF: <span class='good'>{t('합격', 'Pass')} (+{mos_val:.1f}%)</span>"
-                elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>{t('주의', 'Warning')} ({mos_val:.1f}%)</span>"
-                else: p_txt += f"- DCF: ({t('이건 확인이 필요한 부분입니다', 'Needs Check')})"
+                if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}%)</span>"
+                elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}%)</span>"
+                else: p_txt += f"- DCF: ({t('직접 확인 필요', 'Needs Check')})"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 if roe >= 15: biz_eval = f"<span class='good'>{t('우수 (자본효율 탁월, 해자 확률 높음)', 'Excellent (Great capital efficiency, high moat probability)')}</span>"
                 elif roe > 0: biz_eval = t("보통 (독점력 추가 확인 필요)", "Average (Requires moat verification)")
@@ -591,14 +593,6 @@ with tab1:
                 st.subheader(t("6. 매도 3원칙 (오직 다음 경우에만 매도)", "6. Sell 3-Principles (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated.<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
-
-                st.divider()
-                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
-                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
-                st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
-                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
-                st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
-                st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
                 st.divider()
                 st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
@@ -639,7 +633,7 @@ with tab2:
             st.dataframe(df, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
             st.markdown("---")
-            st.write(t("포트폴리오 종목 빠른 분석 장전", "Fast Load for Analysis"))
+            st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
             c_tk, c_btn = st.columns([3, 1])
             with c_tk: fast_tk = st.selectbox("Ticker", df["티커"].tolist(), label_visibility="collapsed")
             with c_btn:
@@ -700,7 +694,7 @@ with tab4:
     })
     
     st.markdown("---")
-    st.write(t("랭킹 종목 빠른 분석 장전", "Fast Load for Analysis"))
+    st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
     c_tk2, c_btn2 = st.columns([3, 1])
     with c_tk2: fast_tk_mkt = st.selectbox("Ticker", df_mkt["티커"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
     with c_btn2:
@@ -747,8 +741,8 @@ with tab5:
          t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
         
         ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 '여윳돈'을 합쳐서, '그래서 지금 딱 얼마 주고 사면 정상인가?'를 계산해낸 진짜 가격표입니다.", "The 'true fair price' calculated by adding up all the future cash the company will ever make, discounted to today's value."), 
-         t("상가 건물을 살 때, 앞으로 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하죠? 주식도 똑같습니다. 이 가격표보다 현재 주가가 싸면 '바겐세일', 비싸면 '거품'입니다.", "Just like valuing a rental property based on all future rent you'll collect. If the stock is cheaper than this DCF price, it's a bargain sale!")),
+         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
+         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
          t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
@@ -772,12 +766,46 @@ with tab5:
         </div>
         """, unsafe_allow_html=True)
 
-# 하단 카피라이트
+# ==========================================
+# 탭 6: VALUE 철학 (선언문)
+# ==========================================
+with tab6:
+    phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
+    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    
+    phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
+    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
+    phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
+    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
+    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
+    
+    phil_title3 = t("[선언문] VALUE 앱의 존재 이유", "[Manifesto] The Reason VALUE Exists")
+    phil_decl = t("> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>**VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**", "> **A Compass for 'True Investment', Not Speculation**<br><br>Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>**VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>**Join VALUE on the journey to becoming a true investor who contributes to society, not a speculator.**")
+
+    st.subheader(phil_title1)
+    st.write(phil_p1)
+    st.write(phil_p2)
+    
+    st.divider()
+    st.subheader(phil_title2)
+    st.markdown(f"- {phil_li1}")
+    st.markdown(f"- {phil_li2}")
+    st.markdown(f"- {phil_li3}")
+    st.markdown(f"- {phil_li4}")
+    st.markdown(f"- {phil_li5}")
+    
+    st.divider()
+    st.subheader(phil_title3)
+    st.markdown(f"<div style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", unsafe_allow_html=True)
+
+# 하단 면책 조항 및 카피라이트 (저작권 명시)
 st.divider()
 st.markdown(f"""
 <div translate="no" style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
     <p><b>{t('[면책 조항 / Disclaimer]', '[Disclaimer]')}</b><br>
-    {t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
+    {t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')}<br>
     {t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')}</p>
     <p><b>[Copyright]</b><br>
     ⓒ 2026 VALUE. All rights reserved.<br>
