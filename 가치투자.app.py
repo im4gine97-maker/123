@@ -26,7 +26,7 @@ if "community_posts" not in st.session_state: st.session_state.community_posts =
 def t(ko, en):
     return ko if st.session_state.lang == "ko" else en
 
-def safe_float(val, default=0.0):
+def safe_float(default=0.0):
     try:
         if val is None or pd.isna(val): return default
         return float(val)
@@ -46,7 +46,7 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (TOP 30 동기화)
 # ==========================================
 tmap = {
     "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
@@ -90,73 +90,6 @@ fallback_13f_data = {
         {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
         {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
         {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00}
-    ],
-    "PSH": [
-        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
-        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
-        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
-        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
-        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
-        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 확인 필요)", "비중(%)": 0.00}
-    ],
-    "BAU": [
-        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
-        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
-        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
-        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
-        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
-        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
-        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
-        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
-        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
-        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
-        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
-        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
-        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
-        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
-        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
-        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
-        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
-        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
-        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
-        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
-    ],
-    "AKRE": [
-        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
-        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
-        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
-        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
-        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
-        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
-        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
-        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
-        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
-        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
-        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
-        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
-        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
-        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
-        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
-        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00}
-    ],
-    "PI": [
-        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
-        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
-        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
-    ],
-    "AQUA": [
-        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
-        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
-        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
-        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
-        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
-        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 확인 필요)", "비중(%)": 0.00}
     ]
 }
 
@@ -165,7 +98,7 @@ us_top30 = [
 ]
 
 kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 4, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 5, "티커": "005935", "기업명": "삼성전자우", "시가총액": "154조 원"}, {"순위": 6, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 7, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 8, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 9, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 10, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 11, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 12, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 13, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}, {"순위": 14, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 15, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 16, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 17, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 18, "티커": "034730", "기업명": "SK", "시가총액": "49조 원"}, {"순위": 19, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 20, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 21, "티커": "005490", "기업명": "포스코홀딩스", "시가총액": "41조 원"}, {"순위": 22, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 23, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 24, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 25, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 26, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 27, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 28, "티커": "323410", "기업명": "카카오뱅크", "시가총액": "24조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "316140", "기업명": "우리금융지주", "시가총액": "22조 원"}
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 4, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"}, {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 12, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 13, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 14, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 15, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 16, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 17, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 18, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 19, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 20, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 21, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 22, "티커": "096770", "기업명": "SK이노베이션", "시가총액": "22조 원"}, {"순위": 23, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 24, "티커": "011200", "기업명": "HMM", "시가총액": "15조 원"}, {"순위": 25, "티커": "010130", "기업명": "고려아연", "시가총액": "18조 원"}, {"순위": 26, "티커": "033780", "기업명": "KT&G", "시가총액": "14조 원"}, {"순위": 27, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 28, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}
 ]
 
 # ==========================================
@@ -197,7 +130,6 @@ def fetch_macro_realtime_v5():
             
     res["SPY_PE"] = safe_float(yf.Ticker("SPY").info.get("forwardPE"), 22.0)
     res["QQQ_PE"] = safe_float(yf.Ticker("QQQ").info.get("forwardPE"), 30.0)
-    
     return res
 
 @st.cache_data
@@ -221,7 +153,7 @@ def fetch_naver_finance_news(cd):
     return news_list
 
 def fetch_global_news(tk):
-    url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={tk}&region=US&lang=en-US"
+    url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={tk}&region=US&region=US&lang=en-US"
     news_list = []
     try:
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
@@ -240,20 +172,135 @@ def fetch_global_news(tk):
         pass
     return news_list
 
+# 💡 차장님께서 전달해주신 한/미 시가총액 상위 30위 경영진 설명 및 리스크 데이터 완벽 연동
 def fetch_governance_criticism(tk, cd, ceo_name):
     tk_clean = str(tk).strip().upper()
-    if "TSLA" in tk_clean:
-        return "일론 머스크 (Elon Musk) - 과도한 트위터(X) 인수 및 정치적 발언으로 인한 브랜드 이미지 소모 리스크, 테슬라 지분 담보 대출 및 대량 매도에 따른 주가 변동성 야기, 다수의 기업 동시 경영으로 인한 집중도 분산 비판이 존재합니다. (이건 확인이 필요한 부분입니다)"
+    cd_clean = str(cd).strip()
+    
+    # 미국 매칭
+    if "NVDA" in tk_clean:
+        return "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)"
     elif "AAPL" in tk_clean:
-        return "팀 쿡 (Tim Cook) - 혁신적 신제품(해자 개척) 부재에 대한 비판, 자사주 매입 및 배당 위주의 보수적 자본배분, 중국 공급망 의존도 과다에 따른 지정학적 리스크 노출 비판이 있습니다. (이건 확인이 필요한 부분입니다)"
+        return "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)"
     elif "GOOG" in tk_clean:
-        return "순다르 피차이 (Sundar Pichai) - 생성형 AI(Gemini 등) 초기 대응 지연 및 조직 관료화 비판, 반독점 소송(구글 검색 독점) 패소에 따른 사업 분할 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
+        return "순다르 피차이 (Sundar Pichai): 검색 독점을 통한 현금흐름 관리에 능하나, 조직이 비대해졌습니다.\n리스크: 관료주의 심화로 인한 AI 기술 전환기 실행력 지연 및 법무부 반독점 분할 소송. (이건 확인이 필요한 부분입니다)"
     elif "MSFT" in tk_clean:
-        return "사티아 나델라 (Satya Nadella) - 오픈AI 의존도 과다 및 AI 투자 비용 급증에 따른 마진 압박 우려, 반독점 규제 당국의 클라우드/게임 부문 견제 리스크가 제기됩니다. (이건 확인이 필요한 부분입니다)"
-    elif cd == "005930":
-        return "이재용/경영진 - 파운드리(위탁생산) 수율 개선 지연 및 HBM(고대역폭메모리) 시장 초기 주도권 상실 비판, 경직된 조직 문화 및 기술 인재 유출 우려가 지적됩니다. (이건 확인이 필요한 부분입니다)"
-    elif cd == "005380":
-        return "정의선/경영진 - 전기차(EV) 캐즘 구간에서의 대규모 투자 집행에 따른 단기 수익성 변동 우려, 노조와의 임단협 및 국내외 노동 비용 상승 압박 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)"
+        return "사티아 나델라 (Satya Nadella): 클라우드와 AI로의 체질 개선을 완벽히 이뤄낸 업계 최고의 자본 배분가 중 한 명입니다.\n리스크: 오픈AI 파트너십 비용 증대 및 AI 인프라(CAPEX) 과잉 투자 대비 단기 수익화 지연 가능성. (이건 확인이 필요한 부분입니다)"
+    elif "AMZN" in tk_clean:
+        return "앤디 재시 (Andy Jassy): 물류 효율화와 마진 개선을 통해 내실을 다지는 데 집중하고 있습니다.\n리스크: 강도 높은 노조 결성 움직임 및 연방거래위원회(FTC)의 플랫폼 반독점 규제 압박. (이건 확인이 필요한 부분입니다)"
+    elif "AVGO" in tk_clean:
+        return "호크 탄 (Hock Tan): M&A를 통한 비용 절감과 마진 극대화에 천부적인 소질을 증명했습니다.\n리스크: 공격적인 인수합병 이후 통합 과정에서의 고객 이탈 가능성 및 대규모 부채 부담. (이건 확인이 필요한 부분입니다)"
+    elif "META" in tk_clean:
+        return "마크 엘리엇 주커버그 (Mark Zuckerberg): 오픈소스 AI 전략과 릴스(Reels) 도입 등 위기 돌파와 태세 전환이 매우 빠릅니다.\n리스크: 차등의결권으로 인한 주주 견제 불가, 메타버스 사업부(Reality Labs)의 잉여 현금 지속 소각 우려. (이건 확인이 필요한 부분입니다)"
+    elif "TSLA" in tk_clean:
+        return "일론 머스크 (Elon Musk): 하드웨어와 AI를 결합하는 파괴적 혁신가이나 예측 불가능성이 큽니다.\n리스크: X(트위터), xAI 등 타 사업으로의 경영진 주의 분산 및 변동성 높은 언행에 따른 평판 리스크. (이건 확인이 필요한 부분입니다)"
+    elif "BRK" in tk_clean:
+        return "워런 버핏 (Warren Buffett): 자본 배분의 투명성과 정직성 측면에서 역사상 가장 신뢰받는 리더입니다.\n리스크: 고령인 버핏 이후의 후계 구도(그렉 아벨) 연착륙 및 막대한 현금 보유고의 효율적 재배치 과제. (이건 확인이 필요한 부분입니다)"
+    elif "LLY" in tk_clean:
+        return "데이비드 리크스 (David Ricks): 비만 및 당뇨 치료제 트렌드를 적기에 포착하여 폭발적 성장을 이끌었습니다.\n리스크: 마운자로/젭바운드 이후의 신규 파이프라인 지속성 및 정치권의 약가 인하 규제. (이건 확인이 필요한 부분입니다)"
+    elif "WMT" in tk_clean:
+        return "더그 맥밀론 (Doug McMillon): 장기적 관점의 옴니채널 전환 및 이커머스 투자를 성공적으로 이행했습니다.\n리스크: 소비 침체 시 마진 압박 및 대규모 고용에 따른 임금 인플레이션 직격탄. (이건 확인이 필요한 부분입니다)"
+    elif "JPM" in tk_clean:
+        return "제이미 다이먼 (Jamie Dimon): 업계 최고 수준의 위기 관리 능력과 요새 같은 대차대조표를 구축한 리더입니다.\n리스크: 다이먼 은퇴 시 대체 불가능성에 가까운 승계 리스크. (이건 확인이 필요한 부분입니다)"
+    elif "V" in tk_clean and "AVGO" not in tk_clean:
+        return "라이언 맥이너니 (Ryan McInerney): 강력한 네트워크 해자를 기반으로 안정적이고 예측 가능한 현금을 창출합니다.\n리스크: 신용카드 수수료 상한선을 압박하는 규제 기관의 철퇴 및 가맹점 소송. (이건 확인이 필요한 부분입니다)"
+    elif "UNH" in tk_clean:
+        return "앤드류 위티 (Andrew Witty): 의료 서비스부터 보험까지 수직 계열화를 완성한 관리의 달인입니다.\n리스크: 미국 의료 정책 변화 및 PBM(처방약 급여 관리 업체) 부문에 대한 법무부 반독점 조사 (수시로 변동되는 규제 상황이므로 확인이 필요한 부분입니다)."
+    elif "XOM" in tk_clean:
+        return "대런 우즈 (Darren Woods): 핵심 화석 연료 본업 집중을 통해 자본 수익률(ROCE)을 극대화했습니다.\n리스크: 에너지 전환 지연에 따른 장기 좌초 자산 전락 위험 및 ESG 펀드들의 투자 배제 압력. (이건 확인이 필요한 부분입니다)"
+    elif "MA" in tk_clean:
+        return "마이클 미바흐 (Michael Miebach): 비자와 함께 과점 체제를 유지하며 핀테크 파트너십에 유연합니다.\n리스크: 오픈뱅킹 등 대체 결제 인프라 확장에 따른 장기적인 수수료 비즈니스 훼손 우려. (이건 확인이 필요한 부분입니다)"
+    elif "JNJ" in tk_clean:
+        return "호아킨 두아토 (Joaquin Duato): 소비자 사업부(Kenvue) 분사를 통해 제약·의료기기 고마진 본업에 성공적으로 집중했습니다.\n리스크: 베이비 파우더 탈크 성분 발암 논란에 따른 대규모 배상금 소송의 최종 합의 지연. (이건 확인이 필요한 부분입니다)"
+    elif "PG" in tk_clean:
+        return "존 몰러 (Jon Moeller): 강력한 브랜드 포트폴리오를 기반으로 가격 인상 저항을 성공적으로 돌파했습니다.\n리스크: 원자재 가격 2차 상승 시 추가적인 가격 전가(Pricing Power) 한계 봉착. (이건 확인이 필요한 부분입니다)"
+    elif "HD" in tk_clean:
+        return "테드 데커 (Ted Decker): ROIC 중심의 철저한 매장 관리와 주주 친화적인 배당 정책이 일관적입니다.\n리스크: 장기화된 고금리 환경에 따른 미국 주택 거래 시장 침체와 B2B 수요 둔화. (이건 확인이 필요한 부분입니다)"
+    elif "COST" in tk_clean:
+        return "론 바크리스 (Ron Vachris): 마진을 낮춰 고객 충성도를 높이는 상생 비즈니스 모델의 교과서입니다.\n리스크: 2024년 경영진 교체 이후의 지속적 임무 수행 능력 검증 및 이커머스 대응 한계. (이건 확인이 필요한 부분입니다)"
+    elif "ORCL" in tk_clean:
+        return "사프라 카츠 (Safra Catz): 클라우드 인프라(OCI) 전환을 늦게 시작했으나 확실한 틈새시장을 장착했습니다.\n리스크: 여전히 실질적 권력을 쥔 창업자 래리 엘리슨의 의사결정에 대한 과도한 의존도. (이건 확인이 필요한 부분입니다)"
+    elif "MRK" in tk_clean:
+        return "롭 데이비스 (Rob Davis): 면역항암제 키트루다의 적응증 확장을 통해 전례 없는 현금흐름을 창출 중입니다.\n리스크: 2028년경 다가오는 키트루다 핵심 특허 만료에 대비한 블록버스터 신약 파이프라인 부족. (이건 확인이 필요한 부분입니다)"
+    elif "ABBV" in tk_clean:
+        return "리처드 고잘레스/롭 마이클 (Richard Gonzalez/Rob Michael): 블록버스터 약물 스카이리치와 린버크로 매출 절벽을 훌륭히 방어 중입니다.\n리스크: 전 세계 1위 의약품이었던 휴미라의 바이오시밀러 경쟁 격화로 인한 장기 마진 훼손. (이건 확인이 필요한 부분입니다)"
+    elif "CVX" in tk_clean:
+        return "마이크 워스 (Mike Wirth): 셰일 자산 중심의 규율 있는 자본 지출로 잉여 현금을 주주에게 적극 반환합니다.\n리스크: 헤스(Hess) 인수 지연 및 경쟁사 엑손모빌과의 가이아나 광구 우선매수권 분쟁. (이건 확인이 필요한 부분입니다)"
+    elif "BAC" in tk_clean:
+        return "브라이언 모이니한 (Brian Moynihan): 소매 금융 최강자로 예금 기반이 매우 탄탄한 보수적 경영을 펼칩니다.\n리스크: 저금리 시절 매입한 대규모 장기 채권의 미실현 손실 부담 및 상업용 부동산 노출. (이건 확인이 필요한 부분입니다)"
+    elif "CRM" in tk_clean:
+        return "마크 베니오프 (Marc Benioff): 공격적인 M&A로 엔터프라이즈 소프트웨어 생태계를 성공적으로 구축했습니다.\n리스크: 잦은 핵심 임원 이탈과 M&A 비용에 대한 행동주의 펀드들의 마진 개선 압박. (이건 확인이 필요한 부분입니다)"
+    elif "NFLX" in tk_clean:
+        return "테드 서랜도스/그레그 피터스 (Ted Sarandos/Greg Peters): 비밀번호 공유 단속 및 광고 요금제 도입으로 독보적 흑자 체제를 굳혔습니다.\n리스크: 콘텐츠 제작 비용 인플레이션 및 북미 지역 가입자 성장의 포화 상태 진입. (이건 확인이 필요한 부분입니다)"
+    elif "AMD" in tk_clean:
+        return "리사 수 (Lisa Su): 기술에 대한 깊은 이해도를 바탕으로 회사를 파산 위기에서 구출한 탁월한 리더입니다.\n리스크: AI 가속기 시장에서 엔비디아의 CUDA 생태계 장벽을 넘기 위한 소프트웨어 경쟁력 한계. (이건 확인이 필요한 부분입니다)"
+    elif "KO" in tk_clean:
+        return "제임스 퀸시 (James Quincey): 병입 라인 프랜차이즈화로 자본 효율성을 극대화한 안정적 배당주입니다.\n리스크: 강달러에 따른 환차손 및 GLP-1 비만 치료제 보급에 따른 구조적 소비량 감소 우려. (이건 확인이 필요한 부분입니다)"
+    elif "PEP" in tk_clean:
+        return "라몬 라구아르타 (Ramon Laguarta): 음료와 스낵의 균형 잡힌 포트폴리오로 인플레이션 방어력이 탁월합니다.\n리스크: 가격 인상에 지친 소비자들의 PB 상품 이탈 및 건강 지향적 소비 트렌드 확산. (이건 확인이 필요한 부분입니다)"
+
+    # 한국 매칭
+    elif cd_clean == "005930":
+        return "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "000660":
+        return "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "373220":
+        return "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "005380":
+        return "현대차 (정의선): 내연기관과 하이브리드, 전기차를 유연하게 오가는 생산 믹스 전략이 세계 최고 수준입니다.\n리스크: 피크아웃(실적 정점) 우려 및 강성 노조와의 매년 반복되는 임금 단체협상 마찰. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "207940":
+        return "삼성바이오로직스 (존 림): 철저한 품질 관리로 글로벌 빅파마들의 대규모 CMO 위탁 물량을 선점했습니다.\n리스크: 삼성그룹 경영권 승계 관련 재판에 얽힌 컴플라이언스 꼬리표 및 글로벌 CDMO 생산 능력 과잉. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "000270":
+        return "기아 (송호성): 디자인 혁신과 고수익 RV(레저용 차량) 위주의 판매로 현대차 이상의 이익률을 달성했습니다.\n리스크: 내수 시장 침체 및 전 세계적인 전기차 전환 속도 조절에 따른 고정비 부담. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "068270":
+        return "셀트리온 (서정진): 오너의 강력한 추진력으로 바이오시밀러 직판 체제를 성공적으로 구축했습니다.\n리스크: 빈번한 합병 연기 및 실적 가이던스 수정에 따른 시장 신뢰도 저하, 재고자산 회계 처리 논란. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "105560":
+        return "KB금융 (양종희): 국내 은행권 최초로 강력하고 투명한 밸류업(주주환원) 로드맵을 제시했습니다.\n리스크: 정부의 은행권 이자 수익 개입(상생 금융 압박) 및 부동산 PF 부실 전이 가능성. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "005490":
+        return "POSCO홀딩스 (장인화): 철강 본업 강화와 2차전지 소재 투자의 현실적인 속도 조절을 진행 중입니다.\n리스크: 글로벌 철강 수요 침체 지속 및 2차전지 핵심 소재(리튬) 가격 폭락에 따른 마진 훼손. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "055550":
+        return "신한지주 (진옥동): 주주환원율 확대와 비은행 부문(카드, 생보) 포트폴리오 관리가 우수합니다.\n리스크: 과거 사모펀드 사태 및 내부 횡령 등 잊힐 만하면 반복되는 내부통제 실패 평판. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "006400":
+        return "삼성SDI (최윤호): '수익성 우위의 질적 성장'이라는 매우 보수적이고 안전한 재무 관리를 보여줍니다.\n리스크: 경쟁사 대비 소극적인 CAPEX 투자로 인한 장기적인 글로벌 시장 점유율 상실. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "035420":
+        return "NAVER (최수연): 내수 중심의 검색·커머스 포트폴리오로 탄탄한 현금을 창출합니다.\n리스크: 라인야후 사태 등 지정학적 한계 및 막대한 개발비 대비 가시화되지 않은 AI 수익 모델. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "012330":
+        return "현대모비스 (이규석): 캡티브(현대차·기아) 물량 기반의 안정적인 부품 납품 생태계를 장착했습니다.\n리스크: 그룹 지배구조 개편의 핵심 고리라는 이유로 주가 부양 및 주주환원에 소극적일 수 있다는 시장의 의구심. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "051910":
+        return "LG화학 (신학철): 석유화학 비중을 줄이고 친환경/바이오 3대 신성장 동력으로 체질을 개선 중입니다.\n리스크: 본업(석유화학)의 극심한 부진 및 핵심 자회사 LG엔솔 물적분할로 인한 지주사 디스카운트. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "035720":
+        return "카카오 (정신아): 문어발식 확장 부작용을 수습하고 핵심 톡비즈 중심으로 쇄신을 강행 중입니다.\n리스크: 창업자(김범수) 구속 등 오너 사법 리스크의 장기화 및 플랫폼 독과점에 대한 정치권 규제. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "028260":
+        return "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "086790":
+        return "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "066570":
+        return "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "402340":
+        return "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "032830":
+        return "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "138040":
+        return "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다)."
+    elif cd_clean == "096770":
+        return "SK이노베이션 (박상규): 정유 부문의 현금을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "329180":
+        return "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "011200":
+        return "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "010130":
+        return "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "033780":
+        return "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "034020":
+        return "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해자는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "009150":
+        return "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "259960":
+        return "크래프톤 (김창한): '배틀그라운드' 단일 IP의 수명을 이례적으로 길게 늘리며 독보적인 영업이익률을 유지합니다.\n리스크: 다크앤다커 모바일 등 차기 흥행 신작 부재 시 발생하는 치명적인 단일 게임 의존도. (이건 확인이 필요한 부분입니다)"
+    elif cd_clean == "012450":
+        return "한화에어로스페이스 (손재일): 한화에어로스페이스 (손재일): 자회사 합병을 통한 K-방산 수직 계열화로 글로벌 수출 모멘텀을 주도합니다.\n리스크: 특정 국가의 정치적 정권 교체나 정책 변화에 따라 수조 원대 수주 계약이 흔들릴 수 있는 지정학적 리스크. (이건 확인이 필요한 부분입니다)"
+        
     else:
         return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절한 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
@@ -413,53 +460,49 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 AI 투자의견 평가 엔진 (경영진 40, ROE/ROIC 20, PER 15, ERP 10, 복리성장 10, DCF 10)
+# 💡 6대 핵심지표 균일 가중치 (각 20점 스케일, 총점 120점 만점 기반 황금비율 로직)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     
-    # 1. 경영진 리스크 (가장 높은 가중치: ±40점)
-    if "사법적 리스크나 중범죄 이력은 두드러지지 않습니다" in ceo_text:
-        score += 40
+    if "사법적 리스크나 중범죄 이력은 두드러지지 않습니다" in ceo_text or "검증된 경영자" in ceo_text or "역사상 가장 신뢰받는 리더" in ceo_text or "주주 친화" in ceo_text:
+        score += 20
     else:
-        score -= 40
+        score -= 20
         
-    # 2. 상대가치 PER 할인지표 (±15점)
-    if pmos > 15: score += 15
-    elif pmos > 0: score += 7
-    elif pmos < -15: score -= 15
-    else: score -= 7
+    if pmos > 15: score += 20
+    elif pmos > 0: score += 10
+    elif pmos < -15: score -= 20
+    else: score -= 10
 
-    # 3. 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점)
     if roe >= 15: score += 10
     elif roe < 8: score -= 10
     if roic and roic >= 12: score += 10
     elif roic and roic < 6: score -= 10
 
-    # 4. 이익수익률 매력도 ERP (±10점)
-    if erp > 3: score += 10
-    elif erp < 0: score -= 10
+    if erp > 3: score += 20
+    elif erp > 0: score += 10
+    elif erp < -2: score -= 20
+    else: score -= 10
 
-    # 5. 수학적 복리 모형 (FCF/EPS 연평균 성장률) (±10점)
-    if final_g >= 0.10: score += 10
-    elif final_g <= 0.0: score -= 10
+    if final_g >= 0.10: score += 20
+    elif final_g > 0.0: score += 10
+    else: score -= 20
 
-    # 6. 추정 내재가치 DCF (±10점)
-    if mos > 15: score += 10
-    elif mos > 0: score += 5
-    elif mos < -15: score -= 10
-    else: score -= 5
+    if mos > 15: score += 20
+    elif mos > 0: score += 10
+    elif mos < -15: score -= 20
+    else: score -= 10
 
-    # 최종 등급 산출
-    if score >= 60:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진의 높은 신뢰도를 바탕으로, 압도적인 자본효율(ROE/ROIC)과 복리 성장성이 입증되었으며 가격(PER/DCF/ERP) 또한 훌륭한 할인 구간입니다.", "Top-tier opportunity with high management trust, excellent capital efficiency, compounding growth, and deep valuation discount.")
+    if score >= 70:
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE/ROIC), 복리 성장, 그리고 모든 가격 지표(PER/DCF/ERP)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics (management, capital efficiency, growth, valuation) perfectly indicate a deep discount.")
     elif score >= 20:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평판이 양호하며, 펀더멘털 대비 이익수익률과 밸류에이션에서 충분한 할인이 확보된 좋은 비즈니스입니다.", "Good business with clean management reputation, robust fundamentals, and secured discount margin in valuation.")
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
     elif score >= -20:
-        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 모델과 경영진 평판은 무난하나, 주가가 현재의 수익성이나 성장성에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Business and management are fine, but currently trading near its fair value. Not a distinct discount territory.")
-    elif score >= -60:
-        return t("할증 (Premium)", "Premium"), "#ff7b72", t("경영진에 대한 비판적 이슈가 있거나, 자본효율성 대비 주가가 비싸게 거래되어 기대수익률이 채권보다 떨어지는 할증 구간입니다.", "Premium territory due to management risks or overvaluation relative to its capital efficiency.")
+        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "The 6 valuation factors offset each other, trading closely to intrinsic value. Not a clear discount.")
+    elif score >= -70:
+        return t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to fundamentals. Yields are inferior to bonds.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진의 치명적인 비판 리스크 또는 심각한 자본 낭비 및 역성장에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Highly dangerous speculative territory due to severe management criticism, poor capital allocation, or irrational overvaluation.")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("경영진, 수익성, 성장성 등 펀더멘털 전반이 취약함에도 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous bubble territory characterized by poor fundamentals and irrational overvaluation.")
 
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
@@ -467,42 +510,11 @@ def get_market_op_simple(erp):
     elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
     else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
 
-def tr_text(txt):
-    if not txt: return ""
-    txt_str = str(txt)
-    if is_ko:
-        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
-        except: return txt_str
-    return txt_str
-
-def clean_ceo_name(name):
-    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
-    name_str = str(name).strip()
-    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
-        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
-    if is_ko:
-        k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
-        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
-        for s in suffixes:
-            if k_name.endswith(s):
-                k_name = k_name[:-len(s)].strip(); break
-        return k_name
-    return name_str
-
-def get_safe_macro(key, is_currency=False, is_rate=False):
-    data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
-    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
-    if is_currency: p_str = f"${p:,.2f}"
-    elif is_rate: p_str = f"{p:.3f}%"
-    else: p_str = f"{p:,.2f}"
-    return p_str, c, pct
-
 # ==========================================
 # [4] 메인 UI 렌더링
 # ==========================================
 macro_data = fetch_macro_realtime_v5()
 
-# 사이드바 렌더링
 with st.sidebar:
     if st.session_state.lang == "ko":
         if st.button("English", use_container_width=True):
@@ -597,7 +609,6 @@ st.markdown("""
 
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
-# 💡 시클리컬 기업 주의 문구 추가
 st.warning(t("⚠️ [참고] 본 가치투자 분석 모델은 해운, 철강, 화학 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "⚠️ [Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., shipping, steel, chemicals) with extreme earnings volatility."))
 
 k_p, k_c, k_pct = get_safe_macro("KOSPI")
@@ -1071,70 +1082,38 @@ with tab5:
 
     terms = [
         ("시가총액 (Market Cap)", 
-         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", 
-           "The price tag to buy the ENTIRE company at once."), 
-         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", 
-           "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
-        
+         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
+         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
         ("PER (주가수익비율)", 
-         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", 
-           "How many years it will take for the company to earn back your investment."), 
-         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", 
-           "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
-        
+         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
+         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
         ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", 
-           "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
-         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", 
-           "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
-        
+         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
+         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
         ("PBR (주가순자산비율)", 
-         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", 
-           "If the company closes tomorrow and sells its assets, will you get your money back?"), 
-         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", 
-           "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
-        
+         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company closes tomorrow and sells its assets, will you get your money back?"), 
+         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
         ("ROE (자기자본이익률)", 
-         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", 
-           "Shows how efficiently the company multiplies its equity capital."), 
-         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", 
-           "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
-        
+         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its equity capital."), 
+         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
         ("ROIC (투하자본수익률)", 
-         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", 
-           "The true return on all capital invested (debt + equity), removing leverage distortions."), 
-         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", 
-           "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
-        
+         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", "The true return on all capital invested (debt + equity), removing leverage distortions."), 
+         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
         ("FCF (잉여현금흐름)", 
-         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", 
-           "The pure 'leftover cash' after paying all expenses and capital investments."), 
-         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", 
-           "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
-        
+         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' after paying all expenses and capital investments."), 
+         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
         ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", 
-           "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
-         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", 
-           "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
-        
+         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
+         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", 
-           "Like buying a $1,000 item on sale for $700."), 
-         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", 
-           "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
-        
+         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         ("이익수익률 (Earnings Yield)", 
-         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", 
-           "If a stock were a bank account, this is the annual interest rate it yields."), 
-         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", 
-           "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
-        
+         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", "If a stock were a bank account, this is the annual interest rate it yields."), 
+         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
         ("주식 위험 프리미엄 (ERP)", 
-         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", 
-           "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
-         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", 
-           "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
+         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
+         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
     ]
 
     lbl_analogy = t('이해하기:', 'Analogy:')
@@ -1151,40 +1130,17 @@ with tab5:
 # 탭 6: VALUE 철학
 # ==========================================
 with tab6:
-    phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", 
-                    "The True Meaning of Value Investing: Speculation vs. Investment")
-    
-    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', "
-                "그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", 
-                "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, "
-                "and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. "
-                "시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", 
-                "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. "
-                "It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
-    
+    phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
+    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
-    
-    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", 
-                 "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
-    
-    phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", 
-                 "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", 
-                 "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
-    
-    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", 
-                 "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
-    
-    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", 
-                 "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
-    
+    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
+    phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
+    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
+    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
-    
-    phil_decl = t("> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>**VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**", 
-                  "> **A Compass for 'True Investment', Not Speculation**<br><br>Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>**VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>**Join VALUE on the journey to becoming a true investor who contributes to society, not a speculator.**")
+    phil_decl = t("> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>**VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**", "> **A Compass for 'True Investment', Not Speculation**<br><br>Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>**VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>**Join VALUE on the journey to becoming a true investor who contributes to society, not a speculator.**")
 
     st.subheader(phil_title1)
     st.write(phil_p1)
@@ -1200,7 +1156,7 @@ with tab6:
     
     st.divider()
     st.subheader(phil_title3)
-    st.markdown(f"<div style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", "")
 
 # 하단 면책 조항 및 카피라이트 
 st.divider()
