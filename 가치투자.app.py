@@ -46,11 +46,73 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (이름/줄임말 검색망 확장)
 # ==========================================
 tmap = {
-    "제이피모건":"JPM", "JP모건":"JPM", "애플":"AAPL", "구글":"GOOGL", "알파벳":"GOOGL", "마이크로소프트":"MSFT", "마소":"MSFT", "아마존":"AMZN",
-    "테슬라":"TSLA", "엔비디아":"NVDA", "메타":"META", "페이스북":"META", "삼성전자":"005930.KS", "SK하이닉스":"000660.KS", "현대차":"005380.KS"
+    # 🇰🇷 한국 주요 우량주 명칭 및 줄임말 매핑
+    "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
+    "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
+    "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
+    "현대자동차": "005380.KS", "현대차": "005380.KS", "현대": "005380.KS", "HYUNDAI": "005380.KS",
+    "삼성바이오로직스": "207940.KS", "삼바": "207940.KS", "바이오로직스": "207940.KS",
+    "기아": "000270.KS", "KIA": "000270.KS", "기아차": "000270.KS",
+    "셀트리온": "068270.KS", "셀트": "068270.KS", "CELLTRION": "068270.KS",
+    "KB금융": "105560.KS", "KB금융지주": "105560.KS", "국민은행": "105560.KS",
+    "POSCO홀딩스": "005490.KS", "포스코": "005490.KS", "포스코홀딩스": "005490.KS", "POSCO": "005490.KS",
+    "신한지주": "055550.KS", "신한금융": "055550.KS", "신한은행": "055550.KS",
+    "삼성SDI": "006400.KS", "스디": "006400.KS", "SDI": "006400.KS", "삼성스디": "006400.KS",
+    "NAVER": "035420.KS", "네이버": "035420.KS",
+    "현대모비스": "012330.KS", "모비스": "012330.KS", "MOBIS": "012330.KS",
+    "LG화학": "051910.KS", "엘화": "051910.KS", "LG화": "051910.KS",
+    "카카오": "035720.KS", "KAKAO": "035720.KS",
+    "삼성물산": "028260.KS", "물산": "028260.KS",
+    "하나금융지주": "086790.KS", "하나금융": "086790.KS", "하나지주": "086790.KS",
+    "LG전자": "066570.KS", "엘전": "066570.KS", "엘지전자": "066570.KS",
+    "SK스퀘어": "402340.KS", "스퀘어": "402340.KS",
+    "삼성생명": "032830.KS", "삼생": "032830.KS",
+    "메리츠금융지주": "138040.KS", "메리츠": "138040.KS", "메리츠금융": "138040.KS",
+    "SK이노베이션": "096770.KS", "이노": "096770.KS", "SK이노": "096770.KS",
+    "HD현대중공업": "329180.KS", "현중": "329180.KS", "현대중공업": "329180.KS",
+    "HMM": "011200.KS", "흠": "011200.KS", "현대상선": "011200.KS",
+    "고려아연": "010130.KS", "고아": "010130.KS",
+    "KT&G": "033780.KS", "케이티앤지": "033780.KS",
+    "두산에너빌리티": "034020.KS", "두산에너": "034020.KS", "에너빌리티": "034020.KS",
+    "삼성전기": "009150.KS", "삼전기": "009150.KS",
+    "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
+    "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
+
+    # 🇺🇸 미국 주요 빅테크·우량주 명칭 및 한글/줄임말 매핑
+    "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
+    "APPLE": "AAPL", "애플": "AAPL",
+    "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
+    "MICROSOFT": "MSFT", "마이크로소프트": "MSFT", "마소": "MSFT",
+    "AMAZON": "AMZN", "아마존": "AMZN", "아마존닷컴": "AMZN",
+    "BROADCOM": "AVGO", "브로드컴": "AVGO",
+    "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA",
+    "META": "META", "메타": "META", "페이스북": "META", "METAPLATFORMS": "META",
+    "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU",
+    "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B", "버핏": "BRK-B",
+    "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY",
+    "WALMART": "WMT", "월마트": "WMT",
+    "AMD": "AMD", "에이엠디": "AMD",
+    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM", "제이피모간": "JPM",
+    "ORACLE": "ORCL", "오라클": "ORCL",
+    "VISA": "V", "비자": "V", "비자카드": "V",
+    "EXXONMOBIL": "XOM", "엑손모빌": "XOM", "엑손": "XOM",
+    "INTEL": "INTC", "인텔": "INTC",
+    "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "존슨앤드존슨": "JNJ", "J&J": "JNJ",
+    "CISCO": "CSCO", "시스코": "CSCO",
+    "MASTERCARD": "MA", "마스터카드": "MA",
+    "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
+    "CATERPILLAR": "CAT", "캐터필러": "CAT",
+    "LAMRESEARCH": "LRCX", "램리서치": "LRCX",
+    "ABBVIE": "ABBV", "애브비": "ABBV",
+    "PALANTIR": "PLTR", "팔란티어": "PLTR", "팔란": "PLTR",
+    "BANKOFAMERICA": "BAC", "뱅크오브아메리카": "BAC", "뱅아": "BAC",
+    "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
+    "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
+    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
+    "COCA-COLA": "KO", "COCACOLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO"
 }
 
 fallback_13f_data = {
@@ -63,7 +125,7 @@ fallback_13f_data = {
         {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
         {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
         {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
-        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "TME", "Piece: Tencent Music Entertainment Group", "비중(%)": 1.91},
         {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
         {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
         {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
@@ -134,7 +196,7 @@ fallback_13f_data = {
         {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
         {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
         {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
-        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
+        {"티ker": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
         {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
         {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
         {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
@@ -160,6 +222,7 @@ fallback_13f_data = {
     ]
 }
 
+# 시가총액 데이터베이스 30위 초기화
 us_top30 = [
     {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
 ]
@@ -309,7 +372,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "COLD": "Americold Realty Trust, Inc.: 냉동 물류 리츠로 독점력은 있으나, 높은 자본 지출(CAPEX) 요구 및 전력비 상승이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "MOH": "Molina Healthcare, Inc.: 정부 보조 의료보험(Medicaid) 특화 경영진 역량은 우수하나, 주 정부의 계약 갱신 탈락 위험이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AERO": "Grupo Aeroméxico: 파산보호 졸업 후 정상화 추진 중이나, 남미 항공 시장의 높은 환율 및 연료비 변동성은 이건 확인이 필요한 부분입니다.",
-        "NCLH": "Norwegian Cruise Line Holdings Ltd.: 크루즈 수요 회복을 이끄는 경영진이나, 팬데믹 기간 누적된 막대한 부채 상환 부담이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "NCLH": "Norwegian Cruise Line Holdings Ltd.: 크루즈 수요 회복을 이끄는 경영진이나, 편데믹 기간 누적된 막대한 부채 상환 부담이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "KKR": "KKR & Co Inc: 대체투자 자산 다각화 능력이 탁월하나, 고금리 장기화에 따른 자산 매각(Exit) 지연이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "ROP": "Roper Technologies Inc: 니치 마켓 소프트웨어 인수 후 자본배분 능력이 독보적이나, 인수 기업들의 유기적 성장률 둔화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "CSGP": "CoStar Group Inc: 상업용 부동산 데이터 독과점 경영진이나, 주택 부동산 시장 진출에 따른 마케팅 비용 과다는 이건 확인이 필요한 부분입니다.",
@@ -529,7 +592,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # 1. 긍정적 경영진 지표 스캔 (+10 ~ +20점)
     if any(k in ceo_text for k in ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원"]):
         ceo_score += 20
     elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한"]):
@@ -537,55 +599,45 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         ceo_score += 5 
         
-    # 2. 치명적 리스크: 구속, 중범죄, 사법 처리 및 대주주 소송 리스크 (-25점 강한 패널티)
     if any(k in ceo_text for k in ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란"]):
         ceo_score -= 25
         
-    # 3. 주주가치 훼손 리스크: 물적분할, 비효율적 자본배치, 차등의결권, 플랫폼 독점 규제 (-15점 감점)
     if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편"]):
         ceo_score -= 15
         
-    # 4. 일반적 비즈니스 및 운영 리스크 (-5점 약한 감점)
     if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "침체", "잠식", "만료", "포화"]):
         ceo_score -= 5
         
     score += max(-20, min(20, ceo_score))
         
-    # 2. 상대가치 PER 할인지표 (±20점)
     if pmos > 15: score += 20
     elif pmos > 0: score += 10
     elif pmos < -15: score -= 20
     else: score -= 10
 
-    # 3. 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점: 각각 10점)
     if roe >= 15: score += 10
     elif roe < 8: score -= 10
     if roic and roic >= 12: score += 10
     elif roic and roic < 6: score -= 10
 
-    # 4. 이익수익률 매력도 ERP (±20점)
     if erp > 3: score += 20
     elif erp > 0: score += 10
     elif erp < -2: score -= 20
     else: score -= 10
 
-    # 5. 수학적 복리 모형 FCF/EPS 성장률 (±20점)
     if final_g >= 0.10: score += 20
     elif final_g > 0.0: score += 10
     else: score -= 20
 
-    # 6. 추정 내재가치 DCF (±20점)
     if mos > 15: score += 20
     elif mos > 0: score += 10
     elif mos < -15: score -= 20
     else: score -= 10
 
-    # 7. ⚠️ 시클리컬(경기민감주) 패널티 (-15점 감점, 비시클리컬은 점수 가감 없음)
     is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
     if is_cyclical:
         score -= 15
 
-    # 최종 등급 산출 (총점 120점 만점)
     if score >= 70:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE/ROIC), 복리 성장, 그리고 모든 가격 지표(PER/DCF/ERP)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
     elif score >= 20:
@@ -597,7 +649,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
 
-    # 사유 텍스트에 시클리컬 감점 여부 추가
     if is_cyclical:
         reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
 
@@ -817,12 +868,12 @@ with tab1:
     with col_input:
         ui = st.text_input(
             t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
-            placeholder=t("예: AAPL, GOOGL, 005930 (입력 후 Enter)", "e.g., AAPL, GOOGL, 005930 (Press Enter)"), 
+            placeholder=t("예: 삼전, 하닉, AAPL, 엔비디아 (입력 후 Enter)", "e.g., 삼전, 하닉, AAPL, 엔비디아 (Press Enter)"), 
             label_visibility="collapsed",
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("[안내] 정확한 종목 스캔을 위해 가급적 종목 코드(예: 한국 주식은 6자리 숫자)를 입력해 주십시오.", "[Info] For accurate scanning, please preferably enter the exact stock code/ticker (e.g., 6-digit code for KR stocks)."))
+        st.caption(t("[안내] 정확한 종목 스캔을 위해 가급적 종목 명칭이나 코드(예: 한국 주식은 6자리 숫자)를 정확히 입력해 주십시오.", "[Info] For accurate scanning, please preferably enter the exact stock name or code (e.g., 6-digit code for KR stocks)."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
@@ -855,15 +906,8 @@ with tab1:
                         else: st.session_state.bookmarks.append(tk)
                         st.rerun() 
                 
-                off = i.get('companyOfficers', [])
-                ceo_raw = '누락'
-                if isinstance(off, list) and len(off) > 0:
-                    if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-                    else: ceo_raw = str(off[0])
-                elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-                elif isinstance(off, str): ceo_raw = off
-                ceo_cleaned = clean_ceo_name(ceo_raw)
-                criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
+                # 지배구조 비판 점검 패널 데이터를 사전에 도출
+                criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned if 'ceo_cleaned' in locals() else "경영진")
 
                 t_pe = safe_float(i.get('trailingPE'))
                 f_pe = safe_float(i.get('forwardPE'))
@@ -913,7 +957,7 @@ with tab1:
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                # 💡 정밀 채점 로직이 탑재된 가치투자 AI의 의견 도출 (균일 20점 스케일 및 시클리컬 패널티)
+                # 💡 리스크 뉘앙스를 반영하고 시클리컬 감점이 이식된 고른 가중치의 AI의 의견 도출 
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text)
 
                 st.markdown(f"""
