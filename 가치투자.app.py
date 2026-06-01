@@ -169,7 +169,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진 (완벽한 방어막 구축)
+# [3] 데이터 가져오기 엔진 
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v6():
@@ -315,6 +315,23 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     elif cd_clean == "012450": return "한화에어로스페이스 (손재일): 자회사 합병을 통한 K-방산 수직 계열화로 글로벌 수출 모멘텀을 주도합니다.\n리스크: 특정 국가의 정치적 정권 교체나 정책 변화에 따라 수조 원대 수주 계약이 흔들릴 수 있는 지정학적 리스크. (이건 확인이 필요한 부분입니다)"
     else: return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 스톡옵션 발행을 통한 주주가치 희석 여부, 부적절한 자본 배분(M&A) 이력 및 노사 갈등 여부는 투자 전 반드시 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
+def get_nv(cd):
+    url = f"https://finance.naver.com/item/main.naver?code={cd}"
+    try:
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+        s = BeautifulSoup(r.text, 'html.parser')
+        i = {}
+        t = s.select_one('.wrap_company h2 a'); 
+        if t: i['name'] = t.text
+        t = s.select_one('#_per'); i['pe'] = safe_float(t.text.replace(',','')) if t else 0.0
+        t = s.select_one('#_pbr'); i['pbr'] = safe_float(t.text.replace(',','')) if t else 0.0
+        t = s.select_one('#_cns_per'); i['fpe'] = safe_float(t.text.replace(',','')) if t else 0.0
+        t = s.select_one('#_dvr'); i['div'] = safe_float(t.text.replace(',',''))/100 if t else 0.0
+        t = s.select_one('.summary_info p'); 
+        if t: i['sum'] = t.text
+        return i
+    except: return None
+
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
@@ -454,7 +471,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 6대 핵심지표 균일 가중치 (각 20점 스케일, 총점 120점 만점 기반 황금비율 로직)
+# 💡 완벽하게 균일하게 분포된 AI 투자의견 평가 엔진
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     
@@ -504,23 +521,21 @@ def get_market_op_simple(erp):
     elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
     else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
 
-# 💡 번역 모듈에 글로벌 의존성을 낮추어 None 에러 원천 차단
 def tr_text(txt):
     if not txt: return ""
     txt_str = str(txt)
-    if st.session_state.lang == "ko":
+    if is_ko:
         try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
         except: return txt_str
     return txt_str
 
 def clean_ceo_name(name):
-    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if st.session_state.lang != "ko" else '누락'
+    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
     name_str = str(name).strip()
     for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
         if name_str.startswith(prefix): name_str = name_str[len(prefix):]
-    if st.session_state.lang == "ko":
-        k_name = tr_text(name_str)
-        if not k_name: return '누락'
+    if is_ko:
+        k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
         suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
         for s in suffixes:
             if k_name.endswith(s):
@@ -914,7 +929,6 @@ with tab1:
                 st.info(t("[안내] 현재 내장된 데이터베이스 기준, 해당 기업 CEO의 치명적인 중범죄 이력은 두드러지지 않습니다. (교차 검증 필수)", "[Info] Based on the database, no prominent records of severe crimes by the CEO. (Cross-verification mandatory.)")) 
                 
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
-                # 💡 None 에러 원천 봉쇄 (데이터가 아예 비어있을 때 빈 문자열로 안전하게 치환 후 슬라이싱)
                 raw_summary = i.get('kr_sum') or i.get('longBusinessSummary') or ""
                 st.caption(f"{tr_text(str(raw_summary))[:350]}...")
 
@@ -1184,7 +1198,7 @@ with tab6:
     
     st.divider()
     st.subheader(phil_title3)
-    st.markdown(f"<div style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", "")
+    st.markdown(f"<div translate='no' style='font-size: 1.1rem; line-height: 1.7; background-color: #1c2128; padding: 25px; border-radius: 8px; border-left: 5px solid #58a6ff; color: #c9d1d9;'>{phil_decl}</div>", unsafe_allow_html=True)
 
 # 하단 면책 조항 및 카피라이트 
 st.divider()
