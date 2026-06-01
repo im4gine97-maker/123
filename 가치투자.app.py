@@ -81,52 +81,154 @@ tmap = {
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
 
-    # 미국 주요 빅테크·우량주 매핑
-    "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA",
-    "APPLE": "AAPL", "애플": "AAPL",
-    "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL",
+    # 미국 주요 빅테크·우량주 명칭 및 한글/줄임말 매핑
+    "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
+    "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
+    "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
     "MICROSOFT": "MSFT", "마이크로소프트": "MSFT", "마소": "MSFT",
-    "AMAZON": "AMZN", "아마존": "AMZN",
+    "AMAZON": "AMZN", "아마존": "AMZN", "아마존닷컴": "AMZN",
     "BROADCOM": "AVGO", "브로드컴": "AVGO",
-    "TESLA": "TSLA", "테슬라": "TSLA",
-    "META": "META", "메타": "META",
-    "MICRON": "MU", "마이크론": "MU",
-    "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B",
-    "ELILILLY": "LLY", "일라이릴리": "LLY",
+    "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA",
+    "META": "META", "메타": "META", "페이스북": "META", "METAPLATFORMS": "META",
+    "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU",
+    "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B", "버핏": "BRK-B",
+    "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY",
     "WALMART": "WMT", "월마트": "WMT",
     "AMD": "AMD", "에이엠디": "AMD",
-    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM",
+    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM", "제이피모간": "JPM",
     "ORACLE": "ORCL", "오라클": "ORCL",
-    "VISA": "V", "비자": "V",
-    "EXXONMOBIL": "XOM", "엑손모빌": "XOM",
+    "VISA": "V", "비자": "V", "비자카드": "V",
+    "EXXONMOBIL": "XOM", "엑손모빌": "XOM", "엑손": "XOM",
     "INTEL": "INTC", "인텔": "INTC",
-    "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ",
+    "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "J&J": "JNJ", "존슨앤드존슨": "JNJ",
     "CISCO": "CSCO", "시스코": "CSCO",
     "MASTERCARD": "MA", "마스터카드": "MA",
-    "COSTCO": "COST", "코스트코": "COST",
+    "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
     "LAMRESEARCH": "LRCX", "램리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
-    "PALANTIR": "PLTR", "팔란티어": "PLTR",
+    "PALANTIR": "PLTR", "팔란티어": "PLTR", "팔란": "PLTR",
     "BANKOFAMERICA": "BAC", "뱅크오브아메리카": "BAC", "뱅아": "BAC",
-    "CHEVRON": "CVX", "쉐브론": "CVX",
-    "NETFLIX": "NFLX", "넷플릭스": "NFLX",
-    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT",
-    "COCA-COLA": "KO", "코카콜라": "KO"
+    "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
+    "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
+    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
+    "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO"
 }
 
 fallback_13f_data = {
-    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43}, {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56}],
-    "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52}],
-    "PSH": [{"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62}, {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39}, {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26}],
-    "BAU": [{"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 11.67}],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc", "비중(%)": 18.64}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc", "비중(%)": 8.10}],
-    "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}],
-    "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc", "비중(%)": 34.57}, {"티커": "MA", "기업명": "Mastercard Inc", "비중(%)": 14.77}]
+    "HC": [
+        {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 21.96},
+        {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70},
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43},
+        {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25},
+        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
+        {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
+        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
+        {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
+        {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87},
+        {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}
+    ],
+    "BRK": [
+        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99},
+        {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43},
+        {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56},
+        {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52},
+        {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64},
+        {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24},
+        {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78},
+        {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76},
+        {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38},
+        {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01},
+        {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39},
+        {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38},
+        {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33},
+        {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17},
+        {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
+        {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
+        {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp.", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp.", "비중(%)": 0.00}
+    ],
+    "PSH": [
+        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
+        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
+        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
+        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
+        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc.", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group", "비중(%)": 0.00}
+    ],
+    "BAU": [
+        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
+        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
+        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
+        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
+        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
+        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
+        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
+        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
+        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
+        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
+        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
+        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
+        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
+        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
+        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
+        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
+        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
+        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
+        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
+        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
+    ],
+    "AKRE": [
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
+        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
+        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
+        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
+        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
+        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
+        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
+        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
+        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
+        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
+        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
+        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
+        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
+        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}
+    ],
+    "PI": [
+        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
+        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
+        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
+    ],
+    "AQUA": [
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
+        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
+        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
+        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
+        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
+        {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}
+    ]
 }
 
-us_top30 = [{"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}]
-kr_top30 = [{"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}]
+us_top30 = [
+    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
+]
+
+kr_top30 = [
+    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 4, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"}, {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 12, "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 13, "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 14, "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 15, "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 16, "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 17, "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 18, "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 19, "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 20, "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 21, "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 22, "096770", "기업명": "SK이노베이션", "시가총액": "22조 원"}, {"순위": 23, "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 24, "011200", "기업명": "HMM", "시가총액": "15조 원"}, {"순위": 25, "010130", "기업명": "고려아연", "시가총액": "18조 원"}, {"순위": 26, "033780", "기업명": "KT&G", "시가총액": "14조 원"}, {"순위": 27, "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 28, "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 29, "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}
+]
 
 # ==========================================
 # [3] 데이터 가져오기 엔진
@@ -214,16 +316,119 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     cd_clean = str(cd).strip()
     
     db = {
-        "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
-        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출. (이건 확인이 필요한 부분입니다)",
-        "105560": "KB금융 (양종희): 국내 은행권 최초로 강력하고 투명한 밸류업(주주환원) 로드맵을 제시했습니다.\n리스크: 정부의 은행권 이자 수익 개입(상생 금융 압박) 및 부동산 PF 부실 전이 가능성. (이건 확인이 필요한 부분입니다)"
+        "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
+        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
+        "GOOGL": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "GOOG": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "PDD": "PDD Holdings Inc.: 경영진의 경영 투명성과 글로벌 확장에 따른 국가별 규제 리스크는 이건 확인이 필요한 부분입니다.",
+        "BRK-B": "버크셔 해서웨이 (Berkshire Hathaway Inc.): 포스트 버핏 승계 구도는 안정적이나, 거대 자산 규모로 인한 수익률 둔화가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "BRK-A": "버크셔 해서웨이 (Berkshire Hathaway Inc.): 포스트 버핏 승계 구도는 안정적이나, 거대 자산 규모로 인한 수익률 둔화가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "EWBC": "East West Bancorp, Inc.: 미-중 무역 관계 전문 은행으로 경영진 신뢰도는 높으나 상업용 부동산 리스크는 이건 확인이 필요한 부분입니다.",
+        "BAC": "Bank of America Corp.: 보수적이고 안정적인 경영진이나, 금리 변동성 및 글로벌 경기 침체가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "OXY": "Occidental Petroleum Corp.: 경영진의 부채 감축 및 주주환원 의지는 강하나, 유가 변동성 및 탄소 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CROX": "Crocs, Inc.: 브랜드 다각화 역량은 입증되었으나, 단일 브랜드 유행 민감도와 패션 트렌드 변화가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "TME": "Tencent Music Entertainment Group: 중국 내 독점적 지위는 견고하나, 중국 정부의 자국 빅테크 규제 변동성은 이건 확인이 필요한 부분입니다.",
+        "SPGI": "S&P Global Inc.: 신용평가 시장의 독과점 해자로 경영진 신뢰도가 극도로 높으나, 글로벌 채권 발행 급감이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "HRB": "H&R Block, Inc.: 적극적인 자사주 매입 정책을 펼치나, DIY 세무 소프트웨어 대중화에 따른 시장 잠식이 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MCO": "Moody's Corporation: 고수익 비즈니스 모델과 정직한 경영진을 가졌으나, 글로벌 경기 위축에 따른 발행 시장 침체가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MSCI": "MSCI Inc.: 금융 인덱스 시장의 독보적 지배력을 가졌으나, 글로벌 패시브 자금 유입 정체 및 수수료 인하 압박이 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AXP": "American Express Co.: 프리미엄 고객 중심의 우수한 경영진이나, 경기 침체 장기화로 인한 소비 위축이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "KO": "Coca-Cola Co.: 일관된 주주환원 정책과 글로벌 브랜드 파워는 확실하나, 건강 중심의 소비 트렌드 변화가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CVX": "Chevron Corp.: 주주환원에 충실한 업계 최고 수준의 경영진이나, 국제 유가 폭락 및 친환경 전환 압박이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CB": "Chubb Ltd.: 글로벌 최고 수준의 언더라이팅 능력을 갖춘 경영진이나, 기후 변화로 인한 대형 자연재해 급증이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "KHC": "Kraft Heinz Co.: 구조조정 이후 재무 안정성은 개선 중이나, 브랜드 가치 정체 및 고부채 리스크는 이건 확인이 필요한 부분입니다.",
+        "DVA": "DaVita Inc.: 미국 투석 시장 독과점으로 안정적 경영을 하나, 정부의 의료보험 정책 변화 및 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "KR": "Kroger Co.: 식료품 유통업에서 안정적 경영을 보여주나, 알베르트손(Albertsons) 인수 합병 규제 승인 여부는 이건 확인이 필요한 부분입니다.",
+        "DAL": "Delta Air Lines Inc.: 항공업계 내 최고 수준의 효율적 경영진이나, 유가 급등 및 경기 민감성에 따른 실적 변동성이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "ALLY": "Ally Financial Inc.: 자동차 금융 전문 경영진의 역량은 우수하나, 자동차 연체율 상승 및 조달금리 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "LLYVK": "Liberty Live Holdings-C: 존 말론의 복잡한 지배구조 설계 능력은 신뢰하나, 미디어 업황 위축 및 복잡성은 이건 확인이 필요한 부분입니다.",
+        "LLYVA": "Liberty Live Holdings-A: 존 말론의 복잡한 지배구조 설계 능력은 신뢰하나, 미디어 업황 위축 및 복잡성은 이건 확인이 필요한 부분입니다.",
+        "LEN": "Lennar Corp.: 미국 최대 주택건설사로 자본배분은 검증되었으나, 고금리 장기화에 따른 주택 수요 위축이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "STZ": "Constellation Brands Inc.: 핵심 맥주 브랜드 지배력은 우수하나, 와인 및 스피릿 부문의 실적 부진 지속 여부는 이건 확인이 필요한 부분입니다.",
+        "JEF": "Jefferies Financial Group Inc.: 투자은행(IB) 시장에서 공격적으로 성장 중이나, 자본시장 경색 및 딜 수임 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "COF": "Capital One Financial Corp.: 디스커버(Discover) 인수를 추진하는 경영진의 결단력은 있으나, 신용카드 연체율 상승 및 합병 규제는 이건 확인이 필요한 부분입니다.",
+        "BN": "Brookfield Corp.: 대체자산 운용 능력이 탁월한 경영진이나, 글로벌 상업용 부동산 시장 침체 장기화 리스크는 이건 확인이 필요한 부분입니다.",
+        "AMZN": "Amazon.com Inc.: 효율성 개선 및 인프라 통제력은 우수하나, 클라우드(AWS) 성장 둔화 및 정부 반독점 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "UBER": "Uber Technologies Inc.: 다라 코스로샤히의 흑자 전환 경영은 검증되었으나, 드라이버 법적 지위 변경에 따른 비용 증가가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MSFT": "Microsoft Corp.: 사티아 나델라의 AI 주도 리더십은 신뢰도가 높으나, 인프라 투자 대비 수익화 속도는 이건 확인이 필요한 부분입니다.",
+        "QSR": "Restaurant Brands Int.: 비용 절감 위주의 자본 배분은 명확하나, 가맹점과의 갈등 및 브랜드 노후화 리스크는 이건 확인이 필요한 부분입니다.",
+        "HHH": "Howard Hughes Holdings Inc.: 장기 마스터 플랜 개발 역량은 우수하나, 부동산 경기 침체에 따른 유동성 및 분양 둔화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "HTZ": "Hertz Global Hldgs Inc.: 전기차 도입 실패 후 경영진 교체 단계이며, 중고차 가격 폭락 및 고부채 리스크는 이건 확인이 필요한 부분입니다.",
+        "META": "Meta Platforms Inc.: 마크 저커버그의 턴어라운드 역량은 신뢰하나, SNS 아동 보호 및 개인정보 규제 강화가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "SEG": "Seaport Entertainment Group: 인적분할된 신생 엔터·부동산 기업으로 경영진의 독자적 사업 검증 여부는 이건 확인이 필요한 부분입니다.",
+        "WCC": "WESCO International, Inc.: 글로벌 유통 공급망 관리 능력은 양호하나, 산업 전반의 경기 둔화 및 재고 관리 실패가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "UNP": "Union Pacific Corporation: 철도 독과점 해자와 높은 마진을 유지 중이나, 철도 노조 갈등 및 대형 안전사고가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "ELV": "Elevance Health, Inc.: 건강보험 시장의 안정적 경영을 펼치나, 정부의 보험요율 인하 및 의료 비용(MLR) 상승이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "FERG": "Ferguson Enterprises Inc.: 북미 건설 자재 유통의 지배적 지위이나, 미국 주택 및 상업용 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "WTW": "Willis Towers Watson: 구조조정을 통한 수익성 개선 경영을 추진 중이나, 인재 유출 및 경쟁사 대비 열위는 이건 확인이 필요한 부분입니다.",
+        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "TFX": "Teleflex Incorporated: 의료기기 전문 경영진의 제품력은 우수하나, 병원들의 지출 삭감 및 경쟁 제품 등장이 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "EXP": "Eagle Materials Inc.: 미국 내 건자재 효율적 경영진이나, 인프라 투자 지연 및 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "GPC": "Genuine Parts Company: 자동차 부품 유통에서 안정적 경영을 하나, 전기차 보급에 따른 내연기관 부품 수요 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "LBTYK": "Liberty Global Ltd.: 통신 자산 매각 및 유동화 경영 능력이 있으나, 유럽 통신 시장의 극심한 가격 경쟁이 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "HLF": "Herbalife Ltd.: 다단계 마케팅(MLM) 모델로 경영 투명성 논란이 잦으며, 글로벌 규제 및 매출 감소 리스크는 이건 확인이 필요한 부분입니다.",
+        "GDS": "GDS Holdings Limited: 중국 데이터센터 선도 기업이나, 높은 부채비율과 중국 빅테크 규제에 따른 단가 인하 압박은 이건 확인이 필요한 부분입니다.",
+        "COLD": "Americold Realty Trust, Inc.: 냉동 물류 리츠로 독점력은 있으나, 높은 자본 지출(CAPEX) 요구 및 전력비 상승이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MOH": "Molina Healthcare, Inc.: 정부 보조 의료보험(Medicaid) 특화 경영진 역량은 우수하나, 주 정부의 계약 갱신 탈락 위험이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AERO": "Grupo Aeroméxico: 파산보호 졸업 후 정상화 추진 중이나, 남미 항공 시장의 높은 환율 및 연료비 변동성은 이건 확인이 필요한 부분입니다.",
+        "NCLH": "Norwegian Cruise Line Holdings Ltd.: 크루즈 수요 회복을 이끄는 경영진이나, 팬데믹 기간 누적된 막대한 부채 상환 부담이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "KKR": "KKR & Co Inc: 대체투자 자산 다각화 능력이 탁월하나, 고금리 장기화에 따른 자산 매각(Exit) 지연이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "ROP": "Roper Technologies Inc: 니치 마켓 소프트웨어 인수 후 자본배분 능력이 독보적이나, 인수 기업들의 유기적 성장률 둔화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CSGP": "CoStar Group Inc: 상업용 부동산 데이터 독과점 경영진이나, 주택 부동산 시장 진출에 따른 마케팅 비용 과다는 이건 확인이 필요한 부분입니다.",
+        "ORLY": "O'Reilly Automotive Inc: 자동차 애프터마켓의 최고 수준 공급망 경영진이나, 전기차 확산에 따른 부품 소모 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "ABNB": "Airbnb, Inc.: 플랫폼 브랜드 파워와 경영진 리더십은 확실하나, 글로벌 주요 도시들의 단기 임대 규제 강화가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "NOW": "ServiceNow Inc: IT 워크플로우 시장의 압도적 경영진이나, 높은 밸류에이션 부담과 기업들의 IT 지출 통제가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "GSHD": "Goosehead Insurance Inc: 프랜차이즈형 보험 중개 모델로 고성장 중이나, 핵심 인력 이탈 및 대형 보험사들의 인수 기준 강화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "SOPH": "SOPHiA GENETICS SA: 데이터 기반 의료 플랫폼으로 기술력은 있으나, 지속적인 적자와 손익분기점(BEP) 달성 여부는 이건 확인이 필요한 부분입니다.",
+        "AMT": "American Tower Corp: 글로벌 통신탑 리츠로 장기 계약 기반 경영은 안정적이나, 통신사들의 통신탑 공유 확대 및 고부채가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "PRM": "Perimeter Solutions Inc: 산불 지연제 시장의 독점적 경영진이나, 단일 제품 의존도가 높고 기후(강수량)에 따른 실적 변동성이 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CCCS": "CCC Intelligent Solutions: 자동차 보험 및 수리 생태계 독점 소프트웨어로 경영진 신뢰도가 높으나, AI 도입을 통한 경쟁자 출현 여부는 이건 확인이 필요한 부분입니다.",
+        "CPRT": "Copart Inc: 잔존 차량 경매 시장의 독점적 지위로 자본배분이 완벽에 가까우나, 자율주행 도입에 따른 사고율 급감이 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "FICO": "Fair Isaac Corp: 미국 신용점수 독과점으로 강력한 가격 결정력이 있으나, 정부의 대체 신용평가 모델 도입 압박이 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "HCC": "Warrior Met Coal, Inc.: 제철용 유연탄 생산 효율성은 높으나, 탈탄소 트렌드 및 원자재 가격 폭락 시 직격탄을 맞는 고위험 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "RIG": "Transocean Ltd.: 심해 시추 시장의 선두 주자이나, 고유가 유지 여부에 따른 장비 가동률 변동 및 막대한 부채가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AMR": "Alpha Metallurgical Resources, Inc.: 석탄 생산 자본 배분(자사주 매입)은 공격적이나, 장기적인 석탄 수요 감소 및 환경 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
+        "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
+        
+        # 한국 매칭
+        "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
+        "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
+        "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
+        "005380": "현대차 (정의선): 내연기관과 하이브리드, 전기차를 유연하게 오가는 생산 믹스 전략이 세계 최고 수준입니다.\n리스크: 피크아웃(실적 정점) 우려 및 강성 노조와의 매년 반복되는 임금 단체협상 마찰. (이건 확인이 필요한 부분입니다)",
+        "207940": "삼성바이오로직스 (존 림): 철저한 품질 관리로 글로벌 빅파마들의 대규모 CMO 위탁 물량을 선점했습니다.\n리스크: 삼성그룹 경영권 승계 관련 재판에 얽힌 컴플라이언스 꼬리표 및 글로벌 CDMO 생산 능력 과잉. (이건 확인이 필요한 부분입니다)",
+        "000270": "기아 (송호성): 디자인 혁신과 고수익 RV(레저용 차량) 위주의 판매로 현대차 이상의 이익률을 달성했습니다.\n리스크: 내수 시장 침체 및 전 세계적인 전기차 전환 속도 조절에 따른 고정비 부담. (이건 확인이 필요한 부분입니다)",
+        "068270": "셀트리온 (서정진): 오너의 강력한 추진력으로 바이오시밀러 직판 체제를 성공적으로 구축했습니다.\n리스크: 빈번한 합병 연기 및 실적 가이던스 수정에 따른 시장 신뢰도 저하, 재고자산 회계 처리 논란. (이건 확인이 필요한 부분입니다)",
+        "105560": "KB금융 (양종희): 국내 은행권 최초로 강력하고 투명한 밸류업(주주환원) 로드맵을 제시했습니다.\n리스크: 정부의 은행권 이자 수익 개입(상생 금융 압박) 및 부동산 PF 부실 전이 가능성. (이건 확인이 필요한 부분입니다)",
+        "005490": "POSCO홀딩스 (장인화): 철강 본업 강화와 2차전지 소재 투자의 현실적인 속도 조절을 진행 중입니다.\n리스크: 글로벌 철강 수요 침체 지속 및 2차전지 핵심 소재(리튬) 가격 폭락에 따른 마진 훼손. (이건 확인이 필요한 부분입니다)",
+        "055550": "신한지주 (진옥동): 주주환원율 확대와 비은행 부문(카드, 생보) 포트폴리오 관리가 우수합니다.\n리스크: 과거 사모펀드 사태 및 내부 횡령 등 잊힐 만하면 반복되는 내부통제 실패 평판. (이건 확인이 필요한 부분입니다)",
+        "006400": "삼성SDI (최윤호): '수익성 우위의 질적 성장'이라는 매우 보수적이고 안전한 재무 관리를 보여줍니다.\n리스크: 경쟁사 대비 소극적인 CAPEX 투자로 인한 장기적인 글로벌 시장 점유율 상실. (이건 확인이 필요한 부분입니다)",
+        "035420": "NAVER (최수연): 내수 중심의 검색·커머스 포트폴리오로 탄탄한 현금을 창출합니다.\n리스크: 라인야후 사태 등 지정학적 한계 및 막대한 개발비 대비 가시화되지 않은 AI 수익 모델. (이건 확인이 필요한 부분입니다)",
+        "012330": "현대모비스 (이규석): 캡티브(현대차·기아) 물량 기반의 안정적인 부품 납품 생태계를 장착했습니다.\n리스크: 그룹 지배구조 개편의 핵심 고리라는 이유로 주가 부양 및 주주환원에 소극적일 수 있다는 시장의 의구심. (이건 확인이 필요한 부분입니다)",
+        "051910": "LG화학 (신학철): 석유화학 비중을 줄이고 친환경/바이오 3대 신성장 동력으로 체질을 개선 중입니다.\n리스크: 본업(석유화학)의 극심한 부진 및 핵심 자회사 LG엔솔 물적분할로 인한 지주사 디스카운트. (이건 확인이 필요한 부분입니다)",
+        "035720": "카카오 (정신아): 문어발식 확장 부작용을 수습하고 핵심 톡비즈 중심으로 쇄신을 강행 중입니다.\n리스크: 창업자(김범수) 구속 등 오너 사법 리스크의 장기화 및 플랫폼 독과점에 대한 정치권 규제. (이건 확인이 필요한 부분입니다)",
+        "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
+        "086790": "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)",
+        "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
+        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
+        "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
+        "138040": "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다).",
+        "096770": "SK이노베이션 (박상규): 정유 부문의 현금을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
+        "329180": "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)",
+        "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
+        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
+        "033780": "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)",
+        "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해자는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
+        "009150": "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)",
+        "259960": "크래프톤 (김창한): '배틀그라운드' 단일 IP의 수명을 이례적으로 길게 늘리며 독보적인 영업이익률을 유지합니다.\n리스크: 다크앤다커 모바일 등 차기 흥행 신작 부재 시 발생하는 치명적인 단일 게임 의존도. (이건 확인이 필요한 부분입니다)",
+        "012450": "한화에어로스페이스 (손재일): 자회사 합병을 통한 K-방산 수직 계열화로 글로벌 수출 모멘텀을 주도합니다.\n리스크: 특정 국가의 정치적 정권 교체나 정책 변화에 따라 수조 원대 수주 계약이 흔들릴 수 있는 지정학적 리스크. (이건 확인이 필요한 부분입니다)"
     }
     
     for key, text in db.items():
         if key in tk_clean or (len(cd_clean) == 6 and key == cd_clean):
             return text
             
-    return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 자본 배분 오류 여부는 투자 전 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
+    return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 자본 배분 오류 및 노사 갈등 여부는 투자 전 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
 def get_data(tk):
     try:
@@ -302,9 +507,9 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len
     except: return None, None, 0.05, 0
 
-# [수정] 금융주 판별 파라미터 추가
+# [통합 금융주 대응 로직 적용] 금융/보험주의 무의미한 FCF 적자로 인한 오판 방지
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
-    if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (Financial FCF N/A)", "DCF N/A for Financials")
+    if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
     if not sh or sh <= 0: return 0, 0, t("주식수 누락", "Missing Shares Outstanding")
     try:
@@ -366,7 +571,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# [수정] 금융주 파라미터 및 PBR 추가 평가 로직
+# [통합 금융주 대응 로직 적용] 금융/보험주에 최적화된 스코어 가중치 및 PBR 교차 검증 연산 추가
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
     score = 0
     ceo_score = 0
@@ -394,24 +599,22 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif pmos < -15: score -= 20
     else: score -= 10
 
-    # [수정] 금융주 여부에 따른 분기 처리 (ROIC, DCF 대체)
+    # [수정] 금융/보험주와 일반주 평가 시스템 이원화
     if is_financial:
-        # 금융주는 ROIC를 보지 않는 대신 ROE 점수 비중을 조정
+        # 금융주는 왜곡되는 ROIC를 전혀 반영하지 않고 ROE 효율에 높은 점수 배정
         if roe >= 10: score += 20
-        elif roe < 8: score -= 10
+        elif roe < 7: score -= 10
         
-        # 금융주는 DCF(mos) 대신 PBR을 평가
-        if pbr > 0 and pbr < 0.8: score += 20
-        elif pbr >= 0.8 and pbr < 1.2: score += 10
+        # 금융주는 무의미한 DCF 안전마진 대신 자산 건전성을 대변하는 PBR 구간을 엄격하게 적용해 가산/감점
+        if pbr > 0 and pbr < 0.7: score += 20
+        elif pbr >= 0.7 and pbr < 1.1: score += 10
         elif pbr >= 1.5: score -= 20
     else:
-        # 일반 기업 (기존 로직 유지)
+        # 일반 기업 기준
         if roe >= 15: score += 10
         elif roe < 8: score -= 10
-        
         if roic and roic >= 12: score += 10
         elif roic and roic < 6: score -= 10
-        
         if mos > 15: score += 20
         elif mos > 0: score += 10
         elif mos < -15: score -= 20
@@ -431,20 +634,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score -= 15
 
     if score >= 70:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율, 모든 가격 지표가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE), 모든 가격 지표(PER/ERP/PBR)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
     elif score >= 20:
         title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
     elif score >= -20:
         title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Trading closely to intrinsic value. Not a clear discount.")
     elif score >= -70:
-        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to yields.")
+        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to yields.")
     else:
-        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
+        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
 
     if is_cyclical:
-        reason += t(" (⚠️ 시클리컬 기업 감점 적용됨)", " (⚠️ Cyclical Penalty Applied)")
+        reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
     if is_financial:
-        reason += t(" (🏦 금융주: ROIC/DCF 제외, ROE/PBR 중점 평가 반영)", " (🏦 Financial: Evaluated on ROE/PBR focus)")
+        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROIC 및 DCF 연산 왜곡을 제거하고 ROE와 장부가 가치 PBR 분석으로 고도화 평가 완료)", " (🏦 Financial Mode Active: Switched from FCF/ROIC to asset-backed ROE/PBR screening)")
 
     return title, color, reason
 
@@ -689,8 +892,8 @@ with tab1:
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
-                # [추가] 금융주 판별 로직
-                is_financial = i.get('sector') == 'Financial Services'
+                # [수정] 대분류 섹터와 세부 산업 필터링을 병합해 금융/보험주 자동 통합 판별
+                is_financial = i.get('sector') == 'Financial Services' or i.get('industry') in ['Banks - Regional', 'Banks - Diversified', 'Capital Markets', 'Credit Services', 'Insurance - Specialists', 'Insurance - Life', 'Insurance - Property & Casualty', 'Insurance Brokers', 'Insurance - Diversified']
                 
                 c_title, c_star = st.columns([4, 1])
                 with c_title:
@@ -720,7 +923,7 @@ with tab1:
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
-                # [수정] 금융주는 ROIC 텍스트 대체 표기
+                # [수정] 금융/보험주일 경우 ROIC 텍스트 예외 처리
                 if is_financial:
                     roic_str = t("금융/보험주 제외", "N/A (Financial)")
                 else:
@@ -762,13 +965,13 @@ with tab1:
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
-                # [수정] 금융주 is_financial 파라미터 전달
+                # [수정] 금융/보험주 식별 변수 전달
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                # [수정] 금융주 PBR 및 is_financial 파라미터 반영하여 종합 의견 산출
+                # [수정] 금융/보험주 밸런싱이 완벽하게 가미된 종합 스코어 엔진 구동
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
 
                 st.markdown(f"""
@@ -787,9 +990,9 @@ with tab1:
                 else:
                     per_mos_str = f"확인 필요"
 
-                # [수정] 금융주 여부에 따른 ROE/ROIC 종합 평가 텍스트 분기 처리
+                # [수정] 금융/보험주에 적합한 허들 및 텍스트 적용
                 if is_financial:
-                    if roe >= 10: rr_eval = f"<span class='good'>{t('훌륭함 (금융주 기준 탁월한 자본 효율성)', 'Excellent (Great for Financials)')}</span>"
+                    if roe >= 10: rr_eval = f"<span class='good'>{t('훌륭함 (금융/보험주 기준 탁월한 자본 효율성)', 'Excellent (Great for Financials)')}</span>"
                     elif roe >= 7: rr_eval = f"<span style='color:#58a6ff;'>{t('양호함 (준수한 수익성)', 'Good (Decent profitability)')}</span>"
                     else: rr_eval = f"<span class='highlight'>{t('형편없음 (자본을 비효율적으로 낭비 중입니다)', 'Poor (Wasting capital inefficiently)')}</span>"
                 else:
@@ -822,9 +1025,9 @@ with tab1:
                 st.divider()
                 
                 st.subheader(t("2. 10년 DCF (내재가치 추정)", "2. 10-Year DCF (Intrinsic Value)"))
-                # [수정] 금융주는 안내 텍스트로 대체
+                # [수정] 금융/보험주의 FCF 변동성 왜곡에 대응한 텍스트 대체
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융/보험주는 비즈니스 특성상 잉여현금흐름(FCF)이 부채 및 지급 준비금과 혼재되어 잦은 적자가 발생하므로, DCF 모델을 적용하지 않고 PBR 중심의 자산 기반 밸류에이션으로 대체 평가합니다.', 'DCF is not applicable for financials due to mixed cash flows. Replaced with PBR evaluation.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     st.write(f"- **{t('FCF/EPS 연평균 성장률', 'FCF/EPS CAGR')}:** {final_g*100:.1f}% {dcf_source_txt}")
@@ -914,21 +1117,19 @@ with tab1:
 
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
-                
                 if pmos_val > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
                 
-                # [수정] 금융주 매수체크 출력 변경
+                # [수정] 금융/보험주의 자동체크 항목 분기 매칭
                 if is_financial:
-                    if pbr < 0.8: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배 - 자산가치 대비 저평가)</span>"
-                    elif pbr < 1.2: p_txt += f"- PBR: <span style='color:#e3b341;'>[보통] ({pbr:.2f}배)</span>"
-                    else: p_txt += f"- PBR: <span class='highlight'>[주의] ({pbr:.2f}배 - 할증)</span>"
+                    if pbr < 0.8: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배 - 청산가치 대비 극심한 저평가 상태)</span>"
+                    elif pbr < 1.2: p_txt += f"- PBR: <span style='color:#e3b341;'>[적정 가치] ({pbr:.2f}배)</span>"
+                    else: p_txt += f"- PBR: <span class='highlight'>[주의] ({pbr:.2f}배 - 장부가 대비 프리미엄 리스크)</span>"
                 else:
                     if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
                     else: p_txt += f"- DCF: ({t('직접 확인 필요', 'Needs Check')})"
-                    
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
                 if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
@@ -955,6 +1156,15 @@ with tab1:
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 할증 시 매도)", "7. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열(할증)되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated (premium).<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
+
+                st.divider()
+
+                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
+                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
+                st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
+                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+                st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
+                st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
                 st.divider()
 
@@ -1135,12 +1345,12 @@ with tab5:
 # ==========================================
 with tab6:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
-    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
+    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델และ 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
     phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
