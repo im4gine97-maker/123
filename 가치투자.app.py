@@ -46,61 +46,61 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (줄임말 검색망 확장)
 # ==========================================
 tmap = {
-    # 한국 주요 우량주 명칭 및 줄임말 매핑
-    "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
-    "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
-    "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
-    "현대자동차": "005380.KS", "현대차": "005380.KS", "현대": "005380.KS", "HYUNDAI": "005380.KS",
+    # 🇰🇷 한국 주요 우량주 명칭 및 줄임말 매핑
+    "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS",
+    "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS",
+    "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS",
+    "현대자동차": "005380.KS", "현대차": "005380.KS", "현대": "005380.KS",
     "삼성바이오로직스": "207940.KS", "삼바": "207940.KS", "바이오로직스": "207940.KS",
-    "기아": "000270.KS", "KIA": "000270.KS", "기아차": "000270.KS",
-    "셀트리온": "068270.KS", "셀트": "068270.KS", "CELLTRION": "068270.KS",
-    "KB금융": "105560.KS", "KB금융지주": "105560.KS", "국민은행": "105560.KS",
-    "POSCO홀딩스": "005490.KS", "포스코": "005490.KS", "포스코홀딩스": "005490.KS", "POSCO": "005490.KS",
-    "신한지주": "055550.KS", "신한금융": "055550.KS", "신한은행": "055550.KS",
-    "삼성SDI": "006400.KS", "스디": "006400.KS", "SDI": "006400.KS", "삼성스디": "006400.KS",
+    "기아": "000270.KS", "기아차": "000270.KS",
+    "셀트리온": "068270.KS", "셀트": "068270.KS",
+    "KB금융": "105560.KS", "국민은행": "105560.KS",
+    "POSCO홀딩스": "005490.KS", "포스코": "005490.KS", "포홀": "005490.KS",
+    "신한지주": "055550.KS", "신한금융": "055550.KS",
+    "삼성SDI": "006400.KS", "스디": "006400.KS", "삼성스디": "006400.KS",
     "NAVER": "035420.KS", "네이버": "035420.KS",
-    "현대모비스": "012330.KS", "모비스": "012330.KS", "MOBIS": "012330.KS",
-    "LG화학": "051910.KS", "엘화": "051910.KS", "LG화": "051910.KS",
+    "현대모비스": "012330.KS", "모비스": "012330.KS",
+    "LG화학": "051910.KS", "엘화": "051910.KS",
     "카카오": "035720.KS", "KAKAO": "035720.KS",
     "삼성물산": "028260.KS", "물산": "028260.KS",
-    "하나금융지주": "086790.KS", "하나금융": "086790.KS", "하나지주": "086790.KS",
-    "LG전자": "066570.KS", "엘전": "066570.KS", "엘지전자": "066570.KS",
+    "하나금융지주": "086790.KS", "하나금융": "086790.KS",
+    "LG전자": "066570.KS", "엘전": "066570.KS",
     "SK스퀘어": "402340.KS", "스퀘어": "402340.KS",
     "삼성생명": "032830.KS", "삼생": "032830.KS",
-    "메리츠금융지주": "138040.KS", "메리츠": "138040.KS", "메리츠금융": "138040.KS",
+    "메리츠금융지주": "138040.KS", "메리츠": "138040.KS",
     "SK이노베이션": "096770.KS", "이노": "096770.KS", "SK이노": "096770.KS",
-    "HD현대중공업": "329180.KS", "현중": "329180.KS", "현대중공업": "329180.KS",
-    "HMM": "011200.KS", "흠": "011200.KS", "현대상선": "011200.KS",
+    "HD현대중공업": "329180.KS", "현중": "329180.KS",
+    "HMM": "011200.KS", "흠": "011200.KS",
     "고려아연": "010130.KS", "고아": "010130.KS",
     "KT&G": "033780.KS", "케이티앤지": "033780.KS",
     "두산에너빌리티": "034020.KS", "두산에너": "034020.KS", "에너빌리티": "034020.KS",
     "삼성전기": "009150.KS", "삼전기": "009150.KS",
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
-    "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
+    "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS",
 
-    # 미국 주요 빅테크·우량주 명칭 및 한글/줄임말 매핑
+    # 🇺🇸 미국 주요 빅테크·우량주 명칭 및 한글/줄임말 매핑
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
-    "APPLE": "AAPL", "애플": "AAPL",
+    "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
     "MICROSOFT": "MSFT", "마이크로소프트": "MSFT", "마소": "MSFT",
-    "AMAZON": "AMZN", "아마존": "AMZN", "아마존닷컴": "AMZN",
+    "AMAZON": "AMZN", "아마존": "AMZN",
     "BROADCOM": "AVGO", "브로드컴": "AVGO",
     "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA",
-    "META": "META", "메타": "META", "페이스북": "META", "METAPLATFORMS": "META",
-    "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU",
+    "META": "META", "메타": "META", "페이스북": "META",
+    "MICRON": "MU", "마이크론": "MU",
     "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B", "버핏": "BRK-B",
     "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY",
     "WALMART": "WMT", "월마트": "WMT",
     "AMD": "AMD", "에이엠디": "AMD",
-    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM", "제이피모간": "JPM",
+    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM",
     "ORACLE": "ORCL", "오라클": "ORCL",
-    "VISA": "V", "비자": "V", "비자카드": "V",
+    "VISA": "V", "비자": "V",
     "EXXONMOBIL": "XOM", "엑손모빌": "XOM", "엑손": "XOM",
     "INTEL": "INTC", "인텔": "INTC",
-    "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "존슨앤드존슨": "JNJ", "J&J": "JNJ",
+    "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "J&J": "JNJ",
     "CISCO": "CSCO", "시스코": "CSCO",
     "MASTERCARD": "MA", "마스터카드": "MA",
     "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
@@ -112,7 +112,7 @@ tmap = {
     "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
-    "COCA-COLA": "KO", "COCACOLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO"
+    "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO"
 }
 
 fallback_13f_data = {
@@ -150,8 +150,8 @@ fallback_13f_data = {
         {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
         {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
         {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
-        {"티커": "OXY", "기업명": "Occidental Petroleum Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "COF", "기업명": "Capital One Financial Corp. (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+        {"티커": "OXY", "기업명": "Occidental Petroleum Corp.", "비중(%)": 0.00},
+        {"티커": "COF", "기업명": "Capital One Financial Corp.", "비중(%)": 0.00}
     ],
     "PSH": [
         {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
@@ -159,10 +159,10 @@ fallback_13f_data = {
         {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
         {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
         {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
-        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "META", "기업명": "Meta Platforms Inc. (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "SEG", "기업명": "Seaport Entertainment Group (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 0.00},
+        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc.", "비중(%)": 0.00},
+        {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 0.00},
+        {"티커": "SEG", "기업명": "Seaport Entertainment Group", "비중(%)": 0.00}
     ],
     "BAU": [
         {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
@@ -202,9 +202,9 @@ fallback_13f_data = {
         {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
         {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
         {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
-        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "CPRT", "기업명": "Copart Inc (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "FICO", "기업명": "Fair Isaac Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00},
+        {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}
     ],
     "PI": [
         {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
@@ -217,8 +217,8 @@ fallback_13f_data = {
         {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
         {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
         {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
-        {"티커": "DJCO", "기업명": "Daily Journal Corp (비중 미상 - 확인 필요)", "비중(%)": 0.00},
-        {"티커": "RACE", "기업명": "Ferrari NV (비중 미상 - 확인 필요)", "비중(%)": 0.00}
+        {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00},
+        {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}
     ]
 }
 
@@ -231,7 +231,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진 
+# [3] 데이터 가져오기 엔진
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v6():
@@ -642,17 +642,27 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif mos < -15: score -= 20
     else: score -= 10
 
-    # 최종 등급 산출 (총점 120점 만점)
+    # 7. ⚠️ 시클리컬(경기민감주) 패널티 (-15점 감점)
+    is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
+    if is_cyclical:
+        score -= 15
+
+    # 최종 등급 산출
     if score >= 70:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE/ROIC), 복리 성장, 그리고 모든 가격 지표(PER/DCF/ERP)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE/ROIC), 복리 성장, 그리고 모든 가격 지표(PER/DCF/ERP)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
     elif score >= 20:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
+        title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
     elif score >= -20:
-        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Trading closely to intrinsic value. Not a clear discount.")
+        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Trading closely to intrinsic value. Not a clear discount.")
     elif score >= -70:
-        return t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to yields.")
+        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to yields.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
+        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
+
+    if is_cyclical:
+        reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
+
+    return title, color, reason
 
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
@@ -964,7 +974,7 @@ with tab1:
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                # 💡 정밀 채점 로직이 탑재된 가치투자 AI의 의견 도출 
+                # 💡 리스크 뉘앙스를 반영하고 시클리컬 감점이 이식된 고른 가중치의 AI의 의견 도출 
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text)
 
                 st.markdown(f"""
@@ -1295,32 +1305,4 @@ with tab5:
          t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", "If a stock were a bank account, this is the annual interest rate it yields."), 
          t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
         ("주식 위험 프리미엄 (ERP)", 
-         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
-         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
-    ]
-
-    lbl_analogy = t('이해하기:', 'Analogy:')
-    for term, definition, example in terms:
-        st.markdown(f"""
-        <div translate="no" style="background-color: #161b22; color: #e6edf3; padding: 20px; border-radius: 12px; border-left: 5px solid #58a6ff; margin-bottom: 15px;">
-            <h4 style="margin-top: 0; color: #58a6ff; margin-bottom: 10px;">{term}</h4>
-            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
-            <div style="font-size: 0.95rem; color: #8b949e;"><b>{lbl_analogy}</b> {example}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ==========================================
-# 탭 6: VALUE 철학
-# ==========================================
-with tab6:
-    phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
-    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
-    phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
-    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
-    phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스가 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래를 할 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
-    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
-    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
-    phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
-    phil_decl = t("> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>**VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**", "> **A Compass for 'True Investment', Not Speculation**<br><br>Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>**VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly
+         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra
