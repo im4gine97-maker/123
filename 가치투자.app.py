@@ -169,7 +169,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진
+# [3] 데이터 가져오기 엔진 (완벽한 방어막 구축)
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v6():
@@ -471,58 +471,54 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 💡 모든 지표 20점 스케일 및 경영진 뉘앙스 정밀 타격 알고리즘
+# 💡 6대 핵심지표 완벽 균일 가중치 (각 20점 스케일, 총점 120점 만점) 및 경영진 뉘앙스 정밀 타격
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text):
     score = 0
     ceo_score = 0
     
-    # 1. 긍정적 경영진/지배구조 (+10 ~ +20점)
+    # 1. 경영진 및 지배구조 (최대 +20, 최하 -20)
     if any(k in ceo_text for k in ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어"]):
         ceo_score += 20
-    elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점"]):
+    elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한"]):
         ceo_score += 10
     else:
-        ceo_score += 5 # 무난한 기본 상태
+        ceo_score += 5 
         
-    # 2. 치명적 리스크: 중범죄, 사법 리스크 등 (-25점)
     if any(k in ceo_text for k in ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금"]) and "두드러지지 않습니다" not in ceo_text:
         ceo_score -= 25
         
-    # 3. 주주가치 훼손 리스크: 물적분할, 지배력 유지, 차등의결권 등 (-20점)
-    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정"]):
-        ceo_score -= 20
+    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율"]):
+        ceo_score -= 15
         
-    # 4. 미미한 비즈니스/운영 리스크 (-5점)
-    if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화"]):
+    if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업"]):
         ceo_score -= 5
         
-    # 경영진 점수를 총점에 합산 (최대 +20, 최소 -20 제한)
     score += max(-20, min(20, ceo_score))
         
-    # 상대가치 PER 할인지표 (±20점)
+    # 2. 상대가치 PER 할인지표 (±20점)
     if pmos > 15: score += 20
     elif pmos > 0: score += 10
     elif pmos < -15: score -= 20
     else: score -= 10
 
-    # 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점)
+    # 3. 자본효율성 비즈니스 퀄리티 ROE/ROIC (±20점: 각각 10점)
     if roe >= 15: score += 10
     elif roe < 8: score -= 10
     if roic and roic >= 12: score += 10
     elif roic and roic < 6: score -= 10
 
-    # 이익수익률 매력도 ERP (±20점)
+    # 4. 이익수익률 매력도 ERP (±20점)
     if erp > 3: score += 20
     elif erp > 0: score += 10
     elif erp < -2: score -= 20
     else: score -= 10
 
-    # 수학적 복리 모형 FCF/EPS 성장률 (±20점)
+    # 5. 수학적 복리 모형 FCF/EPS 성장률 (±20점)
     if final_g >= 0.10: score += 20
     elif final_g > 0.0: score += 10
     else: score -= 20
 
-    # 추정 내재가치 DCF (±20점)
+    # 6. 추정 내재가치 DCF (±20점)
     if mos > 15: score += 20
     elif mos > 0: score += 10
     elif mos < -15: score -= 20
@@ -530,15 +526,15 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 최종 등급 산출 (총점 120점 만점)
     if score >= 70:
-        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("투명한 경영진, 압도적인 자본효율(ROE/ROIC)과 복리 성장, 그리고 모든 가격 지표가 완벽한 할인 구간을 가리킵니다.", "All evenly weighted metrics (management, capital efficiency, growth, valuation) perfectly indicate a deep discount.")
+        return t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE/ROIC), 복리 성장, 그리고 모든 가격 지표(PER/DCF/ERP)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics (management, capital efficiency, growth, valuation) perfectly indicate a deep discount.")
     elif score >= 20:
-        return t("할인 (Discount)", "Discount"), "#3fb950", t("경영진 평가와 펀더멘털 지표들이 고르게 양호하며, 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
+        return t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
     elif score >= -20:
-        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 펀더멘털에 적절하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "The 6 valuation factors offset each other, trading closely to intrinsic value. Not a clear discount.")
+        return t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "The 6 valuation factors offset each other, trading closely to intrinsic value. Not a clear discount.")
     elif score >= -70:
-        return t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to fundamentals. Yields are inferior to bonds.")
+        return t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to fundamentals. Yields are inferior to bonds.")
     else:
-        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory showing uniform weakness across fundamentals and extreme overvaluation.")
+        return t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory showing uniform weakness across fundamentals and extreme overvaluation.")
 
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
@@ -849,8 +845,6 @@ with tab1:
                 mos_val = safe_float(mos_val)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                
-                # 💡 경영진 텍스트 스크리닝이 포함된 궁극의 AI 의견 산출
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text)
 
                 st.markdown(f"""
@@ -1013,7 +1007,7 @@ with tab1:
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
                 st.write(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {t('부채 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.', 'Check Darwinian survivability regarding debt structure.')}")
-                st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 것은 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
+                st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 매수가 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
                 st.divider()
