@@ -322,7 +322,6 @@ def fetch_macro_realtime_v6():
     
     return res
 
-# 13F 캐시 오류를 유발했던 @st.cache_data 데코레이터 삭제 완료
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
 
@@ -442,7 +441,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
-        # 한국 매칭
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
         "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
@@ -467,7 +465,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
         "329180": "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)",
         "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
-        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
+        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MB 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
         "033780": "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)",
         "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해자는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
         "009150": "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)",
@@ -973,6 +971,10 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
+                # [수정] 3가지 시나리오용 적정가/안전마진 추가 연산
+                iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, ty, min(final_g * 1.5, 0.25), is_financial)
+                iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
+                
                 roic_val = real_roic if real_roic is not None else 0
                 
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
@@ -1026,15 +1028,30 @@ with tab1:
 
                 st.divider()
                 
-                st.subheader(t("2. 10년 DCF (내재가치 추정)", "2. 10-Year DCF (Intrinsic Value)"))
+                # [수정] 3가지 DCF 시나리오 동적 출력 반영
+                st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
                     st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
-                    iv_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
-                    st.write(f"- **{t('FCF/EPS 연평균 성장률', 'FCF/EPS CAGR')}:** {final_g*100:.1f}% {dcf_source_txt}")
-                    st.write(f"- **{t('추정 적정가', 'Estimated Fair Value')}:** {iv_str}")
-                    if mos_val > 0: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='good'>+[합격] {mos_val:.1f}% ({t('할인', 'Discount')})</span>", unsafe_allow_html=True)
-                    else: st.markdown(f"- **{t('DCF 안전마진', 'DCF Margin of Safety')}:** <span class='highlight'>[주의] {mos_val:.1f}% ({t('할증', 'Premium')})</span>", unsafe_allow_html=True)
+                    st.write(f"**[{t('DCF 기본 가정', 'DCF Base Assumptions')}]** {t('할인율', 'Discount Rate')}: {max(ty, 9.0):.1f}% | {dcf_source_txt}")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    c_w, c_b, c_e = st.columns(3)
+                    str_g = t("성장률", "Growth")
+                    str_fv = t("적정가", "Fair Val")
+                    str_mos = t("안전마진", "MoS")
+                    
+                    val_w = f"{int(iv_worst):,}원" if kr else f"${iv_worst:,.2f}"
+                    val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                    val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
+                    
+                    with c_w:
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{'#3fb950' if mos_worst > 0 else '#ff7b72'}'>{mos_worst:.1f}%</span></div>", unsafe_allow_html=True)
+                    with c_b:
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{'#3fb950' if mos_val > 0 else '#ff7b72'}'>{mos_val:.1f}%</span></div>", unsafe_allow_html=True)
+                    with c_e:
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{'#3fb950' if mos_best > 0 else '#ff7b72'}'>{mos_best:.1f}%</span></div>", unsafe_allow_html=True)
+                    st.markdown("<br>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
                 
