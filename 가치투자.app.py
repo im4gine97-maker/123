@@ -1063,6 +1063,56 @@ with tab1:
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
+                # 생물학 (생존력) 4년 재무제표 부채비율 추적 분석 로직
+                bio_eval = f"<span style='color:#8b949e'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
+                try:
+                    bs = stk.balance_sheet
+                    if bs is not None and not bs.empty:
+                        debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
+                        eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
+                        
+                        if debt_col and eq_col:
+                            debts = bs.loc[debt_col].dropna().values[:4][::-1]
+                            equities = bs.loc[eq_col].dropna().values[:4][::-1]
+                            
+                            if len(debts) > 0 and len(equities) > 0:
+                                curr_d = debts[-1]
+                                curr_e = equities[-1]
+                                
+                                if curr_e > 0:
+                                    curr_de = (curr_d / curr_e) * 100
+                                    
+                                    trend_text = ""
+                                    if len(debts) >= 2 and len(equities) >= 2:
+                                        past_e = equities[0]
+                                        past_d = debts[0]
+                                        if past_e > 0:
+                                            past_de = (past_d / past_e) * 100
+                                            if curr_de < past_de - 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 감소 추세", f"{len(debts)}Y Declining debt")
+                                            elif curr_de > past_de + 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 증가 추세", f"{len(debts)}Y Increasing debt")
+                                            else:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
+                                        else:
+                                            trend_text = t("추세 확인 불가", "Trend N/A")
+                                    else:
+                                        trend_text = t("단기 데이터", "Short-term data")
+
+                                    if is_financial:
+                                        bio_eval = f"<span style='color:#e3b341;'>{t(f'[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다.', f'[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits.')}</span>"
+                                    else:
+                                        if curr_de < 50:
+                                            bio_eval = f"<span class='good'>{t(f'[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다.', f'[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability.')}</span>"
+                                        elif curr_de < 120:
+                                            bio_eval = f"<span style='color:#58a6ff;'>{t(f'[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다.', f'[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability.')}</span>"
+                                        else:
+                                            bio_eval = f"<span class='highlight'>{t(f'[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다.', f'[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk.')}</span>"
+                                else:
+                                    bio_eval = f"<span class='highlight'>{t('[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다.', '[Danger] Capital impairment detected. Fatal survival risk.')}</span>"
+                except:
+                    pass
+
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
@@ -1132,7 +1182,6 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    # 요청하신 대로 라벨 텍스트를 정확하게 '올해시장(eps)컨센서스 vs 실제 주가 괴리'로 간결하게 수정했습니다.
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
@@ -1294,7 +1343,7 @@ with tab1:
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
-                st.write(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {t('부채 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.', 'Check Darwinian survivability regarding debt structure.')}")
+                st.markdown(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {bio_eval}", unsafe_allow_html=True)
                 st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 매수가 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
                 st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
 
@@ -1505,7 +1554,3 @@ st.markdown(f"""
     {lbl_disc_1}<br>
     {lbl_disc_2}</p>
     <p><b>[Copyright]</b><br>
-    ⓒ 2026 VALUE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
