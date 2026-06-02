@@ -576,6 +576,27 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
+# [신규 추가] 시장이 현재 주가에 부여한 '향후 10년 요구 성장률' 역산 로직
+def get_implied_g(fcf, sh, p, ty):
+    if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0: return None
+    low, high = -0.5, 1.0 
+    dr = max(ty / 100, 0.09)
+    for _ in range(40):
+        mid = (low + high) / 2
+        cv = fcf
+        fut_sum = 0
+        for y in range(1, 11):
+            cv *= (1 + mid)
+            fut_sum += cv / ((1 + dr) ** y)
+        tv = (cv * 1.02) / (dr - 0.02)
+        dtv = tv / ((1 + dr) ** 10)
+        iv = (fut_sum + dtv) / sh
+        if iv > p:
+            high = mid
+        else:
+            low = mid
+    return (low + high) / 2
+
 def get_real_roic(stk, i):
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
@@ -979,7 +1000,6 @@ with tab1:
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                # 평균(Base) 모델을 기준으로 종합 투자의견 연산
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
 
                 st.markdown(f"""
@@ -991,6 +1011,21 @@ with tab1:
 
                 st.divider()
 
+                # 주린이를 위한 코멘트 자동 생성 로직
+                if is_financial:
+                    beginner_summary = t(
+                        f"💡 <b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융/보험사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다. 현재 기업의 장부상 자산 가치 대비 <b>{pbr:.2f}배</b>(PBR)의 가격표가 붙어 있습니다.",
+                        f"💡 <b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (Fwd PE), equity grows at <b>{roe:.1f}%/yr</b> (ROE), and priced at <b>{pbr:.2f}x</b> its book value (PBR)."
+                    )
+                else:
+                    beginner_summary = t(
+                        f"💡 <b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 회사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
+                        f"💡 <b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (Fwd PE), and the company grows your money at <b>{roe:.1f}%/yr</b> (ROE)."
+                    )
+
+                st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
+                st.markdown(f"<div style='background-color:#2d333b; padding:12px; border-radius:8px; margin-bottom:15px; font-size:0.95rem; color:#adbac7;'>{beginner_summary}</div>", unsafe_allow_html=True)
+                
                 if pmos_val > 0:
                     per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 저렴하여 할인 구간)</span>"
                 elif pmos_val < 0:
@@ -1012,20 +1047,19 @@ with tab1:
                 else:
                     ey_str = f"{ey:.2f}% <span class='highlight'>(국채에 짐! {abs(erp):.2f}%p 매력도 열위/할증)</span>"
 
-                st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 c1, c2 = st.columns(2)
                 with c1:
                     st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
                     st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
-                    st.markdown(f"- **ROE / ROIC:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
-                    st.write(f"- **{t('현재 PER', 'Current PE')}:** {t_pe:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('Fwd PER', 'Fwd PE')}:** {f_pe:.2f}{t('배', 'x')}")
+                    st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
+                    st.write(f"- **{t('현재 PER (본전 회수 기간)', 'Current PE (Payback Period)')}:** {t_pe:.2f}{t('배', 'x')}")
+                    st.write(f"- **{t('Fwd PER (미래 1년 기준)', 'Fwd PE (Next 1Y)')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
                 with c2:
                     st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
-                    st.write(f"- **PBR:** {pbr:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('10년물 미국채 금리', '10Y US Treasury Yield')}:** {ty:.2f}%")
-                    st.markdown(f"- **{t('예상 이익수익률', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
+                    st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
+                    st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
+                    st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}")
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
 
@@ -1035,7 +1069,14 @@ with tab1:
                 if is_financial:
                     st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
-                    st.write(f"**[{t('DCF 기본 가정', 'DCF Base Assumptions')}]** {t('할인율', 'Discount Rate')}: {max(ty, 9.0):.1f}% | {dcf_source_txt}")
+                    implied_g = get_implied_g(base_fcf, sh, p, ty)
+                    if implied_g is not None:
+                        implied_g_str = f"{implied_g*100:.1f}%"
+                        implied_text = f"<br><span style='color:#e3b341;'><b>※ 현재 주가({p_str}) 정당화 조건 (역산 DCF):</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 합당한 가격입니다. (이 수치가 역대 성장률보다 지나치게 높다면 주가가 고평가되었음을 의미합니다.)</span>"
+                    else:
+                        implied_text = ""
+
+                    st.markdown(f"**[{t('DCF 기본 가정', 'DCF Base Assumptions')}]** {t('할인율', 'Discount Rate')}: {max(ty, 9.0):.1f}% | {dcf_source_txt}{implied_text}", unsafe_allow_html=True)
                     st.markdown("<br>", unsafe_allow_html=True)
                     
                     c_w, c_b, c_e = st.columns(3)
@@ -1077,7 +1118,7 @@ with tab1:
                             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                                 fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
                         
-                        # [추가] 차트 Y축 큰 숫자 깔끔하게 스케일링하는 로직 (조/억 단위 변환)
+                        # [추가] 차트 Y축 큰 숫자 깔끔하게 조/억 단위 변환 로직 적용
                         def scale_vals(data_lists, is_kr):
                             all_v = []
                             for lst in data_lists: all_v.extend([abs(x) for x in lst if pd.notna(x)])
@@ -1192,6 +1233,16 @@ with tab1:
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 할증 시 매도)", "7. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열(할증)되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated (premium).<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
+
+                st.divider()
+
+                # [복구 완료] 거장들의 철학 한마디
+                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
+                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
+                st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
+                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
+                st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
+                st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
             else:
                 st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
