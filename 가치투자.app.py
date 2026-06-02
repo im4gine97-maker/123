@@ -46,10 +46,9 @@ def trigger_scan():
         st.session_state.search_tk = tk
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터 (누락 없음)
+# [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
-    # 한국 주요 우량주 명칭 및 줄임말 매핑
     "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
     "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
@@ -81,7 +80,6 @@ tmap = {
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
 
-    # 미국 주요 빅테크·우량주 명칭 및 한글/줄임말 매핑
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
@@ -115,6 +113,7 @@ tmap = {
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO"
 }
 
+# 요청하신 최신 13F 데이터 완벽 복구
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
@@ -222,6 +221,7 @@ fallback_13f_data = {
     ]
 }
 
+# 시가총액 Top 30 완벽 복구
 us_top30 = [
     {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"},
     {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"},
@@ -373,7 +373,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     tk_clean = str(tk).strip().upper().replace('.B', '-B').replace('.A', '-A')
     cd_clean = str(cd).strip()
     
-    # 104개 전체 기업 리스크 DB 완벽 복원
+    # 104개 기업 리스크 DB 완벽 복구
     db = {
         "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
         "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
@@ -450,7 +450,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
-        # 한국 매칭
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
         "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
@@ -658,18 +657,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif pmos < -15: score -= 20
     else: score -= 10
 
-    # [수정] 금융/보험주와 일반주 평가 시스템 이원화
     if is_financial:
-        # 금융주는 왜곡되는 ROIC를 전혀 반영하지 않고 ROE 효율에 높은 점수 배정
         if roe >= 10: score += 20
         elif roe < 7: score -= 10
-        
-        # 금융주는 무의미한 DCF 안전마진 대신 자산 건전성을 대변하는 PBR 구간을 엄격하게 적용해 가산/감점
         if pbr > 0 and pbr < 0.7: score += 20
         elif pbr >= 0.7 and pbr < 1.1: score += 10
         elif pbr >= 1.5: score -= 20
     else:
-        # 일반 기업 기준
         if roe >= 15: score += 10
         elif roe < 8: score -= 10
         if roic and roic >= 12: score += 10
@@ -1353,7 +1347,7 @@ with tab5:
          t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
         
         ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
+         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
          t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
         
         ("PBR (주가순자산비율)", 
