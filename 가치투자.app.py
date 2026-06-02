@@ -168,7 +168,7 @@ fallback_13f_data = {
         {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
         {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
         {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
-        {"티커": "AON", "plate": "Aon plc", "비중(%)": 4.85},
+        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
         {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
         {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
         {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
@@ -178,7 +178,7 @@ fallback_13f_data = {
         {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
         {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
         {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
-        {"티커": "AERO", "기업명": "Grupo Aer멕시코", "비중(%)": 1.33},
+        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
         {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
     ],
     "AKRE": [
@@ -194,7 +194,7 @@ fallback_13f_data = {
         {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
         {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
         {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
-        {"티ker": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
+        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
         {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
         {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
         {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00},
@@ -229,7 +229,7 @@ us_top30 = [
     {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"},
     {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"},
     {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"},
-    {"순위": 12, "티ker": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
+    {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
     {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"},
     {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"},
     {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"},
@@ -258,7 +258,7 @@ kr_top30 = [
     {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"},
     {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"},
     {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"},
-    {"순위": 8, "티커": "105560", "KB금융": "KB금융", "시가총액": "57조 원"},
+    {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"},
     {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"},
     {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"},
     {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"},
@@ -1051,9 +1051,13 @@ with tab1:
                 if has_eps_g and has_ytd:
                     gap = ytd_ret - eps_g_val
                     if gap > 0:
-                        gap_text = f" ➔ <span class='highlight'>{t(f'[주가 {gap:.1f}%p 초과 상승 - 과열 유의]', f'[Price outpaced by {gap:.1f}%p - Watch for overheating]')}</span>"
+                        txt_ko = f"[주가 {gap:.1f}%p 초과 상승 - 과열 유의]"
+                        txt_en = f"[Price outpaced by {gap:.1f}%p - Watch for overheating]"
+                        gap_text = f" ➔ <span class='highlight'>{t(txt_ko, txt_en)}</span>"
                     elif gap < 0:
-                        gap_text = f" ➔ <span class='good'>{t(f'[주가 {abs(gap):.1f}%p 덜 오름 - 기회 가능성]', f'[Price lagged by {abs(gap):.1f}%p - Potential opportunity]')}</span>"
+                        txt_ko = f"[주가 {abs(gap):.1f}%p 덜 오름 - 기회 가능성]"
+                        txt_en = f"[Price lagged by {abs(gap):.1f}%p - Potential opportunity]"
+                        gap_text = f" ➔ <span class='good'>{t(txt_ko, txt_en)}</span>"
                     else:
                         gap_text = f" ➔ <span>{t('[기대치와 주가 일치]', '[In line with expectations]')}</span>"
                 else:
@@ -1100,16 +1104,26 @@ with tab1:
                                         trend_text = t("단기 데이터", "Short-term data")
 
                                     if is_financial:
-                                        bio_eval = f"<span style='color:#e3b341;'>{t(f'[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다.', f'[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits.')}</span>"
+                                        t_ko = f"[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
+                                        t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
+                                        bio_eval = f"<span style='color:#e3b341;'>{t(t_ko, t_en)}</span>"
                                     else:
                                         if curr_de < 50:
-                                            bio_eval = f"<span class='good'>{t(f'[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다.', f'[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability.')}</span>"
+                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다."
+                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
+                                            bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
                                         elif curr_de < 120:
-                                            bio_eval = f"<span style='color:#58a6ff;'>{t(f'[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다.', f'[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability.')}</span>"
+                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다."
+                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
+                                            bio_eval = f"<span style='color:#58a6ff;'>{t(t_ko, t_en)}</span>"
                                         else:
-                                            bio_eval = f"<span class='highlight'>{t(f'[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다.', f'[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk.')}</span>"
+                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다."
+                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
+                                            bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                                 else:
-                                    bio_eval = f"<span class='highlight'>{t('[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다.', '[Danger] Capital impairment detected. Fatal survival risk.')}</span>"
+                                    t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
+                                    t_en = "[Danger] Capital impairment detected. Fatal survival risk."
+                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                 except:
                     pass
 
@@ -1554,3 +1568,7 @@ st.markdown(f"""
     {lbl_disc_1}<br>
     {lbl_disc_2}</p>
     <p><b>[Copyright]</b><br>
+    ⓒ 2026 VALUE. All rights reserved.<br>
+    {lbl_copy}</p>
+</div>
+""", unsafe_allow_html=True)
