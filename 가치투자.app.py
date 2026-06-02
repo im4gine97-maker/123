@@ -621,7 +621,6 @@ def get_real_roic(stk, i):
         pass
     return None
 
-# [수정] EPS, BPS 추세에 직관적인 합격/주의 색상(초록/빨강) 태그 적용
 def analyze_trends(stk):
     eps_trend = f"<span style='color:#8b949e'>{t('데이터 부족', 'Insufficient Data')}</span>"
     bps_trend = f"<span style='color:#8b949e'>{t('데이터 부족', 'Insufficient Data')}</span>"
@@ -994,16 +993,18 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
-                # EPS 성장률 컨센서스 산출
+                # EPS 컨센서스 및 YTD 괴리 분석 로직
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps'))
                 if t_eps == 0 and t_pe > 0: t_eps = p / t_pe
                 if f_eps == 0 and f_pe > 0: f_eps = p / f_pe
                 
+                has_eps_g = False
                 if t_eps > 0 and f_eps > 0:
                     eps_g_val = ((f_eps - t_eps) / t_eps) * 100
                     eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
                     eps_col = "#3fb950" if eps_g_val > 0 else "#ff7b72"
+                    has_eps_g = True
                 elif t_eps < 0 and f_eps > 0:
                     eps_g_str = t("흑자전환", "Turnaround")
                     eps_col = "#3fb950"
@@ -1017,7 +1018,7 @@ with tab1:
                     eps_g_str = t("확인불가", "N/A")
                     eps_col = "#8b949e"
                     
-                # 올해 YTD 주가 수익률 산출
+                has_ytd = False
                 try:
                     hist_ytd = stk.history(period="ytd")
                     if not hist_ytd.empty and len(hist_ytd) >= 2:
@@ -1025,14 +1026,28 @@ with tab1:
                         ytd_ret = ((p - ytd_start) / ytd_start) * 100
                         ytd_str = f"+{ytd_ret:.1f}%" if ytd_ret > 0 else f"{ytd_ret:.1f}%"
                         ytd_col = "#3fb950" if ytd_ret > 0 else "#ff7b72"
+                        has_ytd = True
                     else:
                         ytd_str = "N/A"
                         ytd_col = "#8b949e"
                 except:
                     ytd_str = "N/A"
                     ytd_col = "#8b949e"
+
+                # 기대치 vs 주가 괴리(Gap) 평가 텍스트 생성
+                gap_text = ""
+                if has_eps_g and has_ytd:
+                    gap = ytd_ret - eps_g_val
+                    if gap > 0:
+                        gap_text = f" ➔ <span class='highlight'>{t(f'[주가 {gap:.1f}%p 초과 상승 - 과열 유의]', f'[Price outpaced by {gap:.1f}%p - Watch for overheating]')}</span>"
+                    elif gap < 0:
+                        gap_text = f" ➔ <span class='good'>{t(f'[주가 {abs(gap):.1f}%p 덜 오름 - 기회 가능성]', f'[Price lagged by {abs(gap):.1f}%p - Potential opportunity]')}</span>"
+                    else:
+                        gap_text = f" ➔ <span>{t('[기대치와 주가 일치]', '[In line with expectations]')}</span>"
+                else:
+                    gap_text = f" ➔ <span style='color:#8b949e'>{t('[비교 불가]', '[N/A]')}</span>"
                     
-                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (EPS) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (YTD 주가)"
+                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (EPS) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (YTD 주가){gap_text}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
@@ -1473,12 +1488,4 @@ lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 
 lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
 
 st.markdown(f"""
-<div translate="no" style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>{lbl_disc_title}</b><br>
-    {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
-    <p><b>[Copyright]</b><br>
-    ⓒ 2026 VALUE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
+<div translate="no" style='text-align: center; color: #8b949e; font-size: 0.85rem; line-height: 1.
