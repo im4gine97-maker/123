@@ -49,6 +49,7 @@ def trigger_scan():
 # [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
+    # 한국 주요 우량주
     "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
     "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
@@ -80,6 +81,7 @@ tmap = {
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
 
+    # 미국 주요 빅테크·우량주
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
@@ -113,7 +115,6 @@ tmap = {
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO"
 }
 
-# 요청하신 최신 13F 데이터 완벽 복구
 fallback_13f_data = {
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
@@ -221,7 +222,6 @@ fallback_13f_data = {
     ]
 }
 
-# 시가총액 Top 30 완벽 복구
 us_top30 = [
     {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"},
     {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"},
@@ -329,7 +329,7 @@ def fetch_macro_realtime_v6():
     
     return res
 
-@st.cache_data
+# 13F 캐시 오류를 유발했던 @st.cache_data 데코레이터 삭제 완료
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
 
@@ -373,7 +373,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     tk_clean = str(tk).strip().upper().replace('.B', '-B').replace('.A', '-A')
     cd_clean = str(cd).strip()
     
-    # 104개 기업 리스크 DB 완벽 복구
     db = {
         "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
         "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
@@ -450,6 +449,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
+        # 한국 매칭
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
         "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
@@ -471,7 +471,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
         "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
         "138040": "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다).",
-        "096770": "SK이노베이션 (박상규): 정유 부문의 현금을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
+        "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
         "329180": "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)",
         "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
         "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
@@ -565,7 +565,6 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len
     except: return None, None, 0.05, 0
 
-# [통합 금융주 대응 로직 적용] 금융/보험주의 무의미한 FCF 적자로 인한 오판 방지
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
@@ -629,7 +628,6 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# [통합 금융주 대응 로직 적용] 금융/보험주에 최적화된 스코어 가중치 및 PBR 교차 검증 연산 추가
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
     score = 0
     ceo_score = 0
@@ -1258,6 +1256,10 @@ with tab2:
             df.index = df.index + 1
             st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
+            # 비중 0% (비중 미상) 처리 문구 삽입
+            if (df["비중(%)"] == 0.0).any():
+                st.caption(t("※ 비중이 0.00%로 표기된 종목은 비중 미상이거나 전량 매도된 종목입니다. (이건 확인이 필요한 부분입니다)", "※ Stocks with 0.00% weight are unknown or fully sold. (Needs verification)"))
+            
             st.markdown("---")
             st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
             c_tk, c_btn = st.columns([3, 1])
@@ -1347,7 +1349,7 @@ with tab5:
          t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
         
         ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
+         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
          t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
         
         ("PBR (주가순자산비율)", 
