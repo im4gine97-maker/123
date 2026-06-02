@@ -932,6 +932,9 @@ with tab1:
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
+                # [오류 해결 추가 코드] i가 None일 경우 빈 딕셔너리로 처리하여 get() 함수 에러 방지
+                i = i if isinstance(i, dict) else {}
+
                 is_financial = i.get('sector') == 'Financial Services' or i.get('industry') in ['Banks - Regional', 'Banks - Diversified', 'Capital Markets', 'Credit Services', 'Insurance - Specialists', 'Insurance - Life', 'Insurance - Property & Casualty', 'Insurance Brokers', 'Insurance - Diversified']
                 
                 c_title, c_star = st.columns([4, 1])
@@ -1132,7 +1135,7 @@ with tab1:
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견 도출을 진행했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
