@@ -14,14 +14,9 @@ st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="exp
 # [1] 세션 상태 초기화 및 글로벌 유틸리티
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
-if "history" not in st.session_state: st.session_state.history = []
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
-
-if "search_ranking" not in st.session_state: st.session_state.search_ranking = {}
-if "stock_comments" not in st.session_state: st.session_state.stock_comments = {}
-if "community_posts" not in st.session_state: st.session_state.community_posts = []
 
 def t(ko, en):
     return ko if st.session_state.lang == "ko" else en
@@ -49,7 +44,6 @@ def trigger_scan():
 # [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
-    # 한국 주요 우량주
     "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
     "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
@@ -81,7 +75,6 @@ tmap = {
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
 
-    # 미국 주요 빅테크·우량주
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
@@ -755,18 +748,6 @@ with st.sidebar:
         
     st.divider()
     
-    st.header(t("실시간 인기 종목", "Trending Stocks"))
-    if not st.session_state.search_ranking:
-        st.caption(t("아직 검색된 종목이 없습니다.", "No searches yet."))
-    else:
-        top_5 = sorted(st.session_state.search_ranking.items(), key=lambda x: x[1], reverse=True)[:5]
-        for i, (rtk, count) in enumerate(top_5):
-            if st.button(f"{i+1}. {rtk} ({count}{t('회', ' hits')})", key=f"rank_{rtk}", use_container_width=True):
-                st.session_state.search_tk = rtk
-                st.rerun()
-                
-    st.divider()
-    
     st.header(t("내 서재", "My Library"))
     st.subheader(t("관심 종목 (즐겨찾기)", "Bookmarks"))
     if not st.session_state.bookmarks:
@@ -780,24 +761,6 @@ with st.sidebar:
             with c2:
                 if st.button("X", key=f"del_bk_{b_tk}"):
                     st.session_state.bookmarks.remove(b_tk); st.rerun()
-                    
-    st.divider()
-    
-    st.subheader(t("최근 검색 기록", "Recent Searches"))
-    if not st.session_state.history:
-        st.caption(t("검색 기록이 없습니다.", "No recent searches."))
-    else:
-        if st.button(t("전체 삭제", "Clear All History"), use_container_width=True):
-            st.session_state.history = []; st.rerun()
-            
-        for h_tk in reversed(st.session_state.history):
-            c1, c2 = st.columns([4, 1])
-            with c1:
-                if st.button(h_tk, key=f"h_{h_tk}", use_container_width=True):
-                    st.session_state.search_tk = h_tk; st.rerun()
-            with c2:
-                if st.button("X", key=f"del_h_{h_tk}"):
-                    st.session_state.history.remove(h_tk); st.rerun()
                     
     st.divider()
     
@@ -819,8 +782,6 @@ h1,h2,h3{color:#58a6ff;font-weight:700;}
 .stTabs [aria-selected="true"]{color:#58a6ff;border-bottom:2px solid #58a6ff;}
 .macro-ticker::-webkit-scrollbar{display:none;}
 .macro-ticker{-ms-overflow-style:none;scrollbar-width:none;}
-.comment-box{background-color:#1c2128;padding:15px;border-radius:8px;border-left:4px solid #8b949e;margin-bottom:10px;color:#e6edf3;}
-.comment-time{font-size:0.8rem;color:#8b949e;}
 div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
 #vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
 [data-testid="stElementToolbar"]{display:none!important;}
@@ -899,10 +860,9 @@ with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익�
 
 st.markdown("<div style='margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
-    t("커뮤니티", "Community"),
     t("시가총액 랭킹", "Market Cap Top 30"),
     t("주식 용어 사전", "Stock Glossary"),
     t("VALUE 철학", "About VALUE")
@@ -928,10 +888,6 @@ with tab1:
 
     if st.session_state.search_tk:
         tk = st.session_state.search_tk
-        
-        if tk in st.session_state.history: st.session_state.history.remove(tk)
-        st.session_state.history.append(tk)
-        st.session_state.search_ranking[tk] = st.session_state.search_ranking.get(tk, 0) + 1
 
         st_container = st.empty()
         with st_container.container():
@@ -943,7 +899,6 @@ with tab1:
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
-                # 대분류 섹터와 세부 산업 필터링을 병합해 금융/보험주 자동 통합 판별
                 is_financial = i.get('sector') == 'Financial Services' or i.get('industry') in ['Banks - Regional', 'Banks - Diversified', 'Capital Markets', 'Credit Services', 'Insurance - Specialists', 'Insurance - Life', 'Insurance - Property & Casualty', 'Insurance Brokers', 'Insurance - Diversified']
                 
                 c_title, c_star = st.columns([4, 1])
@@ -974,7 +929,6 @@ with tab1:
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
-                # 금융/보험주일 경우 ROIC 텍스트 예외 처리
                 if is_financial:
                     roic_str = t("금융/보험주 제외", "N/A (Financial)")
                 else:
@@ -1016,13 +970,11 @@ with tab1:
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
-                # 금융/보험주 식별 변수 전달
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                # 금융/보험주 밸런싱이 완벽하게 가미된 종합 스코어 엔진 구동
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
 
                 st.markdown(f"""
@@ -1041,7 +993,6 @@ with tab1:
                 else:
                     per_mos_str = f"확인 필요"
 
-                # 금융/보험주에 적합한 허들 및 텍스트 적용
                 if is_financial:
                     if roe >= 10: rr_eval = f"<span class='good'>{t('훌륭함 (금융/보험주 기준 탁월한 자본 효율성)', 'Excellent (Great for Financials)')}</span>"
                     elif roe >= 7: rr_eval = f"<span style='color:#58a6ff;'>{t('양호함 (준수한 수익성)', 'Good (Decent profitability)')}</span>"
@@ -1076,7 +1027,6 @@ with tab1:
                 st.divider()
                 
                 st.subheader(t("2. 10년 DCF (내재가치 추정)", "2. 10-Year DCF (Intrinsic Value)"))
-                # 금융/보험주의 FCF 변동성 왜곡에 대응한 텍스트 대체
                 if is_financial:
                     st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
@@ -1172,7 +1122,6 @@ with tab1:
                 elif pmos_val < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
                 else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
                 
-                # 금융/보험주의 자동체크 항목 분기 매칭
                 if is_financial:
                     if pbr < 0.8: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배 - 청산가치 대비 극심한 저평가 상태)</span>"
                     elif pbr < 1.2: p_txt += f"- PBR: <span style='color:#e3b341;'>[적정 가치] ({pbr:.2f}배)</span>"
@@ -1217,23 +1166,6 @@ with tab1:
                 st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
-                st.divider()
-
-                st.subheader(f"{tk} {t('종목 토론방', 'Discussion Board')}")
-                if tk not in st.session_state.stock_comments: st.session_state.stock_comments[tk] = []
-                for cmt in reversed(st.session_state.stock_comments[tk]):
-                    st.markdown(f"<div class='comment-box'><b>{cmt['user']}</b> <span class='comment-time'>({cmt['time']})</span><br>{cmt['text']}</div>", unsafe_allow_html=True)
-                if not st.session_state.stock_comments[tk]:
-                    st.caption(t("아직 작성된 코멘트가 없습니다. 첫 번째 의견을 남겨주세요.", "No comments yet. Be the first to share your thoughts."))
-
-                with st.form(key=f"comment_form_{tk}", clear_on_submit=True):
-                    c_user, c_txt = st.columns([1, 4])
-                    with c_user: user_name = st.text_input(t("닉네임", "Nickname"), placeholder=t("가치투자자", "Value Investor"))
-                    with c_txt: user_text = st.text_input(t("코멘트 남기기", "Add a comment"), placeholder=t("이 종목의 해자(Moat)는 무엇이라고 생각하시나요?", "What is this company's moat?"))
-                    if st.form_submit_button(t("등록", "Post")) and user_text:
-                        st.session_state.stock_comments[tk].append({"user": user_name if user_name else t("익명", "Anonymous"), "text": user_text, "time": datetime.now().strftime("%H:%M")})
-                        st.rerun()
-
             else:
                 st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
@@ -1256,7 +1188,6 @@ with tab2:
             df.index = df.index + 1
             st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
-            # 비중 0% (비중 미상) 처리 문구 삽입
             if (df["비중(%)"] == 0.0).any():
                 st.caption(t("※ 비중이 0.00%로 표기된 종목은 비중 미상이거나 전량 매도된 종목입니다. (이건 확인이 필요한 부분입니다)", "※ Stocks with 0.00% weight are unknown or fully sold. (Needs verification)"))
             
@@ -1273,41 +1204,9 @@ with tab2:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
 # ==========================================
-# 탭 3: 커뮤니티
+# 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
 with tab3:
-    st.subheader(t("글로벌 밸류 커뮤니티 (자유 게시판)", "Global Value Community (Free Board)"))
-    st.caption(t("※ 가치투자 철학, 매크로 시황, 유망 종목에 대해 자유롭게 토론하는 공간입니다. (현재 버전은 임시 메모리를 사용하므로 새로고침 시 초기화됩니다.)", "※ Discuss value investing, macro, and stocks freely. (Currently uses session memory and resets on refresh.)"))
-    
-    with st.form(key="community_form", clear_on_submit=True):
-        f_user = st.text_input(t("닉네임", "Nickname"), placeholder=t("찰리 멍거 지망생", "Munger Wannabe"))
-        f_text = st.text_area(t("내용", "Message"), placeholder=t("어떤 훌륭한 기업을 발견하셨나요?", "Did you find any wonderful companies?"), height=100)
-        
-        if st.form_submit_button(t("글 남기기", "Post to Community")):
-            if f_text:
-                st.session_state.community_posts.append({"user": f_user if f_user else t("익명", "Anonymous"), "text": f_text, "time": datetime.now().strftime("%m-%d %H:%M")})
-                st.rerun()
-
-    st.divider()
-    
-    if not st.session_state.community_posts:
-        st.info(t("아직 커뮤니티에 등록된 글이 없습니다. 첫 번째 이야기를 꺼내보세요.", "No posts in the community yet. Start the conversation."))
-    else:
-        for post in reversed(st.session_state.community_posts):
-            st.markdown(f"""
-            <div style="background-color: #161b22; color: #c9d1d9; padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <strong style="color: #58a6ff; font-size: 1.1rem;">{post['user']}</strong>
-                    <span style="color: #8b949e; font-size: 0.85rem;">{post['time']}</span>
-                </div>
-                <div style="font-size: 1.05rem; line-height: 1.5;">{post['text']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-# ==========================================
-# 탭 4: 시가총액 랭킹 TOP 30
-# ==========================================
-with tab4:
     st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market Cap TOP 30"))
     st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
     
@@ -1332,9 +1231,9 @@ with tab4:
             st.rerun() 
 
 # ==========================================
-# 탭 5: 주식 용어 사전 
+# 탭 4: 주식 용어 사전 
 # ==========================================
-with tab5:
+with tab4:
     st.subheader(t("주식 용어 사전", "Stock Glossary"))
     st.write(t("앱에서 자주 쓰이는 금융 용어들을 알기 쉽게 설명해 드립니다.", "Complex financial jargon used in this app, explained simply using everyday analogies."))
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1396,9 +1295,9 @@ with tab5:
         """, unsafe_allow_html=True)
 
 # ==========================================
-# 탭 6: VALUE 철학
+# 탭 5: VALUE 철학
 # ==========================================
-with tab6:
+with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
     phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
