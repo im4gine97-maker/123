@@ -576,7 +576,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
         return iv, mos, None
     except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 
-# [신규 추가] 시장이 현재 주가에 부여한 '향후 10년 요구 성장률' 역산 로직
+# 시장이 현재 주가에 부여한 '향후 10년 요구 성장률' 역산 로직
 def get_implied_g(fcf, sh, p, ty):
     if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0: return None
     low, high = -0.5, 1.0 
@@ -621,8 +621,10 @@ def get_real_roic(stk, i):
         pass
     return None
 
+# [수정] EPS, BPS 추세에 직관적인 합격/주의 색상(초록/빨강) 태그 적용
 def analyze_trends(stk):
-    eps_trend, bps_trend = t("데이터 부족", "Insufficient Data"), t("데이터 부족", "Insufficient Data")
+    eps_trend = f"<span style='color:#8b949e'>{t('데이터 부족', 'Insufficient Data')}</span>"
+    bps_trend = f"<span style='color:#8b949e'>{t('데이터 부족', 'Insufficient Data')}</span>"
     if stk is None: return eps_trend, bps_trend
     try:
         inc, bs = stk.income_stmt, stk.balance_sheet
@@ -631,13 +633,17 @@ def analyze_trends(stk):
             if target_col:
                 eps_vals = inc.loc[target_col].dropna().values[:4][::-1] 
                 if len(eps_vals) >= 3:
-                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: eps_trend = t("[합격] 4년 지속 상승 추세", "[Pass] 4Y Consistent Upward Trend")
-                    else: eps_trend = t("[주의] 변동/하락", "[Warning] Fluctuating/Declining")
+                    if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: 
+                        eps_trend = f"<span class='good'>{t('[합격] 4년 지속 상승 추세', '[Pass] 4Y Consistent Upward Trend')}</span>"
+                    else: 
+                        eps_trend = f"<span class='highlight'>{t('[주의] 변동/하락', '[Warning] Fluctuating/Declining')}</span>"
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
-                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: bps_trend = t("[합격] 4년 자본 지속 증가", "[Pass] 4Y Consistent Equity Growth")
-                else: bps_trend = t("[주의] 자본 변동/감소", "[Warning] Equity Fluctuating/Declining")
+                if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: 
+                    bps_trend = f"<span class='good'>{t('[합격] 4년 자본 지속 증가', '[Pass] 4Y Consistent Equity Growth')}</span>"
+                else: 
+                    bps_trend = f"<span class='highlight'>{t('[주의] 자본 변동/감소', '[Warning] Equity Fluctuating/Declining')}</span>"
     except: pass
     return eps_trend, bps_trend
 
@@ -988,13 +994,51 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
+                # EPS 성장률 컨센서스 산출
+                t_eps = safe_float(i.get('trailingEps'))
+                f_eps = safe_float(i.get('forwardEps'))
+                if t_eps == 0 and t_pe > 0: t_eps = p / t_pe
+                if f_eps == 0 and f_pe > 0: f_eps = p / f_pe
+                
+                if t_eps > 0 and f_eps > 0:
+                    eps_g_val = ((f_eps - t_eps) / t_eps) * 100
+                    eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
+                    eps_col = "#3fb950" if eps_g_val > 0 else "#ff7b72"
+                elif t_eps < 0 and f_eps > 0:
+                    eps_g_str = t("흑자전환", "Turnaround")
+                    eps_col = "#3fb950"
+                elif t_eps > 0 and f_eps < 0:
+                    eps_g_str = t("적자전환", "Turn to Loss")
+                    eps_col = "#ff7b72"
+                elif t_eps < 0 and f_eps < 0:
+                    eps_g_str = t("적자지속", "Continued Loss")
+                    eps_col = "#ff7b72"
+                else:
+                    eps_g_str = t("확인불가", "N/A")
+                    eps_col = "#8b949e"
+                    
+                # 올해 YTD 주가 수익률 산출
+                try:
+                    hist_ytd = stk.history(period="ytd")
+                    if not hist_ytd.empty and len(hist_ytd) >= 2:
+                        ytd_start = hist_ytd['Close'].iloc[0]
+                        ytd_ret = ((p - ytd_start) / ytd_start) * 100
+                        ytd_str = f"+{ytd_ret:.1f}%" if ytd_ret > 0 else f"{ytd_ret:.1f}%"
+                        ytd_col = "#3fb950" if ytd_ret > 0 else "#ff7b72"
+                    else:
+                        ytd_str = "N/A"
+                        ytd_col = "#8b949e"
+                except:
+                    ytd_str = "N/A"
+                    ytd_col = "#8b949e"
+                    
+                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (EPS) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (YTD 주가)"
+
                 eps_trend, bps_trend = analyze_trends(stk)
                 
-                # 평균(Base) 연산
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
-                # 최상(Best), 최악(Worst) 추가 시나리오 연산
                 iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, ty, min(final_g * 1.5, 0.25), is_financial)
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
@@ -1011,7 +1055,6 @@ with tab1:
 
                 st.divider()
 
-                # 주린이를 위한 코멘트 자동 생성 로직
                 if is_financial:
                     beginner_summary = t(
                         f"💡 <b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융/보험사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다. 현재 기업의 장부상 자산 가치 대비 <b>{pbr:.2f}배</b>(PBR)의 가격표가 붙어 있습니다.",
@@ -1060,8 +1103,9 @@ with tab1:
                     st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}")
-                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}")
+                    st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('올해 시장 컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
@@ -1072,7 +1116,7 @@ with tab1:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
                         implied_g_str = f"{implied_g*100:.1f}%"
-                        implied_text = f"<br><span style='color:#e3b341;'><b>※ 현재 주가({p_str}) 정당화 조건 (역산 DCF):</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 합당한 가격입니다. (이 수치가 역대 성장률보다 지나치게 높다면 주가가 고평가되었음을 의미합니다.)</span>"
+                        implied_text = f"<br><span style='color:#e3b341;'><b>※ 현재 주가({p_str}) 정당화 조건 (역산 DCF):</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 현재 주가가 합리적이라고 볼 수 있습니다. 이 수치가 해당 기업의 한계치를 넘는다면 비상식적 고평가 상태입니다.</span>"
                     else:
                         implied_text = ""
 
@@ -1118,7 +1162,6 @@ with tab1:
                             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                                 fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
                         
-                        # [추가] 차트 Y축 큰 숫자 깔끔하게 조/억 단위 변환 로직 적용
                         def scale_vals(data_lists, is_kr):
                             all_v = []
                             for lst in data_lists: all_v.extend([abs(x) for x in lst if pd.notna(x)])
@@ -1236,7 +1279,6 @@ with tab1:
 
                 st.divider()
 
-                # [복구 완료] 거장들의 철학 한마디
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
