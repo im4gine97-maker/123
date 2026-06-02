@@ -168,7 +168,7 @@ fallback_13f_data = {
         {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
         {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
         {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
-        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
+        {"티커": "AON", "plate": "Aon plc", "비중(%)": 4.85},
         {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
         {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
         {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
@@ -178,7 +178,7 @@ fallback_13f_data = {
         {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
         {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
         {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
-        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
+        {"티커": "AERO", "기업명": "Grupo Aer멕시코", "비중(%)": 1.33},
         {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
     ],
     "AKRE": [
@@ -229,7 +229,7 @@ us_top30 = [
     {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"},
     {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"},
     {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"},
-    {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
+    {"순위": 12, "티ker": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
     {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"},
     {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"},
     {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"},
@@ -258,7 +258,7 @@ kr_top30 = [
     {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"},
     {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"},
     {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"},
-    {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"},
+    {"순위": 8, "티커": "105560", "KB금융": "KB금융", "시가총액": "57조 원"},
     {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"},
     {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"},
     {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"},
@@ -297,7 +297,11 @@ def fetch_macro_realtime_v6():
     for name, tk in macro_symbols.items():
         try:
             stk = yf.Ticker(tk)
-            hist = stk.history(period="5d")
+            # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
+            hist = stk.history(period="7d")
+            if hist is not None and not hist.empty:
+                hist = hist.dropna(subset=['Close'])
+                
             if len(hist) >= 2:
                 last_p = safe_float(hist['Close'].iloc[-1])
                 prev_p = safe_float(hist['Close'].iloc[-2])
@@ -333,7 +337,6 @@ def fetch_naver_finance_news(cd):
     news_list = []
     try:
         r = requests.get(url, headers=headers, timeout=5)
-        # 네이버 금융의 고질적인 한글 깨짐 문제를 해결하는 핵심 코드
         r.encoding = 'euc-kr' 
         soup = BeautifulSoup(r.text, 'html.parser')
         titles = soup.select('td.title a')
@@ -932,7 +935,6 @@ with tab1:
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
-                # [오류 해결 추가 코드] i가 명백한 None일 때만 빈 딕셔너리로 치환하여 기존 데이터 증발 방지
                 if i is None:
                     i = {}
 
@@ -1128,9 +1130,10 @@ with tab1:
                     st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('올해 시장 컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
+                    # 초보자를 위해 EPS, BPS, 컨센서스 지표 우측에 직관적인 한 줄 비유 설명 추가
+                    st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('올해 시장 컨센서스 vs 실제 주가 괴리 (증권사 평균 기대치 대비 주가의 과열/소외 판정)', 'Consensus vs YTD Price Gap / Analyst Expectations vs Stock Price)')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
