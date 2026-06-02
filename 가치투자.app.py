@@ -229,7 +229,7 @@ us_top30 = [
     {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"},
     {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"},
     {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"},
-    {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
+    {"순위": 12, "티ker": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
     {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"},
     {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"},
     {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"},
@@ -1059,7 +1059,6 @@ with tab1:
                 else:
                     gap_text = f" ➔ <span style='color:#8b949e'>{t('[비교 불가]', '[N/A]')}</span>"
                     
-                # 초보자가 이해하기 쉽도록 기호 용어를 구체적인 한글 뜻으로 풀어서 매핑
                 eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (예상 실적 성장률) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (올해 실제 주가 상승·변동률){gap_text}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
@@ -1133,8 +1132,8 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    # 초보자 요청에 따라 명칭 및 괄호 설명 고도화 (Analyst Expectations vs YTD Actual Stock Price Change)
-                    st.markdown(f"- **{t('올해 시장 컨센서스 vs 실제 주가 괴리 (증권사 실적 기대치 변화 vs 올해 실제 주가 상승·변동률)', 'Consensus vs Actual Price Gap (Analyst Expectations vs Year-to-Date Price Performance)')}** : {eps_vs_ytd_html}", unsafe_allow_html=True)
+                    # 요청하신 대로 라벨 텍스트를 정확하게 '올해시장(eps)컨센서스 vs 실제 주가 괴리'로 간결하게 수정했습니다.
+                    st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
