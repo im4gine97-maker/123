@@ -297,11 +297,7 @@ def fetch_macro_realtime_v6():
     for name, tk in macro_symbols.items():
         try:
             stk = yf.Ticker(tk)
-            # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
-            hist = stk.history(period="7d")
-            if hist is not None and not hist.empty:
-                hist = hist.dropna(subset=['Close'])
-                
+            hist = stk.history(period="5d")
             if len(hist) >= 2:
                 last_p = safe_float(hist['Close'].iloc[-1])
                 prev_p = safe_float(hist['Close'].iloc[-2])
@@ -453,6 +449,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
+        # 한국 매칭
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
         "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
@@ -935,9 +932,6 @@ with tab1:
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
-                if i is None:
-                    i = {}
-
                 is_financial = i.get('sector') == 'Financial Services' or i.get('industry') in ['Banks - Regional', 'Banks - Diversified', 'Capital Markets', 'Credit Services', 'Insurance - Specialists', 'Insurance - Life', 'Insurance - Property & Casualty', 'Insurance Brokers', 'Insurance - Diversified']
                 
                 c_title, c_star = st.columns([4, 1])
@@ -969,10 +963,10 @@ with tab1:
                 real_roic = get_real_roic(stk, i)
                 
                 if is_financial:
-                    roic_str = t("금융/보험주 제외", "N/A (Financial)")
+                    roic_str = f"<span style='color:#8b949e'>{t('금융/보험주 제외', 'N/A (Financial)')}</span>"
                 else:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족 (확인 요망)", "N/A (Needs verification)")
+                    else: roic_str = f"<span style='color:#8b949e'>{t('데이터 부족 (확인 요망)', 'N/A (Needs verification)')}</span>"
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
@@ -982,7 +976,7 @@ with tab1:
                 if kr: div = div_yield * 100
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
-                div_trend = t("확인 불가", "N/A")
+                div_trend = f"<span style='color:#8b949e'>{t('확인 불가', 'N/A')}</span>"
                 try:
                     div_history = stk.dividends
                     if not div_history.empty:
@@ -1051,82 +1045,18 @@ with tab1:
                 if has_eps_g and has_ytd:
                     gap = ytd_ret - eps_g_val
                     if gap > 0:
-                        txt_ko = f"[주가 {gap:.1f}%p 초과 상승 - 과열 유의]"
-                        txt_en = f"[Price outpaced by {gap:.1f}%p - Watch for overheating]"
-                        gap_text = f" ➔ <span class='highlight'>{t(txt_ko, txt_en)}</span>"
+                        gap_text = f" ➔ <span class='highlight'>{t(f'[주가 {gap:.1f}%p 초과 상승 - 과열 유의]', f'[Price outpaced by {gap:.1f}%p - Watch for overheating]')}</span>"
                     elif gap < 0:
-                        txt_ko = f"[주가 {abs(gap):.1f}%p 덜 오름 - 기회 가능성]"
-                        txt_en = f"[Price lagged by {abs(gap):.1f}%p - Potential opportunity]"
-                        gap_text = f" ➔ <span class='good'>{t(txt_ko, txt_en)}</span>"
+                        gap_text = f" ➔ <span class='good'>{t(f'[주가 {abs(gap):.1f}%p 덜 오름 - 기회 가능성]', f'[Price lagged by {abs(gap):.1f}%p - Potential opportunity]')}</span>"
                     else:
                         gap_text = f" ➔ <span>{t('[기대치와 주가 일치]', '[In line with expectations]')}</span>"
                 else:
                     gap_text = f" ➔ <span style='color:#8b949e'>{t('[비교 불가]', '[N/A]')}</span>"
                     
-                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (예상 실적 성장률) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (올해 실제 주가 상승·변동률){gap_text}"
+                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (EPS) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (YTD 주가){gap_text}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
-                # 생물학 (생존력) 4년 재무제표 부채비율 추적 분석 로직
-                bio_eval = f"<span style='color:#8b949e'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
-                try:
-                    bs = stk.balance_sheet
-                    if bs is not None and not bs.empty:
-                        debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
-                        eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
-                        
-                        if debt_col and eq_col:
-                            debts = bs.loc[debt_col].dropna().values[:4][::-1]
-                            equities = bs.loc[eq_col].dropna().values[:4][::-1]
-                            
-                            if len(debts) > 0 and len(equities) > 0:
-                                curr_d = debts[-1]
-                                curr_e = equities[-1]
-                                
-                                if curr_e > 0:
-                                    curr_de = (curr_d / curr_e) * 100
-                                    
-                                    trend_text = ""
-                                    if len(debts) >= 2 and len(equities) >= 2:
-                                        past_e = equities[0]
-                                        past_d = debts[0]
-                                        if past_e > 0:
-                                            past_de = (past_d / past_e) * 100
-                                            if curr_de < past_de - 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 감소 추세", f"{len(debts)}Y Declining debt")
-                                            elif curr_de > past_de + 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 증가 추세", f"{len(debts)}Y Increasing debt")
-                                            else:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
-                                        else:
-                                            trend_text = t("추세 확인 불가", "Trend N/A")
-                                    else:
-                                        trend_text = t("단기 데이터", "Short-term data")
-
-                                    if is_financial:
-                                        t_ko = f"[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
-                                        t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
-                                        bio_eval = f"<span style='color:#e3b341;'>{t(t_ko, t_en)}</span>"
-                                    else:
-                                        if curr_de < 50:
-                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다."
-                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
-                                            bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
-                                        elif curr_de < 120:
-                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다."
-                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
-                                            bio_eval = f"<span style='color:#58a6ff;'>{t(t_ko, t_en)}</span>"
-                                        else:
-                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다."
-                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
-                                            bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                                else:
-                                    t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
-                                    t_en = "[Danger] Capital impairment detected. Fatal survival risk."
-                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                except:
-                    pass
-
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
@@ -1165,7 +1095,7 @@ with tab1:
                 elif pmos_val < 0:
                     per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 비싸서 할증 구간)</span>"
                 else:
-                    per_mos_str = f"확인 필요"
+                    per_mos_str = f"<span style='color:#8b949e'>확인 필요</span>"
 
                 if is_financial:
                     if roe >= 10: rr_eval = f"<span class='good'>{t('훌륭함 (금융/보험주 기준 탁월한 자본 효율성)', 'Excellent (Great for Financials)')}</span>"
@@ -1194,9 +1124,9 @@ with tab1:
                     st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('EPS 추세 (최근 4년)', 'EPS Trend (4 Years)')}:** {eps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년)', 'Equity Trend (4 Years)')}:** {bps_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('올해 시장 컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
@@ -1224,11 +1154,11 @@ with tab1:
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
                     with c_w:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{'#3fb950' if mos_worst > 0 else '#ff7b72'}'>{mos_worst:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{'#3fb950' if mos_worst > 0 else '#ff7b72'}'>{mos_worst:.1f}%</span></div>", unsafe_allow_html=True)
                     with c_b:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{'#3fb950' if mos_val > 0 else '#ff7b72'}'>{mos_val:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{'#3fb950' if mos_val > 0 else '#ff7b72'}'>{mos_val:.1f}%</span></div>", unsafe_allow_html=True)
                     with c_e:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{'#3fb950' if mos_best > 0 else '#ff7b72'}'>{mos_best:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{'#3fb950' if mos_best > 0 else '#ff7b72'}'>{mos_best:.1f}%</span></div>", unsafe_allow_html=True)
                     st.markdown("<br>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
@@ -1330,7 +1260,7 @@ with tab1:
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 if pmos_val > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
+                else: p_txt += f"- PER: <span style='color:#8b949e'>({t('확인 필요', 'Needs Check')})</span>\n"
                 
                 if is_financial:
                     if pbr < 0.8: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배 - 청산가치 대비 극심한 저평가 상태)</span>"
@@ -1339,16 +1269,16 @@ with tab1:
                 else:
                     if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
-                    else: p_txt += f"- DCF: ({t('직접 확인 필요', 'Needs Check')})"
+                    else: p_txt += f"- DCF: <span style='color:#8b949e'>({t('직접 확인 필요', 'Needs Check')})</span>"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
                 if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
-                elif roe > 0: biz_eval = t("[보통] 독점력 추가 확인 필요", "[Average] Requires moat verification")
+                elif roe > 0: biz_eval = f"<span style='color:#e3b341;'>{t('[보통] 독점력 추가 확인 필요', '[Average] Requires moat verification')}</span>"
                 else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼손 점검 시급', '[Warning] Structural damage check urgent')}</span>"
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
-                st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 4번 리포트 참조', 'Refer to section 4 report above')}")
-                st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
-                st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
+                st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** <span style='color:#8b949e'>{t('위 4번 리포트 참조', 'Refer to section 4 report above')}</span>", unsafe_allow_html=True)
+                st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** <span style='color:#8b949e'>{t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}</span>", unsafe_allow_html=True)
+                st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** <span style='color:#8b949e'>{t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}</span>", unsafe_allow_html=True)
 
                 st.divider()
 
@@ -1357,9 +1287,9 @@ with tab1:
                 else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
-                st.markdown(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {bio_eval}", unsafe_allow_html=True)
-                st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** {t('희망 회로나 확증 편향에 빠진 매수가 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}")
-                st.write(f"- **{t('파급력:', 'Impact:')}** {t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}")
+                st.write(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** <span style='color:#8b949e'>{t('부채 구조를 볼 때 다윈주의적 생존력이 있는지 확인 요망.', 'Check Darwinian survivability regarding debt structure.')}</span>", unsafe_allow_html=True)
+                st.write(f"- **{t('심리학 (오판 점검):', 'Psychology (Misjudgment):')}** <span style='color:#8b949e'>{t('희망 회로나 확증 편향에 빠진 매수가 아닌지 점검하십시오.', 'Check for confirmation bias or wishful thinking.')}</span>", unsafe_allow_html=True)
+                st.write(f"- **{t('파급력:', 'Impact:')}** <span style='color:#8b949e'>{t('기술 변화가 이 기업에 득인가 독인가?', 'Is technological change a boon or bane for this company?')}</span>", unsafe_allow_html=True)
 
                 st.divider()
 
