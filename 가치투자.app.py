@@ -804,6 +804,7 @@ with st.sidebar:
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
     st.markdown(f"<a href='mailto:csjwo154515@naver.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>{t('개발자에게 이메일 보내기', 'Send Email to Developer')}</a>", unsafe_allow_html=True)
 
+# 차트 및 표 모바일 깨짐 방지용 CSS 추가
 st.markdown("""
 <meta name="google" content="notranslate">
 <style>
@@ -821,6 +822,29 @@ h1,h2,h3{color:#58a6ff;font-weight:700;}
 div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
 #vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
 [data-testid="stElementToolbar"]{display:none!important;}
+
+/* 모바일 환경 찌그러짐 방지 및 가로 스크롤 고정 */
+div[data-testid="stDataFrame"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+div[data-testid="stDataFrame"] > div {
+    min-width: 600px !important;
+}
+div[data-testid="stArrowVegaLiteChart"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+div[data-testid="stArrowVegaLiteChart"] > div {
+    min-width: 500px !important;
+}
+div[data-testid="stVegaLiteChart"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+div[data-testid="stVegaLiteChart"] > div {
+    min-width: 500px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1063,7 +1087,7 @@ with tab1:
                 else:
                     gap_text = f" ➔ <span style='color:#8b949e'>{t('[비교 불가]', '[N/A]')}</span>"
                     
-                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> (예상 실적 성장률) vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> (올해 실제 주가 상승·변동률){gap_text}"
+                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span>{gap_text}"
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
@@ -1223,12 +1247,36 @@ with tab1:
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
+                    # 라이트 테마에서도 잘 보이도록 color: #ffffff; 강제 추가 적용 및 f-string 중첩 오류 해결
+                    worst_mos_color = '#3fb950' if mos_worst > 0 else '#ff7b72'
+                    base_mos_color = '#3fb950' if mos_val > 0 else '#ff7b72'
+                    best_mos_color = '#3fb950' if mos_best > 0 else '#ff7b72'
+
+                    txt_w_title = t('📉 최악 (Worst)', '📉 Worst Case')
+                    txt_b_title = t('⚖️ 평균 (Base)', '⚖️ Base Case')
+                    txt_e_title = t('🚀 최상 (Best)', '🚀 Best Case')
+
                     with c_w:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{'#3fb950' if mos_worst > 0 else '#ff7b72'}'>{mos_worst:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #ff7b72; color:#ffffff;'>"
+                            f"<b>{txt_w_title}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>"
+                            f"{str_mos}: <span style='color:{worst_mos_color}'>{mos_worst:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
                     with c_b:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{'#3fb950' if mos_val > 0 else '#ff7b72'}'>{mos_val:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #e3b341; color:#ffffff;'>"
+                            f"<b>{txt_b_title}</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>"
+                            f"{str_mos}: <span style='color:{base_mos_color}'>{mos_val:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
                     with c_e:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{'#3fb950' if mos_best > 0 else '#ff7b72'}'>{mos_best:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #3fb950; color:#ffffff;'>"
+                            f"<b>{txt_e_title}</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>"
+                            f"{str_mos}: <span style='color:{best_mos_color}'>{mos_best:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
                     st.markdown("<br>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
@@ -1377,7 +1425,7 @@ with tab1:
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
             else:
-                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
+                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 정없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
