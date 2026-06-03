@@ -579,10 +579,12 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "298020": "효성티앤씨 (김치형): 스판덱스 부문 압도적 규모의 경제(해자)를 증명했으나, 모그룹의 잦은 인적분할에 따른 거버넌스 피로감 및 부채 축소를 위한 자본 통제력은 이건 확인이 필요한 부분입니다.",
         "002790": "아모레G (서경배): 훌륭한 브랜드 자산을 보유한 저PBR 지주사이나, 자회사들의 턴어라운드 속에서 기존의 소극적인 주주환원(자본 배치) 획기적 선회 여부는 이건 확인이 필요한 부분입니다."
     }
-    
-    for key, text in db.items():
-        if key in tk_clean or (len(cd_clean) == 6 and key == cd_clean):
-            return text
+
+    # "C" in "CSCO" 등의 오류를 완벽히 막기 위해 in 대신 dict 직접 접근(get) 방식 사용
+    if cd_clean in db:
+        return db[cd_clean]
+    if tk_clean in db:
+        return db[tk_clean]
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 자본 배분 오류 및 노사 갈등 여부는 투자 전 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
@@ -825,49 +827,9 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     return title, color, reason
 
-def get_market_op_simple(erp):
-    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
-    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
-    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
-    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
-
-def tr_text(txt):
-    if not txt: return ""
-    txt_str = str(txt)
-    is_ko = st.session_state.lang == "ko"
-    if is_ko:
-        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
-        except: return txt_str
-    return txt_str
-
-def clean_ceo_name(name):
-    is_ko = st.session_state.lang == "ko"
-    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
-    name_str = str(name).strip()
-    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
-        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
-    if is_ko:
-        k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
-        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
-        for s in suffixes:
-            if k_name.endswith(s):
-                k_name = k_name[:-len(s)].strip(); break
-        return k_name
-    return name_str
-
-def get_safe_macro(m_data, key, is_currency=False, is_rate=False):
-    data = m_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
-    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
-    if is_currency: p_str = f"${p:,.2f}"
-    elif is_rate: p_str = f"{p:.3f}%"
-    else: p_str = f"{p:,.2f}"
-    return p_str, c, pct
-
 # ==========================================
-# [4] 메인 UI 렌더링
+# [4] 메인 UI 렌더링 시작부
 # ==========================================
-macro_data = fetch_macro_realtime_v6()
-
 with st.sidebar:
     if st.session_state.lang == "ko":
         if st.button("English", use_container_width=True):
@@ -876,6 +838,8 @@ with st.sidebar:
         if st.button("Korean", use_container_width=True):
             st.session_state.lang = "ko"; st.rerun()
             
+    is_ko = st.session_state.lang == "ko"
+        
     st.divider()
     
     st.header(t("내 서재", "My Library"))
@@ -929,6 +893,9 @@ st.markdown("""
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
 
 st.warning(t("⚠️ [참고] 본 가치투자 분석 모델은 해운, 철강, 화학 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "⚠️ [Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., shipping, steel, chemicals) with extreme earnings volatility."))
+
+# 데이터를 가장 먼저 로드하여 변수 꼬임 에러 원천 차단
+macro_data = fetch_macro_realtime_v6()
 
 k_p, k_c, k_pct = get_safe_macro(macro_data, "KOSPI")
 kq_p, kq_c, kq_pct = get_safe_macro(macro_data, "KOSDAQ")
