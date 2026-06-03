@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# [1] 세션 상태 초기화 및 글로벌 유틸리티
+# [1] 세션 상태 초기화 및 글로벌 유틸리티 (모든 유틸 함수 최상단 배치)
 # ==========================================
 if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
@@ -34,11 +34,37 @@ def fmt_f(val, decimals=1):
     except:
         return "0.0" if decimals == 1 else "0.00"
 
-def trigger_scan():
-    if st.session_state.get("main_input"):
-        q = st.session_state.main_input.replace(" ", "").upper()
-        tk = tmap.get(q, q)
-        st.session_state.search_tk = tk
+def get_safe_macro(m_data, key, is_currency=False, is_rate=False):
+    data = m_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
+    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
+    if is_currency: p_str = f"${p:,.2f}"
+    elif is_rate: p_str = f"{p:.3f}%"
+    else: p_str = f"{p:,.2f}"
+    return p_str, c, pct
+
+def tr_text(txt):
+    if not txt: return ""
+    txt_str = str(txt)
+    is_ko = st.session_state.lang == "ko"
+    if is_ko:
+        try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
+        except: return txt_str
+    return txt_str
+
+def clean_ceo_name(name):
+    is_ko = st.session_state.lang == "ko"
+    if not name or str(name).strip() in ['누락', 'None', '']: return 'N/A' if not is_ko else '누락'
+    name_str = str(name).strip()
+    for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
+        if name_str.startswith(prefix): name_str = name_str[len(prefix):]
+    if is_ko:
+        k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
+        suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
+        for s in suffixes:
+            if k_name.endswith(s):
+                k_name = k_name[:-len(s)].strip(); break
+        return k_name
+    return name_str
 
 # ==========================================
 # [2] 글로벌 상수 및 고정 데이터
@@ -107,6 +133,12 @@ tmap = {
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO"
 }
+
+def trigger_scan():
+    if st.session_state.get("main_input"):
+        q = st.session_state.main_input.replace(" ", "").upper()
+        tk = tmap.get(q, q)
+        st.session_state.search_tk = tk
 
 fallback_13f_data = {
     "HC": [
@@ -282,7 +314,7 @@ kr_top30 = [
 ]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진
+# [3] 데이터 가져오기 엔진 및 분석 로직
 # ==========================================
 @st.cache_data(ttl=900) 
 def fetch_macro_realtime_v6():
@@ -580,11 +612,8 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "002790": "아모레G (서경배): 훌륭한 브랜드 자산을 보유한 저PBR 지주사이나, 자회사들의 턴어라운드 속에서 기존의 소극적인 주주환원(자본 배치) 획기적 선회 여부는 이건 확인이 필요한 부분입니다."
     }
 
-    # "C" in "CSCO" 등의 오류를 완벽히 막기 위해 in 대신 dict 직접 접근(get) 방식 사용
-    if cd_clean in db:
-        return db[cd_clean]
-    if tk_clean in db:
-        return db[tk_clean]
+    if cd_clean in db: return db[cd_clean]
+    if tk_clean in db: return db[tk_clean]
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 자본 배분 오류 및 노사 갈등 여부는 투자 전 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
@@ -827,75 +856,17 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     return title, color, reason
 
+def get_market_op_simple(erp):
+    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
+    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
+    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
+    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
+
 # ==========================================
-# [4] 메인 UI 렌더링 시작부
+# [4] 메인 UI 렌더링
 # ==========================================
-with st.sidebar:
-    if st.session_state.lang == "ko":
-        if st.button("English", use_container_width=True):
-            st.session_state.lang = "en"; st.rerun()
-    else:
-        if st.button("Korean", use_container_width=True):
-            st.session_state.lang = "ko"; st.rerun()
-            
-    is_ko = st.session_state.lang == "ko"
-        
-    st.divider()
-    
-    st.header(t("내 서재", "My Library"))
-    st.subheader(t("관심 종목 (즐겨찾기)", "Bookmarks"))
-    if not st.session_state.bookmarks:
-        st.caption(t("즐겨찾기한 종목이 없습니다.", "No bookmarked tickers yet."))
-    else:
-        for b_tk in st.session_state.bookmarks:
-            c1, c2 = st.columns([4, 1])
-            with c1:
-                if st.button(b_tk, key=f"bk_{b_tk}", use_container_width=True):
-                    st.session_state.search_tk = b_tk; st.rerun()
-            with c2:
-                if st.button("X", key=f"del_bk_{b_tk}"):
-                    st.session_state.bookmarks.remove(b_tk); st.rerun()
-                    
-    st.divider()
-    
-    st.header(t("고객 센터", "Customer Center"))
-    st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
-    st.markdown(f"<a href='mailto:csjwo154515@naver.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>csjwo154515@naver.com</a>", unsafe_allow_html=True)
-
-st.markdown("""
-<meta name="google" content="notranslate">
-<style>
-.main{background-color:#0e1117;color:#c9d1d9;font-family:'Pretendard',sans-serif;}
-h1,h2,h3{color:#58a6ff;font-weight:700;}
-.box{background-color:#161b22;padding:25px;border-radius:12px;border:1px solid #30363d;margin-bottom:20px;}
-.guru-quote{font-style:italic;color:#8b949e;border-left:3px solid #58a6ff;padding-left:15px;margin-bottom:12px;background:#1c2128;padding:15px;border-radius:0 8px 8px 0;}
-.highlight{color:#ff7b72;font-weight:bold;}
-.good{color:#3fb950;font-weight:bold;}
-.stTabs [data-baseweb="tab-list"]{gap:20px;border-bottom:1px solid #30363d;}
-.stTabs [data-baseweb="tab"]{font-size:1.15rem;font-weight:600;color:#8b949e;padding-bottom:10px;}
-.stTabs [aria-selected="true"]{color:#58a6ff;border-bottom:2px solid #58a6ff;}
-.macro-ticker::-webkit-scrollbar{display:none;}
-.macro-ticker{-ms-overflow-style:none;scrollbar-width:none;}
-div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
-#vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
-[data-testid="stElementToolbar"]{display:none!important;}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
-    <span style="font-size: 3.2rem; font-weight: 900; color: var(--text-color); letter-spacing: 2px; line-height: 1.2;">
-        VALUE
-    </span>
-</div>
-""", unsafe_allow_html=True)
-
-st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (앱 자체의 언어 변환 기능을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the language toggle in the sidebar instead."))
-
-st.warning(t("⚠️ [참고] 본 가치투자 분석 모델은 해운, 철강, 화학 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "⚠️ [Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., shipping, steel, chemicals) with extreme earnings volatility."))
-
-# 데이터를 가장 먼저 로드하여 변수 꼬임 에러 원천 차단
-macro_data = fetch_macro_realtime_v6()
+with st.spinner(t("글로벌 매크로 데이터 연동 중...", "Fetching Macro Data...")):
+    macro_data = fetch_macro_realtime_v6()
 
 k_p, k_c, k_pct = get_safe_macro(macro_data, "KOSPI")
 kq_p, kq_c, kq_pct = get_safe_macro(macro_data, "KOSDAQ")
