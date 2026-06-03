@@ -440,7 +440,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "KO": "Coca-Cola (제임스 퀸시): 압도적 브랜드로 안정적 현금을 창출하나, 글로벌 헬스케어 트렌드 변화에 대한 경영진의 장기 대응력은 리스크입니다.",
         "BAC": "Bank of America (브라이언 모이니한): 보수적이고 안정적인 리스크 관리로 정평이 나 있으나, 미실현 손실 포트폴리오의 안전 마진은 이건 확인이 필요한 부분입니다.",
         "PEP": "PepsiCo (라몬 라구아르타): 제품 다각화로 안정적이나, 인플레이션에 따른 가격 저항 리스크를 어떻게 돌파할지는 이건 확인이 필요한 부분입니다.",
-        "TMO": "Thermo Fisher (마크 캐스퍼): 꾸준한 복리 성장을 이끈 경영진이나, 바이오텍 투자 침체기에서의 실적 방어력은 점검이 필요합니다.",
+        "TMO": "Thermo Fisher (마크 캐스퍼): 꾸준한 복리 성장을 이끈 경영진이나, 바이오텍 투자 침체기에서의 실적 방어력은 점 점검이 필요합니다.",
         "MCD": "McDonald's (크리스 켐프친스키): 프랜차이즈 비용 통제는 우수하나, 가맹점주 및 임직원 커뮤니티와의 마찰 가능성은 잠재적 리스크입니다.",
         "CSCO": "Cisco (척 로빈스): 구독 모델 전환을 꾀하고 있으나, 대규모 인수합병 이후의 조직 통합 및 시너지 창출 여부는 이건 확인이 필요한 부분입니다.",
         "ABT": "Abbott Laboratories (로버트 포드): 다각화된 사업을 안정적으로 운영하나, 과거 리콜 사태 이후 위기관리 시스템의 완전한 신뢰 회복은 이건 확인이 필요한 부분입니다.",
@@ -782,7 +782,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, sector_ind=""):
     score = 0
     ceo_score = 0
     
@@ -830,7 +830,15 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g > 0.0: score += 10
     else: score -= 20
 
-    is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
+    combined_text = str(ceo_text) + " " + str(sector_ind)
+    cyclical_keywords = [
+        "사이클", "유가", "경기 민감", "경기민감", "철강", "석유", "정유", "화학", "석유화학", 
+        "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리", "반도체", "항공", "자동차",
+        "semiconductor", "memory", "steel", "oil", "gas", "energy", "chemicals", 
+        "shipping", "metals", "mining", "construction", "automotive", "airlines"
+    ]
+    is_cyclical = any(k.lower() in combined_text.lower() for k in cyclical_keywords)
+    
     if is_cyclical:
         score -= 15
 
@@ -856,14 +864,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     return title, color, reason
 
-def get_market_op_simple(erp):
-    if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#3fb950"
-    elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#58a6ff"
-    elif erp > -1.0: return t("적정 가치 (채권과 주식 매력도 유사)", "Fair Value"), "#e3b341"
-    else: return t("과도한 할증 경고 (채권 매력도 압도적)", "Excessive Premium"), "#ff7b72"
-
 # ==========================================
-# [4] 메인 UI 렌더링
+# [4] 메인 UI 렌더링 시작부
 # ==========================================
 with st.spinner(t("글로벌 매크로 데이터 연동 중...", "Fetching Macro Data...")):
     macro_data = fetch_macro_realtime_v6()
@@ -940,6 +942,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # 탭 1: 개별 기업 가치분석
 # ==========================================
 with tab1:
+    st.warning(t("⚠️ [참고] 본 가치투자 분석 모델은 반도체·메모리, 철강, 석유·화학, 해운 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "⚠️ [Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., Semiconductors, Memory, Steel, Oil/Chemicals, Shipping) with extreme earnings volatility."))
+    
     col_input, col_btn = st.columns([4, 1])
     with col_input:
         ui = st.text_input(
@@ -1168,7 +1172,8 @@ with tab1:
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
+                sec_ind = str(i.get('sector', '')) + " " + str(i.get('industry', ''))
+                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, sec_ind)
 
                 st.markdown(f"""
                 <div translate="no" style="padding: 18px 20px; border-radius: 8px; border-left: 6px solid {op_color}; background-color: #1c2128; color: #e6edf3; margin-bottom: 25px; margin-top: 10px;">
@@ -1540,7 +1545,7 @@ with tab5:
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
     phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
-    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
+    phil_li1 = t("**기업 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
