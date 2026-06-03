@@ -605,7 +605,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # 🌟 고도화된 경영진 스코어링 (최신 키워드 대폭 반영)
     strong_pos = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주환원", "자사주 매입", "자사주 소각", "정직함", "전액 주주환원", "압도적", "투명한", "복리 성장", "정직하게", "우수", "훌륭"]
     good_pos = ["검증된 경영자", "안정적", "선점", "실행력", "지배적 지위", "독보적", "결단력 있는", "턴어라운드", "직원 중심", "효율적인 M&A", "비용 통제", "가격 결정력", "현금흐름 중심"]
     strong_neg = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "파산", "회계 처리 논란", "물적분할", "쪼개기 상장", "주주가치 훼손", "거버넌스 불신", "관치", "안전 문제 은폐", "리베이트", "엑소더스", "경영권 분쟁", "금융 사고"]
@@ -654,7 +653,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if is_cyclical:
         score -= 15
 
-    # 🌟 7단계 투자의견 (약간 할인 / 약간 할증 추가)
     if score >= 70:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE), 모든 가격 지표(PER/ERP/PBR)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
     elif score >= 40:
@@ -1170,12 +1168,21 @@ with tab1:
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
+                    # f-string 중첩을 피하기 위해 안전하게 문자열 포맷팅
+                    mos_w_col = '#3fb950' if mos_worst > 0 else '#ff7b72'
+                    mos_b_col = '#3fb950' if mos_val > 0 else '#ff7b72'
+                    mos_e_col = '#3fb950' if mos_best > 0 else '#ff7b72'
+                    
+                    html_w = f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{mos_w_col}'>{mos_worst:.1f}%</span></div>"
+                    html_b = f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{mos_b_col}'>{mos_val:.1f}%</span></div>"
+                    html_e = f"<div translate='no' style='background-color:#21262d; color:#e6edf3; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{mos_e_col}'>{mos_best:.1f}%</span></div>"
+
                     with c_w:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #ff7b72;'><b>{t('📉 최악 (Worst)', '📉 Worst Case')}</b><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>{str_mos}: <span style='color:{'#3fb950' if mos_worst > 0 else '#ff7b72'}'>{mos_worst:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(html_w, unsafe_allow_html=True)
                     with c_b:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #e3b341;'><b>⚖️ 평균 (Base)</b><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>{str_mos}: <span style='color:{'#3fb950' if mos_val > 0 else '#ff7b72'}'>{mos_val:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(html_b, unsafe_allow_html=True)
                     with c_e:
-                        st.markdown(f"<div translate='no' style='background-color:#21262d; padding:15px; border-radius:8px; border-top:4px solid #3fb950;'><b>🚀 최상 (Best)</b><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>{str_mos}: <span style='color:{'#3fb950' if mos_best > 0 else '#ff7b72'}'>{mos_best:.1f}%</span></div>", unsafe_allow_html=True)
+                        st.markdown(html_e, unsafe_allow_html=True)
                     st.markdown("<br>", unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
@@ -1311,9 +1318,12 @@ with tab1:
                 st.divider()
 
                 st.subheader(t("7. 비상탈출 (오직 다음 경우에만 할증 시 매도)", "7. Exit Strategy (Sell ONLY if:)"))
+                
+                # 안전한 문자열 처리
                 txt_s_ko = "1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열(할증)되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때."
                 txt_s_en = "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated (premium).<br>3. You find a much safer and better opportunity (Opportunity Cost)."
                 sell_rules = t(txt_s_ko, txt_s_en)
+                
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
                 st.divider()
