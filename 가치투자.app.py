@@ -297,6 +297,7 @@ def fetch_macro_realtime_v6():
     for name, tk in macro_symbols.items():
         try:
             stk = yf.Ticker(tk)
+            # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
             hist = stk.history(period="7d")
             if hist is not None and not hist.empty:
                 hist = hist.dropna(subset=['Close'])
@@ -820,29 +821,6 @@ h1,h2,h3{color:#58a6ff;font-weight:700;}
 div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
 #vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
 [data-testid="stElementToolbar"]{display:none!important;}
-
-/* 모바일 환경 찌그러짐 방지 및 가로 스크롤 고정 */
-div[data-testid="stDataFrame"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-}
-div[data-testid="stDataFrame"] > div {
-    min-width: 600px !important;
-}
-div[data-testid="stArrowVegaLiteChart"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-}
-div[data-testid="stArrowVegaLiteChart"] > div {
-    min-width: 500px !important;
-}
-div[data-testid="stVegaLiteChart"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-}
-div[data-testid="stVegaLiteChart"] > div {
-    min-width: 500px !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
