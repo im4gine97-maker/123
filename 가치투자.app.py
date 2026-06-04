@@ -296,7 +296,7 @@ def fetch_macro_realtime_v6():
     res = {}
     for name, tk in macro_symbols.items():
         try:
-            stk = yfinance.Ticker(tk)
+            stk = yf.Ticker(tk)
             # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
             hist = stk.history(period="7d")
             if hist is not None and not hist.empty:
@@ -745,7 +745,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 7. 컷오프 (6단계 세밀한 점수 부여를 반영, 적정 가치 허들은 -20점 유지)
     if score >= 90:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
     elif score >= 45:
         title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("충분한 안전마진과 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
     elif score >= -20:
@@ -1622,7 +1622,7 @@ with tab5:
     **VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
     우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>
     이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>
-    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서 정을 VALUE와 함께 하십시오.**
+    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**
     """
     
     phil_decl_en = """
