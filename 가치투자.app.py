@@ -728,9 +728,9 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP)까지 모두 충족한 '워런 버핏급' 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting strict criteria across management, ROE(>20%), >30% MoS, and dominant ERP.")
     elif score >= 40:
         title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("15% 이상의 넉넉한 안전마진과 훌륭한 자본 배치 능력이 교차 검증된 우량한 할인 구간입니다.", "A solid discount zone backed by >15% margin of safety and excellent capital allocation metrics.")
-    elif score >= -20:  # <--- 적정 가격 하한선을 0점에서 -20점으로 유연하게 조정
+    elif score >= -20:
         title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("안전마진이 다소 부족하지만, 훌륭한 비즈니스 퀄리티를 고려할 때 충분히 납득할 수 있는 적당한 가격(Fair Price) 수준입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality.")
-    elif score >= -50:  # <--- 적정가치 하한선이 넓어진 만큼 할증 구간 범위도 -50점으로 하향 조정
+    elif score >= -50:
         title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("기업의 성장 가치 대비 시장의 기대감이 과도하게 반영되어 비싸게 거래 중입니다. 무위험 채권 대비 매력도가 떨어집니다.", "Trading at a premium due to excessive market expectations relative to growth. Less attractive than risk-free bonds.")
     else:
         title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 투기적 구간입니다.", "Highly dangerous speculative territory with compromised fundamentals or extreme valuation bubbles.")
@@ -830,31 +830,38 @@ h1,h2,h3{color:#58a6ff;font-weight:700;}
 .stTabs [aria-selected="true"]{color:#58a6ff;border-bottom:2px solid #58a6ff;}
 .macro-ticker::-webkit-scrollbar{display:none;}
 .macro-ticker{-ms-overflow-style:none;scrollbar-width:none;}
-div[data-testid="stArrowVegaLiteChart"]>div,div[data-testid="stVegaLiteChart"]>div{pointer-events:none!important;}
-#vg-tooltip-element,.vg-tooltip{display:none!important;opacity:0!important;}
-[data-testid="stElementToolbar"]{display:none!important;}
 
-/* 모바일 환경 찌그러짐 방지 및 가로 스크롤 고정 */
+/* 데이터프레임(시가총액, 포트폴리오) 모바일 가로 스크롤 완벽 활성화 */
+div[data-testid="stDataFrame"] canvas {
+    touch-action: auto !important;
+}
 div[data-testid="stDataFrame"] {
     overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch !important;
 }
-div[data-testid="stDataFrame"] > div {
-    min-width: 600px !important;
+
+/* 차트 상호작용(팝업/확대) 완전 차단 및 고정 */
+div[data-testid="stArrowVegaLiteChart"] canvas,
+div[data-testid="stVegaLiteChart"] canvas {
+    pointer-events: none !important; 
 }
-div[data-testid="stArrowVegaLiteChart"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-}
-div[data-testid="stArrowVegaLiteChart"] > div {
-    min-width: 500px !important;
-}
+
+/* 차트 좌우 스크롤 허용 래퍼 */
+div[data-testid="stArrowVegaLiteChart"], 
 div[data-testid="stVegaLiteChart"] {
     overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
 }
-div[data-testid="stVegaLiteChart"] > div {
-    min-width: 500px !important;
+
+/* 거슬리는 툴팁/툴바 원천 제거 */
+#vg-tooltip-element, .vg-tooltip {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+[data-testid="stElementToolbar"] {
+    display: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1246,7 +1253,7 @@ with tab1:
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
@@ -1341,7 +1348,7 @@ with tab1:
                                 div, u_str = scale_vals([rev, ni], kr)
                                 df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div for x in rev], t('순이익', 'Net Income'): [x/div for x in ni]}, index=years)
                                 st.write(t(f"**[최근 4년 매출 및 순이익]** {u_str}", f"**[4Y Rev & NI Trend]** {u_str}"))
-                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300)
+                                st.bar_chart(df_rev_ni, color=["#58a6ff", "#3fb950"], height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                         with c_v2:
@@ -1349,7 +1356,7 @@ with tab1:
                                 div, u_str = scale_vals([fcf_chart], kr)
                                 df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div for x in fcf_chart]}, index=years)
                                 st.write(t(f"**[최근 4년 잉여현금흐름(FCF)]** {u_str}", f"**[4Y FCF Trend]** {u_str}"))
-                                st.bar_chart(df_fcf, color="#e3b341", height=300)
+                                st.bar_chart(df_fcf, color="#e3b341", height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                 except Exception as e:
@@ -1485,7 +1492,7 @@ with tab2:
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
 with tab3:
-    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market Cap TOP 30"))
+    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market 초 Top 30"))
     st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
     
     mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
