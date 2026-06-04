@@ -680,65 +680,85 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score += max(-20, min(20, ceo_score))
         
-    # 2. PER 과거 대비 안전마진 (할인 허들 대폭 상향)
-    if pmos >= 30: score += 20
-    elif pmos >= 15: score += 10
-    elif pmos < -20: score -= 20
-    elif pmos < 0: score -= 10
+    # 2. PER 과거 대비 안전마진 (6단계: 매우 합격 ~ 매우 주의)
+    if pmos >= 30: score += 25
+    elif pmos >= 15: score += 15
+    elif pmos >= 5: score += 5
+    elif pmos < -20: score -= 25
+    elif pmos < -10: score -= 15
+    elif pmos < 0: score -= 5
 
-    # 3. 비즈니스 펀더멘털 및 절대적 안전마진 (할인 허들 대폭 상향)
+    # 3. 비즈니스 펀더멘털 및 절대적 안전마진 (6단계)
     if is_financial:
-        if roe >= 15: score += 20
-        elif roe >= 10: score += 10
-        elif roe < 8: score -= 10
-        
-        if pbr > 0 and pbr <= 0.6: score += 20
-        elif pbr > 0.6 and pbr <= 0.9: score += 10
-        elif pbr >= 1.2: score -= 20
+        if roe >= 15: score += 25
+        elif roe >= 10: score += 15
+        elif roe >= 8: score += 5
+        elif roe < 5: score -= 25
+        elif roe < 8: score -= 15
+
+        if pbr > 0 and pbr <= 0.6: score += 25
+        elif pbr > 0.6 and pbr <= 0.9: score += 15
+        elif pbr > 0.9 and pbr <= 1.0: score += 5
+        elif pbr >= 1.5: score -= 25
+        elif pbr >= 1.2: score -= 15
+        elif pbr > 1.0: score -= 5
     else:
-        if roe >= 20: score += 10
+        if roe >= 20: score += 15
+        elif roe >= 15: score += 10
+        elif roe >= 10: score += 5
+        elif roe < 5: score -= 15
         elif roe < 10: score -= 10
         
-        if roic and roic >= 15: score += 10
-        elif roic and roic < 8: score -= 10
+        if roic and roic >= 15: score += 15
+        elif roic and roic >= 10: score += 10
+        elif roic and roic >= 7: score += 5
+        elif roic and roic < 3: score -= 15
+        elif roic and roic < 7: score -= 10
         
-        if mos >= 30: score += 20
-        elif mos >= 15: score += 10
-        elif mos < -20: score -= 20
-        elif mos < 0: score -= 10
+        if mos >= 30: score += 25
+        elif mos >= 15: score += 15
+        elif mos >= 5: score += 5
+        elif mos < -20: score -= 25
+        elif mos < -10: score -= 15
+        elif mos < 0: score -= 5
 
-    # 4. 주식 위험 프리미엄(ERP) (국채 대비 확실한 우위 요구)
-    if erp >= 4: score += 20
-    elif erp >= 2: score += 10
-    elif erp < 0: score -= 20
-    elif erp < 1: score -= 10
+    # 4. 주식 위험 프리미엄(ERP) (6단계)
+    if erp >= 4: score += 25
+    elif erp >= 2: score += 15
+    elif erp >= 1: score += 5
+    elif erp < -1: score -= 25
+    elif erp < 0: score -= 15
+    elif erp < 1: score -= 5
 
-    # 5. 요구 성장률 팩터
-    if final_g >= 0.15: score += 20
-    elif final_g >= 0.08: score += 10
-    elif final_g < 0.03: score -= 20
+    # 5. 요구 성장률 팩터 (6단계)
+    if final_g >= 0.15: score += 25
+    elif final_g >= 0.08: score += 15
+    elif final_g >= 0.05: score += 5
+    elif final_g < 0.0: score -= 25
+    elif final_g < 0.03: score -= 15
+    elif final_g < 0.05: score -= 5
 
     # 6. 시클리컬 패널티
     is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
     if is_cyclical:
         score -= 15
 
-    # 7. 컷오프 (깐깐한 가치투자 철학 반영, 단 적정가치 허들은 약간 완화)
-    if score >= 80:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP)까지 모두 충족한 '워런 버핏급' 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting strict criteria across management, ROE(>20%), >30% MoS, and dominant ERP.")
-    elif score >= 40:
-        title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("15% 이상의 넉넉한 안전마진과 훌륭한 자본 배치 능력이 교차 검증된 우량한 할인 구간입니다.", "A solid discount zone backed by >15% margin of safety and excellent capital allocation metrics.")
+    # 7. 컷오프 (6단계 세밀한 점수 부여를 반영, 적정 가치 허들은 -20점 유지)
+    if score >= 90:
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
+    elif score >= 45:
+        title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("충분한 안전마진과 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
     elif score >= -20:
-        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("안전마진이 다소 부족하지만, 훌륭한 비즈니스 퀄리티를 고려할 때 충분히 납득할 수 있는 적당한 가격(Fair Price) 수준입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality.")
-    elif score >= -50:
-        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("기업의 성장 가치 대비 시장의 기대감이 과도하게 반영되어 비싸게 거래 중입니다. 무위험 채권 대비 매력도가 떨어집니다.", "Trading at a premium due to excessive market expectations relative to growth. Less attractive than risk-free bonds.")
+        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality despite some 'Slight Warning' metrics.")
+    elif score >= -60:
+        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
     else:
-        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 투기적 구간입니다.", "Highly dangerous speculative territory with compromised fundamentals or extreme valuation bubbles.")
+        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
 
     if is_cyclical:
         reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
     if is_financial:
-        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 평가 완료)", " (🏦 Financial Mode Active: Evaluated based on ROE and PBR)")
+        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 6단계 평가 완료)", " (🏦 Financial Mode Active: 6-Tier evaluation based on ROE and PBR)")
 
     return title, color, reason
 
@@ -1211,21 +1231,30 @@ with tab1:
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 st.markdown(f"<div style='background-color:#2d333b; padding:12px; border-radius:8px; margin-bottom:15px; font-size:0.95rem; color:#adbac7;'>{beginner_summary}</div>", unsafe_allow_html=True)
                 
-                if pmos_val > 0:
-                    per_mos_str = f"<span class='good'>+[합격] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 저렴하여 할인 구간)</span>"
-                elif pmos_val < 0:
-                    per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (과거 평균 {a_pe:.1f}배 대비 현재 {f_pe:.1f}배로 비싸서 할증 구간)</span>"
-                else:
-                    per_mos_str = f"확인 필요"
+                # 6단계 세분화 텍스트 매핑 (PER 안전마진)
+                if pmos_val >= 30: per_mos_str = f"<span class='good'>[매우 합격] +{pmos_val:.1f}% (과거 대비 극심한 저평가)</span>"
+                elif pmos_val >= 15: per_mos_str = f"<span class='good'>[합격] +{pmos_val:.1f}% (안전마진 확보)</span>"
+                elif pmos_val >= 5: per_mos_str = f"<span style='color:#58a6ff;'>[약간 합격] +{pmos_val:.1f}% (양호한 할인)</span>"
+                elif pmos_val >= 0: per_mos_str = f"<span style='color:#e3b341;'>[보통] +{pmos_val:.1f}% (적정 수준)</span>"
+                elif pmos_val > -10: per_mos_str = f"<span style='color:#e3b341;'>[약간 주의] {pmos_val:.1f}% (약간의 할증)</span>"
+                elif pmos_val > -20: per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (할증 구간)</span>"
+                else: per_mos_str = f"<span class='highlight'>[매우 주의] {pmos_val:.1f}% (과도한 고평가)</span>"
 
+                # 6단계 세분화 텍스트 매핑 (자본 효율성)
                 if is_financial:
-                    if roe >= 10: rr_eval = f"<span class='good'>{t('훌륭함 (금융/보험주 기준 탁월한 자본 효율성)', 'Excellent (Great for Financials)')}</span>"
-                    elif roe >= 7: rr_eval = f"<span style='color:#58a6ff;'>{t('양호함 (준수한 수익성)', 'Good (Decent profitability)')}</span>"
-                    else: rr_eval = f"<span class='highlight'>{t('형편없음 (자본을 비효율적으로 낭비 중입니다)', 'Poor (Wasting capital inefficiently)')}</span>"
+                    if roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 탁월한 자본 효율성', '[Very Pass] Excellent Efficiency')}</span>"
+                    elif roe >= 10: rr_eval = f"<span class='good'>{t('[합격] 우수한 수익성', '[Pass] Good Profitability')}</span>"
+                    elif roe >= 8: rr_eval = f"<span style='color:#58a6ff;'>{t('[약간 합격] 준수한 수익성', '[Slight Pass] Decent Profitability')}</span>"
+                    elif roe >= 5: rr_eval = f"<span style='color:#e3b341;'>{t('[약간 주의] 평균 이하의 수익성', '[Slight Warning] Below Average')}</span>"
+                    elif roe >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 부진한 자본 효율성', '[Warning] Poor Efficiency')}</span>"
+                    else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 자본 훼손(적자) 상태', '[Very Warning] Capital Destruction')}</span>"
                 else:
-                    if roe >= 15 and roic_val >= 12: rr_eval = f"<span class='good'>{t('훌륭함 (자본 배치 능력이 탁월합니다)', 'Excellent (Great capital allocation)')}</span>"
-                    elif roe >= 10 and roic_val >= 8: rr_eval = f"<span style='color:#58a6ff;'>{t('양호함 (준수한 수익성)', 'Good (Decent profitability)')}</span>"
-                    else: rr_eval = f"<span class='highlight'>{t('형편없음 (자본을 비효율적으로 낭비 중입니다)', 'Poor (Wasting capital inefficiently)')}</span>"
+                    if roe >= 20 and roic_val >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 압도적인 자본 배치 능력', '[Very Pass] Outstanding Capital Allocation')}</span>"
+                    elif roe >= 15 and roic_val >= 10: rr_eval = f"<span class='good'>{t('[합격] 훌륭한 자본 효율성', '[Pass] Excellent Efficiency')}</span>"
+                    elif roe >= 10 and roic_val >= 7: rr_eval = f"<span style='color:#58a6ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good Profitability')}</span>"
+                    elif roe >= 5 and roic_val >= 3: rr_eval = f"<span style='color:#e3b341;'>{t('[약간 주의] 평균 이하의 효율성', '[Slight Warning] Below Average')}</span>"
+                    elif roe >= 0 and roic_val >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 비효율적인 자본 운용', '[Warning] Inefficient Capital')}</span>"
+                    else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 사업 구조 훼손', '[Very Warning] Severe Structural Damage')}</span>"
                     
                 if erp > 0:
                     ey_str = f"{ey:.2f}% <span class='good'>(국채 이김! +{erp:.2f}%p 수익률 추가 우위/할인)</span>"
@@ -1274,7 +1303,6 @@ with tab1:
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
-                    # 라이트 테마에서도 잘 보이도록 color: #ffffff; 강제 추가 적용 및 f-string 중첩 오류 해결
                     worst_mos_color = '#3fb950' if mos_worst > 0 else '#ff7b72'
                     base_mos_color = '#3fb950' if mos_val > 0 else '#ff7b72'
                     best_mos_color = '#3fb950' if mos_best > 0 else '#ff7b72'
@@ -1403,23 +1431,39 @@ with tab1:
 
                 st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
-                if pmos_val > 0: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val < 0: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                else: p_txt += f"- PER: ({t('확인 필요', 'Needs Check')})\n"
+                
+                if pmos_val >= 30: p_txt += f"- PER: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 15: p_txt += f"- PER: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 5: p_txt += f"- PER: <span style='color:#58a6ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 0: p_txt += f"- PER: <span style='color:#e3b341;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val > -10: p_txt += f"- PER: <span style='color:#e3b341;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                elif pmos_val > -20: p_txt += f"- PER: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
+                else: p_txt += f"- PER: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
                 
                 if is_financial:
-                    if pbr < 0.8: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배 - 청산가치 대비 극심한 저평가 상태)</span>"
-                    elif pbr < 1.2: p_txt += f"- PBR: <span style='color:#e3b341;'>[적정 가치] ({pbr:.2f}배)</span>"
-                    else: p_txt += f"- PBR: <span class='highlight'>[주의] ({pbr:.2f}배 - 장부가 대비 프리미엄 리스크)</span>"
+                    if pbr <= 0.6: p_txt += f"- PBR: <span class='good'>[매우 합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 0.9: p_txt += f"- PBR: <span class='good'>[합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.0: p_txt += f"- PBR: <span style='color:#58a6ff;'>[약간 합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.2: p_txt += f"- PBR: <span style='color:#e3b341;'>[약간 주의] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.5: p_txt += f"- PBR: <span class='highlight'>[주의] ({pbr:.2f}배)</span>"
+                    else: p_txt += f"- PBR: <span class='highlight'>[매우 주의] ({pbr:.2f}배)</span>"
                 else:
-                    if mos_val > 0: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val < 0: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
-                    else: p_txt += f"- DCF: ({t('직접 확인 필요', 'Needs Check')})"
+                    if mos_val >= 30: p_txt += f"- DCF: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 15: p_txt += f"- DCF: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 5: p_txt += f"- DCF: <span style='color:#58a6ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 0: p_txt += f"- DCF: <span style='color:#e3b341;'>[보통] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val > -10: p_txt += f"- DCF: <span style='color:#e3b341;'>[약간 주의] ({mos_val:.1f}% 할증)</span>"
+                    elif mos_val > -20: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
+                    else: p_txt += f"- DCF: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
-                if roe >= 15: biz_eval = f"<span class='good'>{t('[우수] 자본효율 탁월, 해자 확률 높음', '[Excellent] Great capital efficiency, high moat probability')}</span>"
-                elif roe > 0: biz_eval = t("[보통] 독점력 추가 확인 필요", "[Average] Requires moat verification")
-                else: biz_eval = f"<span class='highlight'>{t('[경고] 구조 훼손 점검 시급', '[Warning] Structural damage check urgent')}</span>"
+                if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
+                elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
+                elif roe >= 10: biz_eval = f"<span style='color:#58a6ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
+                elif roe >= 5: biz_eval = f"<span style='color:#e3b341;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
+                elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
+                else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
+                
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 4번 리포트 참조', 'Refer to section 4 report above')}")
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
@@ -1428,8 +1472,9 @@ with tab1:
                 st.divider()
 
                 st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
-                if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
-                else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
+                if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
+                elif final_g > 0.0: math_eval = f"<span style='color:#58a6ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
                 st.markdown(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {bio_eval}", unsafe_allow_html=True)
@@ -1492,7 +1537,7 @@ with tab2:
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
 with tab3:
-    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market 초 Top 30"))
+    st.subheader(t("한국 및 미국 시가총액 TOP 30", "US & KR Market Cap TOP 30"))
     st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
     
     mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 시장 (US Market)", "US Market"), t("한국 시장 (KR Market)", "KR Market")], horizontal=True, label_visibility="collapsed")
