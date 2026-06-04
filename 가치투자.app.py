@@ -296,7 +296,7 @@ def fetch_macro_realtime_v6():
     res = {}
     for name, tk in macro_symbols.items():
         try:
-            stk = yf.Ticker(tk)
+            stk = yfinance.Ticker(tk)
             # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
             hist = stk.history(period="7d")
             if hist is not None and not hist.empty:
@@ -850,39 +850,16 @@ h1,h2,h3{color:#58a6ff;font-weight:700;}
 .stTabs [aria-selected="true"]{color:#58a6ff;border-bottom:2px solid #58a6ff;}
 .macro-ticker::-webkit-scrollbar{display:none;}
 .macro-ticker{-ms-overflow-style:none;scrollbar-width:none;}
-
 /* 데이터프레임(시가총액, 포트폴리오) 모바일 가로 스크롤 완벽 활성화 */
-div[data-testid="stDataFrame"] canvas {
-    touch-action: auto !important;
-}
-div[data-testid="stDataFrame"] {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
+div[data-testid="stDataFrame"] canvas { touch-action: auto !important; }
+div[data-testid="stDataFrame"] { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
 /* 차트 상호작용(팝업/확대) 완전 차단 및 고정 */
-div[data-testid="stArrowVegaLiteChart"] canvas,
-div[data-testid="stVegaLiteChart"] canvas {
-    pointer-events: none !important; 
-}
-
+div[data-testid="stArrowVegaLiteChart"] canvas, div[data-testid="stVegaLiteChart"] canvas { pointer-events: none !important; }
 /* 차트 좌우 스크롤 허용 래퍼 */
-div[data-testid="stArrowVegaLiteChart"], 
-div[data-testid="stVegaLiteChart"] {
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
+div[data-testid="stArrowVegaLiteChart"], div[data-testid="stVegaLiteChart"] { overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch !important; }
 /* 거슬리는 툴팁/툴바 원천 제거 */
-#vg-tooltip-element, .vg-tooltip {
-    display: none !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-[data-testid="stElementToolbar"] {
-    display: none !important;
-}
+#vg-tooltip-element, .vg-tooltip { display: none !important; opacity: 0 !important; pointer-events: none !important; }
+[data-testid="stElementToolbar"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1645,7 +1622,7 @@ with tab5:
     **VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
     우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>
     이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>
-    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**
+    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서 정을 VALUE와 함께 하십시오.**
     """
     
     phil_decl_en = """
