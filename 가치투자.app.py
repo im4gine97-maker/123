@@ -723,14 +723,14 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if is_cyclical:
         score -= 15
 
-    # 7. 컷오프 (깐깐한 가치투자 철학 반영)
+    # 7. 컷오프 (깐깐한 가치투자 철학 반영, 단 적정가치 허들은 약간 완화)
     if score >= 80:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP)까지 모두 충족한 '워런 버핏급' 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting strict criteria across management, ROE(>20%), >30% MoS, and dominant ERP.")
     elif score >= 40:
         title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("15% 이상의 넉넉한 안전마진과 훌륭한 자본 배치 능력이 교차 검증된 우량한 할인 구간입니다.", "A solid discount zone backed by >15% margin of safety and excellent capital allocation metrics.")
-    elif score >= 0:
-        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("안전마진이 다소 부족하며, 현재 주가는 기업의 펀더멘털을 이미 상당 부분 반영한 적정 수준입니다. (신규 매수 보류 권장)", "Lacks sufficient margin of safety. Current price fully reflects the fundamentals. (Hold recommended)")
-    elif score >= -40:
+    elif score >= -20:  # <--- 적정 가격 하한선을 0점에서 -20점으로 유연하게 조정
+        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("안전마진이 다소 부족하지만, 훌륭한 비즈니스 퀄리티를 고려할 때 충분히 납득할 수 있는 적당한 가격(Fair Price) 수준입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality.")
+    elif score >= -50:  # <--- 적정가치 하한선이 넓어진 만큼 할증 구간 범위도 -50점으로 하향 조정
         title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("기업의 성장 가치 대비 시장의 기대감이 과도하게 반영되어 비싸게 거래 중입니다. 무위험 채권 대비 매력도가 떨어집니다.", "Trading at a premium due to excessive market expectations relative to growth. Less attractive than risk-free bonds.")
     else:
         title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 투기적 구간입니다.", "Highly dangerous speculative territory with compromised fundamentals or extreme valuation bubbles.")
@@ -1246,7 +1246,7 @@ with tab1:
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
