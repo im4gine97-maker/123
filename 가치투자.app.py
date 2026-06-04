@@ -465,7 +465,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "055550": "신한지주 (진옥동): 주주환원율 확대와 비은행 부문(카드, 생보) 포트폴리오 관리가 우수합니다.\n리스크: 과거 사모펀드 사태 및 내부 횡령 등 잊힐 만하면 반복되는 내부통제 실패 평판. (이건 확인이 필요한 부분입니다)",
         "006400": "삼성SDI (최윤호): '수익성 우위의 질적 성장'이라는 매우 보수적이고 안전한 재무 관리를 보여줍니다.\n리스크: 경쟁사 대비 소극적인 CAPEX 투자로 인한 장기적인 글로벌 시장 점유율 상실. (이건 확인이 필요한 부분입니다)",
         "035420": "NAVER (최수연): 내수 중심의 검색·커머스 포트폴리오로 탄탄한 현금을 창출합니다.\n리스크: 라인야후 사태 등 지정학적 한계 및 막대한 개발비 대비 가시화되지 않은 AI 수익 모델. (이건 확인이 필요한 부분입니다)",
-        "012330": "현대모비스 (이규석): 캡티브(현대차·기아) 물량 기반의 안정적인 부품 납품 생태계를 장착했습니다.\n리스크: 그룹 지배구조 개편의 핵심 고리라는 이유로 주 주가 부양 및 주주환원에 소극적일 수 있다는 시장의 의구심. (이건 확인이 필요한 부분입니다)",
+        "012330": "현대모비스 (이규석): 캡티브(현대차·기아) 물량 기반의 안정적인 부품 납품 생태계를 장착했습니다.\n리스크: 그룹 지배구조 개편의 핵심 고리라는 이유로 주가 부양 및 주주환원에 소극적일 수 있다는 시장의 의구심. (이건 확인이 필요한 부분입니다)",
         "051910": "LG화학 (신학철): 석유화학 비중을 줄이고 친환경/바이오 3대 신성장 동력으로 체질을 개선 중입니다.\n리스크: 본업(석유화학)의 극심한 부진 및 핵심 자회사 LG엔솔 물적분할로 인한 지주사 디스카운트. (이건 확인이 필요한 부분입니다)",
         "035720": "카카오 (정신아): 문어발식 확장 부작용을 수습하고 핵심 톡비즈 중심으로 쇄신을 강행 중입니다.\n리스크: 창업자(김범수) 구속 등 오너 사법 리스크의 장기화 및 플랫폼 독과점에 대한 정치권 규제. (이건 확인이 필요한 부분입니다)",
         "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
@@ -661,6 +661,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
+    # 1. 경영진 팩터 (최대 20점 ~ 최하 -25점)
     if any(k in ceo_text for k in ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원"]):
         ceo_score += 20
     elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한"]):
@@ -679,55 +680,65 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score += max(-20, min(20, ceo_score))
         
-    if pmos > 15: score += 20
-    elif pmos > 0: score += 10
-    elif pmos < -15: score -= 20
-    else: score -= 10
+    # 2. PER 과거 대비 안전마진 (할인 허들 대폭 상향)
+    if pmos >= 30: score += 20
+    elif pmos >= 15: score += 10
+    elif pmos < -20: score -= 20
+    elif pmos < 0: score -= 10
 
+    # 3. 비즈니스 펀더멘털 및 절대적 안전마진 (할인 허들 대폭 상향)
     if is_financial:
-        if roe >= 10: score += 20
-        elif roe < 7: score -= 10
-        if pbr > 0 and pbr < 0.7: score += 20
-        elif pbr >= 0.7 and pbr < 1.1: score += 10
-        elif pbr >= 1.5: score -= 20
-    else:
-        if roe >= 15: score += 10
+        if roe >= 15: score += 20
+        elif roe >= 10: score += 10
         elif roe < 8: score -= 10
-        if roic and roic >= 12: score += 10
-        elif roic and roic < 6: score -= 10
-        if mos > 15: score += 20
-        elif mos > 0: score += 10
-        elif mos < -15: score -= 20
-        else: score -= 10
+        
+        if pbr > 0 and pbr <= 0.6: score += 20
+        elif pbr > 0.6 and pbr <= 0.9: score += 10
+        elif pbr >= 1.2: score -= 20
+    else:
+        if roe >= 20: score += 10
+        elif roe < 10: score -= 10
+        
+        if roic and roic >= 15: score += 10
+        elif roic and roic < 8: score -= 10
+        
+        if mos >= 30: score += 20
+        elif mos >= 15: score += 10
+        elif mos < -20: score -= 20
+        elif mos < 0: score -= 10
 
-    if erp > 3: score += 20
-    elif erp > 0: score += 10
-    elif erp < -2: score -= 20
-    else: score -= 10
+    # 4. 주식 위험 프리미엄(ERP) (국채 대비 확실한 우위 요구)
+    if erp >= 4: score += 20
+    elif erp >= 2: score += 10
+    elif erp < 0: score -= 20
+    elif erp < 1: score -= 10
 
-    if final_g >= 0.10: score += 20
-    elif final_g > 0.0: score += 10
-    else: score -= 20
+    # 5. 요구 성장률 팩터
+    if final_g >= 0.15: score += 20
+    elif final_g >= 0.08: score += 10
+    elif final_g < 0.03: score -= 20
 
+    # 6. 시클리컬 패널티
     is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
     if is_cyclical:
         score -= 15
 
-    if score >= 70:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 자본효율(ROE), 모든 가격 지표(PER/ERP/PBR)가 균일하게 완벽한 초저평가 할인 구간을 가리키고 있습니다.", "All evenly weighted metrics indicate a deep discount.")
-    elif score >= 20:
-        title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("모든 평가 지표들이 고르게 양호하며, 펀더멘털과 밸류에이션 종합 점수 기준 충분한 안전마진이 확보되었습니다.", "All metrics are consistently solid, showing a sufficient margin of safety across fundamentals and valuation.")
-    elif score >= -20:
-        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("6가지 핵심 가치 지표가 상호 상쇄되며 주가가 기업의 본질 가치에 딱 부합하게 거래 중입니다. 뚜렷한 할인 구간이 아닙니다.", "Trading closely to intrinsic value. Not a clear discount.")
-    elif score >= -70:
-        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("펀더멘털 지표 대비 가격 지표들이 전반적으로 비싸게 형성되어 있어, 국채 대비 기대수익률이 열위에 있는 할증 구간입니다.", "Price metrics are uniformly expensive relative to yields.")
+    # 7. 컷오프 (깐깐한 가치투자 철학 반영)
+    if score >= 80:
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP)까지 모두 충족한 '워런 버핏급' 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting strict criteria across management, ROE(>20%), >30% MoS, and dominant ERP.")
+    elif score >= 40:
+        title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("15% 이상의 넉넉한 안전마진과 훌륭한 자본 배치 능력이 교차 검증된 우량한 할인 구간입니다.", "A solid discount zone backed by >15% margin of safety and excellent capital allocation metrics.")
+    elif score >= 0:
+        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#e3b341", t("안전마진이 다소 부족하며, 현재 주가는 기업의 펀더멘털을 이미 상당 부분 반영한 적정 수준입니다. (신규 매수 보류 권장)", "Lacks sufficient margin of safety. Current price fully reflects the fundamentals. (Hold recommended)")
+    elif score >= -40:
+        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7b72", t("기업의 성장 가치 대비 시장의 기대감이 과도하게 반영되어 비싸게 거래 중입니다. 무위험 채권 대비 매력도가 떨어집니다.", "Trading at a premium due to excessive market expectations relative to growth. Less attractive than risk-free bonds.")
     else:
-        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("치명적인 경영진 리스크나 펀더멘털 취약성 등 종합적인 악재에도 불구하고 주가가 비상식적으로 과열된 투기적 위험 구간입니다.", "Dangerous speculative territory due to severe management criticism or overvaluation.")
+        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#da3633", t("펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 투기적 구간입니다.", "Highly dangerous speculative territory with compromised fundamentals or extreme valuation bubbles.")
 
     if is_cyclical:
         reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
     if is_financial:
-        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROIC 및 DCF 연산 왜곡을 제거하고 ROE와 장부가 가치 PBR 분석으로 고도화 평가 완료)", " (🏦 Financial Mode Active: Switched from FCF/ROIC to asset-backed ROE/PBR screening)")
+        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 평가 완료)", " (🏦 Financial Mode Active: Evaluated based on ROE and PBR)")
 
     return title, color, reason
 
@@ -1411,7 +1422,7 @@ with tab1:
 
                 st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
                 if final_g > 0: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
-                else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('[주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Warning] Negative FCF (Not a compounding phase).')}</span>"
                     
                 st.markdown(f"- **{t('수학 (복리 모형):', 'Math (Compound Model):')}** {math_eval}", unsafe_allow_html=True)
                 st.markdown(f"- **{t('생물학 (생존력):', 'Biology (Survivability):')}** {bio_eval}", unsafe_allow_html=True)
@@ -1508,7 +1519,7 @@ with tab4:
     terms = [
         ("시가총액 (Market Cap)", 
          t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
-         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주 주인 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
+         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
         
         ("PER (주가수익비율)", 
          t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
@@ -1582,7 +1593,7 @@ with tab5:
     **VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
     우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>
     이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>
-    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서 여정을 VALUE와 함께 하십시오.**
+    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**
     """
     
     phil_decl_en = """
