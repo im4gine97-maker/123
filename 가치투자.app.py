@@ -453,6 +453,28 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
+        # 새롭게 보강된 미국 기술주/우량주 경영진 리스크 패널
+        "TSLA": "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 전기차 생태계를 장악했으나, 오너의 예측 불가능한 돌발 발언과 타 사업으로의 집중력 분산이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도와 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
+        "LLY": "데이비드 릭스 (David Ricks): 비만 치료제 등 혁신 파이프라인을 통한 폭발적 성장을 이끌고 있으나, 신약 특허 만료 및 약가 인하 압박은 이건 확인이 필요한 부분입니다.",
+        "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
+        "JPM": "제이미 다이먼 (Jamie Dimon): 월가 역사상 가장 신뢰받는 CEO로 위기 관리 능력이 탁월하나, 포스트 다이먼 승계 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)",
+        "ORCL": "사프라 카츠 (Safra Catz): B2B 데이터베이스 시장의 굳건한 해자를 가졌으나, 경쟁사 대비 늦은 클라우드 전환 속도는 이건 확인이 필요한 부분입니다.",
+        "V": "라이언 매키너니 (Ryan McInerney): 결제 네트워크의 압도적 해자와 주주 환원은 완벽하나, 각국 정부의 수수료 규제 위협이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "XOM": "대런 우즈 (Darren Woods): 효율적인 자본 배분과 주주환원에 철저한 경영진이나, 화석 연료의 환경 규제 및 유가 변동성이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "INTC": "팻 겔싱어 (Pat Gelsinger): 파운드리 재건을 시도 중이나, 턴어라운드 지연 및 막대한 CAPEX 지출로 인한 잉여 현금 지속 소각이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "JNJ": "호아킨 두아토 (Joaquin Duato): 제약 부문에 집중하며 안정적 배당을 유지하나, 탈크 파우더 소송 관련 대규모 배상금이 치명적 사법 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CSCO": "척 로빈스 (Chuck Robbins): 소프트웨어 구독 모델로의 전환을 안정적으로 이끌고 있으나, IT 인프라 지출 둔화 및 시장 포화가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "MA": "마이클 미바흐 (Michael Miebach): 완벽한 결제 과점 해자를 구축하고 훌륭한 주주환원을 펼치나, 정부의 카드 수수료 규제 압박은 이건 확인이 필요한 부분입니다.",
+        "COST": "론 배크리스 (Ron Vactris): 멤버십 기반의 압도적 고객 충성도를 유지하나, 밸류에이션 할증 부담과 이커머스 경쟁 심화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "CAT": "짐 움플비 (Jim Umpleby): 배당 귀족주로서 탁월한 자본 배분을 보여주나, 글로벌 건설 경기 및 원자재 사이클에 극도로 민감한 점이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "LRCX": "팀 아처 (Tim Archer): 반도체 식각 장비의 지배적 지위는 훌륭하나, 미국 정부의 대중국 반도체 장비 수출 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "ABBV": "리처드 곤잘레스 (Richard Gonzalez): 휴미라 특허 만료 위기를 훌륭하게 방어한 경영자이나, 후속 파이프라인의 성장 둔화는 이건 확인이 필요한 부분입니다.",
+        "PLTR": "알렉스 카프 (Alex Karp): 독보적인 AI 데이터 분석 기술력을 가졌으나, 내부자 매도 물량 지속 및 높은 밸류에이션이 주의할 부분입니다. (이건 확인이 필요한 부분입니다)",
+        "NFLX": "테드 사란도스 (Ted Sarandos): 광고 요금제로 수익성을 크게 개선한 경영진이나, OTT 시장 포화 및 콘텐츠 제작비 증가가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AMAT": "게리 디커슨 (Gary Dickerson): 반도체 장비 1위의 해자와 자사주 매입 정책은 훌륭하나, 대중국 수출 통제 리스크 노출은 이건 확인이 필요한 부분입니다.",
+
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
         "373220": "LG에너지솔루션 (김동명): 글로벌 합작법인(JV)을 속도감 있게 구축하며 외형 성장을 이뤄냈습니다.\n리스크: 전기차 캐즘(수요 둔화) 장기화에 따른 가동률 하락과 미국 IRA 보조금 정책 변화 노출. (이건 확인이 필요한 부분입니다)",
@@ -745,7 +767,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 7. 컷오프 (6단계 세밀한 점수 부여를 반영, 적정 가치 허들은 -20점 유지)
     if score >= 90:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
+        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#09ab3b", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
     elif score >= 45:
         title, color, reason = t("할인 (Discount)", "Discount"), "#3fb950", t("충분한 안전마진과 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
     elif score >= -20:
@@ -1011,7 +1033,23 @@ with tab1:
 
                 t_pe = safe_float(i.get('trailingPE'))
                 f_pe = safe_float(i.get('forwardPE'))
+                
+                # 버크셔 등 PBR 누락 대비 강력한 대체 로직
                 pbr = safe_float(i.get('priceToBook'))
+                if pbr == 0.0:
+                    bv = safe_float(i.get('bookValue'))
+                    if bv > 0:
+                        pbr = p / bv
+                    else:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh = safe_float(i.get('sharesOutstanding'))
+                                if eq > 0 and sh > 0:
+                                    pbr = p / (eq / sh)
+                        except:
+                            pass
                 
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
