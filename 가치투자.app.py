@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime
 
 # 앱 이름 변경 및 레이아웃
-st.set_page_config(page_title="VALUE", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
 # [1] 세션 상태 초기화 및 글로벌 유틸리티
@@ -864,7 +864,7 @@ with st.sidebar:
     
     st.header(t("고객 센터", "Customer Center"))
     st.caption(t("버그 신고, 피드백, 기능 제안을 환영합니다.", "Report bugs, send feedback, or suggest features."))
-    st.markdown(f"<a href='mailto:csjwo154515@naver.com' style='display: block; text-align: center; background-color: #30363d; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold;'>csjwo154515@naver.com</a>", unsafe_allow_html=True)
+    st.write("csjwo154515@naver.com")
 
 # 차트 및 표 모바일 깨짐 방지용 CSS 추가
 st.markdown("""
@@ -897,7 +897,7 @@ div[data-testid="stArrowVegaLiteChart"], div[data-testid="stVegaLiteChart"] { ov
 st.markdown("""
 <div translate="no" style="padding-top: 5px; padding-bottom: 5px;">
     <span style="font-size: 3.2rem; font-weight: 900; color: var(--text-color); letter-spacing: 2px; line-height: 1.2;">
-        VALUE
+        AGIE
     </span>
 </div>
 """, unsafe_allow_html=True)
@@ -971,7 +971,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 30"),
     t("주식 용어 사전", "Stock Glossary"),
-    t("VALUE 철학", "About VALUE")
+    t("AGIE 철학", "About AGIE")
 ])
 
 # ==========================================
@@ -1649,7 +1649,7 @@ with tab4:
         """, unsafe_allow_html=True)
 
 # ==========================================
-# 탭 5: VALUE 철학
+# 탭 5: AGIE 철학
 # ==========================================
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
@@ -1661,24 +1661,24 @@ with tab5:
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
-    phil_title3 = t("VALUE 앱의 존재 이유", "Why VALUE Exists")
+    phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
     
     phil_decl_ko = """
     > **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>
     오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>
-    **VALUE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
+    **AGIE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
     우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>
     이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>
-    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 VALUE와 함께 하십시오.**
+    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 AGIE와 함께 하십시오.**
     """
     
     phil_decl_en = """
     > **A Compass for 'True Investment', Not Speculation**<br><br>
     Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>
-    **VALUE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>
+    **AGIE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>
     We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>
     This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>
-    **Join VALUE on the journey to becoming a true investor who contributes to society, not a speculator.**
+    **Join AGIE on the journey to becoming a true investor who contributes to society, not a speculator.**
     """
     
     phil_decl = t(phil_decl_ko, phil_decl_en)
@@ -1712,7 +1712,7 @@ st.markdown(f"""
     {lbl_disc_1}<br>
     {lbl_disc_2}</p>
     <p><b>[Copyright]</b><br>
-    ⓒ 2026 VALUE. All rights reserved.<br>
+    ⓒ 2026 AGIE. All rights reserved.<br>
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
