@@ -6,6 +6,7 @@ from deep_translator import GoogleTranslator
 import time
 import pandas as pd
 from datetime import datetime
+import re
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="expanded")
@@ -17,6 +18,7 @@ if "search_tk" not in st.session_state: st.session_state.search_tk = None
 if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
+if "suggestions" not in st.session_state: st.session_state.suggestions = []
 
 def t(ko, en):
     return ko if st.session_state.lang == "ko" else en
@@ -34,11 +36,47 @@ def fmt_f(val, decimals=1):
     except:
         return "0.0" if decimals == 1 else "0.00"
 
+# 🚀 [스마트 자동완성 검색 로직]
 def trigger_scan():
     if st.session_state.get("main_input"):
-        q = st.session_state.main_input.replace(" ", "").upper()
-        tk = tmap.get(q, q)
-        st.session_state.search_tk = tk
+        raw_q = st.session_state.main_input.strip()
+        if not raw_q: return
+        q = raw_q.replace(" ", "").upper()
+        
+        # 1. 완벽 일치 (기존 로직)
+        if q in tmap:
+            st.session_state.search_tk = tmap[q]
+            st.session_state.suggestions = []
+            return
+            
+        # 2. 스마트 부분 일치 (자동완성 제안)
+        matches = {}
+        for k, v in tmap.items():
+            if raw_q.upper() in k.upper() or raw_q in k:
+                # 여러 이름이 잡히면 가장 짧은(깔끔한) 이름을 버튼에 표시하기 위함
+                if v not in matches:
+                    matches[v] = k
+                else:
+                    if len(k) < len(matches[v]):
+                        matches[v] = k
+                        
+        unique_tickers = list(matches.keys())
+        
+        # 영문 티커(예: AAPL)나 6자리 한국코드(005930)를 명시적으로 친 경우 부분일치 무시하고 직접 검색
+        is_direct_ticker = bool(re.match(r'^\d{6}$', raw_q) or re.match(r'^[A-Za-z\-\.]+$', raw_q))
+
+        if len(unique_tickers) == 1 and not is_direct_ticker:
+            # 딱 1개만 잡히면 (예: '아마' -> 아마존) 바로 검색!
+            st.session_state.search_tk = unique_tickers[0]
+            st.session_state.suggestions = []
+        elif len(unique_tickers) > 1 and not is_direct_ticker:
+            # 2개 이상 잡히면 (예: '삼성') 버튼으로 선택지 제공
+            st.session_state.search_tk = None
+            st.session_state.suggestions = [(tk, name) for tk, name in matches.items()]
+        else:
+            # 못 찾았거나 영어/숫자 티커면 야후 파이낸스로 다이렉트 전송
+            st.session_state.search_tk = q
+            st.session_state.suggestions = []
 
 # ==========================================
 # [2] 글로벌 상수 및 고정 데이터
@@ -120,7 +158,7 @@ fallback_13f_data = {
         {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
         {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
         {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
-        {"티커": "TME", "finite_name": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
         {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
         {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
         {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
@@ -432,7 +470,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "ELV": "Elevance Health, Inc.: 건강보험 시장의 안정적 경영을 펼치나, 정부의 보험요율 인하 및 의료 비용(MLR) 상승이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "FERG": "Ferguson Enterprises Inc.: 북미 건설 자재 유통의 지배적 지위이나, 미국 주택 및 상업용 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "WTW": "Willis Towers Watson: 구조조정을 통한 수익성 개선 경영을 추진 중이나, 인재 유출 및 경쟁사 대비 열위는 이건 확인이 필요한 부분입니다.",
-        "AERO": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "TFX": "Teleflex Incorporated: 의료기기 전문 경영진의 제품력은 우수하나, 병원들의 지출 삭감 및 경쟁 제품 등장이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "EXP": "Eagle Materials Inc.: 미국 내 건자재 효율적 경영진이나, 인프라 투자 지연 및 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GPC": "Genuine Parts Company: 자동차 부품 유통에서 안정적 경영을 하나, 전기차 보급에 따른 내연기관 부품 수요 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -458,13 +496,13 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "FICO": "Fair Isaac Corp: 미국 신용점수 독과점으로 강력한 가격 결정력이 있으나, 정부의 대체 신용평가 모델 도입 압박이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "HCC": "Warrior Met Coal, Inc.: 제철용 유연탄 생산 효율성은 높으나, 탈탄소 트렌드 및 원자재 가격 폭락 시 직격탄을 맞는 고위험 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "RIG": "Transocean Ltd.: 심해 시추 시장의 선두 주자이나, 고유가 유지 여부에 따른 장비 가동률 변동 및 막대한 부채가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "AMR": "Alpha Metallurgical Resources, Inc.: 석탄 생산 자본 배분(자사주 매입)은 공격적이나, 장기적인 석탄 수요 감소 및 환경 규제가 치명적 리스크입니다. (이건 환경이 치명적 리스크입니다)",
+        "AMR": "Alpha Metallurgical Resources, Inc.: 석탄 생산 자본 배분(자사주 매입)은 공격적이나, 장기적인 석탄 수요 감소 및 환경 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
         # 새롭게 보강된 미국 기술주/우량주 경영진 리스크 패널
         "TSLA": "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 전기차 생태계를 장악했으나, 오너의 예측 불가능한 돌발 발언과 타 사업으로의 집중력 분산이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도และ 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
+        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도와 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
         "LLY": "데이비드 릭스 (David Ricks): 비만 치료제 등 혁신 파이프라인을 통한 폭발적 성장을 이끌고 있으나, 신약 특허 만료 및 약가 인하 압박은 이건 확인이 필요한 부분입니다.",
         "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
@@ -502,7 +540,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
         "086790": "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)",
         "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
-        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입 and 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
+        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
         "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
         "138040": "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다).",
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
@@ -730,7 +768,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial):
         
     return rnd_trend
 
-# 🚀 [수정 및 세분화된 영역] 투자의견 약간할인 및 약간할증 7단계 시스템 반영
+# 🚀 투자의견 7단계 시스템 반영 (약간할인, 약간할증 세분화)
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
     score = 0
     ceo_score = 0
@@ -836,7 +874,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if is_cyclical:
         reason += t(" (⚠️ 시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (⚠️ Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
     if is_financial:
-        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 6단계 평가 완료)", " (🏦 Financial Mode Active: 6-Tier evaluation based on ROE and PBR)")
+        reason += t(" (🏦 금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 7단계 평가 완료)", " (🏦 Financial Mode Active: 7-Tier evaluation based on ROE and PBR)")
 
     return title, color, reason
 
@@ -1027,17 +1065,29 @@ with tab1:
     with col_input:
         ui = st.text_input(
             t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
-            placeholder=t("예: 삼전, 하닉, AAPL, 엔비디아 (입력 후 Enter)", "e.g., 삼전, 하닉, AAPL, 엔비디아 (Press Enter)"), 
+            placeholder=t("예: 삼전, 하닉, 아마, 구글 (입력 후 Enter)", "e.g., 삼전, 하닉, AAPL, AMZN (Press Enter)"), 
             label_visibility="collapsed",
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("[안내] 정확한 종목 스캔을 위해 가급적 종목 명칭이나 코드(예: 한국 주식은 6자리 숫자)를 정확히 입력해 주십시오.", "[Info] For accurate scanning, please preferably enter the exact stock name or code (e.g., 6-digit code for KR stocks)."))
+        st.caption(t("[안내] 초성이나 일부분만 쳐도 스마트하게 찾아냅니다. (예: '삼성' -> 삼성전자 등 목록 표시)", "[Info] Smart partial match supported. (e.g., Type 'AM' -> displays Amazon, AMD, etc.)"))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
 
-    if st.session_state.search_tk:
+    # 🚀 스마트 검색 제안 UI 표출
+    if st.session_state.suggestions:
+        st.markdown(f"<div style='color:#fdcb6e; font-weight:bold; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;'>💡 {t('여러 종목이 발견되었습니다. 찾으시는 기업을 클릭해주세요!', 'Multiple matches found. Please click one:')}</div>", unsafe_allow_html=True)
+        sug_cols = st.columns(4)
+        for idx, (s_tk, s_name) in enumerate(st.session_state.suggestions[:12]):
+            with sug_cols[idx % 4]:
+                if st.button(f"{s_name}", key=f"sug_btn_{s_tk}", use_container_width=True):
+                    st.session_state.search_tk = s_tk
+                    st.session_state.suggestions = []
+                    st.rerun()
+        st.divider()
+
+    elif st.session_state.search_tk:
         tk = st.session_state.search_tk
 
         st_container = st.empty()
@@ -1678,7 +1728,7 @@ with tab4:
          t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 것과 같은 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
          t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
