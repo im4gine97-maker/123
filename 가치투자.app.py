@@ -688,6 +688,51 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
+# 🚀 [추가된 로직] R&D(연구개발비) 최신 4년 추세 및 FCF 대비 비율 분석
+def analyze_rnd_trend(stk, base_fcf, is_financial):
+    if is_financial: return f"<span style='color:#8892b0'>{t('금융/보험주 제외', 'N/A (Financial)')}</span>"
+    
+    rnd_trend = f"<span style='color:#8892b0'>{t('데이터 부족 (해당없음)', 'No Data')}</span>"
+    if stk is None: return rnd_trend
+    
+    try:
+        inc = stk.income_stmt
+        if inc is not None and not inc.empty and 'Research And Development' in inc.index:
+            rnd_vals = inc.loc['Research And Development'].dropna().values[:4][::-1]
+            if len(rnd_vals) > 0:
+                curr_rnd = safe_float(rnd_vals[-1])
+                if curr_rnd > 0:
+                    # 4년 추세 판별
+                    if len(rnd_vals) >= 3:
+                        if all(rnd_vals[i] <= rnd_vals[i+1] for i in range(len(rnd_vals)-1)) and rnd_vals[0] < rnd_vals[-1]:
+                            t_text = f"<span class='good'>{t('[합격] 4년 지속 증가', '[Pass] 4Y Increasing')}</span>"
+                        elif curr_rnd < rnd_vals[0]:
+                            t_text = f"<span class='highlight'>{t('[주의] 투자 축소', '[Warning] Decreasing')}</span>"
+                        else:
+                            t_text = f"<span style='color:#fdcb6e;'>{t('유지/변동', 'Maintained')}</span>"
+                    else:
+                        t_text = f"<span style='color:#74b9ff;'>{t('단기 데이터', 'Short-term')}</span>"
+                        
+                    # FCF 대비 R&D 비율 판별
+                    if base_fcf and base_fcf > 0:
+                        ratio = (curr_rnd / base_fcf) * 100
+                        if ratio >= 15: r_eval = f"<span class='good'>{t('안정권(적극적)', 'Safe/Aggressive')}</span>"
+                        elif ratio >= 5: r_eval = f"<span style='color:#74b9ff;'>{t('보통', 'Normal')}</span>"
+                        else: r_eval = f"<span class='highlight'>{t('주의(투자 미흡)', 'Warning/Low')}</span>"
+                        fcf_info = f"➔ FCF(순수여윳돈) 규모의 {ratio:.1f}% 지출 ({r_eval})"
+                    elif base_fcf and base_fcf <= 0:
+                        fcf_info = f"➔ {t('FCF 적자로 계산 불가', 'FCF negative')}"
+                    else:
+                        fcf_info = ""
+                        
+                    rnd_trend = f"{t_text} <span style='font-size:0.9em; font-weight:bold;'>{fcf_info}</span>"
+                else:
+                    rnd_trend = f"<span style='color:#8892b0'>{t('R&D 지출 없음', 'No R&D')}</span>"
+    except:
+        pass
+        
+    return rnd_trend
+
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
     score = 0
     ceo_score = 0
@@ -1097,6 +1142,9 @@ with tab1:
                 
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
+                
+                # 🚀 추가된 부분: R&D(연구개발비) 로직 호출
+                rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial)
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
@@ -1298,13 +1346,15 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
+                    # 🚀 R&D 지표 c2 영역에 표출
+                    st.markdown(f"- **{t('R&D(연구개발비) 추세 (최근 4년 미래 투자 체력)', 'R&D Trend (4Y Future Reinvestment)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
