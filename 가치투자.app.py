@@ -120,7 +120,7 @@ fallback_13f_data = {
         {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
         {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
         {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
-        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
+        {"티커": "TME", "finite_name": "Tencent Music Entertainment Group", "비중(%)": 1.91},
         {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
         {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
         {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
@@ -432,7 +432,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "ELV": "Elevance Health, Inc.: 건강보험 시장의 안정적 경영을 펼치나, 정부의 보험요율 인하 및 의료 비용(MLR) 상승이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "FERG": "Ferguson Enterprises Inc.: 북미 건설 자재 유통의 지배적 지위이나, 미국 주택 및 상업용 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "WTW": "Willis Towers Watson: 구조조정을 통한 수익성 개선 경영을 추진 중이나, 인재 유출 및 경쟁사 대비 열위는 이건 확인이 필요한 부분입니다.",
-        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AERO": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "TFX": "Teleflex Incorporated: 의료기기 전문 경영진의 제품력은 우수하나, 병원들의 지출 삭감 및 경쟁 제품 등장이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "EXP": "Eagle Materials Inc.: 미국 내 건자재 효율적 경영진이나, 인프라 투자 지연 및 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GPC": "Genuine Parts Company: 자동차 부품 유통에서 안정적 경영을 하나, 전기차 보급에 따른 내연기관 부품 수요 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -458,13 +458,13 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "FICO": "Fair Isaac Corp: 미국 신용점수 독과점으로 강력한 가격 결정력이 있으나, 정부의 대체 신용평가 모델 도입 압박이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "HCC": "Warrior Met Coal, Inc.: 제철용 유연탄 생산 효율성은 높으나, 탈탄소 트렌드 및 원자재 가격 폭락 시 직격탄을 맞는 고위험 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "RIG": "Transocean Ltd.: 심해 시추 시장의 선두 주자이나, 고유가 유지 여부에 따른 장비 가동률 변동 및 막대한 부채가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "AMR": "Alpha Metallurgical Resources, Inc.: 석탄 생산 자본 배분(자사주 매입)은 공격적이나, 장기적인 석탄 수요 감소 및 환경 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AMR": "Alpha Metallurgical Resources, Inc.: 석탄 생산 자본 배분(자사주 매입)은 공격적이나, 장기적인 석탄 수요 감소 및 환경 규제가 치명적 리스크입니다. (이건 환경이 치명적 리스크입니다)",
         "DJCO": "Daily Journal Corp: 찰리 멍거 사후 저널 사업의 쇠퇴와 소프트웨어 전환 성과는 이건 확인이 필요한 부분입니다.",
         "RACE": "Ferrari NV: 럭셔리 브랜드 통제 역량은 최고 수준이나, 내연기관 감성 유지와 전기차 전환의 조화는 이건 확인이 필요한 부분입니다.",
         
         # 새롭게 보강된 미국 기술주/우량주 경영진 리스크 패널
         "TSLA": "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 전기차 생태계를 장악했으나, 오너의 예측 불가능한 돌발 발언과 타 사업으로의 집중력 분산이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도와 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
+        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도และ 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
         "LLY": "데이비드 릭스 (David Ricks): 비만 치료제 등 혁신 파이프라인을 통한 폭발적 성장을 이끌고 있으나, 신약 특허 만료 및 약가 인하 압박은 이건 확인이 필요한 부분입니다.",
         "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
@@ -502,7 +502,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
         "086790": "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)",
         "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
-        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
+        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입 and 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
         "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
         "138040": "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다).",
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
@@ -688,7 +688,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 🚀 [수정된 로직] R&D(연구개발비) 최신 FCF 대비 적정선 판별
+# 🚀 R&D(연구개발비) 최신 FCF 대비 적정선 판별
 def analyze_rnd_trend(stk, base_fcf, is_financial):
     if is_financial: return f"<span style='color:#8892b0'>{t('금융/보험주 제외', 'N/A (Financial)')}</span>"
     
@@ -730,6 +730,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial):
         
     return rnd_trend
 
+# 🚀 [수정 및 세분화된 영역] 투자의견 약간할인 및 약간할증 7단계 시스템 반영
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
     score = 0
     ceo_score = 0
@@ -745,7 +746,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if any(k in ceo_text for k in ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란"]):
         ceo_score -= 25
         
-    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편"]):
+    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편"]):
         ceo_score -= 15
         
     if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "침체", "잠식", "만료", "포화"]):
@@ -753,7 +754,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score += max(-20, min(20, ceo_score))
         
-    # 2. PER 과거 대비 안전마진 (6단계: 매우 합격 ~ 매우 주의)
+    # 2. PER 과거 대비 안전마진 (6단계)
     if pmos >= 30: score += 25
     elif pmos >= 15: score += 15
     elif pmos >= 5: score += 5
@@ -816,15 +817,19 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if is_cyclical:
         score -= 15
 
-    # 7. 컷오프 (6단계 세밀한 점수 부여를 반영, 적정 가치 허들은 -20점 유지)
+    # 7. 컷오프 (약간 할인 및 약간 할증 항목 추가된 촘촘한 7단계 시스템 메인 연산)
     if score >= 90:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
-    elif score >= 45:
+    elif score >= 50:
         title, color, reason = t("할인 (Discount)", "Discount"), "#00b894", t("충분한 안전마진과 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
-    elif score >= -20:
+    elif score >= 15:
+        title, color, reason = t("약간 할인 (Slight Discount)", "Slight Discount"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 합리적인 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point despite a modest margin of safety.")
+    elif score >= -15:
         title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality despite some 'Slight Warning' metrics.")
-    elif score >= -60:
-        title, color, reason = t("할증 (Premium)", "Premium"), "#ff7675", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
+    elif score >= -45:
+        title, color, reason = t("약간 할증 (Slight Premium)", "Slight Premium"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 분할 접근이나 조정 시 매수가 유리합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance or waiting for a pullback is recommended.")
+    elif score >= -75:
+        title, color, reason = t("할증 (Premium)", "Premium"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
     else:
         title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
 
@@ -1140,7 +1145,7 @@ with tab1:
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
                 
-                # 🚀 추가된 부분: R&D(연구개발비) 로직 호출
+                # R&D(연구개발비) 로직 호출
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial)
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
@@ -1282,6 +1287,8 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
+                st.sidebar.markdown(f"**현재 투자의견:** <span style='color:{op_color}; font-weight:bold;'>{op_title}</span>", unsafe_allow_html=True)
+
                 st.divider()
 
                 if is_financial:
@@ -1343,7 +1350,7 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    # 🚀 R&D 지표 c2 영역에 표출
+                    # R&D 지표 c2 영역에 표출
                     st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
