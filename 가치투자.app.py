@@ -688,7 +688,7 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 🚀 [추가된 로직] R&D(연구개발비) 최신 4년 추세 및 FCF 대비 비율 분석
+# 🚀 [수정된 로직] R&D(연구개발비) 최신 FCF 대비 적정선 판별
 def analyze_rnd_trend(stk, base_fcf, is_financial):
     if is_financial: return f"<span style='color:#8892b0'>{t('금융/보험주 제외', 'N/A (Financial)')}</span>"
     
@@ -702,30 +702,27 @@ def analyze_rnd_trend(stk, base_fcf, is_financial):
             if len(rnd_vals) > 0:
                 curr_rnd = safe_float(rnd_vals[-1])
                 if curr_rnd > 0:
-                    # 4년 추세 판별
-                    if len(rnd_vals) >= 3:
-                        if all(rnd_vals[i] <= rnd_vals[i+1] for i in range(len(rnd_vals)-1)) and rnd_vals[0] < rnd_vals[-1]:
-                            t_text = f"<span class='good'>{t('[합격] 4년 지속 증가', '[Pass] 4Y Increasing')}</span>"
-                        elif curr_rnd < rnd_vals[0]:
-                            t_text = f"<span class='highlight'>{t('[주의] 투자 축소', '[Warning] Decreasing')}</span>"
-                        else:
-                            t_text = f"<span style='color:#fdcb6e;'>{t('유지/변동', 'Maintained')}</span>"
-                    else:
-                        t_text = f"<span style='color:#74b9ff;'>{t('단기 데이터', 'Short-term')}</span>"
-                        
-                    # FCF 대비 R&D 비율 판별
+                    # FCF 대비 R&D 비율 적정선 판별
                     if base_fcf and base_fcf > 0:
                         ratio = (curr_rnd / base_fcf) * 100
-                        if ratio >= 15: r_eval = f"<span class='good'>{t('안정권(적극적)', 'Safe/Aggressive')}</span>"
-                        elif ratio >= 5: r_eval = f"<span style='color:#74b9ff;'>{t('보통', 'Normal')}</span>"
-                        else: r_eval = f"<span class='highlight'>{t('주의(투자 미흡)', 'Warning/Low')}</span>"
-                        fcf_info = f"➔ FCF(순수여윳돈) 규모의 {ratio:.1f}% 지출 ({r_eval})"
+                        
+                        if ratio >= 50:
+                            r_eval = f"<span class='highlight'>{t('[지출 과다] 현금흐름 압박 주의', '[High] Watch Cash Flow')}</span>"
+                            desc = t("FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.", "Consuming over half of FCF on R&D. Highly aggressive, watch for cash burn.")
+                        elif ratio >= 15:
+                            r_eval = f"<span class='good'>{t('[적정 수준] 이상적인 재투자', '[Optimal] Ideal Reinvestment')}</span>"
+                            desc = t("벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.", "Healthy reinvestment rate into future growth within generated cash.")
+                        else:
+                            r_eval = f"<span style='color:#fdcb6e;'>{t('[지출 적음] 투자 미흡 가능성', '[Low] Potential Underinvestment')}</span>"
+                            desc = t("FCF 대비 R&D 비율이 낮습니다. (단, 코카콜라 같은 필수소비재 등 성숙 산업은 이 비율이 낮아도 정상입니다)", "Low R&D relative to FCF. (Normal for mature non-tech industries).")
+                            
+                        fcf_info = f"{r_eval} <span style='font-size:0.95em;'>➔ FCF의 <b>{ratio:.1f}%</b> 지출 ({desc})</span>"
                     elif base_fcf and base_fcf <= 0:
-                        fcf_info = f"➔ {t('FCF 적자로 계산 불가', 'FCF negative')}"
+                        fcf_info = f"<span class='highlight'>{t('FCF(순수여윳돈) 적자로 적정선 계산 불가', 'Unable to calc optimal line due to negative FCF')}</span>"
                     else:
                         fcf_info = ""
                         
-                    rnd_trend = f"{t_text} <span style='font-size:0.9em; font-weight:bold;'>{fcf_info}</span>"
+                    rnd_trend = fcf_info
                 else:
                     rnd_trend = f"<span style='color:#8892b0'>{t('R&D 지출 없음', 'No R&D')}</span>"
     except:
@@ -748,7 +745,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     if any(k in ceo_text for k in ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란"]):
         ceo_score -= 25
         
-    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편"]):
+    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편"]):
         ceo_score -= 15
         
     if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "침체", "잠식", "만료", "포화"]):
@@ -1347,14 +1344,14 @@ with tab1:
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
                     # 🚀 R&D 지표 c2 영역에 표출
-                    st.markdown(f"- **{t('R&D(연구개발비) 추세 (최근 4년 미래 투자 체력)', 'R&D Trend (4Y Future Reinvestment)')}:** {rnd_trend}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
                 st.divider()
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
                 if is_financial:
-                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
+                    st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기에서는 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
