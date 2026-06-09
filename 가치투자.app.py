@@ -507,7 +507,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
         "JPM": "제이미 다이먼 (Jamie Dimon): 월가 역사상 가장 신뢰받는 CEO로 위기 관리 능력이 탁월하나, 포스트 다이먼 승계 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)",
-        "ORCL": "사프라 카츠 (Safra Catz): B2B 데이터베이스 시장의 굳건한 해자를 가졌으나, 경쟁사 대비 늦은 클라우드 전환 속도는 이건 확인이 필요한 부분입니다.",
+        "ORCL": "사프라 카츠 (Safra Catz): B2B 데이터베이스 시장의 굳건한 해자를 가 가졌으나, 경쟁사 대비 늦은 클라우드 전환 속도는 이건 확인이 필요한 부분입니다.",
         "V": "라이언 매키너니 (Ryan McInerney): 결제 네트워크의 압도적 해자와 주주 환원은 완벽하나, 각국 정부의 수수료 규제 위협이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "XOM": "대런 우즈 (Darren Woods): 효율적인 자본 배분과 주주환원에 철저한 경영진이나, 화석 연료의 환경 규제 및 유가 변동성이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "INTC": "팻 겔싱어 (Pat Gelsinger): 파운드리 재건을 시도 중이나, 턴어라운드 지연 및 막대한 CAPEX 지출로 인한 잉여 현금 지속 소각이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -1618,12 +1618,14 @@ with tab1:
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
+                st.caption(t("**워런 버핏 (보유 기간):** 훌륭한 경영진이 있는 탁월한 기업의 지분을 보유하고 있다면, 우리가 가장 선호하는 보유 기간은 '영원(Forever)'입니다. 진정으로 좋은 기업은 팔 이유가 없습니다.", "**Warren Buffett (Holding Period):** When we own portions of outstanding businesses with outstanding managements, our favorite holding period is forever."))
                 st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
                 st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
+                st.caption(t("**찰리 멍거 (장기 보유):** 투자에서 큰돈을 버는 비결은 사고파는 것에 있지 않습니다. 진정한 수익은 긴 '기다림(장기 보유)' 속에서 나옵니다.", "**Charlie Munger (Long-term Holding):** The big money is not in the buying and the selling, but in the waiting."))
                 st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
 
             else:
-                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 정없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
+                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
