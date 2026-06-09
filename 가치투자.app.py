@@ -426,7 +426,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     
     db = {
         "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
-        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
+        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
         "GOOGL": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GOOG": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "PDD": "PDD Holdings Inc.: 경영진의 경영 투명성과 글로벌 확장에 따른 국가별 규제 리스크는 이건 확인이 필요한 부분입니다.",
@@ -507,7 +507,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
         "JPM": "제이미 다이먼 (Jamie Dimon): 월가 역사상 가장 신뢰받는 CEO로 위기 관리 능력이 탁월하나, 포스트 다이먼 승계 리스크가 존재합니다. (이건 확인이 필요한 부분입니다)",
-        "ORCL": "사프라 카츠 (Safra Catz): B2B 데이터베이스 시장의 굳건한 해자를 가 가졌으나, 경쟁사 대비 늦은 클라우드 전환 속도는 이건 확인이 필요한 부분입니다.",
+        "ORCL": "사프라 카츠 (Safra Catz): B2B 데이터베이스 시장의 굳건한 해자를 가졌으나, 경쟁사 대비 늦은 클라우드 전환 속도는 이건 확인이 필요한 부분입니다.",
         "V": "라이언 매키너니 (Ryan McInerney): 결제 네트워크의 압도적 해자와 주주 환원은 완벽하나, 각국 정부의 수수료 규제 위협이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "XOM": "대런 우즈 (Darren Woods): 효율적인 자본 배분과 주주환원에 철저한 경영진이나, 화석 연료의 환경 규제 및 유가 변동성이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "INTC": "팻 겔싱어 (Pat Gelsinger): 파운드리 재건을 시도 중이나, 턴어라운드 지연 및 막대한 CAPEX 지출로 인한 잉여 현금 지속 소각이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -1644,6 +1644,11 @@ with tab2:
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
             df.index = df.index + 1
+            
+            # 🚀 [추가됨] 한국어 버전일 때만 기업명을 한글로 번역
+            if is_ko:
+                df["기업명"] = df["기업명"].apply(tr_text)
+                
             st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
             if (df["비중(%)"] == 0.0).any():
