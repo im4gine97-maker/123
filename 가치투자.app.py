@@ -335,22 +335,41 @@ def fetch_macro_realtime_v6():
     for name, tk in macro_symbols.items():
         try:
             stk = yf.Ticker(tk)
-            # 국내 지수의 NaN 값으로 인한 표출 버그 방지를 위해 7일 데이터를 받고 결측치를 사전 제거
-            hist = stk.history(period="7d")
-            if hist is not None and not hist.empty:
-                hist = hist.dropna(subset=['Close'])
+            
+            # 🚀 수정: history 대신 fast_info를 최우선으로 사용하여 당일 기준 실시간 시세와 전일 종가 비교 (지연/날짜 밀림 오류 해결)
+            try:
+                # yfinance 버전에 따른 호환성을 위해 속성 접근과 딕셔너리 접근 모두 시도
+                last_p = getattr(stk.fast_info, 'last_price', None)
+                if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
                 
-            if len(hist) >= 2:
-                last_p = safe_float(hist['Close'].iloc[-1])
-                prev_p = safe_float(hist['Close'].iloc[-2])
-                if prev_p != 0:
-                    change = last_p - prev_p
-                    pct = (change / prev_p) * 100
+                prev_p = getattr(stk.fast_info, 'previous_close', None)
+                if prev_p is None: prev_p = stk.fast_info.get('previousClose') if isinstance(stk.fast_info, dict) else stk.fast_info['previousClose']
+                
+                last_p = safe_float(last_p)
+                prev_p = safe_float(prev_p)
+                
+                # 만약 정상적인 값을 못 가져왔다면 history로 강제 폴백
+                if last_p == 0.0 or prev_p == 0.0:
+                    raise Exception("Fallback to history")
+            except:
+                # fast_info 실패 시 기존 history 로직으로 폴백
+                hist = stk.history(period="7d")
+                if hist is not None and not hist.empty:
+                    hist = hist.dropna(subset=['Close'])
+                if hist is not None and len(hist) >= 2:
+                    last_p = safe_float(hist['Close'].iloc[-1])
+                    prev_p = safe_float(hist['Close'].iloc[-2])
                 else:
-                    change, pct = 0.0, 0.0
-                res[name] = {"p": last_p, "c": change, "pct": pct}
-            else: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
-        except: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
+                    last_p, prev_p = 0.0, 0.0
+
+            if prev_p != 0:
+                change = last_p - prev_p
+                pct = (change / prev_p) * 100
+            else:
+                change, pct = 0.0, 0.0
+            res[name] = {"p": last_p, "c": change, "pct": pct}
+        except: 
+            res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
             
     try:
         spy_info = yf.Ticker("SPY").info
@@ -1768,7 +1787,7 @@ with tab4:
          t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 단할 때 사는 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
          t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
