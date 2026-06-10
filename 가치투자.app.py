@@ -1667,6 +1667,73 @@ with tab1:
 
                 st.divider()
 
+                # 🚀 [추가됨] 분석 결과 복사/공유 기능
+                st.subheader(t("📲 분석 결과 공유하기 (카톡, 제미나이 등)", "📲 Share Analysis Results"))
+                st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
+                
+                def strip_html(h_str):
+                    return re.sub(r'<[^>]+>', '', h_str)
+                
+                clean_per_mos = strip_html(per_mos_str)
+                clean_biz_eval = strip_html(biz_eval)
+                clean_eps_trend = strip_html(eps_trend)
+                clean_bps_trend = strip_html(bps_trend)
+                
+                if is_financial:
+                    share_fv = t('금융/보험주 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
+                    share_mos = t('해당 없음', 'N/A')
+                else:
+                    if iv:
+                        share_fv = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                        share_mos = f"{mos_val:.1f}% (최상 {mos_best:.1f}%, 최악 {mos_worst:.1f}%)"
+                    else:
+                        share_fv = t("계산 불가 (FCF 적자 등)", "N/A (Negative FCF)")
+                        share_mos = t("계산 불가", "N/A")
+
+                share_ko = f"""[AGIE 가치투자 분석 리포트]
+🏢 기업명: {i.get('shortName', tk)} ({tk})
+✨ AI 종합 투자의견: {op_title}
+
+📊 핵심 밸류에이션 지표
+- 현재 주가: {p_str}
+- 추정 적정가(DCF): {share_fv}
+- 안전마진(MoS): {share_mos}
+- 자본효율(ROE): {roe:.1f}%
+- 본전회수기간(Fwd PER): {f_pe:.1f}배 (과거평균: {a_pe:.1f}배)
+- 주식 위험 프리미엄(ERP): {erp:.2f}%p (국채 대비 주식 매력도)
+- 장기 BPS 성장: {clean_bps_trend}
+
+💡 AI 핵심 요약
+{op_reason}
+
+🔍 매수 6원칙 요약
+- 가격 매력도 (PER 기준): {clean_per_mos}
+- 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}
+"""
+                share_en = f"""[AGIE Value Investing Report]
+🏢 Company: {i.get('shortName', tk)} ({tk})
+✨ AI Opinion: {op_title}
+
+📊 Core Valuation Metrics
+- Current Price: {p_str}
+- Est. Fair Value (DCF): {share_fv}
+- Margin of Safety (MoS): {share_mos}
+- Equity Return (ROE): {roe:.1f}%
+- Fwd PE: {f_pe:.1f}x (Hist Avg: {a_pe:.1f}x)
+- Equity Risk Premium (ERP): {erp:.2f}%p
+- Long-term BPS Growth: {clean_bps_trend}
+
+💡 AI Core Summary
+{op_reason}
+
+🔍 Pre-Buy Checklist Summary
+- Price Attractiveness (PE): {clean_per_mos}
+- Business Moat (ROE/ROIC): {clean_biz_eval}
+"""
+                st.code(t(share_ko, share_en), language="text")
+
+                st.divider()
+
                 st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
                 st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
                 st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
@@ -1815,7 +1882,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 것이 가치투자의 진정한 의의입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
