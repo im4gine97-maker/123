@@ -1768,7 +1768,7 @@ with tab4:
          t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("100만 원짜리 물건을 단할 때 사는 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
          t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
@@ -1805,23 +1805,29 @@ with tab5:
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
     
-    phil_decl_ko = """
-    > **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>
-    오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. 수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>
-    **AGIE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>
-    우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, 경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>
-    이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>
-    **투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 AGIE와 함께 하십시오.**
-    """
+    phil_decl_ko = (
+        "> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>"
+        "오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. "
+        "수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>"
+        "**AGIE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>"
+        "우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, "
+        "경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>"
+        "이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 "
+        "가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>"
+        "**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 AGIE와 함께 하십시오.**"
+    )
     
-    phil_decl_en = """
-    > **A Compass for 'True Investment', Not Speculation**<br><br>
-    Today's stock market is filled with sensational news, short-term chart movements, and endless noise. Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>
-    **AGIE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>
-    We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>
-    This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly based strictly on data and logic, free from emotion.<br><br>
-    **Join AGIE on the journey to becoming a true investor who contributes to society, not a speculator.**
-    """
+    phil_decl_en = (
+        "> **A Compass for 'True Investment', Not Speculation**<br><br>"
+        "Today's stock market is filled with sensational news, short-term chart movements, and endless noise. "
+        "Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>"
+        "**AGIE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>"
+        "We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value "
+        "based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>"
+        "This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly "
+        "based strictly on data and logic, free from emotion.<br><br>"
+        "**Join AGIE on the journey to becoming a true investor who contributes to society, not a speculator.**"
+    )
     
     phil_decl = t(phil_decl_ko, phil_decl_en)
 
@@ -1839,4 +1845,29 @@ with tab5:
     
     st.divider()
     st.subheader(phil_title3)
-    st.markdown(f"<div translate='no' style='font-size: 1
+    
+    st.markdown(
+        f"<div translate='no' style='font-size: 1.1rem; line-height: 1.8; "
+        f"background: rgba(255,255,255,0.03); padding: 30px; border-radius: 16px; "
+        f"border-left: 5px solid #A0C4FF; color: var(--text-color); "
+        f"box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>",
+        unsafe_allow_html=True
+    )
+
+# 하단 면책 조항 및 카피라이트 
+st.divider()
+lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
+lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
+lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+
+st.markdown(f"""
+<div translate="no" style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
+    <p><b>{lbl_disc_title}</b><br>
+    {lbl_disc_1}<br>
+    {lbl_disc_2}</p>
+    <p><b>[Copyright]</b><br>
+    ⓒ 2026 AGIE. All rights reserved.<br>
+    {lbl_copy}</p>
+</div>
+""", unsafe_allow_html=True)
