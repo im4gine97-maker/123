@@ -426,7 +426,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     
     db = {
         "NVDA": "젠슨 황 (Jensen Huang): 비전을 현실로 만드는 강력한 실행력과 기술적 해자를 구축한 검증된 경영자입니다.\n리스크: 특정 리더(키맨)에 대한 절대적 의존도(단일 실패 지점) 및 빅테크 고객사들의 자체 칩 개발 독립 리스크. (이건 확인이 필요한 부분입니다)",
-        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
+        "AAPL": "팀 쿡 (Tim Cook): 탁월한 공급망 관리와 대규모 자사주 매입으로 주주 환원에 매우 충실합니다.\n리스크: 혁신 사이클 정체 및 중국 등 지정학적 갈등에 노출된 벤더 공급망 마찰 위험. (이건 확인이 필요한 부분입니다)",
         "GOOGL": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GOOG": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "PDD": "PDD Holdings Inc.: 경영진의 경영 투명성과 글로벌 확장에 따른 국가별 규제 리스크는 이건 확인이 필요한 부분입니다.",
@@ -1224,6 +1224,37 @@ with tab1:
                     eps_g_str = t("확인불가", "N/A")
                     eps_col = "#8892b0"
                     
+                # 🚀 RSI (14일 일차트) 및 평균 계산
+                current_rsi_val, avg_rsi_val = None, None
+                try:
+                    hist_1y = stk.history(period="1y")
+                    if hist_1y is not None and not hist_1y.empty and len(hist_1y) >= 15:
+                        delta = hist_1y['Close'].diff()
+                        gain = delta.clip(lower=0)
+                        loss = -1 * delta.clip(upper=0)
+                        ema_gain = gain.ewm(com=13, adjust=False).mean()
+                        ema_loss = loss.ewm(com=13, adjust=False).mean()
+                        rs = ema_gain / ema_loss
+                        rsi_series = 100 - (100 / (1 + rs))
+                        
+                        current_rsi_val = safe_float(rsi_series.iloc[-1])
+                        avg_rsi_val = safe_float(rsi_series.dropna().mean())
+                except:
+                    pass
+
+                rsi_html = f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
+                if current_rsi_val is not None and current_rsi_val > 0:
+                    if current_rsi_val <= 30:
+                        rsi_eval = f"<span class='good'>{t('[과매도 구간]', '[Oversold]')}</span>"
+                    elif current_rsi_val >= 70:
+                        rsi_eval = f"<span class='highlight'>{t('[과매수 구간]', '[Overbought]')}</span>"
+                    else:
+                        rsi_eval = f"<span style='color:#fdcb6e;'>{t('[중립]', '[Neutral]')}</span>"
+                        
+                    rsi_ko = f"현재 <b>{current_rsi_val:.1f}</b> / 1년 평균 {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*30이하 과매도 / 70이상 과매수)</span>"
+                    rsi_en = f"Current <b>{current_rsi_val:.1f}</b> / 1Y Avg {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*<=30 Oversold / >=70 Overbought)</span>"
+                    rsi_html = t(rsi_ko, rsi_en)
+                    
                 has_ytd = False
                 try:
                     hist_ytd = stk.history(period="ytd")
@@ -1400,6 +1431,8 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
+                    # 🚀 RSI 지표 c2 영역에 표출
+                    st.markdown(f"- **{t('일차트 RSI (기술적 보조지표)', 'Daily RSI (Technical Indicator)')}:** {rsi_html}", unsafe_allow_html=True)
                     # R&D 지표 c2 영역에 표출
                     st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
@@ -1806,22 +1839,4 @@ with tab5:
     
     st.divider()
     st.subheader(phil_title3)
-    st.markdown(f"<div translate='no' style='font-size: 1.1rem; line-height: 1.8; background: rgba(255,255,255,0.03); padding: 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>", unsafe_allow_html=True)
-
-# 하단 면책 조항 및 카피라이트 
-st.divider()
-lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
-lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
-lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
-
-st.markdown(f"""
-<div translate="no" style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>{lbl_disc_title}</b><br>
-    {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
-    <p><b>[Copyright]</b><br>
-    ⓒ 2026 AGIE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"<div translate='no' style='font-size: 1
