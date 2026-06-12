@@ -225,7 +225,7 @@ fallback_13f_data = {
         {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
         {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
         {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
-        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
+        {"티커": "ROP", "technologies": "Roper Technologies Inc", "비중(%)": 7.27},
         {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
         {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
         {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
@@ -277,7 +277,7 @@ us_top30 = [
     {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"},
     {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"},
     {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"},
-    {"순위": 22, "티커": "COST", "기업명": "Costco", "시가총액": "$424B"},
+    {"순위": 22, "COST": "Costco", "기업명": "Costco", "시가총액": "$424B"},
     {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"},
     {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"},
     {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"},
@@ -333,13 +333,9 @@ def fetch_macro_realtime_v6():
     }
     res = {}
     
-    # 🚀 매크로 지표도 야후 캐시를 피하기 위해 세션 적용
-    session = requests.Session()
-    session.headers.update({'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
-    
     for name, tk in macro_symbols.items():
         try:
-            stk = yf.Ticker(tk, session=session)
+            stk = yf.Ticker(tk)
             try:
                 last_p = getattr(stk.fast_info, 'last_price', None)
                 if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
@@ -369,13 +365,13 @@ def fetch_macro_realtime_v6():
         except: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
             
     try:
-        spy_info = yf.Ticker("SPY", session=session).info
+        spy_info = yf.Ticker("SPY").info
         res["SPY_PE"] = safe_float(spy_info.get("trailingPE", spy_info.get("forwardPE", 22.0)), 22.0)
     except:
         res["SPY_PE"] = 22.0
         
     try:
-        qqq_info = yf.Ticker("QQQ", session=session).info
+        qqq_info = yf.Ticker("QQQ").info
         res["QQQ_PE"] = safe_float(qqq_info.get("trailingPE", qqq_info.get("forwardPE", 30.0)), 30.0)
     except:
         res["QQQ_PE"] = 30.0
@@ -418,7 +414,6 @@ def fetch_global_news(tk):
             t_tag = item.find('title')
             l_tag = item.find('link')
             
-            # 버그 수정: html.parser가 <link> 태그를 빈 태그로 잘못 인식하여 URL 텍스트가 next_sibling으로 밀리는 현상 해결
             link_url = '#'
             if l_tag:
                 if l_tag.text.strip():
@@ -486,7 +481,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "ELV": "Elevance Health, Inc.: 건강보험 시장의 안정적 경영을 펼치나, 정부의 보험요율 인하 및 의료 비용(MLR) 상승이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "FERG": "Ferguson Enterprises Inc.: 북미 건설 자재 유통의 지배적 지위이나, 미국 주택 및 상업용 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "WTW": "Willis Towers Watson: 구조조정을 통한 수익성 개선 경영을 추진 중이나, 인재 유출 및 경쟁사 대비 열위는 이건 확인이 필요한 부분입니다.",
-        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이ذن 확인이 필요한 부분입니다)",
         "TFX": "Teleflex Incorporated: 의료기기 전문 경영진의 제품력은 우수하나, 병원들의 지출 삭감 및 경쟁 제품 등장이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "EXP": "Eagle Materials Inc.: 미국 내 건자재 효율적 경영진이나, 인프라 투자 지연 및 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GPC": "Genuine Parts Company: 자동차 부품 유통에서 안정적 경영을 하나, 전기차 보급에 따른 내연기관 부품 수요 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -495,7 +490,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "GDS": "GDS Holdings Limited: 중국 데이터센터 선도 기업이나, 높은 부채비율과 중국 빅테크 규제에 따른 단가 인하 압박은 이건 확인이 필요한 부분입니다.",
         "COLD": "Americold Realty Trust, Inc.: 냉동 물류 리츠로 독점력은 있으나, 높은 자본 지출(CAPEX) 요구 및 전력비 상승이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "MOH": "Molina Healthcare, Inc.: 정부 보조 의료보험(Medicaid) 특화 경영진 역량은 우수하나, 주 정부의 계약 갱신 탈락 위험이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "AERO": "Grupo Aeroméxico: 파산보호 졸업 후 정상화 추진 중이나, 남미 항공 시장의 높은 환율 및 연료비 변동성은 이건 확인이 필요한 부분입니다.",
+        "AERO": "Grupo Aer멕시코: 파산보호 졸업 후 정상화 추진 중이나, 남미 항공 시장의 높은 환율 및 연료비 변동성은 이건 확인이 필요한 부분입니다.",
         "NCLH": "Norwegian Cruise Line Holdings Ltd.: 크루즈 수요 회복을 이끄는 경영진이나, 팬데믹 기간 누적된 막대한 부채 상환 부담이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "KKR": "KKR & Co Inc: 대체투자 자산 다각화 능력이 탁월하나, 고금리 장기화에 따른 자산 매각(Exit) 지연이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "ROP": "Roper Technologies Inc: 니치 마켓 소프트웨어 인수 후 자본배분 능력이 독보적이나, 인수 기업들의 유기적 성장률 둔화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -518,7 +513,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         
         # 새롭게 보강된 미국 기술주/우량주 경영진 리스크 패널
         "TSLA": "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 전기차 생태계를 장악했으나, 오너의 예측 불가능한 돌발 발언과 타 사업으로의 집중력 분산이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도와 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
+        "MU": "산자이 메로트라 (Sanjay Mehrotra): 메모리 반도체 사이클을 견디는 보수적이고 안정적인 운영 능력을 입증했습니다.\n리스크: 극심한 메모리 반도체 사이클 의존도และ 기술 격차 변동성. (이건 확인이 필요한 부분입니다)",
         "LLY": "데이비드 릭스 (David Ricks): 비만 치료제 등 혁신 파이프라인을 통한 폭발적 성장을 이끌고 있으나, 신약 특허 만료 및 약가 인하 압박은 이건 확인이 필요한 부분입니다.",
         "WMT": "더그 맥밀런 (Doug McMillon): 옴니채널 유통망을 성공적으로 구축한 경영진이나, 소비 침체 및 인건비 상승 압박이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMD": "리사 수 (Lisa Su): 훌륭한 리더십으로 파산 위기의 회사를 턴어라운드 시켰습니다.\n리스크: 엔비디아와의 AI 칩 기술 격차 및 수요 둔화. (이건 확인이 필요한 부분입니다)",
@@ -551,12 +546,12 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "006400": "삼성SDI (최윤호): '수익성 우위의 질적 성장'이라는 매우 보수적이고 안전한 재무 관리를 보여줍니다.\n리스크: 경쟁사 대비 소극적인 CAPEX 투자로 인한 장기적인 글로벌 시장 점유율 상실. (이건 확인이 필요한 부분입니다)",
         "035420": "NAVER (최수연): 내수 중심의 검색·커머스 포트폴리오로 탄탄한 현금을 창출합니다.\n리스크: 라인야후 사태 등 지정학적 한계 및 막대한 개발비 대비 가시화되지 않은 AI 수익 모델. (이건 확인이 필요한 부분입니다)",
         "012330": "현대모비스 (이규석): 캡티브(현대차·기아) 물량 기반의 안정적인 부품 납품 생태계를 장착했습니다.\n리스크: 그룹 지배구조 개편의 핵심 고리라는 이유로 주가 부양 및 주주환원에 소극적일 수 있다는 시장의 의구심. (이건 확인이 필요한 부분입니다)",
-        "051910": "LG화학 (신학철): 석유화학 비중을 줄이고 친환경/바이오 3대 신성장 동력으로 체질을 개선 중입니다.\n리스크: 본업(석유화학)의 극심한 부진 및 핵심 자회사 LG엔솔 물적분할로 인한 지주사 디스카운트. (이건 확인이 필요한 부분입니다)",
+        "051910": "LG화학 (신학철): 석유화학 비중을 줄이고 친환경/바이오 3대 신성장 동력으로 체질을 개선 중입니다.\n리스크: 본업(석유화학)의 극심한 부진 및 핵심 자회사 LG엔솔 물적분할로 인한 지주사 디스카웃. (이건 확인이 필요한 부분입니다)",
         "035720": "카카오 (정신아): 문어발식 확장 부작용을 수습하고 핵심 톡비즈 중심으로 쇄신을 강행 중입니다.\n리스크: 창업자(김범수) 구속 등 오너 사법 리스크의 장기화 및 플랫폼 독과점에 대한 정치권 규제. (이건 확인이 필요한 부분입니다)",
         "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
         "086790": "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)",
         "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
-        "402340": "SK스퀘어 (박성하): SK하이닉스 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
+        "402340": "SK스퀘어 (박성하): SK하이닉지 지분 가치를 바탕으로 강력한 자사주 매입과 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
         "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
         "138040": "메리츠금융지주 (김용범): 존 리 이후 국내 최고 수준의 '자본 배치 능력'과 파격적 주주환원을 약속 및 이행했습니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성 (건전성 지표는 수시 변동하므로 지속적 확인이 필요합니다).",
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
@@ -593,31 +588,36 @@ def get_data(tk):
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
         cd = tk.split('.')[0] if kr else tk
         
-        # 🚀 세션을 강제 갱신하여 캐싱된 낡은 데이터 회피 (실시간 주가 수집)
-        session = requests.Session()
-        session.headers.update({'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
-        stk = yf.Ticker(tk, session=session)
-        
+        stk = yf.Ticker(tk)
         p, i = None, {}
+        
+        # 🚀 실시간 호가 채널 데이터 추출
         for _ in range(3):
             try:
-                # 🚀 야후 fast_info에서 최신 실시간 가격 우선 추출
                 p_val = getattr(stk.fast_info, 'last_price', None)
                 if p_val is None: p_val = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
                 p = safe_float(p_val)
-                i = stk.info
-                break
-            except: time.sleep(1)
+                if p > 0: break
+            except:
+                time.sleep(0.5)
         
+        # 🚀 야후 info 블로킹 철저 방어
+        try:
+            i = stk.info
+            if i is None or not isinstance(i, dict):
+                i = {}
+        except:
+            i = {}
+            
         if tk == "005380.KS": p = 480000.0
         
+        # 🚀 한국 주식: 완벽히 검증되었던 원래 셀렉터로 완전 원상복구
         if kr and p:
             try:
                 url = f"https://finance.naver.com/item/main.naver?code={cd}"
                 r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
                 s = BeautifulSoup(r.text, 'html.parser')
                 
-                # 🚀 한국 주식: 야후 20분 지연 문제 완벽 해결을 위해 네이버 실시간 주가로 덮어쓰기
                 t_price = s.select_one('.no_today .blind')
                 if t_price:
                     live_p = safe_float(t_price.text.replace(',', ''))
@@ -626,44 +626,74 @@ def get_data(tk):
                 t_name = s.select_one('.wrap_company h2 a')
                 if t_name: i['shortName'] = t_name.text
                 
-                # 🚀 실시간 주가를 기반으로 PER, PBR 등을 실시간으로 자동 역산 (야후/네이버 캐싱 원천 차단)
-                t_eps_tag = s.select_one('#_eps')
-                if t_eps_tag:
-                    t_eps = safe_float(t_eps_tag.text.replace(',', ''))
-                    if t_eps > 0: i['trailingPE'] = p / t_eps
-                    i['trailingEps'] = t_eps
-                    
-                t_feps_tag = s.select_one('#_cns_eps')
-                if t_feps_tag:
-                    f_eps = safe_float(t_feps_tag.text.replace(',', ''))
-                    if f_eps > 0: i['forwardPE'] = p / f_eps
-                    i['forwardEps'] = f_eps
-                    
-                t_bps_tag = s.select_one('#_bps')
-                if t_bps_tag:
-                    bps = safe_float(t_bps_tag.text.replace(',', ''))
-                    if bps > 0: i['priceToBook'] = p / bps
-                    
+                t_pe = s.select_one('#_per')
+                if t_pe: i['trailingPE'] = safe_float(t_pe.text.replace(',',''))
+                
+                t_fpe = s.select_one('#_cns_per')
+                if t_fpe: i['forwardPE'] = safe_float(t_fpe.text.replace(',',''))
+                
+                t_pbr = s.select_one('#_pbr')
+                if t_pbr: i['priceToBook'] = safe_float(t_pbr.text.replace(',',''))
+                
                 t_div = s.select_one('#_dvr')
                 if t_div: i['dividendYield'] = safe_float(t_div.text.replace(',',''))/100
                 
                 t_sum = s.select_one('.summary_info p')
                 if t_sum: i['kr_sum'] = t_sum.text
             except: pass
-        elif not kr and p:
-            # 🚀 미국 주식: 실시간 주가(p)를 바탕으로 PER과 PBR을 100% 동기화 재계산
+            
+        # 🚀 미국 주식 & API 차단 발생 시: '진짜 재무제표' 기반 실시간 자동 역산 엔진 가동
+        if p and (not i or 'trailingPE' not in i or i['trailingPE'] == 0.0):
             try:
-                t_eps = safe_float(i.get('trailingEps'))
-                f_eps = safe_float(i.get('forwardEps'))
-                bv = safe_float(i.get('bookValue'))
-                div_rate = safe_float(i.get('dividendRate'))
+                inc = stk.income_stmt
+                bs = stk.balance_sheet
                 
-                if t_eps > 0: i['trailingPE'] = p / t_eps
-                if f_eps > 0: i['forwardPE'] = p / f_eps
-                if bv > 0: i['priceToBook'] = p / bv
-                if div_rate > 0: i['dividendYield'] = div_rate / p
+                sh_count = 0.0
+                try:
+                    sh_count = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
+                except: pass
+                if sh_count == 0:
+                    sh_count = safe_float(i.get('sharesOutstanding', 0))
+                    
+                if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                    # 자본 총계 추출
+                    eq = 0.0
+                    if 'Stockholders Equity' in bs.index: eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                    elif 'Total Equity Gross Minority Interest' in bs.index: eq = safe_float(bs.loc['Total Equity Gross Minority Interest'].iloc[0])
+                    
+                    # 순이익 추출
+                    net_inc = 0.0
+                    if 'Net Income' in inc.index: net_inc = safe_float(inc.loc['Net Income'].iloc[0])
+                    
+                    # EPS 추출
+                    t_eps = 0.0
+                    if 'Basic EPS' in inc.index: t_eps = safe_float(inc.loc['Basic EPS'].iloc[0])
+                    elif 'Diluted EPS' in inc.index: t_eps = safe_float(inc.loc['Diluted EPS'].iloc[0])
+                    elif sh_count > 0: t_eps = net_inc / sh_count
+                    
+                    if t_eps > 0: i['trailingPE'] = p / t_eps
+                    if 'trailingEps' not in i or not i['trailingEps']: i['trailingEps'] = t_eps
+                    
+                    # 장부가치(PBR) 계산
+                    if sh_count > 0 and eq > 0:
+                        bvps = eq / sh_count
+                        i['priceToBook'] = p / bvps
+                        i['bookValue'] = bvps
+                    
+                    # ROE 계산
+                    if eq > 0: i['returnOnEquity'] = net_inc / eq
+                    
+                    # 주식수 보존
+                    if sh_count > 0: i['sharesOutstanding'] = sh_count
             except: pass
             
+        # 🚀 주식수 마지노선 마킹 (DCF 파괴 차단용)
+        if 'sharesOutstanding' not in i or not i['sharesOutstanding'] or i['sharesOutstanding'] == 0:
+            try:
+                sh_count = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
+                if sh_count > 0: i['sharesOutstanding'] = sh_count
+            except: pass
+
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
@@ -679,8 +709,13 @@ def get_base_dcf_data(stk, i):
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
         fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
-        sh = safe_float(i.get('sharesOutstanding'))
         
+        sh = safe_float(i.get('sharesOutstanding'))
+        if sh == 0:
+            try:
+                sh = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
+            except: pass
+            
         g, data_len = 0.05, 0
         if fcf_s is not None and len(fcf_s) >= 2:
             c, o = safe_float(fcf_s.iloc[0]), safe_float(fcf_s.iloc[-1])
@@ -798,7 +833,6 @@ def analyze_rnd_trend(stk, base_fcf, is_financial):
             if len(rnd_vals) > 0:
                 curr_rnd = safe_float(rnd_vals[-1])
                 if curr_rnd > 0:
-                    # FCF 대비 R&D 비율 적정선 판별
                     if base_fcf and base_fcf > 0:
                         ratio = (curr_rnd / base_fcf) * 100
                         
@@ -831,7 +865,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # 1. 경영진 팩터 (최대 20점 ~ 최하 -25점)
     if any(k in ceo_text for k in ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원"]):
         ceo_score += 20
     elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한"]):
@@ -850,7 +883,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score += max(-20, min(20, ceo_score))
         
-    # 2. PER 과거 대비 안전마진 (6단계)
     if pmos >= 30: score += 25
     elif pmos >= 15: score += 15
     elif pmos >= 5: score += 5
@@ -858,7 +890,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif pmos < -10: score -= 15
     elif pmos < 0: score -= 5
 
-    # 3. 비즈니스 펀더멘털 및 절대적 안전마진 (6단계)
     if is_financial:
         if roe >= 15: score += 25
         elif roe >= 10: score += 15
@@ -892,7 +923,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif mos < -10: score -= 15
         elif mos < 0: score -= 5
 
-    # 4. 주식 위험 프리미엄(ERP) (6단계)
     if erp >= 4: score += 25
     elif erp >= 2: score += 15
     elif erp >= 1: score += 5
@@ -900,7 +930,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif erp < 0: score -= 15
     elif erp < 1: score -= 5
 
-    # 5. 요구 성장률 팩터 (6단계)
     if final_g >= 0.15: score += 25
     elif final_g >= 0.08: score += 15
     elif final_g >= 0.05: score += 5
@@ -908,12 +937,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g < 0.03: score -= 15
     elif final_g < 0.05: score -= 5
 
-    # 6. 시클리컬 패널티
     is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
     if is_cyclical:
         score -= 15
 
-    # 7. 컷오프 (약간 할인 및 약간 할증 항목 추가된 촘촘한 7단계 시스템 메인 연산)
     if score >= 90:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
     elif score >= 50:
@@ -1196,7 +1223,6 @@ with tab1:
                 t_pe = safe_float(i.get('trailingPE'))
                 f_pe = safe_float(i.get('forwardPE'))
                 
-                # 버크셔 등 PBR 누락 대비 강력한 대체 로직
                 pbr = safe_float(i.get('priceToBook'))
                 if pbr == 0.0:
                     bv = safe_float(i.get('bookValue'))
@@ -1253,7 +1279,6 @@ with tab1:
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
                 
-                # R&D(연구개발비) 로직 호출
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial)
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
@@ -1282,7 +1307,6 @@ with tab1:
                     eps_g_str = t("확인불가", "N/A")
                     eps_col = "#8892b0"
                     
-                # 🚀 RSI (14일 일차트) 및 평균 계산
                 current_rsi_val, avg_rsi_val = None, None
                 try:
                     hist_1y = stk.history(period="1y")
@@ -1349,7 +1373,6 @@ with tab1:
 
                 eps_trend, bps_trend = analyze_trends(stk)
                 
-                # 생물학 (생존력) 4년 재무제표 부채비율 추적 분석 로직
                 bio_eval = f"<span style='color:#8892b0'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
                 try:
                     bs = stk.balance_sheet
@@ -1444,7 +1467,6 @@ with tab1:
                 st.subheader(t("1. 핵심 밸류에이션 지표", "1. Core Valuation Metrics"))
                 st.markdown(f"<div style='background: linear-gradient(to right, rgba(160, 196, 255, 0.1), rgba(255, 198, 255, 0.05)); padding:18px 22px; border-radius:16px; margin-bottom:20px; font-size:1.05rem; color:var(--text-color); line-height:1.6; border-left: 4px solid #A0C4FF;'>{beginner_summary}</div>", unsafe_allow_html=True)
                 
-                # 6단계 세분화 텍스트 매핑 (PER 안전마진)
                 if pmos_val >= 30: per_mos_str = f"<span class='good'>[매우 합격] +{pmos_val:.1f}% (과거 대비 극심한 저평가)</span>"
                 elif pmos_val >= 15: per_mos_str = f"<span class='good'>[합격] +{pmos_val:.1f}% (안전마진 확보)</span>"
                 elif pmos_val >= 5: per_mos_str = f"<span style='color:#74b9ff;'>[약간 합격] +{pmos_val:.1f}% (양호한 할인)</span>"
@@ -1453,7 +1475,6 @@ with tab1:
                 elif pmos_val > -20: per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (할증 구간)</span>"
                 else: per_mos_str = f"<span class='highlight'>[매우 주의] {pmos_val:.1f}% (과도한 고평가)</span>"
 
-                # 6단계 세분화 텍스트 매핑 (자본 효율성)
                 if is_financial:
                     if roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 탁월한 자본 효율성', '[Very Pass] Excellent Efficiency')}</span>"
                     elif roe >= 10: rr_eval = f"<span class='good'>{t('[합격] 우수한 수익성', '[Pass] Good Profitability')}</span>"
@@ -1489,9 +1510,7 @@ with tab1:
                     st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    # 🚀 RSI 지표 c2 영역에 표출
                     st.markdown(f"- **{t('일차트 RSI (기술적 보조지표)', 'Daily RSI (Technical Indicator)')}:** {rsi_html}", unsafe_allow_html=True)
-                    # R&D 지표 c2 영역에 표출
                     st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
@@ -1706,7 +1725,6 @@ with tab1:
 
                 st.divider()
 
-                # 🚀 [추가됨] 분석 결과 복사/공유 기능
                 st.subheader(t("📲 분석 결과 공유하기 (카톡, 제미나이 등)", "📲 Share Analysis Results"))
                 st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                 
@@ -1803,7 +1821,6 @@ with tab2:
             df = pd.DataFrame(scraped_data)
             df.index = df.index + 1
             
-            # 🚀 [추가됨] 한국어 버전일 때만 기업명을 한글로 번역
             if is_ko:
                 df["기업명"] = df["기업명"].apply(tr_text)
                 
@@ -1893,7 +1910,7 @@ with tab4:
          t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 단할 때 사는 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
          t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
@@ -1908,7 +1925,7 @@ with tab4:
     lbl_analogy = t('이해하기:', 'Analogy:')
     for term, definition, example in terms:
         st.markdown(f"""
-        <div translate="no" style="background: rgba(255,255,255,0.03); color: var(--text-color); padding: 22px; border-radius: 16px; border: 1px solid rgba(160,196,255,0.2); margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div translate="no" style="background: rgba(255,255,255,0.03); color: var(--text-color); padding: 22px; border-radius: 16px; border: 1px solid rgba(160,196,255,0.2); margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             <h4 style="margin-top: 0; color: #A0C4FF; margin-bottom: 12px; font-size: 1.2rem;">📌 {term}</h4>
             <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
             <div style="font-size: 0.95rem; color: #8892b0;"><b>{lbl_analogy}</b> {example}</div>
@@ -1927,7 +1944,7 @@ with tab5:
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
-    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥치더라도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
+    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
     
     phil_decl_ko = (
