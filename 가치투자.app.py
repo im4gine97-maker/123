@@ -333,9 +333,13 @@ def fetch_macro_realtime_v6():
     }
     res = {}
     
+    # 🚀 매크로 지표도 야후 캐시를 피하기 위해 세션 적용
+    session = requests.Session()
+    session.headers.update({'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+    
     for name, tk in macro_symbols.items():
         try:
-            stk = yf.Ticker(tk)
+            stk = yf.Ticker(tk, session=session)
             try:
                 last_p = getattr(stk.fast_info, 'last_price', None)
                 if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
@@ -365,13 +369,13 @@ def fetch_macro_realtime_v6():
         except: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
             
     try:
-        spy_info = yf.Ticker("SPY").info
+        spy_info = yf.Ticker("SPY", session=session).info
         res["SPY_PE"] = safe_float(spy_info.get("trailingPE", spy_info.get("forwardPE", 22.0)), 22.0)
     except:
         res["SPY_PE"] = 22.0
         
     try:
-        qqq_info = yf.Ticker("QQQ").info
+        qqq_info = yf.Ticker("QQQ", session=session).info
         res["QQQ_PE"] = safe_float(qqq_info.get("trailingPE", qqq_info.get("forwardPE", 30.0)), 30.0)
     except:
         res["QQQ_PE"] = 30.0
@@ -589,7 +593,10 @@ def get_data(tk):
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
         cd = tk.split('.')[0] if kr else tk
         
-        stk = yf.Ticker(tk)
+        # 🚀 세션을 강제 갱신하여 캐싱된 낡은 데이터 회피 (실시간 주가 수집)
+        session = requests.Session()
+        session.headers.update({'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        stk = yf.Ticker(tk, session=session)
         
         p, i = None, {}
         for _ in range(3):
@@ -598,14 +605,7 @@ def get_data(tk):
                 p_val = getattr(stk.fast_info, 'last_price', None)
                 if p_val is None: p_val = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
                 p = safe_float(p_val)
-                
-                try:
-                    i = stk.info
-                except:
-                    i = {}
-                    
-                if not i:
-                    raise Exception("Info fallback")
+                i = stk.info
                 break
             except: time.sleep(1)
         
@@ -626,7 +626,7 @@ def get_data(tk):
                 t_name = s.select_one('.wrap_company h2 a')
                 if t_name: i['shortName'] = t_name.text
                 
-                # 🚀 실시간 주가를 기반으로 PER, PBR 등을 실시간으로 자동 역산
+                # 🚀 실시간 주가를 기반으로 PER, PBR 등을 실시간으로 자동 역산 (야후/네이버 캐싱 원천 차단)
                 t_eps_tag = s.select_one('#_eps')
                 if t_eps_tag:
                     t_eps = safe_float(t_eps_tag.text.replace(',', ''))
@@ -1893,7 +1893,7 @@ with tab4:
          t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
         
         ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
+         t("100만 원짜리 물건을 단할 때 사는 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
          t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
         
         ("이익수익률 (Earnings Yield)", 
