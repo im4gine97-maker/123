@@ -141,7 +141,7 @@ tmap = {
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
-    "SPACEX": "SPACEX", "스페이스엑스": "SPACEX" # 스페이스엑스 추가
+    "SPACEX": "SPACEX", "스페이스엑스": "SPACEX"
 }
 
 fallback_13f_data = {
@@ -1275,6 +1275,11 @@ with tab1:
                         prefix = criticism_text.split(":")[0].strip()
                         if len(prefix) < 40 and "위키 및 공공" not in prefix:
                             ceo_cleaned = prefix
+
+                # ⭐ 스페이스엑스 (SpaceX) 경영진 강제 오버라이드
+                if tk.upper() == "SPACEX" or "SPACE EXPLORATION" in str(i.get('shortName', '')).upper() or "SPACE EXPLORATION" in str(i.get('longBusinessSummary', '')).upper() or "SPACEX" in str(i.get('shortName', '')).upper():
+                    ceo_cleaned = "일론 머스크"
+                    criticism_text = "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)"
 
                 t_pe = safe_float(i.get('trailingPE'))
                 f_pe = safe_float(i.get('forwardPE'))
