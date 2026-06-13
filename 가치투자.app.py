@@ -140,7 +140,8 @@ tmap = {
     "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
-    "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO"
+    "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
+    "SPACEX": "SPACEX", "스페이스엑스": "SPACEX" # 스페이스엑스 추가
 }
 
 fallback_13f_data = {
@@ -526,6 +527,8 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "PLTR": "알렉스 카프 (Alex Karp): 독보적인 AI 데이터 분석 기술력을 가졌으나, 내부자 매도 물량 지속 및 높은 밸류에이션이 주의할 부분입니다. (이건 확인이 필요한 부분입니다)",
         "NFLX": "테드 사란도스 (Ted Sarandos): 광고 요금제로 수익성을 크게 개선한 경영진이나, OTT 시장 포화 및 콘텐츠 제작비 증가가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AMAT": "게리 디커슨 (Gary Dickerson): 반도체 장비 1위의 해자와 자사주 매입 정책은 훌륭하나, 대중국 수출 통제 리스크 노출은 이건 확인이 필요한 부분입니다.",
+        
+        "SPACEX": "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
 
         "005930": "삼성전자 (이재용/전영현 등): 반도체 부문 수장 교체 등 쇄신을 시도하고 있으나 조직 내부의 관료화가 지적됩니다.\n리스크: AI 메모리(HBM) 및 파운드리 기술 격차 회복 지연, 오너 사법 리스크 및 창사 이래 첫 노조 파업 지속. (이건 확인이 필요한 부분입니다)",
         "000660": "SK하이닉스 (최태원/곽노정): 선택과 집중을 통해 엔비디아와의 파트너십을 선점한 실행력이 돋보입니다.\n리스크: 메모리 사이클 고점에 대한 민감도 및 모기업 SK그룹의 재무 구조조정에 따른 자금 동원 부담 가능성. (이건 확인이 필요한 부분입니다)",
@@ -1992,7 +1995,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
