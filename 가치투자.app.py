@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import requests
@@ -75,7 +74,7 @@ def trigger_scan():
             st.session_state.suggestions = []
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (13F 종목 한글 매핑 추가)
 # ==========================================
 tmap = {
     # 한국 주요 우량주
@@ -142,7 +141,69 @@ tmap = {
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
-    "SPACEX": "SPACEX", "스페이스엑스": "SPACEX"
+    "SPACEX": "SPACEX", "스페이스엑스": "SPACEX",
+    
+    # === [13F 가치투자자 포트폴리오 종목 한글 매핑 추가] ===
+    "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
+    "이스트웨스트뱅코프": "EWBC", "EWBC": "EWBC",
+    "크록스": "CROX", "CROX": "CROX",
+    "텐센트뮤직": "TME", "TME": "TME",
+    "에스앤피글로벌": "SPGI", "S&P글로벌": "SPGI", "SPGI": "SPGI",
+    "H&R블록": "HRB", "HRB": "HRB",
+    "무디스": "MCO", "MCO": "MCO",
+    "모건스탠리캐피털인터내셔널": "MSCI", "MSCI": "MSCI",
+    "아메리칸익스프레스": "AXP", "아멕스": "AXP", "AXP": "AXP",
+    "처브": "CB", "CB": "CB",
+    "크래프트하인즈": "KHC", "크래프트": "KHC", "하인즈": "KHC", "KHC": "KHC",
+    "다비타": "DVA", "DVA": "DVA",
+    "크로거": "KR", "KR": "KR",
+    "델타항공": "DAL", "델타": "DAL", "DAL": "DAL",
+    "얼라이파이낸셜": "ALLY", "얼라이": "ALLY", "ALLY": "ALLY",
+    "레나": "LEN", "LEN": "LEN",
+    "콘스텔레이션브랜즈": "STZ", "STZ": "STZ",
+    "제퍼리스": "JEF", "제퍼리스파이낸셜": "JEF", "JEF": "JEF",
+    "캐피탈원": "COF", "캐피털원": "COF", "COF": "COF",
+    "브룩필드": "BN", "BN": "BN",
+    "우버": "UBER", "우버테크놀로지스": "UBER", "UBER": "UBER",
+    "레스토랑브랜즈": "QSR", "QSR": "QSR",
+    "하워드휴즈": "HHH", "HHH": "HHH",
+    "허츠": "HTZ", "HTZ": "HTZ",
+    "씨포트엔터테인먼트": "SEG", "SEG": "SEG",
+    "웨스코": "WCC", "WCC": "WCC",
+    "유니온퍼시픽": "UNP", "UNP": "UNP",
+    "엘리번스헬스": "ELV", "엘리번스": "ELV", "ELV": "ELV",
+    "퍼거슨": "FERG", "FERG": "FERG",
+    "윌리스타워스왓슨": "WTW", "WTW": "WTW",
+    "에이온": "AON", "AON": "AON",
+    "텔레플렉스": "TFX", "TFX": "TFX",
+    "이글머티리얼즈": "EXP", "EXP": "EXP",
+    "제뉴인파츠": "GPC", "GPC": "GPC",
+    "리버티글로벌": "LBTYK", "LBTYK": "LBTYK",
+    "허벌라이프": "HLF", "HLF": "HLF",
+    "GDS홀딩스": "GDS", "GDS": "GDS",
+    "아메리콜드": "COLD", "COLD": "COLD",
+    "몰리나헬스케어": "MOH", "MOH": "MOH",
+    "아에로멕시코": "AERO", "AERO": "AERO",
+    "노르웨이지안크루즈": "NCLH", "NCLH": "NCLH",
+    "KKR": "KKR", "KKR&CO": "KKR",
+    "로퍼테크놀로지스": "ROP", "로퍼": "ROP", "ROP": "ROP",
+    "코스타그룹": "CSGP", "코스타": "CSGP", "CSGP": "CSGP",
+    "오라일리오토모티브": "ORLY", "오라일리": "ORLY", "ORLY": "ORLY",
+    "에어비앤비": "ABNB", "ABNB": "ABNB",
+    "세일즈포스": "CRM", "CRM": "CRM",
+    "서비스나우": "NOW", "NOW": "NOW",
+    "구스헤드인슈어런스": "GSHD", "GSHD": "GSHD",
+    "소피아제네틱스": "SOPH", "SOPH": "SOPH",
+    "아메리칸타워": "AMT", "AMT": "AMT",
+    "페리미터솔루션스": "PRM", "PRM": "PRM",
+    "CCC인텔리전트솔루션스": "CCCS", "CCCS": "CCCS",
+    "코파트": "CPRT", "CPRT": "CPRT",
+    "페어아이작": "FICO", "피코": "FICO", "FICO": "FICO",
+    "워리어메트콜": "HCC", "HCC": "HCC",
+    "트랜스오션": "RIG", "RIG": "RIG",
+    "알파메탈러지컬": "AMR", "AMR": "AMR",
+    "페라리": "RACE", "RACE": "RACE",
+    "데일리저널": "DJCO", "DJCO": "DJCO"
 }
 
 fallback_13f_data = {
@@ -1579,9 +1640,26 @@ with tab1:
                 st.divider()
                 
                 st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
+                
+                # 🚀 추가: DCF 직관적 가이드
+                dcf_guide_ko = (
+                    "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
+                    "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
+                    "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
+                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을까?'</b> 확신이 드는지 반드시 질문해 보세요!"
+                )
+                dcf_guide_en = (
+                    "💡 <b>[Must Read] Understanding DCF Valuation Easily</b><br>"
+                    "• <b>What is FCF (Free Cash Flow)?</b> It is the <b>'pure leftover cash'</b> a company can keep after paying all operational expenses, taxes, and capital expenditures.<br>"
+                    "• <b>What do the scenarios mean?</b> The fair values below assume the company will consistently grow its FCF at the given rate (%) every year for the next <b>10 years</b>.<br>"
+                    "• <b>⚠️ Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last 4 years (or available past data) of cash flow trends. You must ask yourself: <b>'Does this company have a strong enough business moat to maintain this growth for the next 10 years?'</b> Only invest if you are confident!"
+                )
+                
                 if is_financial:
                     st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('🏦 금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기 매커니즘 상 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
+                    st.markdown(f"<div translate='no' style='background: rgba(160, 196, 255, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #A0C4FF; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
+                    
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
                         implied_g_str = f"{implied_g*100:.1f}%"
@@ -1884,10 +1962,6 @@ with tab2:
             df = pd.DataFrame(scraped_data)
             df.index = df.index + 1
             
-            # --- 수정된 부분: 아래 한국어 번역 코드를 제거했습니다 ---
-            # if is_ko:
-            #     df["기업명"] = df["기업명"].apply(tr_text)
-                
             st.dataframe(df, height=800, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
             
             if (df["비중(%)"] == 0.0).any():
