@@ -7,6 +7,7 @@ import time
 import pandas as pd
 from datetime import datetime
 import re
+import concurrent.futures # 🚀 속도 최적화를 위한 병렬 처리 라이브러리 추가
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="expanded")
@@ -36,28 +37,24 @@ def fmt_f(val, decimals=1):
     except:
         return "0.0" if decimals == 1 else "0.00"
 
-# 🚀 [스마트 자동완성 검색 로직]
+# 🚀 [스마트 자동완성 검색 로직 - 풀네임 매핑 유지]
 def trigger_scan():
     if st.session_state.get("main_input"):
         raw_q = st.session_state.main_input.strip()
         if not raw_q: return
         q = raw_q.replace(" ", "").upper()
         
-        # 1. 완벽 일치 (기존 로직)
         if q in tmap:
             st.session_state.search_tk = tmap[q]
             st.session_state.suggestions = []
             return
             
-        # 2. 스마트 부분 일치 (자동완성 제안 - 약어 입력 시 풀네임 표출 로직 적용)
         matches = {}
         for k, v in tmap.items():
             if raw_q.upper() in k.upper() or raw_q in k:
-                # 검색어(약어)에 걸리더라도 무조건 primary_names에 저장된 대표 풀네임으로 매핑
-                matches[v] = primary_names[v]
+                matches[v] = primary_names[v] # 약어 입력 시에도 대표 풀네임으로 매핑
                         
         unique_tickers = list(matches.keys())
-        
         is_direct_ticker = bool(re.match(r'^\d{6}$', raw_q) or re.match(r'^[A-Za-z\-\.]+$', raw_q))
 
         if len(unique_tickers) == 1 and not is_direct_ticker:
@@ -71,7 +68,7 @@ def trigger_scan():
             st.session_state.suggestions = []
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터 (13F 종목 한글 매핑 추가)
+# [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
     # 한국 주요 우량주
@@ -140,7 +137,7 @@ tmap = {
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
     "SPACEX": "SPACEX", "스페이스엑스": "SPACEX",
     
-    # === [13F 가치투자자 포트폴리오 종목 한글 매핑 추가] ===
+    # === [13F 종목] ===
     "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
     "이스트웨스트뱅코프": "EWBC", "EWBC": "EWBC",
     "크록스": "CROX", "CROX": "CROX",
@@ -203,188 +200,66 @@ tmap = {
     "데일리저널": "DJCO", "DJCO": "DJCO"
 }
 
-# 🚀 각 티커별 대표 풀네임 추출 로직 (tmap에 가장 먼저 등록된 이름을 풀네임으로 간주)
+# 🚀 각 티커별 대표 풀네임 자동 추출
 primary_names = {}
 for k, v in tmap.items():
     if v not in primary_names:
         primary_names[v] = k
 
 fallback_13f_data = {
-    "HC": [
-        {"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84},
-        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 21.96},
-        {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70},
-        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43},
-        {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25},
-        {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56},
-        {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97},
-        {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30},
-        {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91},
-        {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61},
-        {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61},
-        {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60},
-        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87},
-        {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}
-    ],
-    "BRK": [
-        {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99},
-        {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43},
-        {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56},
-        {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52},
-        {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64},
-        {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24},
-        {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78},
-        {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76},
-        {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38},
-        {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01},
-        {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39},
-        {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38},
-        {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33},
-        {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17},
-        {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04},
-        {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01},
-        {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01},
-        {"티커": "OXY", "기업명": "Occidental Petroleum Corp.", "비중(%)": 0.00},
-        {"티커": "COF", "기업명": "Capital One Financial Corp.", "비중(%)": 0.00}
-    ],
-    "PSH": [
-        {"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62},
-        {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39},
-        {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71},
-        {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26},
-        {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20},
-        {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 0.00},
-        {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc.", "비중(%)": 0.00},
-        {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 0.00},
-        {"티커": "SEG", "기업명": "Seaport Entertainment Group", "비중(%)": 0.00}
-    ],
-    "BAU": [
-        {"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69},
-        {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67},
-        {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68},
-        {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30},
-        {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29},
-        {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62},
-        {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57},
-        {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07},
-        {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85},
-        {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14},
-        {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72},
-        {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30},
-        {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08},
-        {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07},
-        {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66},
-        {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39},
-        {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74},
-        {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65},
-        {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33},
-        {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}
-    ],
-    "AKRE": [
-        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64},
-        {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27},
-        {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16},
-        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89},
-        {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10},
-        {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27},
-        {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80},
-        {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87},
-        {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18},
-        {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19},
-        {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87},
-        {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31},
-        {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30},
-        {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14},
-        {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10},
-        {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00},
-        {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00},
-        {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}
-    ],
-    "PI": [
-        {"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88},
-        {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97},
-        {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}
-    ],
-    "AQUA": [
-        {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57},
-        {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92},
-        {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77},
-        {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53},
-        {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71},
-        {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00},
-        {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}
-    ]
+    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Inc.", "비중(%)": 22.84}, {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 21.96}, {"티커": "PDD", "기업명": "PDD Holdings Inc.", "비중(%)": 14.70}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc.", "비중(%)": 13.43}, {"티커": "EWBC", "기업명": "East West Bancorp, Inc.", "비중(%)": 9.25}, {"티커": "BAC", "기업명": "Bank of America Corporation", "비중(%)": 4.56}, {"티커": "OXY", "기업명": "Occidental Petroleum Corporation", "비중(%)": 2.97}, {"티커": "CROX", "기업명": "Crocs, Inc.", "비중(%)": 2.30}, {"티커": "TME", "기업명": "Tencent Music Entertainment Group", "비중(%)": 1.91}, {"티커": "SPGI", "기업명": "S&P Global Inc.", "비중(%)": 1.61}, {"티커": "HRB", "기업명": "H&R Block, Inc.", "비중(%)": 1.61}, {"티커": "MCO", "기업명": "Moody's Corporation", "비중(%)": 1.60}, {"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 0.87}, {"티커": "MSCI", "기업명": "MSCI Inc.", "비중(%)": 0.31}],
+    "BRK": [{"티커": "AAPL", "기업명": "Apple Inc.", "비중(%)": 21.99}, {"티커": "AXP", "기업명": "American Express Co.", "비중(%)": 17.43}, {"티커": "KO", "기업명": "Coca-Cola Co.", "비중(%)": 11.56}, {"티커": "BAC", "기업명": "Bank of America Corp.", "비중(%)": 9.52}, {"티커": "CVX", "기업명": "Chevron Corp.", "비중(%)": 6.64}, {"티커": "CB", "기업명": "Chubb Ltd.", "비중(%)": 4.24}, {"티커": "KHC", "기업명": "Kraft Heinz Co.", "비중(%)": 2.78}, {"티커": "DVA", "기업명": "DaVita Inc.", "비중(%)": 1.76}, {"티커": "KR", "기업명": "Kroger Co.", "비중(%)": 1.38}, {"티커": "DAL", "기업명": "Delta Air Lines Inc.", "비중(%)": 1.01}, {"티커": "ALLY", "기업명": "Ally Financial Inc.", "비중(%)": 0.39}, {"티커": "LLYVK", "기업명": "Liberty Live Holdings-C", "비중(%)": 0.38}, {"티커": "LEN", "기업명": "Lennar Corp. Class A", "비중(%)": 0.33}, {"티커": "LLYVA", "기업명": "Liberty Live Holdings-A", "비중(%)": 0.17}, {"티커": "STZ", "기업명": "Constellation Brands Inc.", "비중(%)": 0.04}, {"티커": "JEF", "기업명": "Jefferies Financial Group Inc.", "비중(%)": 0.01}, {"티커": "LEN-B", "기업명": "Lennar Corp. Class B", "비중(%)": 0.01}, {"티커": "OXY", "기업명": "Occidental Petroleum Corp.", "비중(%)": 0.00}, {"티커": "COF", "기업명": "Capital One Financial Corp.", "비중(%)": 0.00}],
+    "PSH": [{"티커": "BN", "기업명": "Brookfield Corp.", "비중(%)": 17.62}, {"티커": "AMZN", "기업명": "Amazon.com Inc.", "비중(%)": 17.39}, {"티커": "UBER", "기업명": "Uber Technologies Inc.", "비중(%)": 15.71}, {"티커": "MSFT", "기업명": "Microsoft Corp.", "비중(%)": 15.26}, {"티커": "QSR", "기업명": "Restaurant Brands Int.", "비중(%)": 12.20}, {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 0.00}, {"티커": "HTZ", "기업명": "Hertz Global Hldgs Inc.", "비중(%)": 0.00}, {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 0.00}, {"티커": "SEG", "기업명": "Seaport Entertainment Group", "비중(%)": 0.00}],
+    "BAU": [{"티커": "AMZN", "기업명": "Amazon.com, Inc.", "비중(%)": 12.69}, {"티커": "QSR", "기업명": "Restaurant Brands International Inc.", "비중(%)": 11.67}, {"티커": "WCC", "기업명": "WESCO International, Inc.", "비중(%)": 7.68}, {"티커": "UNP", "기업명": "Union Pacific Corporation", "비중(%)": 7.30}, {"티커": "ELV", "기업명": "Elevance Health, Inc.", "비중(%)": 7.29}, {"티커": "GOOG", "기업명": "Alphabet Inc.", "비중(%)": 6.62}, {"티커": "FERG", "기업명": "Ferguson Enterprises Inc.", "비중(%)": 6.57}, {"티커": "WTW", "기업명": "Willis Towers Watson", "비중(%)": 5.07}, {"티커": "AON", "기업명": "Aon plc", "비중(%)": 4.85}, {"티커": "V", "기업명": "Visa Inc.", "비중(%)": 4.14}, {"티커": "TFX", "기업명": "Teleflex Incorporated", "비중(%)": 3.72}, {"티커": "EXP", "기업명": "Eagle Materials Inc.", "비중(%)": 3.30}, {"티커": "GPC", "기업명": "Genuine Parts Company", "비중(%)": 3.08}, {"티커": "LBTYK", "기업명": "Liberty Global Ltd.", "비중(%)": 3.07}, {"티커": "HLF", "기업명": "Herbalife Ltd.", "비중(%)": 2.66}, {"티커": "GDS", "기업명": "GDS Holdings Limited", "비중(%)": 2.39}, {"티커": "COLD", "기업명": "Americold Realty Trust, Inc.", "비중(%)": 1.74}, {"티커": "MOH", "기업명": "Molina Healthcare, Inc.", "비중(%)": 1.65}, {"티커": "AERO", "기업명": "Grupo Aeroméxico", "비중(%)": 1.33}, {"티커": "NCLH", "기업명": "Norwegian Cruise Line Holdings Ltd.", "비중(%)": 1.32}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
+    "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
 
-us_top30 = [
-    {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"},
-    {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"},
-    {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"},
-    {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"},
-    {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"},
-    {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"},
-    {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"},
-    {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"},
-    {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"},
-    {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"},
-    {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"},
-    {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"},
-    {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"},
-    {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"},
-    {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"},
-    {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"},
-    {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"},
-    {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"},
-    {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"},
-    {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"},
-    {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"},
-    {"순위": 22, "COST": "Costco", "기업명": "Costco", "시가총액": "$424B"},
-    {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"},
-    {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"},
-    {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"},
-    {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"},
-    {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"},
-    {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"},
-    {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"},
-    {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}
-]
-
-kr_top30 = [
-    {"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"},
-    {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"},
-    {"순위": 3, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"},
-    {"순위": 4, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"},
-    {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"},
-    {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"},
-    {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"},
-    {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"},
-    {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"},
-    {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"},
-    {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"},
-    {"순위": 12, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"},
-    {"순위": 13, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"},
-    {"순위": 14, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"},
-    {"순위": 15, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"},
-    {"순위": 16, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"},
-    {"순위": 17, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"},
-    {"순위": 18, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"},
-    {"순위": 19, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"},
-    {"순위": 20, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"},
-    {"순위": 21, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"},
-    {"순위": 22, "티커": "096770", "기업명": "SK이노베이션", "시가총액": "22조 원"},
-    {"순위": 23, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"},
-    {"순위": 24, "티커": "011200", "기업명": "HMM", "시가총액": "15조 원"},
-    {"순위": 25, "티커": "010130", "기업명": "고려아연", "시가총액": "18조 원"},
-    {"순위": 26, "티커": "033780", "기업명": "KT&G", "시가총액": "14조 원"},
-    {"순위": 27, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"},
-    {"순위": 28, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"},
-    {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"},
-    {"순위": 30, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}
-]
+us_top30 = [{"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$5.11T"}, {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$4.58T"}, {"순위": 3, "티커": "GOOGL", "기업명": "Alphabet", "시가총액": "$4.56T"}, {"순위": 4, "티커": "MSFT", "기업명": "Microsoft", "시가총액": "$3.34T"}, {"순위": 5, "티커": "AMZN", "기업명": "Amazon", "시가총액": "$2.91T"}, {"순위": 6, "티커": "AVGO", "기업명": "Broadcom", "시가총액": "$2.11T"}, {"순위": 7, "티커": "TSLA", "기업명": "Tesla", "시가총액": "$1.63T"}, {"순위": 8, "티커": "META", "기업명": "Meta Platforms", "시가총액": "$1.60T"}, {"순위": 9, "티커": "MU", "기업명": "Micron", "시가총액": "$1.09T"}, {"순위": 10, "티커": "BRK-B", "기업명": "Berkshire Hathaway", "시가총액": "$1.02T"}, {"순위": 11, "티커": "LLY", "기업명": "Eli Lilly", "시가총액": "$985B"}, {"순위": 12, "티커": "WMT", "기업명": "Walmart", "시가총액": "$922B"}, {"순위": 13, "티커": "AMD", "기업명": "AMD", "시가총액": "$841B"}, {"순위": 14, "티커": "JPM", "기업명": "JPMorgan Chase", "시가총액": "$802B"}, {"순위": 15, "티커": "ORCL", "기업명": "Oracle", "시가총액": "$649B"}, {"순위": 16, "티커": "V", "기업명": "Visa", "시가총액": "$620B"}, {"순위": 17, "티커": "XOM", "기업명": "Exxon Mobil", "시가총액": "$602B"}, {"순위": 18, "티커": "INTC", "기업명": "Intel", "시가총액": "$576B"}, {"순위": 19, "티커": "JNJ", "기업명": "Johnson & Johnson", "시가총액": "$542B"}, {"순위": 20, "티커": "CSCO", "기업명": "Cisco", "시가총액": "$474B"}, {"순위": 21, "티커": "MA", "기업명": "Mastercard", "시가총액": "$436B"}, {"순위": 22, "COST": "Costco", "기업명": "Costco", "시가총액": "$424B"}, {"순위": 23, "티커": "CAT", "기업명": "Caterpillar", "시가총액": "$403B"}, {"순위": 24, "티커": "LRCX", "기업명": "Lam Research", "시가총액": "$397B"}, {"순위": 25, "티커": "ABBV", "기업명": "AbbVie", "시가총액": "$384B"}, {"순위": 26, "티커": "PLTR", "기업명": "Palantir", "시가총액": "$375B"}, {"순위": 27, "티커": "BAC", "기업명": "Bank of America", "시가총액": "$366B"}, {"순위": 28, "티커": "CVX", "기업명": "Chevron", "시가총액": "$363B"}, {"순위": 29, "티커": "NFLX", "기업명": "Netflix", "시가총액": "$362B"}, {"순위": 30, "티커": "AMAT", "기업명": "Applied Materials", "시가총액": "$357B"}]
+kr_top30 = [{"순위": 1, "티커": "005930", "기업명": "삼성전자", "시가총액": "1,794조 원"}, {"순위": 2, "티커": "000660", "기업명": "SK하이닉스", "시가총액": "1,662조 원"}, {"순위": 3, "티커": "373220", "기업명": "LG에너지솔루션", "시가총액": "89조 원"}, {"순위": 4, "티커": "005380", "기업명": "현대차", "시가총액": "148조 원"}, {"순위": 5, "티커": "207940", "기업명": "삼성바이오로직스", "시가총액": "64조 원"}, {"순위": 6, "티커": "000270", "기업명": "기아", "시가총액": "64조 원"}, {"순위": 7, "티커": "068270", "기업명": "셀트리온", "시가총액": "43조 원"}, {"순위": 8, "티커": "105560", "기업명": "KB금융", "시가총액": "57조 원"}, {"순위": 9, "티커": "005490", "기업명": "POSCO홀딩스", "시가총액": "41조 원"}, {"순위": 10, "티커": "055550", "기업명": "신한지주", "시가총액": "45조 원"}, {"순위": 11, "티커": "006400", "기업명": "삼성SDI", "시가총액": "50조 원"}, {"순위": 12, "티커": "035420", "기업명": "NAVER", "시가총액": "38조 원"}, {"순위": 13, "티커": "012330", "기업명": "현대모비스", "시가총액": "62조 원"}, {"순위": 14, "티커": "051910", "기업명": "LG화학", "시가총액": "35조 원"}, {"순위": 15, "티커": "035720", "기업명": "카카오", "시가총액": "30조 원"}, {"순위": 16, "티커": "028260", "기업명": "삼성물산", "시가총액": "66조 원"}, {"순위": 17, "티커": "086790", "기업명": "하나금융지주", "시가총액": "27조 원"}, {"순위": 18, "티커": "066570", "기업명": "LG전자", "시가총액": "26조 원"}, {"순위": 19, "티커": "402340", "기업명": "SK스퀘어", "시가총액": "168조 원"}, {"순위": 20, "티커": "032830", "기업명": "삼성생명", "시가총액": "70조 원"}, {"순위": 21, "티커": "138040", "기업명": "메리츠금융지주", "시가총액": "28조 원"}, {"순위": 22, "티커": "096770", "기업명": "SK이노베이션", "시가총액": "22조 원"}, {"순위": 23, "티커": "329180", "기업명": "HD현대중공업", "시가총액": "78조 원"}, {"순위": 24, "티커": "011200", "기업명": "HMM", "시가총액": "15조 원"}, {"순위": 25, "티커": "010130", "기업명": "고려아연", "시가총액": "18조 원"}, {"순위": 26, "티커": "033780", "기업명": "KT&G", "시가총액": "14조 원"}, {"순위": 27, "티커": "034020", "기업명": "두산에너빌리티", "시가총액": "69조 원"}, {"순위": 28, "티커": "009150", "기업명": "삼성전기", "시가총액": "162조 원"}, {"순위": 29, "티커": "259960", "기업명": "크래프톤", "시가총액": "23조 원"}, {"순위": 30, "티커": "012450", "기업명": "한화에어로스페이스", "시가총액": "64조 원"}]
 
 # ==========================================
-# [3] 데이터 가져오기 엔진
+# [3] 데이터 가져오기 엔진 (🚀 비동기 스레드 최적화 적용)
 # ==========================================
+def fetch_single_macro(name, tk):
+    try:
+        stk = yf.Ticker(tk)
+        try:
+            last_p = getattr(stk.fast_info, 'last_price', None)
+            if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
+            prev_p = getattr(stk.fast_info, 'previous_close', None)
+            if prev_p is None: prev_p = stk.fast_info.get('previousClose') if isinstance(stk.fast_info, dict) else stk.fast_info['previousClose']
+            
+            last_p = safe_float(last_p)
+            prev_p = safe_float(prev_p)
+            if last_p == 0.0 or prev_p == 0.0: raise Exception("fallback")
+        except:
+            hist = stk.history(period="7d")
+            if hist is not None and not hist.empty:
+                hist = hist.dropna(subset=['Close'])
+            if hist is not None and len(hist) >= 2:
+                last_p = safe_float(hist['Close'].iloc[-1])
+                prev_p = safe_float(hist['Close'].iloc[-2])
+            else:
+                last_p, prev_p = 0.0, 0.0
+
+        if prev_p != 0:
+            change = last_p - prev_p
+            pct = (change / prev_p) * 100
+        else:
+            change, pct = 0.0, 0.0
+        return name, {"p": last_p, "c": change, "pct": pct}
+    except: 
+        return name, {"p": 0.0, "c": 0.0, "pct": 0.0}
+
+def fetch_single_pe(tk, default_pe):
+    try:
+        info = yf.Ticker(tk).info
+        return safe_float(info.get("trailingPE", info.get("forwardPE", default_pe)), default_pe)
+    except:
+        return default_pe
+
 @st.cache_data(ttl=60) 
 def fetch_macro_realtime_v6():
     macro_symbols = {
@@ -394,49 +269,19 @@ def fetch_macro_realtime_v6():
     }
     res = {}
     
-    for name, tk in macro_symbols.items():
-        try:
-            stk = yf.Ticker(tk)
-            try:
-                last_p = getattr(stk.fast_info, 'last_price', None)
-                if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
-                
-                prev_p = getattr(stk.fast_info, 'previous_close', None)
-                if prev_p is None: prev_p = stk.fast_info.get('previousClose') if isinstance(stk.fast_info, dict) else stk.fast_info['previousClose']
-                
-                last_p = safe_float(last_p)
-                prev_p = safe_float(prev_p)
-                if last_p == 0.0 or prev_p == 0.0: raise Exception("fallback")
-            except:
-                hist = stk.history(period="7d")
-                if hist is not None and not hist.empty:
-                    hist = hist.dropna(subset=['Close'])
-                if hist is not None and len(hist) >= 2:
-                    last_p = safe_float(hist['Close'].iloc[-1])
-                    prev_p = safe_float(hist['Close'].iloc[-2])
-                else:
-                    last_p, prev_p = 0.0, 0.0
-
-            if prev_p != 0:
-                change = last_p - prev_p
-                pct = (change / prev_p) * 100
-            else:
-                change, pct = 0.0, 0.0
-            res[name] = {"p": last_p, "c": change, "pct": pct}
-        except: res[name] = {"p": 0.0, "c": 0.0, "pct": 0.0}
-            
-    try:
-        spy_info = yf.Ticker("SPY").info
-        res["SPY_PE"] = safe_float(spy_info.get("trailingPE", spy_info.get("forwardPE", 22.0)), 22.0)
-    except:
-        res["SPY_PE"] = 22.0
+    # 🚀 병렬(Thread) 처리를 통한 매크로 지표 동시 수집 (로딩 속도 대폭 감소)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(fetch_single_macro, name, tk) for name, tk in macro_symbols.items()]
+        spy_future = executor.submit(fetch_single_pe, "SPY", 22.0)
+        qqq_future = executor.submit(fetch_single_pe, "QQQ", 30.0)
         
-    try:
-        qqq_info = yf.Ticker("QQQ").info
-        res["QQQ_PE"] = safe_float(qqq_info.get("trailingPE", qqq_info.get("forwardPE", 30.0)), 30.0)
-    except:
-        res["QQQ_PE"] = 30.0
-    
+        for future in concurrent.futures.as_completed(futures):
+            name, data = future.result()
+            res[name] = data
+            
+        res["SPY_PE"] = spy_future.result()
+        res["QQQ_PE"] = qqq_future.result()
+        
     return res
 
 def get_13f_portfolio(guru_code):
@@ -633,6 +478,90 @@ def fetch_governance_criticism(tk, cd, ceo_name):
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 과도한 자본 배분 오류 및 노사 갈등 여부는 투자 전 추가 교차 검증이 필요합니다. (이건 확인이 필요한 부분입니다)"
 
+# 🚀 스크래핑 보조 함수 분리 (병렬 처리용)
+def get_yf_info(stk):
+    try:
+        res = stk.info
+        return res if isinstance(res, dict) else {}
+    except:
+        return {}
+
+def get_finviz_data(cd):
+    res = {}
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        fv_url = f"https://finviz.com/quote.ashx?t={cd}"
+        fv_r = requests.get(fv_url, headers=headers, timeout=5)
+        if fv_r.status_code == 200:
+            fv_s = BeautifulSoup(fv_r.text, 'html.parser')
+            def get_fv(label):
+                elem = fv_s.find(string=label)
+                if elem:
+                    val = elem.find_next('td').text.strip()
+                    if val != '-': return val
+                return None
+
+            fpe = get_fv("Forward P/E")
+            if fpe: res['forwardPE'] = safe_float(fpe)
+            pe = get_fv("P/E")
+            if pe: res['trailingPE'] = safe_float(pe)
+            eps_nxt = get_fv("EPS next Y")
+            if eps_nxt: res['finviz_eps_next'] = eps_nxt
+    except:
+        pass
+    return res
+
+def get_yahoo_profile(cd):
+    res = {}
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        yh_url = f"https://finance.yahoo.com/quote/{cd}/profile"
+        yh_r = requests.get(yh_url, headers=headers, timeout=5)
+        if yh_r.status_code == 200:
+            yh_s = BeautifulSoup(yh_r.text, 'html.parser')
+            desc = yh_s.find('section', {'data-testid': 'description'})
+            if desc: res['longBusinessSummary'] = desc.text.strip()
+            exec_table = yh_s.find('table')
+            if exec_table:
+                ceo_name = exec_table.find('tbody').find('tr').find('td').text.strip()
+                res['companyOfficers'] = [{'name': ceo_name}]
+    except:
+        pass
+    return res
+
+def get_naver_finance(cd):
+    res = {}
+    try:
+        url = f"https://finance.naver.com/item/main.naver?code={cd}"
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
+        s = BeautifulSoup(r.text, 'html.parser')
+        
+        t_price = s.select_one('.no_today .blind')
+        if t_price:
+            live_p = safe_float(t_price.text.replace(',', ''))
+            if live_p > 0: res['live_p'] = live_p
+            
+        t_name = s.select_one('.wrap_company h2 a')
+        if t_name: res['shortName'] = t_name.text
+        
+        t_pe = s.select_one('#_per')
+        if t_pe: res['trailingPE'] = safe_float(t_pe.text.replace(',',''))
+        
+        t_fpe = s.select_one('#_cns_per')
+        if t_fpe: res['forwardPE'] = safe_float(t_fpe.text.replace(',',''))
+        
+        t_pbr = s.select_one('#_pbr')
+        if t_pbr: res['priceToBook'] = safe_float(t_pbr.text.replace(',',''))
+        
+        t_div = s.select_one('#_dvr')
+        if t_div: res['dividendYield'] = safe_float(t_div.text.replace(',',''))/100
+        
+        t_sum = s.select_one('.summary_info p')
+        if t_sum: res['kr_sum'] = t_sum.text
+    except:
+        pass
+    return res
+
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
@@ -653,7 +582,7 @@ def get_data(tk):
         stk = yf.Ticker(tk)
         p, i = None, {}
         
-        # 🚀 실시간 호가 채널 데이터 추출
+        # 실시간 호가
         for _ in range(3):
             try:
                 p_val = getattr(stk.fast_info, 'last_price', None)
@@ -662,102 +591,42 @@ def get_data(tk):
                 if p > 0: break
             except:
                 time.sleep(0.5)
-        
-        # 🚀 야후 info 블로킹 철저 방어 및 데이터 복구 로직 통합
-        try:
-            i = stk.info
-            if i is None or not isinstance(i, dict):
-                i = {}
-        except:
-            i = {}
-            
-        # === [추가된 우회 크롤링 코드 (Finviz & Yahoo Profile)] ===
-        # 시킹알파(SeekingAlpha)는 봇 차단이 강력해 Finviz로 우회하여 Forward PER 및 컨센서스를 수집합니다. 
-        # 5~10년 평균 PER은 HTS(키움증권 등) 교차 검증이 권장됩니다.
-        if not kr and (not i or 'forwardPE' not in i or not i.get('forwardPE')):
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            
-            # 1. Finviz에서 Forward P/E 및 컨센서스 구출
-            try:
-                fv_url = f"https://finviz.com/quote.ashx?t={cd}"
-                fv_r = requests.get(fv_url, headers=headers, timeout=5)
-                if fv_r.status_code == 200:
-                    fv_s = BeautifulSoup(fv_r.text, 'html.parser')
-                    
-                    def get_fv(label):
-                        elem = fv_s.find(string=label)
-                        if elem:
-                            val = elem.find_next('td').text.strip()
-                            if val != '-': return val
-                        return None
 
-                    fpe = get_fv("Forward P/E")
-                    if fpe: i['forwardPE'] = safe_float(fpe)
-                    
-                    pe = get_fv("P/E")
-                    if pe and ('trailingPE' not in i or not i.get('trailingPE')): 
-                        i['trailingPE'] = safe_float(pe)
-                    
-                    eps_nxt = get_fv("EPS next Y")
-                    if eps_nxt: 
-                        # [비즈니스 요약 버그 수정] kr_sum을 덮어씌우는 대신 별도의 키로 저장
-                        i['finviz_eps_next'] = eps_nxt
-            except:
-                pass
-
-            # 2. 야후 파이낸스 직접 스크래핑으로 경영진 및 요약 구출
-            try:
-                yh_url = f"https://finance.yahoo.com/quote/{cd}/profile"
-                yh_r = requests.get(yh_url, headers=headers, timeout=5)
-                if yh_r.status_code == 200:
-                    yh_s = BeautifulSoup(yh_r.text, 'html.parser')
-                    
-                    desc = yh_s.find('section', {'data-testid': 'description'})
-                    if desc and 'longBusinessSummary' not in i:
-                        i['longBusinessSummary'] = desc.text.strip()
-                    
-                    exec_table = yh_s.find('table')
-                    if exec_table:
-                        ceo_name = exec_table.find('tbody').find('tr').find('td').text.strip()
-                        i['companyOfficers'] = [{'name': ceo_name}]
-            except:
-                pass
-        # =========================================================
+        # 🚀 병렬 처리를 통한 다중 크롤링 (속도 극대화)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_info = executor.submit(get_yf_info, stk)
+            
+            if not kr:
+                future_finviz = executor.submit(get_finviz_data, cd)
+                future_yahoo = executor.submit(get_yahoo_profile, cd)
+            else:
+                future_naver = executor.submit(get_naver_finance, cd)
+                
+            i = future_info.result()
+            
+            if not kr:
+                fv_res = future_finviz.result()
+                yh_res = future_yahoo.result()
+                
+                if 'forwardPE' not in i or not i.get('forwardPE'):
+                    if 'forwardPE' in fv_res: i['forwardPE'] = fv_res['forwardPE']
+                if 'trailingPE' not in i or not i.get('trailingPE'):
+                    if 'trailingPE' in fv_res: i['trailingPE'] = fv_res['trailingPE']
+                if 'finviz_eps_next' in fv_res: i['finviz_eps_next'] = fv_res['finviz_eps_next']
+                
+                if 'longBusinessSummary' not in i and 'longBusinessSummary' in yh_res:
+                    i['longBusinessSummary'] = yh_res['longBusinessSummary']
+                if 'companyOfficers' not in i and 'companyOfficers' in yh_res:
+                    i['companyOfficers'] = yh_res['companyOfficers']
+            else:
+                nv_res = future_naver.result()
+                if 'live_p' in nv_res and nv_res['live_p'] > 0: p = nv_res['live_p']
+                for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
+                    if k in nv_res: i[k] = nv_res[k]
 
         if tk == "005380.KS": p = 480000.0
-        
-        # 🚀 한국 주식 크롤링
-        if kr and p:
-            try:
-                url = f"https://finance.naver.com/item/main.naver?code={cd}"
-                r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-                s = BeautifulSoup(r.text, 'html.parser')
-                
-                t_price = s.select_one('.no_today .blind')
-                if t_price:
-                    live_p = safe_float(t_price.text.replace(',', ''))
-                    if live_p > 0: p = live_p
-                    
-                t_name = s.select_one('.wrap_company h2 a')
-                if t_name: i['shortName'] = t_name.text
-                
-                t_pe = s.select_one('#_per')
-                if t_pe: i['trailingPE'] = safe_float(t_pe.text.replace(',',''))
-                
-                t_fpe = s.select_one('#_cns_per')
-                if t_fpe: i['forwardPE'] = safe_float(t_fpe.text.replace(',',''))
-                
-                t_pbr = s.select_one('#_pbr')
-                if t_pbr: i['priceToBook'] = safe_float(t_pbr.text.replace(',',''))
-                
-                t_div = s.select_one('#_dvr')
-                if t_div: i['dividendYield'] = safe_float(t_div.text.replace(',',''))/100
-                
-                t_sum = s.select_one('.summary_info p')
-                if t_sum: i['kr_sum'] = t_sum.text
-            except: pass
             
-        # 🚀 미국 주식 & API 차단 발생 시: '진짜 재무제표' 기반 실시간 자동 역산 엔진 가동
+        # 재무제표 기반 실시간 자동 역산 엔진 가동
         if p and (not i or 'trailingPE' not in i or i['trailingPE'] == 0.0):
             try:
                 inc = stk.income_stmt
@@ -795,14 +664,12 @@ def get_data(tk):
                     if sh_count > 0: i['sharesOutstanding'] = sh_count
             except: pass
             
-        # 🚀 주식수 마지노선 마킹
         if 'sharesOutstanding' not in i or not i['sharesOutstanding'] or i['sharesOutstanding'] == 0:
             try:
                 sh_count = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
                 if sh_count > 0: i['sharesOutstanding'] = sh_count
             except: pass
 
-        # [ROE 보완 로직] ROE가 누락되었을 경우 재무제표에서 역산 강제 실행
         if 'returnOnEquity' not in i or not i.get('returnOnEquity') or i.get('returnOnEquity') == 0.0:
             try:
                 inc = stk.income_stmt
@@ -1649,7 +1516,7 @@ with tab1:
                     "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
                     "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
                     "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시?'</b> 확신이 드는지 반드시 질문해 보세요!"
+                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을까?'</b> 확신이 드는지 반드시 질문해 보세요!"
                 )
                 dcf_guide_en = (
                     "💡 <b>[Must Read] Understanding DCF Valuation Easily</b><br>"
@@ -1776,7 +1643,6 @@ with tab1:
                 st.markdown(f"- **CEO:** {ceo_cleaned}")
                 
                 st.write(t("**비즈니스 요약**", "**Business Summary**"))
-                # [비즈니스 요약 보완 로직]
                 raw_summary = i.get('kr_sum') or i.get('longBusinessSummary') or t("비즈니스 요약 데이터를 현재 불러올 수 없습니다. (이건 확인이 필요한 부분입니다)", "Business summary data not available.")
                 st.caption(f"{tr_text(str(raw_summary))[:350]}...")
 
