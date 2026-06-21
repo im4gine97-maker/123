@@ -49,15 +49,12 @@ def trigger_scan():
             st.session_state.suggestions = []
             return
             
-        # 2. 스마트 부분 일치 (자동완성 제안)
+        # 2. 스마트 부분 일치 (자동완성 제안 - 약어 입력 시 풀네임 표출 로직 적용)
         matches = {}
         for k, v in tmap.items():
             if raw_q.upper() in k.upper() or raw_q in k:
-                if v not in matches:
-                    matches[v] = k
-                else:
-                    if len(k) < len(matches[v]):
-                        matches[v] = k
+                # 검색어(약어)에 걸리더라도 무조건 primary_names에 저장된 대표 풀네임으로 매핑
+                matches[v] = primary_names[v]
                         
         unique_tickers = list(matches.keys())
         
@@ -205,6 +202,12 @@ tmap = {
     "페라리": "RACE", "RACE": "RACE",
     "데일리저널": "DJCO", "DJCO": "DJCO"
 }
+
+# 🚀 각 티커별 대표 풀네임 추출 로직 (tmap에 가장 먼저 등록된 이름을 풀네임으로 간주)
+primary_names = {}
+for k, v in tmap.items():
+    if v not in primary_names:
+        primary_names[v] = k
 
 fallback_13f_data = {
     "HC": [
@@ -1646,7 +1649,7 @@ with tab1:
                     "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
                     "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
                     "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을까?'</b> 확신이 드는지 반드시 질문해 보세요!"
+                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시?'</b> 확신이 드는지 반드시 질문해 보세요!"
                 )
                 dcf_guide_en = (
                     "💡 <b>[Must Read] Understanding DCF Valuation Easily</b><br>"
