@@ -415,7 +415,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "MOH": "Molina Healthcare, Inc.: 정부 보조 의료보험(Medicaid) 특화 경영진 역량은 우수하나, 주 정부의 계약 갱신 탈락 위험이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "AERO": "Grupo Aeroméxico: 파산보호 졸업 후 정상화 추진 중이나, 남미 항공 시장의 높은 환율 및 연료비 변동성은 이건 확인이 필요한 부분입니다.",
         "NCLH": "Norwegian Cruise Line Holdings Ltd.: 크루즈 수요 회복을 이끄는 경영진이나, 팬데믹 기간 누적된 막대한 부채 상환 부담이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "KKR": "KKR & Co Inc: 대체투자 자산 다각화 능력이 탁월하나, 고금 장기화에 따른 자산 매각(Exit) 지연이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "KKR": "KKR & Co Inc: 대체투자 자산 다각화 능력이 탁월하나, 고금리 장기화에 따른 자산 매각(Exit) 지연이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "ROP": "Roper Technologies Inc: 니치 마켓 소프트웨어 인수 후 자본배분 능력이 독보적이나, 인수 기업들의 유기적 성장률 둔화가 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "CSGP": "CoStar Group Inc: 상업용 부동산 데이터 독과점 경영진이나, 주택 부동산 시장 진출에 따른 마케팅 비용 과다는 이건 확인이 필요한 부분입니다.",
         "ORLY": "O'Reilly Automotive Inc: 자동차 애프터마켓의 최고 수준 공급망 경영진이나, 전기차 확산에 따른 부품 소모 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -1054,12 +1054,6 @@ with st.sidebar:
             
     is_ko = st.session_state.lang == "ko"
         
-    st.divider()
-
-    # 🚀 실시간 자동 트래킹 토글 기능 추가
-    st.header(t("실시간 트래킹", "Real-time Tracking"))
-    auto_refresh = st.toggle(t("15초 자동 새로고침 켜기", "Auto-refresh every 15s"), key="auto_refresh")
-
     st.divider()
     
     st.header(t("내 서재", "My Library"))
@@ -1753,7 +1747,7 @@ with tab1:
                     elif mos_val >= 0: p_txt += f"- DCF: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val > -10: p_txt += f"- DCF: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>"
                     elif mos_val > -20: p_txt += f"- DCF: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
-                    else: p_txt += f"- DCF: <span class='highlight'>[매 주의] ({mos_val:.1f}% 할증)</span>"
+                    else: p_txt += f"- DCF: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
                 st.markdown(p_txt, unsafe_allow_html=True)
                 
                 if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
@@ -2099,8 +2093,3 @@ st.markdown(f"""
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
-
-# 🚀 실시간 15초 자동 새로고침(Auto-Refresh) 로직
-if st.session_state.get("auto_refresh", False):
-    time.sleep(15)
-    st.rerun()
