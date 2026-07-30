@@ -1299,11 +1299,129 @@ with tab1:
                     elif post_p > 0:
                         ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: \\${post_p:,.2f})</span>"
         
-                # 실시간 EPS 직접 사용
+                # ---------------------------------------------------------
+                # 🚀 [수정 시작] 프리/애프터마켓 시세 반영 및 가치 지표 실시간 재계산
+                # (기존 '# 실시간 PER / Fwd PER 직접 사용' 부터 드래그해서 덮어쓰기)
+                # ---------------------------------------------------------
+                
+                # 1. 주가(p)를 장외 시세(프리/애프터마켓)로 가장 먼저 업데이트합니다.
+                ext_str = ""
+                is_ext_active = False
+                if not kr:
+                    pre_p = safe_float(i.get('preMarketPrice', 0.0))
+                    post_p = safe_float(i.get('postMarketPrice', 0.0))
+                    
+                    if pre_p > 0:
+                        p = pre_p  # 🚀 주가 덮어쓰기!
+                        is_ext_active = True
+                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: \\${pre_p:,.2f})</span>"
+                    elif post_p > 0:
+                        p = post_p # 🚀 주가 덮어쓰기!
+                        is_ext_active = True
+                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \\${post_p:,.2f})</span>"
+
+                p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
+
+                # 2. EPS(주당순이익) 우선 추출
+                t_pe_raw = safe_float(i.get('trailingPE'))
+                f_pe_raw = safe_float(i.get('forwardPE'))
+                
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-                if t_eps == 0 and t_pe > 0: t_eps = p / t_pe
-                if f_eps == 0 and f_pe > 0: f_eps = p / f_pe
+                
+                # EPS 정보가 없을 경우, 장마감 주가와 기존 PER을 이용해 EPS를 역산해둡니다.
+                reg_p = safe_float(i.get('regularMarketPrice', p))
+                if reg_p == 0: reg_p = p
+                
+                if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
+                if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
+
+                # 3. 🚀 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산!
+                t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
+                f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
+
+                # 4. PBR 실시간 재계산
+                pbr = safe_float(i.get('priceToBook'))
+                bv = safe_float(i.get('bookValue'))
+                
+                if bv > 0:
+                    pbr = p / bv
+                else:
+                    if pbr > 0 and is_ext_active and reg_p > 0:
+                        pbr = pbr * (p / reg_p)  # 주가 변동 비율만큼 PBR도 미세조정
+                    elif pbr == 0.0:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh = safe_float(i.get('sharesOutstanding'))
+                                if eq > 0 and sh > 0:
+                                    pbr = p / (eq / sh)
+                        except: pass
+                
+                # 5. 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
+                roe = safe_float(i.get('returnOnEquity')) * 100
+                real_roic = get_real_roic(stk, i)
+                
+                if is_financial:
+                    roic_str = t("금융/보험주 제외", "N/A (Financial)")
+                else:
+                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
+                    else: roic_str = t("데이터 부족 (확인 요망)", "N/A (Needs verification)")
+                
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                
+                div_yield = safe_float(i.get('dividendYield'))
+                div_rate = safe_float(i.get('dividendRate'))
+                if kr: div = div_yield * 100
+                else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
+                
+                div_trend = t("확인 불가", "N/A")
+                try:
+                    div_history = stk.dividends
+                    if not div_history.empty:
+                        yearly_div = div_history.groupby(div_history.index.year).sum()
+                        if len(yearly_div) >= 3:
+                            last_3 = yearly_div.tail(3)
+                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
+                                div_trend = f"<span class='good'>{t('지속 상승 중', 'Consistently Increasing')}</span>"
+                            elif last_3.iloc[-1] > 0:
+                                div_trend = t("유지/변동", "Maintained/Fluctuating")
+                            else:
+                                div_trend = t("배당 없음", "No Dividend")
+                except: pass
+                
+                pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+                ey = (1 / f_pe * 100) if f_pe > 0 else 0
+                erp = ey - ty
+                
+                base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
+                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
+                
+                rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
+                
+                has_eps_g = False
+                if t_eps > 0 and f_eps > 0:
+                    eps_g_val = ((f_eps - t_eps) / t_eps) * 100
+                    eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
+                    eps_col = "#2ecc71" if eps_g_val > 0 else "#ff7675"
+                    has_eps_g = True
+                elif t_eps < 0 and f_eps > 0:
+                    eps_g_str = t("흑자전환", "Turnaround")
+                    eps_col = "#2ecc71"
+                elif t_eps > 0 and f_eps < 0:
+                    eps_g_str = t("적자전환", "Turn to Loss")
+                    eps_col = "#ff7675"
+                elif t_eps < 0 and f_eps < 0:
+                    eps_g_str = t("적자지속", "Continued Loss")
+                    eps_col = "#ff7675"
+                else:
+                    eps_g_str = t("확인불가", "N/A")
+                    eps_col = "#8892b0"
+                # ---------------------------------------------------------
+                # 🚀 [수정 끝] 여기서부터는 원래 코드의 'current_rsi_val, avg_rsi_val = None, None'가 이어집니다.
+                # ---------------------------------------------------------
                 
                 has_eps_g = False
                 if t_eps > 0 and f_eps > 0:
