@@ -1106,7 +1106,7 @@ if tnx_val == 0.0: tnx_val = 4.4
 
 spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
-spy_erp, qqq_erp = spy_ey - tnx_val
+spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
 
 spy_op, spy_col = get_market_op_simple(spy_erp)
 qqq_op, qqq_col = get_market_op_simple(qqq_erp)
