@@ -579,7 +579,52 @@ def get_naver_finance(cd):
         pass
     return res
 
-# 🚀 [강화된 실시간 데이터 가져오기 및 내부 재계산 방지]
+# 🚀 [추가 1] 무거운 재무 데이터 및 크롤링 결과만 따로 캐싱 (하루 1번)
+@st.cache_data(ttl=86400)
+def fetch_cached_info(tk, kr, cd):
+    stk = yf.Ticker(tk)
+    i = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        future_info = executor.submit(get_yf_info, stk)
+        
+        if not kr:
+            future_finviz = executor.submit(get_finviz_data, cd)
+            future_yahoo = executor.submit(get_yahoo_profile, cd)
+        else:
+            future_naver = executor.submit(get_naver_finance, cd)
+            
+        i = future_info.result().copy() if future_info.result() else {}
+        
+        if not kr:
+            fv_res = future_finviz.result()
+            yh_res = future_yahoo.result()
+            
+            if 'forwardPE' not in i or not i.get('forwardPE'):
+                if 'forwardPE' in fv_res: i['forwardPE'] = fv_res['forwardPE']
+            if 'trailingPE' not in i or not i.get('trailingPE'):
+                if 'trailingPE' in fv_res: i['trailingPE'] = fv_res['trailingPE']
+            if 'trailingEps' not in i or not i.get('trailingEps'):
+                if 'trailingEps' in fv_res: i['trailingEps'] = fv_res['trailingEps']
+            if 'finviz_eps_next' in fv_res: i['finviz_eps_next'] = fv_res['finviz_eps_next']
+            
+            if 'longBusinessSummary' not in i and 'longBusinessSummary' in yh_res:
+                i['longBusinessSummary'] = yh_res['longBusinessSummary']
+            if 'companyOfficers' not in i and 'companyOfficers' in yh_res:
+                i['companyOfficers'] = yh_res['companyOfficers']
+        else:
+            nv_res = future_naver.result()
+            for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
+                if k in nv_res: i[k] = nv_res[k]
+
+    if 'sharesOutstanding' not in i or not i.get('sharesOutstanding') or i.get('sharesOutstanding') == 0:
+        try:
+            sh_count = safe_float(i.get('impliedSharesOutstanding', 0))
+            if sh_count > 0: i['sharesOutstanding'] = sh_count
+        except: pass
+        
+    return i
+
+# 🚀 [추가 2] 실시간 주가는 캐싱 없이 매번 호출하도록 분리
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
@@ -598,73 +643,29 @@ def get_data(tk):
         cd = tk.split('.')[0] if kr else tk
         
         stk = yf.Ticker(tk)
-        p, i = None, {}
         
-        # 1. 병렬 크롤링 및 YF Info 호출
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            future_info = executor.submit(get_yf_info, stk)
-            
-            if not kr:
-                future_finviz = executor.submit(get_finviz_data, cd)
-                future_yahoo = executor.submit(get_yahoo_profile, cd)
-            else:
-                future_naver = executor.submit(get_naver_finance, cd)
-                
-            i = future_info.result()
-            
-            # 크롤링 백업 데이터를 info 사전에 병합
-            if not kr:
-                fv_res = future_finviz.result()
-                yh_res = future_yahoo.result()
-                
-                # Finviz의 실시간 PE/EPS로 보강 (Yfinance 누락 방지)
-                if 'forwardPE' not in i or not i.get('forwardPE'):
-                    if 'forwardPE' in fv_res: i['forwardPE'] = fv_res['forwardPE']
-                if 'trailingPE' not in i or not i.get('trailingPE'):
-                    if 'trailingPE' in fv_res: i['trailingPE'] = fv_res['trailingPE']
-                if 'trailingEps' not in i or not i.get('trailingEps'):
-                    if 'trailingEps' in fv_res: i['trailingEps'] = fv_res['trailingEps']
-                if 'finviz_eps_next' in fv_res: i['finviz_eps_next'] = fv_res['finviz_eps_next']
-                
-                if 'longBusinessSummary' not in i and 'longBusinessSummary' in yh_res:
-                    i['longBusinessSummary'] = yh_res['longBusinessSummary']
-                if 'companyOfficers' not in i and 'companyOfficers' in yh_res:
-                    i['companyOfficers'] = yh_res['companyOfficers']
-            else:
-                nv_res = future_naver.result()
-                if 'live_p' in nv_res and nv_res['live_p'] > 0: i['live_p'] = nv_res['live_p']
-                for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
-                    if k in nv_res: i[k] = nv_res[k]
-
-        # 2. 실시간 최신 주가 로직 처리 (fast_info 완전 배제)
-        p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
+        # 1. 무거운 재무 데이터는 캐시에서 호출 (속도 획기적 개선)
+        i = fetch_cached_info(tk, kr, cd).copy()
         
-        # 만약 Info에서 가격을 못 가져왔다면 history로 안전하게 최신 종가 가져오기
+        # 2. 실시간 가격만 빠르게 별도 추출
+        p = 0.0
+        if kr:
+            try:
+                nv_res = get_naver_finance(cd)
+                if 'live_p' in nv_res and nv_res['live_p'] > 0: 
+                    p = safe_float(nv_res['live_p'])
+            except: pass
+            
         if p == 0:
             try:
                 hist = stk.history(period="1d")
                 if not hist.empty:
                     p = safe_float(hist['Close'].iloc[-1])
             except: pass
+
+        if p == 0:
+            p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
-        # 한국 주식은 네이버 금융 실시간 주가 최우선 적용
-        if kr and 'live_p' in i:
-            p = safe_float(i['live_p'])
-
-        # 3. 유저 사용 기록 기반 예외 룰 반영 (현대차 특정가격 고정 룰 대응)
-        if tk == "005380.KS": 
-            p = 480000.0
-            
-        # [주의] 이 위치에 있던 재무제표 기반 PE, PBR 강제 내부 재계산 로직은 사용자 요청(내부 재계산 금지)에 따라 완전히 제거되었습니다.
-        # 앞으로는 오직 Yahoo Finance Info API 및 Finviz/Naver 스크래핑된 실시간 데이터만 신뢰하여 반환합니다.
-
-        # 4. DCF 계산을 위한 유통주식수 및 기타 기본 메타데이터 보정
-        if 'sharesOutstanding' not in i or not i.get('sharesOutstanding') or i.get('sharesOutstanding') == 0:
-            try:
-                sh_count = safe_float(i.get('impliedSharesOutstanding', 0))
-                if sh_count > 0: i['sharesOutstanding'] = sh_count
-            except: pass
-
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
@@ -697,6 +698,7 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len
     except: return None, None, 0.05, 0
 
+# 🚀 [추가 3] 보수적인 영구 성장률 적용 로직 (DCF)
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
@@ -708,7 +710,9 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
         for y in range(1, 11):
             cv *= (1 + g)
             fut.append(cv / ((1 + dr) ** y))
-        tv = (cv * 1.02) / (dr - 0.02)
+            
+        term_g = 0.02 if g >= 0.05 else 0.0 # 10년 후 성장 정체 대비
+        tv = (cv * (1 + term_g)) / (dr - term_g)
         dtv = tv / ((1 + dr) ** 10)
         
         iv = (sum(fut) + dtv) / sh
@@ -727,7 +731,9 @@ def get_implied_g(fcf, sh, p, ty):
         for y in range(1, 11):
             cv *= (1 + mid)
             fut_sum += cv / ((1 + dr) ** y)
-        tv = (cv * 1.02) / (dr - 0.02)
+            
+        term_g = 0.02 if mid >= 0.05 else 0.0
+        tv = (cv * (1 + term_g)) / (dr - term_g)
         dtv = tv / ((1 + dr) ** 10)
         iv = (fut_sum + dtv) / sh
         if iv > p:
@@ -785,7 +791,6 @@ def analyze_trends(stk):
     except: pass
     return eps_trend, bps_trend
 
-# 🚀 [연구개발비(R&D) 직관적 시점 표출 로직 적용]
 def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
     if is_financial: return f"<span style='color:#8892b0'>{t('금융/보험주 제외', 'N/A (Financial)')}</span>"
     
@@ -797,12 +802,11 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         if inc is not None and not inc.empty and 'Research And Development' in inc.index:
             rnd_series = inc.loc['Research And Development'].dropna()
             if not rnd_series.empty:
-                rnd_vals = rnd_series.values[:4][::-1] # 오래된 순서대로 정렬 (예: 22년, 23년, 24년, 25년)
+                rnd_vals = rnd_series.values[:4][::-1]
                 rnd_years = [str(c)[:4] for c in rnd_series.index[:4]][::-1]
                 curr_rnd = safe_float(rnd_vals[-1])
                 
                 if curr_rnd > 0:
-                    # 단위 환산 (한국: 조/억 원, 미국: B/M 달러)
                     mv = max([abs(x) for x in rnd_vals])
                     if kr:
                         if mv >= 1e12: div, u = 1e12, "조원"
@@ -815,7 +819,6 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                     
                     history_str = ", ".join([f"<b>{y}년</b>: {v/div:.1f}{u}" for y, v in zip(rnd_years, rnd_vals)])
                     
-                    # ⚠️ 30% 이상 급증한 가장 최근 시점 탐색 로직 (작년, 2년 전, 3년 전)
                     sudden_alert = ""
                     for i in range(len(rnd_vals) - 1, 0, -1):
                         curr = safe_float(rnd_vals[i])
@@ -823,7 +826,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                         if prev > 0:
                             inc_pct = ((curr - prev) / prev) * 100
                             if inc_pct >= 30:
-                                years_ago = len(rnd_vals) - 1 - i # 0: 작년(가장최근), 1: 2년 전, 2: 3년 전
+                                years_ago = len(rnd_vals) - 1 - i 
                                 if years_ago == 0:
                                     txt_ko = f"작년에 {inc_pct:.1f}% 급상승"
                                     txt_en = f"Spiked {inc_pct:.1f}% last year"
@@ -837,7 +840,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                                     continue
                                 
                                 sudden_alert = f" <span class='highlight'>[⚠️ {t(txt_ko, txt_en)}!]</span>"
-                                break # 가장 최근의 급등 기록만 표출하고 중단
+                                break 
                     
                     if base_fcf and base_fcf > 0:
                         ratio = (curr_rnd / base_fcf) * 100
@@ -1222,89 +1225,9 @@ with tab1:
                     ceo_cleaned = "일론 머스크"
                     criticism_text = "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)"
 
-                # 실시간 PER / Fwd PER 직접 사용
-                t_pe = safe_float(i.get('trailingPE'))
-                f_pe = safe_float(i.get('forwardPE'))
-                
-                pbr = safe_float(i.get('priceToBook'))
-                if pbr == 0.0:
-                    bv = safe_float(i.get('bookValue'))
-                    if bv > 0:
-                        pbr = p / bv
-                    else:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh = safe_float(i.get('sharesOutstanding'))
-                                if eq > 0 and sh > 0:
-                                    pbr = p / (eq / sh)
-                        except:
-                            pass
-                
-                roe = safe_float(i.get('returnOnEquity')) * 100
-                real_roic = get_real_roic(stk, i)
-                
-                if is_financial:
-                    roic_str = t("금융/보험주 제외", "N/A (Financial)")
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족 (확인 요망)", "N/A (Needs verification)")
-                
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
-                
-                div_yield = safe_float(i.get('dividendYield'))
-                div_rate = safe_float(i.get('dividendRate'))
-                if kr: div = div_yield * 100
-                else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
-                
-                div_trend = t("확인 불가", "N/A")
-                try:
-                    div_history = stk.dividends
-                    if not div_history.empty:
-                        yearly_div = div_history.groupby(div_history.index.year).sum()
-                        if len(yearly_div) >= 3:
-                            last_3 = yearly_div.tail(3)
-                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
-                                div_trend = f"<span class='good'>{t('지속 상승 중', 'Consistently Increasing')}</span>"
-                            elif last_3.iloc[-1] > 0:
-                                div_trend = t("유지/변동", "Maintained/Fluctuating")
-                            else:
-                                div_trend = t("배당 없음", "No Dividend")
-                except:
-                    pass
-                
-                pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-                ey = (1 / f_pe * 100) if f_pe > 0 else 0
-                erp = ey - ty
-                
-                base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
-                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
-                
-                # 🚀 연구개발비(R&D) 트렌드 분석 호출부 
-                rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
-
-                # 달러 기호($) 앞에 역슬래시 2개(\\)를 추가하여 에디터 경고를 없앱니다.
-                p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
-
-                # 🚀 [추가] 프리마켓 및 애프터마켓 시세 추출 로직
-                ext_str = ""
-                if not kr:
-                    pre_p = safe_float(i.get('preMarketPrice', 0.0))
-                    post_p = safe_float(i.get('postMarketPrice', 0.0))
-            
-                    if pre_p > 0:
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: \\${pre_p:,.2f})</span>"
-                    elif post_p > 0:
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: \\${post_p:,.2f})</span>"
-        
                 # ---------------------------------------------------------
-                # 🚀 [수정 시작] 프리/애프터마켓 시세 반영 및 가치 지표 실시간 재계산
-                # (기존 '# 실시간 PER / Fwd PER 직접 사용' 부터 드래그해서 덮어쓰기)
+                # 🚀 프리/애프터마켓 시세 반영 및 가치 지표 실시간 재계산
                 # ---------------------------------------------------------
-                
-                # 1. 주가(p)를 장외 시세(프리/애프터마켓)로 가장 먼저 업데이트합니다.
                 ext_str = ""
                 is_ext_active = False
                 if not kr:
@@ -1322,7 +1245,7 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
 
-                # 2. EPS(주당순이익) 우선 추출
+                # EPS(주당순이익) 우선 추출
                 t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
                 
@@ -1336,11 +1259,11 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 3. 🚀 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산!
+                # 🚀 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산!
                 t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
                 f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
-                # 4. PBR 실시간 재계산
+                # PBR 실시간 재계산
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
                 
@@ -1359,7 +1282,7 @@ with tab1:
                                     pbr = p / (eq / sh)
                         except: pass
                 
-                # 5. 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
+                # 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
@@ -1420,27 +1343,6 @@ with tab1:
                     eps_g_str = t("확인불가", "N/A")
                     eps_col = "#8892b0"
                 # ---------------------------------------------------------
-                # 🚀 [수정 끝] 여기서부터는 원래 코드의 'current_rsi_val, avg_rsi_val = None, None'가 이어집니다.
-                # ---------------------------------------------------------
-                
-                has_eps_g = False
-                if t_eps > 0 and f_eps > 0:
-                    eps_g_val = ((f_eps - t_eps) / t_eps) * 100
-                    eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
-                    eps_col = "#2ecc71" if eps_g_val > 0 else "#ff7675"
-                    has_eps_g = True
-                elif t_eps < 0 and f_eps > 0:
-                    eps_g_str = t("흑자전환", "Turnaround")
-                    eps_col = "#2ecc71"
-                elif t_eps > 0 and f_eps < 0:
-                    eps_g_str = t("적자전환", "Turn to Loss")
-                    eps_col = "#ff7675"
-                elif t_eps < 0 and f_eps < 0:
-                    eps_g_str = t("적자지속", "Continued Loss")
-                    eps_col = "#ff7675"
-                else:
-                    eps_g_str = t("확인불가", "N/A")
-                    eps_col = "#8892b0"
                     
                 current_rsi_val, avg_rsi_val = None, None
                 try:
@@ -1632,7 +1534,6 @@ with tab1:
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    # 🚀 [추가] UI 렌더링에 프리마켓/애프터마켓 시세 문자열 포함
                     st.markdown(f"- **{t('현재 주가', 'Current Price')}:** {p_str}{ext_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
                     st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
