@@ -27,6 +27,9 @@ def t(ko, en):
 def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
+        # 퍼센트 기호 등 문자열 제거 처리
+        if isinstance(val, str):
+            val = val.replace('%', '').replace(',', '').strip()
         return float(val)
     except:
         return default
@@ -243,24 +246,21 @@ kr_top30 = [{"순위": 1, "티커": "005930", "기업명": "삼성전자", "시�
 def fetch_single_macro(name, tk):
     try:
         stk = yf.Ticker(tk)
-        try:
-            last_p = getattr(stk.fast_info, 'last_price', None)
-            if last_p is None: last_p = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
-            prev_p = getattr(stk.fast_info, 'previous_close', None)
-            if prev_p is None: prev_p = stk.fast_info.get('previousClose') if isinstance(stk.fast_info, dict) else stk.fast_info['previousClose']
-            
-            last_p = safe_float(last_p)
-            prev_p = safe_float(prev_p)
-            if last_p == 0.0 or prev_p == 0.0: raise Exception("fallback")
-        except:
-            hist = stk.history(period="7d")
+        info = stk.info if isinstance(stk.info, dict) else {}
+        
+        # 최신 yfinance에서 fast_info 이슈 회피. info에서 실시간 가격 추출.
+        last_p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
+        prev_p = safe_float(info.get('previousClose', info.get('regularMarketPreviousClose')))
+        
+        # 값이 없을 경우 history로 백업 처리
+        if last_p == 0.0 or prev_p == 0.0:
+            hist = stk.history(period="5d")
             if hist is not None and not hist.empty:
                 hist = hist.dropna(subset=['Close'])
-            if hist is not None and len(hist) >= 2:
-                last_p = safe_float(hist['Close'].iloc[-1])
-                prev_p = safe_float(hist['Close'].iloc[-2])
-            else:
-                last_p, prev_p = 0.0, 0.0
+                if len(hist) >= 1:
+                    last_p = safe_float(hist['Close'].iloc[-1])
+                if len(hist) >= 2:
+                    prev_p = safe_float(hist['Close'].iloc[-2])
 
         if prev_p != 0:
             change = last_p - prev_p
@@ -365,7 +365,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "GOOG": "구글 (Alphabet Inc.): 경영진의 자본배분 능력은 신뢰할 수 있으나, 반독점 규제 및 AI 경쟁 심화가 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "PDD": "PDD Holdings Inc.: 경영진의 경영 투명성과 글로벌 확장에 따른 국가별 규제 리스크는 이건 확인이 필요한 부분입니다.",
         "BRK-B": "버크셔 해서웨이 (Berkshire Hathaway Inc.): 포스트 버핏 승계 구도는 안정적이나, 거대 자산 규모로 인한 수익률 둔화가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
-        "BRK-A": "버크셔 해서웨이 (Berkshire Hathaway Inc.): 포스트 버핏 승계 구도는 안정적이나, 거대 자산 규모로 인한 수익률 둔화가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "EWBC": "East West Bancorp, Inc.: 미-중 무역 관계 전문 은행으로 경영진 신뢰도가 높으나 상업용 부동산 리스크는 이건 확인이 필요한 부분입니다.",
         "BAC": "Bank of America Corp.: 보수적이고 안정적인 경영진이나, 금리 변동성 및 글로벌 경기 침체가 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "OXY": "Occidental Petroleum Corp.: 경영진의 부채 감축 및 주주환원 의지는 강하나, 유가 변동성 및 탄소 규제가 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -404,7 +403,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "ELV": "Elevance Health, Inc.: 건강보험 시장의 안정적 경영을 펼치나, 정부의 보험요율 인하 및 의료 비용(MLR) 상승이 치명적 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "FERG": "Ferguson Enterprises Inc.: 북미 건설 자재 유통의 지배적 지위이나, 미국 주택 및 상업용 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "WTW": "Willis Towers Watson: 구조조정을 통한 수익성 개선 경영을 추진 중이나, 인재 유출 및 경쟁사 대비 열위는 이건 확인이 필요한 부분입니다.",
-        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 수요 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
+        "AON": "Aon plc: 리스크 관리 자본 배분 역량은 뛰어나나, 글로벌 경기 둔화로 인한 기업들의 보험 실적 감소가 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "TFX": "Teleflex Incorporated: 의료기기 전문 경영진의 제품력은 우수하나, 병원들의 지출 삭감 및 경쟁 제품 등장이 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "EXP": "Eagle Materials Inc.: 미국 내 건자재 효율적 경영진이나, 인프라 투자 지연 및 건설 경기 하강이 주요 리스크입니다. (이건 확인이 필요한 부분입니다)",
         "GPC": "Genuine Parts Company: 자동차 부품 유통에서 안정적 경영을 하나, 전기차 보급에 따른 내연기관 부품 수요 감소가 장기 리스크입니다. (이건 확인이 필요한 부분입니다)",
@@ -522,7 +521,9 @@ def get_finviz_data(cd):
             pe = get_fv("P/E")
             if pe: res['trailingPE'] = safe_float(pe)
             eps_nxt = get_fv("EPS next Y")
-            if eps_nxt: res['finviz_eps_next'] = eps_nxt
+            if eps_nxt: res['finviz_eps_next'] = safe_float(eps_nxt)
+            eps_ttm = get_fv("EPS (ttm)")
+            if eps_ttm: res['trailingEps'] = safe_float(eps_ttm)
     except:
         pass
     return res
@@ -578,6 +579,7 @@ def get_naver_finance(cd):
         pass
     return res
 
+# 🚀 [강화된 실시간 데이터 가져오기 및 내부 재계산 방지]
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
@@ -587,7 +589,7 @@ def get_data(tk):
             test_tk = tk + ".KS"
             stk_test = yf.Ticker(test_tk)
             try:
-                _ = stk_test.fast_info['lastPrice']
+                _ = stk_test.history(period="1d")
                 tk = test_tk 
             except: tk = tk + ".KQ"
 
@@ -598,15 +600,7 @@ def get_data(tk):
         stk = yf.Ticker(tk)
         p, i = None, {}
         
-        for _ in range(3):
-            try:
-                p_val = getattr(stk.fast_info, 'last_price', None)
-                if p_val is None: p_val = stk.fast_info.get('lastPrice') if isinstance(stk.fast_info, dict) else stk.fast_info['lastPrice']
-                p = safe_float(p_val)
-                if p > 0: break
-            except:
-                time.sleep(0.5)
-
+        # 1. 병렬 크롤링 및 YF Info 호출
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             future_info = executor.submit(get_yf_info, stk)
             
@@ -618,14 +612,18 @@ def get_data(tk):
                 
             i = future_info.result()
             
+            # 크롤링 백업 데이터를 info 사전에 병합
             if not kr:
                 fv_res = future_finviz.result()
                 yh_res = future_yahoo.result()
                 
+                # Finviz의 실시간 PE/EPS로 보강 (Yfinance 누락 방지)
                 if 'forwardPE' not in i or not i.get('forwardPE'):
                     if 'forwardPE' in fv_res: i['forwardPE'] = fv_res['forwardPE']
                 if 'trailingPE' not in i or not i.get('trailingPE'):
                     if 'trailingPE' in fv_res: i['trailingPE'] = fv_res['trailingPE']
+                if 'trailingEps' not in i or not i.get('trailingEps'):
+                    if 'trailingEps' in fv_res: i['trailingEps'] = fv_res['trailingEps']
                 if 'finviz_eps_next' in fv_res: i['finviz_eps_next'] = fv_res['finviz_eps_next']
                 
                 if 'longBusinessSummary' not in i and 'longBusinessSummary' in yh_res:
@@ -634,69 +632,37 @@ def get_data(tk):
                     i['companyOfficers'] = yh_res['companyOfficers']
             else:
                 nv_res = future_naver.result()
-                if 'live_p' in nv_res and nv_res['live_p'] > 0: p = nv_res['live_p']
+                if 'live_p' in nv_res and nv_res['live_p'] > 0: i['live_p'] = nv_res['live_p']
                 for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
                     if k in nv_res: i[k] = nv_res[k]
 
-        if tk == "005380.KS": p = 480000.0
-            
-        if p and (not i or 'trailingPE' not in i or i['trailingPE'] == 0.0):
+        # 2. 실시간 최신 주가 로직 처리 (fast_info 완전 배제)
+        p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
+        
+        # 만약 Info에서 가격을 못 가져왔다면 history로 안전하게 최신 종가 가져오기
+        if p == 0:
             try:
-                inc = stk.income_stmt
-                bs = stk.balance_sheet
-                
-                sh_count = 0.0
-                try:
-                    sh_count = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
-                except: pass
-                if sh_count == 0:
-                    sh_count = safe_float(i.get('sharesOutstanding', 0))
-                    
-                if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                    eq = 0.0
-                    if 'Stockholders Equity' in bs.index: eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    elif 'Total Equity Gross Minority Interest' in bs.index: eq = safe_float(bs.loc['Total Equity Gross Minority Interest'].iloc[0])
-                    
-                    net_inc = 0.0
-                    if 'Net Income' in inc.index: net_inc = safe_float(inc.loc['Net Income'].iloc[0])
-                    
-                    t_eps = 0.0
-                    if 'Basic EPS' in inc.index: t_eps = safe_float(inc.loc['Basic EPS'].iloc[0])
-                    elif 'Diluted EPS' in inc.index: t_eps = safe_float(inc.loc['Diluted EPS'].iloc[0])
-                    elif sh_count > 0: t_eps = net_inc / sh_count
-                    
-                    if t_eps > 0: i['trailingPE'] = p / t_eps
-                    if 'trailingEps' not in i or not i['trailingEps']: i['trailingEps'] = t_eps
-                    
-                    if sh_count > 0 and eq > 0:
-                        bvps = eq / sh_count
-                        i['priceToBook'] = p / bvps
-                        i['bookValue'] = bvps
-                    
-                    if eq > 0: i['returnOnEquity'] = net_inc / eq
-                    if sh_count > 0: i['sharesOutstanding'] = sh_count
+                hist = stk.history(period="1d")
+                if not hist.empty:
+                    p = safe_float(hist['Close'].iloc[-1])
             except: pass
             
-        if 'sharesOutstanding' not in i or not i['sharesOutstanding'] or i['sharesOutstanding'] == 0:
-            try:
-                sh_count = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
-                if sh_count > 0: i['sharesOutstanding'] = sh_count
-            except: pass
+        # 한국 주식은 네이버 금융 실시간 주가 최우선 적용
+        if kr and 'live_p' in i:
+            p = safe_float(i['live_p'])
 
-        if 'returnOnEquity' not in i or not i.get('returnOnEquity') or i.get('returnOnEquity') == 0.0:
+        # 3. 유저 사용 기록 기반 예외 룰 반영 (현대차 특정가격 고정 룰 대응)
+        if tk == "005380.KS": 
+            p = 480000.0
+            
+        # [주의] 이 위치에 있던 재무제표 기반 PE, PBR 강제 내부 재계산 로직은 사용자 요청(내부 재계산 금지)에 따라 완전히 제거되었습니다.
+        # 앞으로는 오직 Yahoo Finance Info API 및 Finviz/Naver 스크래핑된 실시간 데이터만 신뢰하여 반환합니다.
+
+        # 4. DCF 계산을 위한 유통주식수 및 기타 기본 메타데이터 보정
+        if 'sharesOutstanding' not in i or not i.get('sharesOutstanding') or i.get('sharesOutstanding') == 0:
             try:
-                inc = stk.income_stmt
-                bs = stk.balance_sheet
-                if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                    eq = 0.0
-                    if 'Stockholders Equity' in bs.index: eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    elif 'Total Equity Gross Minority Interest' in bs.index: eq = safe_float(bs.loc['Total Equity Gross Minority Interest'].iloc[0])
-                    
-                    net_inc = 0.0
-                    if 'Net Income' in inc.index: net_inc = safe_float(inc.loc['Net Income'].iloc[0])
-                    
-                    if eq > 0 and net_inc != 0:
-                        i['returnOnEquity'] = net_inc / eq
+                sh_count = safe_float(i.get('impliedSharesOutstanding', 0))
+                if sh_count > 0: i['sharesOutstanding'] = sh_count
             except: pass
 
         return stk, p, i, kr
@@ -716,10 +682,6 @@ def get_base_dcf_data(stk, i):
         fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
         
         sh = safe_float(i.get('sharesOutstanding'))
-        if sh == 0:
-            try:
-                sh = safe_float(stk.fast_info.get('shares', getattr(stk.fast_info, 'shares', 0)))
-            except: pass
             
         g, data_len = 0.05, 0
         if fcf_s is not None and len(fcf_s) >= 2:
@@ -1260,6 +1222,7 @@ with tab1:
                     ceo_cleaned = "일론 머스크"
                     criticism_text = "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)"
 
+                # 실시간 PER / Fwd PER 직접 사용
                 t_pe = safe_float(i.get('trailingPE'))
                 f_pe = safe_float(i.get('forwardPE'))
                 
@@ -1324,8 +1287,9 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
+                # 실시간 EPS 직접 사용
                 t_eps = safe_float(i.get('trailingEps'))
-                f_eps = safe_float(i.get('forwardEps'))
+                f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
                 if t_eps == 0 and t_pe > 0: t_eps = p / t_pe
                 if f_eps == 0 and f_pe > 0: f_eps = p / f_pe
                 
@@ -1882,7 +1846,7 @@ with tab2:
     if guru_option == "세스 클라만 (Baupost Group)":
         st.write("**세스 클라만(Seth Klarman):** '보스턴의 오라클'로 불리는 거장으로, 벤자민 그레이엄의 철학을 철저히 계승한 정통 가치투자자입니다. 리스크 관리를 최우선으로 삼아 현금 비중을 유연하게 조절하며, 훌륭한 비즈니스 모델을 가진 산업재, 헬스케어, 그리고 매력적인 가격대의 테크 기업에 집중투자합니다.")
     elif guru_option == "빌 애크먼 (Pershing Square)":
-        st.write("**빌 애크먼(Bill Ackman):** 철저한 기본적 분석을 바탕으로 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 행동주의 투자자로도 유명하며, 단순한 주가 변동을 넘어 강력한 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오를 구성합니다.")
+        st.write("**빌 애크먼(Bill Ackman):** 철저한 기본적 분석을 바탕으로 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 행동주의 투자자로도 유명하며, 단순한 주가 변동을 넘어 강력 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오를 구성합니다.")
     elif guru_option == "워런 버핏 (Berkshire Hathaway)":
         st.write("**워런 버핏(Warren Buffett):** 역사상 가장 위대한 투자자로, 가치투자의 대명사입니다. '경제적 해자'와 정직한 경영진을 갖춘 위대한 기업을 적당한 가격에 사서 영원히 보유하는 소유권 관점의 투자를 실천합니다.")
     elif guru_option == "리 루 (Himalaya Capital)":
@@ -2081,7 +2045,7 @@ st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
 lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
 lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호 파악을 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
 
 st.markdown(f"""
 <div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
