@@ -1285,19 +1285,19 @@ with tab1:
                 # 🚀 연구개발비(R&D) 트렌드 분석 호출부 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
 
-                p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
-                
-                # 🚀 [추가] 프리마켓 및 애프터마켓 시세 추출 로직
-                ext_str = ""
-                if not kr:
-                    pre_p = safe_float(i.get('preMarketPrice', 0.0))
-                    post_p = safe_float(i.get('postMarketPrice', 0.0))
-                    
-                    if pre_p > 0:
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: ${pre_p:,.2f})</span>"
-                    elif post_p > 0:
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: ${post_p:,.2f})</span>"
+                # 달러 기호($) 앞에 역슬래시(\)를 추가하여 이스케이프 처리합니다.
+p_str = f"{int(p):,}원" if kr else f"\${p:,.2f}"
 
+# 🚀 [추가] 프리마켓 및 애프터마켓 시세 추출 로직
+ext_str = ""
+if not kr:
+    pre_p = safe_float(i.get('preMarketPrice', 0.0))
+    post_p = safe_float(i.get('postMarketPrice', 0.0))
+    
+    if pre_p > 0:
+        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: \${pre_p:,.2f})</span>"
+    elif post_p > 0:
+        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: \${post_p:,.2f})</span>"
                 # 실시간 EPS 직접 사용
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
