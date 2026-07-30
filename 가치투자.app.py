@@ -482,7 +482,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
         "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
         "033780": "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)",
-        "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해자는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
+        "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해 외는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
         "009150": "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)",
         "259960": "크래프톤 (김창한): '배틀그라운드' 단일 IP의 수명을 이례적으로 길게 늘리며 독보적인 영업이익률을 유지합니다.\n리스크: 다크앤다커 모바일 등 차기 흥행 신작 부재 시 발생하는 치명적인 단일 게임 의존도. (이건 확인이 필요한 부분입니다)",
         "012450": "한화에어로스페이스 (손재일): 자회사 합병을 통한 K-방산 수직 계열화로 글로벌 수출 모멘텀을 주도합니다.\n리스크: 특정 국가의 정치적 정권 교체나 정책 변화에 따라 수조 원대 수주 계약이 흔들릴 수 있는 지정학적 리스크. (이건 확인이 필요한 부분입니다)"
@@ -1106,7 +1106,7 @@ if tnx_val == 0.0: tnx_val = 4.4
 
 spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
 qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
-spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
+spy_erp, qqq_erp = spy_ey - tnx_val
 
 spy_op, spy_col = get_market_op_simple(spy_erp)
 qqq_op, qqq_col = get_market_op_simple(qqq_erp)
@@ -1286,6 +1286,17 @@ with tab1:
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+                
+                # 🚀 [추가] 프리마켓 및 애프터마켓 시세 추출 로직
+                ext_str = ""
+                if not kr:
+                    pre_p = safe_float(i.get('preMarketPrice', 0.0))
+                    post_p = safe_float(i.get('postMarketPrice', 0.0))
+                    
+                    if pre_p > 0:
+                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: ${pre_p:,.2f})</span>"
+                    elif post_p > 0:
+                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: ${post_p:,.2f})</span>"
 
                 # 실시간 EPS 직접 사용
                 t_eps = safe_float(i.get('trailingEps'))
@@ -1502,7 +1513,8 @@ with tab1:
 
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.write(f"- **{t('현재 주가', 'Current Price')}:** {p_str}")
+                    # 🚀 [추가] UI 렌더링에 프리마켓/애프터마켓 시세 문자열 포함
+                    st.markdown(f"- **{t('현재 주가', 'Current Price')}:** {p_str}{ext_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
                     st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
                     st.write(f"- **{t('현재 PER (본전 회수 기간)', 'Current PE (Payback Period)')}:** {t_pe:.2f}{t('배', 'x')}")
