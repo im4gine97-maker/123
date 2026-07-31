@@ -232,7 +232,7 @@ fallback_13f_data = {
         {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 10.50},
         {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 9.50}
     ],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
     "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
@@ -248,11 +248,9 @@ def fetch_single_macro(name, tk):
         stk = yf.Ticker(tk)
         info = stk.info if isinstance(stk.info, dict) else {}
         
-        # 최신 yfinance에서 fast_info 이슈 회피. info에서 실시간 가격 추출.
         last_p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
         prev_p = safe_float(info.get('previousClose', info.get('regularMarketPreviousClose')))
         
-        # 값이 없을 경우 history로 백업 처리
         if last_p == 0.0 or prev_p == 0.0:
             hist = stk.history(period="5d")
             if hist is not None and not hist.empty:
@@ -579,7 +577,7 @@ def get_naver_finance(cd):
         pass
     return res
 
-# 🚀 [추가 1] 무거운 재무 데이터 및 크롤링 결과만 따로 캐싱 (하루 1번)
+# 🚀 [최적화] 무거운 재무 데이터 및 크롤링 결과만 따로 캐싱 (하루 1번)
 @st.cache_data(ttl=86400)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
@@ -624,7 +622,7 @@ def fetch_cached_info(tk, kr, cd):
         
     return i
 
-# 🚀 [추가 2] 실시간 주가는 캐싱 없이 매번 호출하도록 분리
+# 🚀 [최적화] 실시간 주가는 캐싱 없이 매번 호출하도록 분리
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
@@ -644,10 +642,8 @@ def get_data(tk):
         
         stk = yf.Ticker(tk)
         
-        # 1. 무거운 재무 데이터는 캐시에서 호출 (속도 획기적 개선)
         i = fetch_cached_info(tk, kr, cd).copy()
         
-        # 2. 실시간 가격만 빠르게 별도 추출
         p = 0.0
         if kr:
             try:
@@ -698,7 +694,7 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len
     except: return None, None, 0.05, 0
 
-# 🚀 [추가 3] 보수적인 영구 성장률 적용 로직 (DCF)
+# 🚀 [최적화] 보수적인 영구 성장률 적용 로직 (DCF)
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자", "Negative FCF (Owner Earnings)")
@@ -711,7 +707,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
             cv *= (1 + g)
             fut.append(cv / ((1 + dr) ** y))
             
-        term_g = 0.02 if g >= 0.05 else 0.0 # 10년 후 성장 정체 대비
+        term_g = 0.02 if g >= 0.05 else 0.0
         tv = (cv * (1 + term_g)) / (dr - term_g)
         dtv = tv / ((1 + dr) ** 10)
         
@@ -1235,13 +1231,13 @@ with tab1:
                     post_p = safe_float(i.get('postMarketPrice', 0.0))
                     
                     if pre_p > 0:
-                        p = pre_p  # 🚀 주가 덮어쓰기!
+                        p = pre_p
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: \\${pre_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: \\${pre_p:,.2f})</span>"
                     elif post_p > 0:
-                        p = post_p # 🚀 주가 덮어쓰기!
+                        p = post_p
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \\${post_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: \\${post_p:,.2f})</span>"
 
                 p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
 
@@ -1252,14 +1248,14 @@ with tab1:
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
                 
-                # EPS 정보가 없을 경우, 장마감 주가와 기존 PER을 이용해 EPS를 역산해둡니다.
+                # EPS 정보가 없을 경우 역산
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 🚀 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산!
+                # 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산
                 t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
                 f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
@@ -1271,7 +1267,7 @@ with tab1:
                     pbr = p / bv
                 else:
                     if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)  # 주가 변동 비율만큼 PBR도 미세조정
+                        pbr = pbr * (p / reg_p)
                     elif pbr == 0.0:
                         try:
                             bs = stk.balance_sheet
@@ -1282,7 +1278,7 @@ with tab1:
                                     pbr = p / (eq / sh)
                         except: pass
                 
-                # 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
+                # 기존 지표 계산
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
@@ -1342,7 +1338,6 @@ with tab1:
                 else:
                     eps_g_str = t("확인불가", "N/A")
                     eps_col = "#8892b0"
-                # ---------------------------------------------------------
                     
                 current_rsi_val, avg_rsi_val = None, None
                 try:
@@ -1358,17 +1353,13 @@ with tab1:
                         
                         current_rsi_val = safe_float(rsi_series.iloc[-1])
                         avg_rsi_val = safe_float(rsi_series.dropna().mean())
-                except:
-                    pass
+                except: pass
 
                 rsi_html = f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
                 if current_rsi_val is not None and current_rsi_val > 0:
-                    if current_rsi_val <= 30:
-                        rsi_eval = f"<span class='good'>{t('[과매도 구간]', '[Oversold]')}</span>"
-                    elif current_rsi_val >= 70:
-                        rsi_eval = f"<span class='highlight'>{t('[과매수 구간]', '[Overbought]')}</span>"
-                    else:
-                        rsi_eval = f"<span style='color:#fdcb6e;'>{t('[중립]', '[Neutral]')}</span>"
+                    if current_rsi_val <= 30: rsi_eval = f"<span class='good'>{t('[과매도 구간]', '[Oversold]')}</span>"
+                    elif current_rsi_val >= 70: rsi_eval = f"<span class='highlight'>{t('[과매수 구간]', '[Overbought]')}</span>"
+                    else: rsi_eval = f"<span style='color:#fdcb6e;'>{t('[중립]', '[Neutral]')}</span>"
                         
                     rsi_ko = f"현재 <b>{current_rsi_val:.1f}</b> / 1년 평균 {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*30이하 과매도 / 70이상 과매수)</span>"
                     rsi_en = f"Current <b>{current_rsi_val:.1f}</b> / 1Y Avg {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*<=30 Oversold / >=70 Overbought)</span>"
@@ -1466,8 +1457,7 @@ with tab1:
                                     t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
                                     t_en = "[Danger] Capital impairment detected. Fatal survival risk."
                                     bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                except:
-                    pass
+                except: pass
 
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
@@ -1478,6 +1468,32 @@ with tab1:
                 roic_val = real_roic if real_roic is not None else 0
                 
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
+
+                # 재무 건전성 및 수익성 데이터 추출
+                gross_m = safe_float(i.get('grossMargins')) * 100
+                op_m = safe_float(i.get('operatingMargins')) * 100
+                current_ratio = safe_float(i.get('currentRatio'))
+                
+                if op_m == 0.0 or gross_m == 0.0:
+                    try:
+                        inc = stk.income_stmt
+                        if inc is not None and not inc.empty and 'Total Revenue' in inc.index:
+                            rev_val = safe_float(inc.loc['Total Revenue'].iloc[0])
+                            if rev_val > 0:
+                                if op_m == 0.0 and 'Operating Income' in inc.index:
+                                    op_m = (safe_float(inc.loc['Operating Income'].iloc[0]) / rev_val) * 100
+                                if gross_m == 0.0 and 'Gross Profit' in inc.index:
+                                    gross_m = (safe_float(inc.loc['Gross Profit'].iloc[0]) / rev_val) * 100
+                    except: pass
+
+                if current_ratio == 0.0:
+                    try:
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty and 'Current Assets' in bs.index and 'Current Liabilities' in bs.index:
+                            ca = safe_float(bs.loc['Current Assets'].iloc[0])
+                            cl = safe_float(bs.loc['Current Liabilities'].iloc[0])
+                            if cl > 0: current_ratio = ca / cl
+                    except: pass
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1551,9 +1567,46 @@ with tab1:
                     st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
 
+                # ---------------------------------------------------------
+                # 🚀 재무제표 기반 수익성 및 건전성 정밀 진단 패널
+                # ---------------------------------------------------------
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.subheader(t("🔍 2. 재무 건전성 및 수익성 (Financial Health & Profitability)", "🔍 2. Financial Health & Profitability"))
+                
+                gm_eval = f"<span class='good'>{t('강력한 가격결정력/해자', 'Strong Pricing Power')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e;'>{t('보통', 'Average')}</span>" if gross_m >= 20 else f"<span class='highlight'>{t('원가 부담/해자 약함', 'Weak Moat / High Cost')}</span>")
+                opm_eval = f"<span class='good'>{t('탁월한 비즈니스', 'Excellent Business')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e;'>{t('보통', 'Average')}</span>" if op_m >= 8 else f"<span class='highlight'>{t('수익성 경고', 'Poor Profitability')}</span>")
+                cr_eval = f"<span class='good'>{t('불황 대비 완벽 (유동자산 풍부)', 'Crisis-Ready (Highly Liquid)')}</span>" if current_ratio >= 1.5 else (f"<span style='color:#74b9ff;'>{t('안전', 'Safe')}</span>" if current_ratio >= 1.0 else f"<span class='highlight'>{t('단기 유동성/외부조달 위험', 'Liquidity Risk')}</span>")
+                
+                if gross_m == 0.0 and op_m == 0.0: gm_eval, opm_eval = "N/A", "N/A"
+                if current_ratio == 0.0: cr_eval = "N/A"
+
+                if is_financial:
+                    cr_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외 (수신금 기반)', 'N/A for Financials')}</span>"
+                    gm_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외', 'N/A')}</span>"
+
+                st.markdown(f"""
+                <div style='display: flex; gap: 15px; flex-wrap: wrap;'>
+                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
+                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('매출총이익률 (Gross Margin)', 'Gross Margin')}</div>
+                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{gross_m:.1f}%</div>
+                        <div style='font-size: 0.85rem; margin-top: 5px;'>{gm_eval}</div>
+                    </div>
+                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
+                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('영업이익률 (Operating Margin)', 'Operating Margin')}</div>
+                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{op_m:.1f}%</div>
+                        <div style='font-size: 0.85rem; margin-top: 5px;'>{opm_eval}</div>
+                    </div>
+                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
+                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('유동비율 (Current Ratio)', 'Current Ratio')}</div>
+                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{current_ratio:.2f}</div>
+                        <div style='font-size: 0.85rem; margin-top: 5px;'>{cr_eval}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
                 st.divider()
                 
-                st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
+                st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
                 
                 dcf_guide_ko = (
                     "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
@@ -1627,7 +1680,7 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("3. 장기 재무 시각화 (최근 4년 연속 지표)", "3. Long-term Financial Visualizations"))
+                st.subheader(t("4. 장기 재무 시각화 (최근 4년 연속 지표)", "4. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
                     cf = stk.cash_flow if stk else None
@@ -1681,7 +1734,7 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
+                st.subheader(t("5. 질적 분석 및 리스크 스크리닝", "5. Qualitative Analysis & Risk Screening"))
                 
                 st.markdown(f"- **CEO:** {ceo_cleaned}")
                 
@@ -1718,7 +1771,7 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("5. 매수 6원칙 자동 체크", "5. Buy 6-Principles Auto Check"))
+                st.subheader(t("6. 매수 6원칙 자동 체크", "6. Buy 6-Principles Auto Check"))
                 p_txt = f"**1. {t('가격은 저렴한가 (안전마진)?', 'Is the price cheap (Margin of Safety)?')}**\n"
                 
                 if pmos_val >= 30: p_txt += f"- PER: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
@@ -1754,12 +1807,12 @@ with tab1:
                 else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
                 
                 st.markdown(f"**2. {t('좋은 비즈니스인가?', 'Is it a good business?')}** {biz_eval}", unsafe_allow_html=True)
-                st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 4번 리포트 참조', 'Refer to section 4 report above')}")
+                st.markdown(f"**3. {t('경영진은 신뢰할 수 있는가?', 'Is management trustworthy?')}** {t('위 리포트 참조', 'Refer to section report above')}")
                 st.write(f"**4. {t('놓친 리스크는 없는가?', 'Are there overlooked risks?')}** {t('주가 하락이 단순한 우울증인지 영구적 손상인지 확인하세요.', 'Check if price drop is temporary depression or permanent loss.')}")
                 st.write(f"**5~6. {t('능력 범위 안인가?', 'Within Circle of Competence?')}** {t('이 비즈니스 모델을 타인에게 논리적으로 설명할 수 있습니까?', 'Can you logically explain this business model to others?')}")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.subheader(t("6. 기업 해부 및 학문적 모델 적용", "6. Corporate Anatomy & Academic Models"))
+                st.subheader(t("7. 기업 해부 및 학문적 모델 적용", "7. Corporate Anatomy & Academic Models"))
                 if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
                 elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
                 else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
@@ -1771,13 +1824,65 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("7. 비상탈출 (오직 다음 경우에만 할증 시 매도)", "7. Exit Strategy (Sell ONLY if:)"))
+                st.subheader(t("8. 비상탈출 (오직 다음 경우에만 할증 시 매도)", "8. Exit Strategy (Sell ONLY if:)"))
                 sell_rules = t("1. 기업 분석에 치명적인 실수가 있었음을 깨달았을 때.<br>2. 밸류에이션(PBR/PER)이 비상식적으로 지나치게 과열(할증)되었을 때.<br>3. 더 확실하고 안전한 기회(기회비용 고려)를 발견했을 때.", "1. You realize a fatal mistake in your initial analysis.<br>2. Valuation (PER/PBR) becomes irrationally overheated (premium).<br>3. You find a much safer and better opportunity (Opportunity Cost).")
                 st.markdown(f"<div class='guru-quote'>{sell_rules}</div>", unsafe_allow_html=True)
 
+                # ---------------------------------------------------------
+                # 🚀 Human + AI 하이브리드 매수 체크리스트
+                # ---------------------------------------------------------
+                st.divider()
+                st.subheader(t("✅ 9. 매수 전 최종 점검 (Interactive Checklist)", "✅ 9. Final Pre-Buy Interactive Checklist"))
+                st.write(t("AI가 검증한 숫자에, 투자자 본인의 비즈니스 통찰력을 더해 체크리스트를 완성하십시오. 모든 항목에 확신(Yes)이 들 때만 매수를 고려하십시오.", "Combine AI's quantitative verification with your business insights. Consider buying only when you can confidently check ALL boxes."))
+                
+                c_chk1, c_chk2 = st.columns(2)
+                
+                with c_chk1:
+                    st.markdown(f"<h4 style='color:#A0C4FF;'>🤖 AI 자동 검증 (정량적 데이터)</h4>", unsafe_allow_html=True)
+                    st.checkbox(t(f"1. 충분한 안전마진 확보 (MoS: {mos_val:.1f}%)", f"1. Margin of Safety Secured ({mos_val:.1f}%)"), value=(mos_val >= 15), disabled=True)
+                    st.checkbox(t(f"2. 탁월한 자본 효율성 (ROE: {roe:.1f}%)", f"2. Excellent Capital Efficiency (ROE: {roe:.1f}%)"), value=(roe >= 15), disabled=True)
+                    if not is_financial:
+                        st.checkbox(t(f"3. 우수한 현금 창출력 (영업이익률: {op_m:.1f}%)", f"3. Strong Cash Generation (OPM: {op_m:.1f}%)"), value=(op_m >= 15), disabled=True)
+                        st.checkbox(t(f"4. 튼튼한 방어력 (유동비율: {current_ratio:.2f})", f"4. Solid Defense (Current Ratio: {current_ratio:.2f})"), value=(current_ratio >= 1.0), disabled=True)
+                    else:
+                        st.checkbox(t(f"3. 합리적인 자산가치 (PBR: {pbr:.2f}배)", f"3. Reasonable Asset Value (PBR: {pbr:.2f}x)"), value=(pbr <= 1.0), disabled=True)
+                        st.checkbox(t(f"4. [금융주] 재무 안정성 추가 확인 필요", f"4. [Financials] Manual Health Check Req."), value=False, disabled=True)
+                        
+                    st.checkbox(t(f"5. 국채 대비 매력도 (ERP: {erp:.2f}%p)", f"5. Attractive vs Treasury (ERP: {erp:.2f}%p)"), value=(erp > 1.0), disabled=True)
+
+                with c_chk2:
+                    st.markdown(f"<h4 style='color:#fdcb6e;'>🧠 투자자 직접 검증 (정성적 통찰)</h4>", unsafe_allow_html=True)
+                    user_chk1 = st.checkbox(t("6. [가격 결정력] 가격을 올려도 고객이 절대 떠나지 않는 기업인가?", "6. [Pricing Power] Will customers stay even if prices rise?"))
+                    user_chk2 = st.checkbox(t("7. [능력 범위] 이 비즈니스 모델을 10살 아이에게 쉽게 설명할 수 있는가?", "7. [Circle of Competence] Can you explain this business to a 10-year-old?"))
+                    user_chk3 = st.checkbox(t("8. [경영진] 경영진은 정직하며, 자본 배분(배당/자사주)을 효율적으로 하는가?", "8. [Management] Are they honest and efficient capital allocators?"))
+                    user_chk4 = st.checkbox(t("9. [심리학] 나의 이 투자가 '확증 편향'이나 '포모(FOMO)'에 의한 것은 아닌가?", "9. [Psychology] Am I free from confirmation bias or FOMO?"))
+                    user_chk5 = st.checkbox(t("10. [비상탈출] 내 예상이 틀렸을 때 손절하고 나올 명확한 기준이 있는가?", "10. [Exit Strategy] Do I have a clear exit rule if my thesis is wrong?"))
+
+                total_checks = 10
+                ai_checks = sum([
+                    (mos_val >= 15),
+                    (roe >= 15),
+                    (op_m >= 15 if not is_financial else pbr <= 1.0),
+                    (current_ratio >= 1.0 if not is_financial else False),
+                    (erp > 1.0)
+                ])
+                human_checks = sum([user_chk1, user_chk2, user_chk3, user_chk4, user_chk5])
+                conviction_score = int(((ai_checks + human_checks) / total_checks) * 100)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.write(t(f"**🔥 투자 확신도 (Conviction Score): {conviction_score}점**", f"**🔥 Conviction Score: {conviction_score}/100**"))
+                st.progress(conviction_score / 100)
+                
+                if conviction_score == 100:
+                    st.success(t("🎉 [완벽] AI의 데이터 검증과 당신의 비즈니스 통찰력이 완벽히 일치했습니다. 매수 버튼을 누를 자격이 있습니다!", "🎉 [Perfect] AI data and your insights match perfectly. You are ready to buy!"))
+                elif conviction_score >= 70:
+                    st.info(t("🤔 [고민] 훌륭한 기업일 확률이 높으나, 체크되지 않은 리스크가 발목을 잡을 수 있습니다. 다시 한번 검토해 보세요.", "🤔 [Good] Likely a great company, but unchecked risks remain. Review again."))
+                else:
+                    st.warning(t("🚨 [보류] 정량적 수치가 나쁘거나 비즈니스의 질에 확신이 없습니다. 현금을 쥐고 미스터 마켓이 더 좋은 기회를 줄 때까지 기다리십시오.", "🚨 [Hold] Poor metrics or lack of business conviction. Keep cash and wait for a better pitch."))
+
                 st.divider()
 
-                st.subheader(t("📲 분석 결과 공유하기 (카톡, 제미나이 등)", "📲 Share Analysis Results"))
+                st.subheader(t("📲 10. 분석 결과 공유하기 (카톡, 제미나이 등)", "📲 10. Share Analysis Results"))
                 st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                 
                 def strip_html(h_str):
@@ -1841,17 +1946,57 @@ with tab1:
 """
                 st.code(t(share_ko, share_en), language="text")
 
-                st.divider()
+                # ---------------------------------------------------------
+                # 🚀 해자 판별 가이드 (종목 분석 탭 최하단 배치)
+                # ---------------------------------------------------------
+                st.markdown("<br><br>", unsafe_allow_html=True)
+                st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
+                st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
 
-                st.subheader(t("거장들의 철학 한마디", "Guru's Philosophy Quotes"))
-                st.caption(t("**워런 버핏 (소유권):** 주식은 종이가 아니라 '기업의 소유권'입니다. 내가 지분 100%를 인수한다고 가정하고 분석하십시오.", "**Warren Buffett (Ownership):** Stocks are 'ownership of a business'. Analyze as if you are buying 100% of it."))
-                st.caption(t("**워런 버핏 (안전마진):** 1만 파운드 트럭이 지나갈 다리를 지을 때, 3만 파운드를 견디도록 설계하는 것이 바로 안전마진입니다.", "**Warren Buffett (Margin of Safety):** When you build a bridge, you insist it can carry 30,000 pounds, but you only drive 10,000 pound trucks across it."))
-                st.caption(t("**워런 버핏 (보유 기간):** 훌륭한 경영진이 있는 탁월한 기업의 지분을 보유하고 있다면, 우리가 가장 선호하는 보유 기간은 '영원(Forever)'입니다. 진정으로 좋은 기업은 팔 이유가 없습니다.", "**Warren Buffett (Holding Period):** When we own portions of outstanding businesses with outstanding managements, our favorite holding period is forever."))
-                st.caption(t("**찰리 멍거 (훌륭한 기업):** 훌륭한 기업이 현저히 싼 가격에 거래되는 일은 거의 없습니다. 적당한 기업을 훌륭한 가격에 사는 것보다, 훌륭한 기업을 적당한 가격에 사는 것이 훨씬 낫습니다.", "**Charlie Munger (Great Business):** It's far better to buy a wonderful company at a fair price than a fair company at a wonderful price."))
-                st.caption(t("**찰리 멍거 (능력범위):** 당신의 '능력 범위'를 명확히 아는 것이 가장 중요합니다. 전문가의 반론에 논리적으로 재반박할 수 없다면, 그것은 당신의 능력 밖입니다.", "**Charlie Munger (Circle of Competence):** Knowing what you don't know is more useful than being brilliant. If you can't logically refute an expert's counterargument, it's outside your circle."))
-                st.caption(t("**찰리 멍거 (장기 보유):** 투자에서 큰돈을 버는 비결은 사고파는 것에 있지 않습니다. 진정한 수익은 긴 '기다림(장기 보유)' 속에서 나옵니다.", "**Charlie Munger (Long-term Holding):** The big money is not in the buying and the selling, but in the waiting."))
-                st.caption(t("**필립 피셔 (타이밍):** 가장 좋은 매수 타이밍은 상업화 초기 단계의 일시적 문제, 미스터 마켓의 우울증, 그리고 일시적이고 해결 가능한 경영상의 악재가 발생했을 때입니다.", "**Philip Fisher (Timing):** The best time to buy is when there are temporary problems in early commercialization, market depression, or temporary/solvable management issues."))
-
+                st.markdown("""
+                <div style='background: rgba(255,255,255,0.02); padding: 25px 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
+                    
+                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>1. 정량적 스크리닝 (아이디어 발굴)</h4>
+                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장에 상장된 수많은 주식 중에서 해자의 징후를 숫자로 먼저 걸러냅니다.</p>
+                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+                        <li><b>자본수익률 검증:</b> 투입된 자본 대비 이익을 나타내는 ROIC와 ROCE가 10년 이상 꾸준히 두 자릿수를 유지한다면, 강력한 해자가 작동하고 있다는 가장 명확한 증거입니다.</li>
+                        <li><b>수익성의 일관성:</b> PER, EPS, PBR 지표가 5년, 10년 단위로 지속적인 우상향(또는 안정적 유지)을 그렸는지 확인합니다.</li>
+                        <li><b>현금흐름 추정 가능성:</b> 비즈니스 구조가 상식으로 이해 가능하고 재무 기록이 투명하여, 불황기에도 향후 10년의 현금흐름을 합리적으로 추정할 수 있어야 합니다.</li>
+                    </ul>
+                    
+                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>2. 정성적 해부 (비즈니스의 질 검증)</h4>
+                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>전문가의 반론에 논리적으로 재반박할 수 없다면 내 능력 밖의 기업이므로 과감히 제외합니다.</p>
+                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+                        <li><b>경쟁우위와 가격결정력:</b> 제품 가격을 인상해도 고객이 이탈하지 않는지, 기술 변화나 규제로부터 안전한지, 비용 통제를 통한 성공적인 규모화(Scaling)가 가능한지 점검합니다.</li>
+                        <li><b>이해관계자 상생 구조:</b> 노동자, 공급업체, 고객을 쥐어짜는 구조의 해자는 오래가지 못합니다. 모두가 Win-Win 하는 생태계와 숨겨진 ESG 리스크 여부를 파악합니다.</li>
+                        <li><b>다학제적 멘탈 모델:</b>
+                            <ul>
+                                <li><code>공학</code> 치명적 '단일 실패 지점'이 제거되어 있고, 위기 시 작동할 다중화/백업 시스템이 있는가?</li>
+                                <li><code>수학</code> 단순 선형 증가가 아닌 '복리 모형'으로 기하급수적 성장을 하는 구간인가?</li>
+                                <li><code>물리/화학</code> 스스로 수요를 창출하는 '자가 촉매(Autocatalysis)' 현상이나 폭발적 성장의 전환점이 있는가?</li>
+                                <li><code>생물학</code> 산업 환경 변화에 적응하고 진화하는 '현대 다윈주의적' 생존력이 있는가?</li>
+                                <li><code>심리학</code> 투자자인 내가 인지적 오판(희망 회로, 확증 편향)에 빠져 사실을 왜곡하고 있지 않은가?</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    
+                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>3. 경영진과 자본 배분</h4>
+                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+                        <li><b>경영진의 정직성:</b> 확고한 주인의식을 가지고 회사를 운영하는지 외부 평판과 팩트를 체크합니다.</li>
+                        <li><b>효율적 자본 배분:</b> 벌어들인 막대한 현금을 낭비하지 않고, 유리한 조건에서의 재투자, 자사주 매입, 혹은 일관된 배당 정책으로 돌려주는지 확인합니다.</li>
+                    </ul>
+                    
+                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>4. 투자를 집행하기 전 최종 체크리스트</h4>
+                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장은 도구일 뿐 가치를 알려주는 선생님이 아닙니다. 완벽한 기업을 찾았더라도, 다음 4가지를 스스로 질문하십시오.</p>
+                    <ul style='line-height: 1.7; margin-bottom: 0;'>
+                        <li><b>시장 데이터:</b> 단기 트레이딩 관점의 주의점이나 악재성 공시 일정은 없는가?</li>
+                        <li><b>자본 효율성:</b> 기회비용을 고려할 때 이 투자가 최선인가? 현금 보유나 부채 상환이 더 나은가?</li>
+                        <li><b>재무 건전성:</b> 불황에 외부 자금을 조달하지 않아도 될 만큼 충분한 유동자산을 보유했는가?</li>
+                        <li><b>비상탈출(Exit) 전략:</b> 내 초기 분석에 치명적 실수가 있었거나 예상치 못한 리스크가 발생했을 때 빠져나올 전략이 마련되어 있는가?</li>
+                    </ul>
+                </div>
+                """, unsafe_allow_html=True)
+                
             else:
                 st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
@@ -2014,7 +2159,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
