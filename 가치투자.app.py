@@ -232,7 +232,7 @@ fallback_13f_data = {
         {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 10.50},
         {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 9.50}
     ],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
     "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
@@ -471,7 +471,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "035720": "카카오 (정신아): 문어발식 확장 부작용을 수습하고 핵심 톡비즈 중심으로 쇄신을 강행 중입니다.\n리스크: 창업자(김범수) 구속 등 오너 사법 리스크의 장기화 및 플랫폼 독과점에 대한 정치권 규제. (이건 확인이 필요한 부분입니다)",
         "028260": "삼성물산 (오세철): 건설 부문 효율화와 바이오 자회사의 성장으로 장부상 가치(NAV)가 훌륭합니다.\n리스크: 삼성그룹 지배구조 최상단에 위치해 본업 가치보다 오너 지배력 유지를 위한 배당/자본 배치 비효율 지속. (이건 확인이 필요한 부분입니다)",
         "086790": "하나금융지주 (함영주): 외환과 기업 금융의 강점을 바탕으로 주주 친화 정책에 적극 동참 중입니다.\n리스크: 타 금융지주 대비 높은 해외 상업용 부동산 대체투자 손실 처리 및 국내 PF 대손충당금 부담. (이건 확인이 필요한 부분입니다)",
-        "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리미엄 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
+        "066570": "LG전자 (조주완): 단순 가전 제조사를 넘어 B2B 및 구독 모델 전장(VS) 사업으로 성공적 전환을 입증했습니다.\n리스크: 글로벌 주택 거래 침체 장기화 시 프리 가전 수요 감소를 방어할 수단 제한. (이건 확인이 필요한 부분입니다)",
         "402340": "SK스퀘어 (박성하): SK하이닉지 지분 가치를 바탕으로 강력한 자사주 매입 and 포트폴리오 정리를 시도 중입니다.\n리스크: 11번가, 원스토어 등 비상장 자회사의 매각 혹은 IPO 지연에 따른 구조적 현금흐름 부재. (이건 확인이 필요한 부분입니다)",
         "032830": "삼성생명 (홍원학): IFRS17 도입 이후에도 업계 최고 수준의 K-ICS(신지급여력비율) 자본 건전성을 유지합니다.\n리스크: 보험업법 개정 시 보유 중인 막대한 삼성전자 지분에 대한 강제 매각(오버행) 불확실성. (이건 확인이 필요한 부분입니다)",
         "138040": "메리츠금융지주 (김용범): 존 리 이후 자본 배치 능력은 우수하나, 경영진의 절대적인 정직성에 대해서는 철저한 팩트 체크가 선행되어야 합니다.\n리스크: 고위험 고수익(부동산 PF 등) 중심의 영업방식이 부동산 침체기 부메랑으로 돌아올 가능성. (이건 확인이 필요한 부분입니다)",
@@ -1231,13 +1231,13 @@ with tab1:
                     post_p = safe_float(i.get('postMarketPrice', 0.0))
                     
                     if pre_p > 0:
-                        p = pre_p
+                        p = pre_p  # 🚀 주가 덮어쓰기!
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓', 'Pre-Market')}: \\${pre_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: \\${pre_p:,.2f})</span>"
                     elif post_p > 0:
-                        p = post_p
+                        p = post_p # 🚀 주가 덮어쓰기!
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓', 'After-Hours')}: \\${post_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \\${post_p:,.2f})</span>"
 
                 p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
 
@@ -1248,14 +1248,14 @@ with tab1:
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
                 
-                # EPS 정보가 없을 경우 역산
+                # EPS 정보가 없을 경우, 장마감 주가와 기존 PER을 이용해 EPS를 역산해둡니다.
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산
+                # 🚀 변경된 최신 주가(p)를 바탕으로 PER을 실시간 재계산!
                 t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
                 f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
@@ -1267,7 +1267,7 @@ with tab1:
                     pbr = p / bv
                 else:
                     if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)
+                        pbr = pbr * (p / reg_p)  # 주가 변동 비율만큼 PBR도 미세조정
                     elif pbr == 0.0:
                         try:
                             bs = stk.balance_sheet
@@ -1278,7 +1278,7 @@ with tab1:
                                     pbr = p / (eq / sh)
                         except: pass
                 
-                # 기존 지표 계산
+                # 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
@@ -1353,13 +1353,17 @@ with tab1:
                         
                         current_rsi_val = safe_float(rsi_series.iloc[-1])
                         avg_rsi_val = safe_float(rsi_series.dropna().mean())
-                except: pass
+                except:
+                    pass
 
                 rsi_html = f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
                 if current_rsi_val is not None and current_rsi_val > 0:
-                    if current_rsi_val <= 30: rsi_eval = f"<span class='good'>{t('[과매도 구간]', '[Oversold]')}</span>"
-                    elif current_rsi_val >= 70: rsi_eval = f"<span class='highlight'>{t('[과매수 구간]', '[Overbought]')}</span>"
-                    else: rsi_eval = f"<span style='color:#fdcb6e;'>{t('[중립]', '[Neutral]')}</span>"
+                    if current_rsi_val <= 30:
+                        rsi_eval = f"<span class='good'>{t('[과매도 구간]', '[Oversold]')}</span>"
+                    elif current_rsi_val >= 70:
+                        rsi_eval = f"<span class='highlight'>{t('[과매수 구간]', '[Overbought]')}</span>"
+                    else:
+                        rsi_eval = f"<span style='color:#fdcb6e;'>{t('[중립]', '[Neutral]')}</span>"
                         
                     rsi_ko = f"현재 <b>{current_rsi_val:.1f}</b> / 1년 평균 {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*30이하 과매도 / 70이상 과매수)</span>"
                     rsi_en = f"Current <b>{current_rsi_val:.1f}</b> / 1Y Avg {avg_rsi_val:.1f} {rsi_eval} <span style='font-size:0.85em; color:#8892b0;'>(*<=30 Oversold / >=70 Overbought)</span>"
@@ -1457,7 +1461,8 @@ with tab1:
                                     t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
                                     t_en = "[Danger] Capital impairment detected. Fatal survival risk."
                                     bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                except: pass
+                except:
+                    pass
 
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
@@ -1468,32 +1473,6 @@ with tab1:
                 roic_val = real_roic if real_roic is not None else 0
                 
                 op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
-
-                # 재무 건전성 및 수익성 데이터 추출
-                gross_m = safe_float(i.get('grossMargins')) * 100
-                op_m = safe_float(i.get('operatingMargins')) * 100
-                current_ratio = safe_float(i.get('currentRatio'))
-                
-                if op_m == 0.0 or gross_m == 0.0:
-                    try:
-                        inc = stk.income_stmt
-                        if inc is not None and not inc.empty and 'Total Revenue' in inc.index:
-                            rev_val = safe_float(inc.loc['Total Revenue'].iloc[0])
-                            if rev_val > 0:
-                                if op_m == 0.0 and 'Operating Income' in inc.index:
-                                    op_m = (safe_float(inc.loc['Operating Income'].iloc[0]) / rev_val) * 100
-                                if gross_m == 0.0 and 'Gross Profit' in inc.index:
-                                    gross_m = (safe_float(inc.loc['Gross Profit'].iloc[0]) / rev_val) * 100
-                    except: pass
-
-                if current_ratio == 0.0:
-                    try:
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty and 'Current Assets' in bs.index and 'Current Liabilities' in bs.index:
-                            ca = safe_float(bs.loc['Current Assets'].iloc[0])
-                            cl = safe_float(bs.loc['Current Liabilities'].iloc[0])
-                            if cl > 0: current_ratio = ca / cl
-                    except: pass
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1573,6 +1552,34 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader(t("🔍 2. 재무 건전성 및 수익성 (Financial Health & Profitability)", "🔍 2. Financial Health & Profitability"))
                 
+                # 데이터 추출
+                gross_m = safe_float(i.get('grossMargins')) * 100
+                op_m = safe_float(i.get('operatingMargins')) * 100
+                current_ratio = safe_float(i.get('currentRatio'))
+                
+                # 한국 주식 등 API 누락 시 재무제표에서 직접 역산 시도
+                if op_m == 0.0 or gross_m == 0.0:
+                    try:
+                        inc = stk.income_stmt
+                        if inc is not None and not inc.empty and 'Total Revenue' in inc.index:
+                            rev_val = safe_float(inc.loc['Total Revenue'].iloc[0])
+                            if rev_val > 0:
+                                if op_m == 0.0 and 'Operating Income' in inc.index:
+                                    op_m = (safe_float(inc.loc['Operating Income'].iloc[0]) / rev_val) * 100
+                                if gross_m == 0.0 and 'Gross Profit' in inc.index:
+                                    gross_m = (safe_float(inc.loc['Gross Profit'].iloc[0]) / rev_val) * 100
+                    except: pass
+
+                if current_ratio == 0.0:
+                    try:
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty and 'Current Assets' in bs.index and 'Current Liabilities' in bs.index:
+                            ca = safe_float(bs.loc['Current Assets'].iloc[0])
+                            cl = safe_float(bs.loc['Current Liabilities'].iloc[0])
+                            if cl > 0: current_ratio = ca / cl
+                    except: pass
+
+                # 평가 로직
                 gm_eval = f"<span class='good'>{t('강력한 가격결정력/해자', 'Strong Pricing Power')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e;'>{t('보통', 'Average')}</span>" if gross_m >= 20 else f"<span class='highlight'>{t('원가 부담/해자 약함', 'Weak Moat / High Cost')}</span>")
                 opm_eval = f"<span class='good'>{t('탁월한 비즈니스', 'Excellent Business')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e;'>{t('보통', 'Average')}</span>" if op_m >= 8 else f"<span class='highlight'>{t('수익성 경고', 'Poor Profitability')}</span>")
                 cr_eval = f"<span class='good'>{t('불황 대비 완벽 (유동자산 풍부)', 'Crisis-Ready (Highly Liquid)')}</span>" if current_ratio >= 1.5 else (f"<span style='color:#74b9ff;'>{t('안전', 'Safe')}</span>" if current_ratio >= 1.0 else f"<span class='highlight'>{t('단기 유동성/외부조달 위험', 'Liquidity Risk')}</span>")
@@ -1584,6 +1591,7 @@ with tab1:
                     cr_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외 (수신금 기반)', 'N/A for Financials')}</span>"
                     gm_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외', 'N/A')}</span>"
 
+                # 전문적인 UI 패널 출력
                 st.markdown(f"""
                 <div style='display: flex; gap: 15px; flex-wrap: wrap;'>
                     <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
@@ -1605,14 +1613,14 @@ with tab1:
                 """, unsafe_allow_html=True)
                 
                 st.divider()
-                
+
                 st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
                 
                 dcf_guide_ko = (
                     "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
                     "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
                     "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을까?'</b> 확신이 드는지 반드시 질문해 보세요!"
+                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
                 )
                 dcf_guide_en = (
                     "💡 <b>[Must Read] Understanding DCF Valuation Easily</b><br>"
@@ -2159,7 +2167,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
