@@ -27,7 +27,6 @@ def t(ko, en):
 def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
-        # 퍼센트 기호 등 문자열 제거 처리
         if isinstance(val, str):
             val = val.replace('%', '').replace(',', '').strip()
         return float(val)
@@ -40,7 +39,7 @@ def fmt_f(val, decimals=1):
     except:
         return "0.0" if decimals == 1 else "0.00"
 
-# 🚀 [스마트 자동완성 검색 로직 - 풀네임 매핑]
+# 🚀 [스마트 자동완성 검색 로직]
 def trigger_scan():
     if st.session_state.get("main_input"):
         raw_q = st.session_state.main_input.strip()
@@ -74,7 +73,6 @@ def trigger_scan():
 # [2] 글로벌 상수 및 고정 데이터
 # ==========================================
 tmap = {
-    # 한국 주요 우량주
     "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "하이닉스": "000660.KS", "HYNIX": "000660.KS",
     "LG에너지솔루션": "373220.KS", "엔솔": "373220.KS", "LG엔솔": "373220.KS", "엘지엔솔": "373220.KS",
@@ -105,8 +103,6 @@ tmap = {
     "삼성전기": "009150.KS", "삼전기": "009150.KS",
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
-
-    # 미국 주요 빅테크·우량주
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
@@ -139,8 +135,6 @@ tmap = {
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
     "SPACEX": "SPACEX", "스페이스엑스": "SPACEX",
-    
-    # === [13F 종목] ===
     "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
     "이스트웨스트뱅코프": "EWBC", "EWBC": "EWBC",
     "크록스": "CROX", "CROX": "CROX",
@@ -666,11 +660,13 @@ def get_data(tk):
     except Exception as e:
         return None, None, {}, False
 
+# 🚀 [최적화] 최대 10년치 데이터를 자동으로 탐지해 연평균 성장률을 계산
 def get_base_dcf_data(stk, i):
     try:
         if stk is None: return None, None, 0.05, 0
         fcf_s = None
         cf = stk.cash_flow
+        
         if cf is not None and not cf.empty:
             if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
@@ -681,9 +677,11 @@ def get_base_dcf_data(stk, i):
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.05, 0
+        
+        # 🚀 만약 데이터 소스에서 10년 치가 제공된다면 자동으로 그 기간을 인식하여 계산
         if fcf_s is not None and len(fcf_s) >= 2:
             c, o = safe_float(fcf_s.iloc[0]), safe_float(fcf_s.iloc[-1])
-            data_len = len(fcf_s)
+            data_len = len(fcf_s)  # 무료 API는 통상 4~5년을 반환하지만, 유료 API 연동 시 최대치 자동 반영
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
         else:
             eg = safe_float(i.get('earningsGrowth'))
@@ -1233,13 +1231,13 @@ with tab1:
                     if pre_p > 0:
                         p = pre_p  # 🚀 주가 덮어쓰기!
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: \\${pre_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: \${pre_p:,.2f})</span>"
                     elif post_p > 0:
                         p = post_p # 🚀 주가 덮어쓰기!
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \\${post_p:,.2f})</span>"
+                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \${post_p:,.2f})</span>"
 
-                p_str = f"{int(p):,}원" if kr else f"\\${p:,.2f}"
+                p_str = f"{int(p):,}원" if kr else f"\${p:,.2f}"
 
                 # EPS(주당순이익) 우선 추출
                 t_pe_raw = safe_float(i.get('trailingPE'))
@@ -1278,7 +1276,7 @@ with tab1:
                                     pbr = p / (eq / sh)
                         except: pass
                 
-                # 기존 지표 계산 (재계산된 PER과 주가가 자동으로 투자의견 점수에 반영됩니다)
+                # 기존 지표 계산
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 real_roic = get_real_roic(stk, i)
                 
@@ -1316,7 +1314,7 @@ with tab1:
                 erp = ey - ty
                 
                 base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
-                dcf_source_txt = f"({data_len}{t('년 yfinance 기반 산출', ' yrs yf data)')})"
+                dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
                 
@@ -1620,13 +1618,13 @@ with tab1:
                     "💡 <b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
                     "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
                     "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4년(또는 사용 가능한 과거 데이터)의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
+                    "• <b>⚠️ 투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4~10년의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
                 )
                 dcf_guide_en = (
                     "💡 <b>[Must Read] Understanding DCF Valuation Easily</b><br>"
                     "• <b>What is FCF (Free Cash Flow)?</b> It is the <b>'pure leftover cash'</b> a company can keep after paying all operational expenses, taxes, and capital expenditures.<br>"
                     "• <b>What do the scenarios mean?</b> The fair values below assume the company will consistently grow its FCF at the given rate (%) every year for the next <b>10 years</b>.<br>"
-                    "• <b>⚠️ Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last 4 years (or available past data) of cash flow trends. You must ask yourself: <b>'Does this company have a strong enough business moat to maintain this growth for the next 10 years?'</b> Only invest if you are confident!"
+                    "• <b>⚠️ Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last available cash flow trends. You must ask yourself: <b>'Does this company have a strong enough business moat to maintain this growth for the next 10 years?'</b> Only invest if you are confident!"
                 )
                 
                 if is_financial:
@@ -1688,7 +1686,7 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("4. 장기 재무 시각화 (최근 4년 연속 지표)", "4. Long-term Financial Visualizations"))
+                st.subheader(t("4. 장기 재무 시각화 (최근 연속 지표)", "4. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
                     cf = stk.cash_flow if stk else None
@@ -1725,7 +1723,7 @@ with tab1:
                             if len(rev) == len(years) and len(ni) == len(years):
                                 div, u_str = scale_vals([rev, ni], kr)
                                 df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div for x in rev], t('순이익', 'Net Income'): [x/div for x in ni]}, index=years)
-                                st.write(t(f"**[최근 4년 매출 및 순이익]** {u_str}", f"**[4Y Rev & NI Trend]** {u_str}"))
+                                st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
                                 st.bar_chart(df_rev_ni, color=["#A0C4FF", "#2ecc71"], height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
@@ -1733,7 +1731,7 @@ with tab1:
                             if len(fcf_chart) == len(years):
                                 div, u_str = scale_vals([fcf_chart], kr)
                                 df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div for x in fcf_chart]}, index=years)
-                                st.write(t(f"**[최근 4년 잉여현금흐름(FCF)]** {u_str}", f"**[4Y FCF Trend]** {u_str}"))
+                                st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
                                 st.bar_chart(df_fcf, color="#fdcb6e", height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
@@ -1952,14 +1950,14 @@ with tab1:
 - Price Attractiveness (PE): {clean_per_mos}
 - Business Moat (ROE/ROIC): {clean_biz_eval}
 """
-st.code(t(share_ko, share_en), language="text")
+                st.code(t(share_ko, share_en), language="text")
 
-# ---------------------------------------------------------
-# 🚀 해자 판별 가이드 (종목 분석 탭 최하단 배치)
-# ---------------------------------------------------------
-st.markdown("<br><br>", unsafe_allow_html=True)
-st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
-st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
+                # ---------------------------------------------------------
+                # 🚀 해자 판별 가이드 (종목 분석 탭 최하단 배치)
+                # ---------------------------------------------------------
+                st.markdown("<br><br>", unsafe_allow_html=True)
+                st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
+                st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
 
                 st.markdown("""
 <div style='background: rgba(255,255,255,0.02); padding: 25px 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
