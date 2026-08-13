@@ -1961,9 +1961,8 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
 st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
 
-st.markdown("""
+                st.markdown("""
 <div style='background: rgba(255,255,255,0.02); padding: 25px 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
-    
     <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>1. 정량적 스크리닝 (아이디어 발굴)</h4>
     <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장에 상장된 수많은 주식 중에서 해자의 징후를 숫자로 먼저 걸러냅니다.</p>
     <ul style='line-height: 1.7; margin-bottom: 25px;'>
@@ -1971,7 +1970,7 @@ st.markdown("""
         <li><b>수익성의 일관성:</b> PER, EPS, PBR 지표가 5년, 10년 단위로 지속적인 우상향(또는 안정적 유지)을 그렸는지 확인합니다.</li>
         <li><b>현금흐름 추정 가능성:</b> 비즈니스 구조가 상식으로 이해 가능하고 재무 기록이 투명하여, 불황기에도 향후 10년의 현금흐름을 합리적으로 추정할 수 있어야 합니다.</li>
     </ul>
-    
+
     <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>2. 정성적 해부 (비즈니스의 질 검증)</h4>
     <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>전문가의 반론에 논리적으로 재반박할 수 없다면 내 능력 밖의 기업이므로 과감히 제외합니다.</p>
     <ul style='line-height: 1.7; margin-bottom: 25px;'>
@@ -1987,13 +1986,13 @@ st.markdown("""
             </ul>
         </li>
     </ul>
-    
+
     <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>3. 경영진과 자본 배분</h4>
     <ul style='line-height: 1.7; margin-bottom: 25px;'>
         <li><b>경영진의 정직성:</b> 확고한 주인의식을 가지고 회사를 운영하는지 외부 평판과 팩트를 체크합니다.</li>
         <li><b>효율적 자본 배분:</b> 벌어들인 막대한 현금을 낭비하지 않고, 유리한 조건에서의 재투자, 자사주 매입, 혹은 일관된 배당 정책으로 돌려주는지 확인합니다.</li>
     </ul>
-    
+
     <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>4. 투자를 집행하기 전 최종 체크리스트</h4>
     <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장은 도구일 뿐 가치를 알려주는 선생님이 아닙니다. 완벽한 기업을 찾았더라도, 다음 4가지를 스스로 질문하십시오.</p>
     <ul style='line-height: 1.7; margin-bottom: 0;'>
@@ -2005,8 +2004,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-else:
-st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
+            else:
+                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
