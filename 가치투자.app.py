@@ -1952,61 +1952,61 @@ with tab1:
 - Price Attractiveness (PE): {clean_per_mos}
 - Business Moat (ROE/ROIC): {clean_biz_eval}
 """
-                st.code(t(share_ko, share_en), language="text")
+st.code(t(share_ko, share_en), language="text")
 
-                # ---------------------------------------------------------
-                # 🚀 해자 판별 가이드 (종목 분석 탭 최하단 배치)
-                # ---------------------------------------------------------
-                st.markdown("<br><br>", unsafe_allow_html=True)
-                st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
-                st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
+# ---------------------------------------------------------
+# 🚀 해자 판별 가이드 (종목 분석 탭 최하단 배치)
+# ---------------------------------------------------------
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.subheader(t("🏰 위대한 해자(Moat) 기업 정밀 판별 가이드", "🏰 Comprehensive Guide to Identifying Moat Companies"))
+st.write(t("10~20년 후에도 막대한 현금흐름을 창출하며 살아남을 수 있는 기업을 찾기 위한, 정량적 필터링과 정성적 해부의 4단계 가이드입니다.", "The 4-step quantitative and qualitative anatomical guide to finding companies that will survive and generate massive cash flows for the next 10-20 years."))
 
-                st.markdown("""
-                <div style='background: rgba(255,255,255,0.02); padding: 25px 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
-                    
-                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>1. 정량적 스크리닝 (아이디어 발굴)</h4>
-                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장에 상장된 수많은 주식 중에서 해자의 징후를 숫자로 먼저 걸러냅니다.</p>
-                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
-                        <li><b>자본수익률 검증:</b> 투입된 자본 대비 이익을 나타내는 ROIC와 ROCE가 10년 이상 꾸준히 두 자릿수를 유지한다면, 강력한 해자가 작동하고 있다는 가장 명확한 증거입니다.</li>
-                        <li><b>수익성의 일관성:</b> PER, EPS, PBR 지표가 5년, 10년 단위로 지속적인 우상향(또는 안정적 유지)을 그렸는지 확인합니다.</li>
-                        <li><b>현금흐름 추정 가능성:</b> 비즈니스 구조가 상식으로 이해 가능하고 재무 기록이 투명하여, 불황기에도 향후 10년의 현금흐름을 합리적으로 추정할 수 있어야 합니다.</li>
-                    </ul>
-                    
-                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>2. 정성적 해부 (비즈니스의 질 검증)</h4>
-                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>전문가의 반론에 논리적으로 재반박할 수 없다면 내 능력 밖의 기업이므로 과감히 제외합니다.</p>
-                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
-                        <li><b>경쟁우위와 가격결정력:</b> 제품 가격을 인상해도 고객이 이탈하지 않는지, 기술 변화나 규제로부터 안전한지, 비용 통제를 통한 성공적인 규모화(Scaling)가 가능한지 점검합니다.</li>
-                        <li><b>이해관계자 상생 구조:</b> 노동자, 공급업체, 고객을 쥐어짜는 구조의 해자는 오래가지 못합니다. 모두가 Win-Win 하는 생태계와 숨겨진 ESG 리스크 여부를 파악합니다.</li>
-                        <li><b>다학제적 멘탈 모델:</b>
-                            <ul>
-                                <li><code>공학</code> 치명적 '단일 실패 지점'이 제거되어 있고, 위기 시 작동할 다중화/백업 시스템이 있는가?</li>
-                                <li><code>수학</code> 단순 선형 증가가 아닌 '복리 모형'으로 기하급수적 성장을 하는 구간인가?</li>
-                                <li><code>물리/화학</code> 스스로 수요를 창출하는 '자가 촉매(Autocatalysis)' 현상이나 폭발적 성장의 전환점이 있는가?</li>
-                                <li><code>생물학</code> 산업 환경 변화에 적응하고 진화하는 '현대 다윈주의적' 생존력이 있는가?</li>
-                                <li><code>심리학</code> 투자자인 내가 인지적 오판(희망 회로, 확증 편향)에 빠져 사실을 왜곡하고 있지 않은가?</li>
-                            </ul>
-                        </li>
-                    </ul>
-                    
-                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>3. 경영진과 자본 배분</h4>
-                    <ul style='line-height: 1.7; margin-bottom: 25px;'>
-                        <li><b>경영진의 정직성:</b> 확고한 주인의식을 가지고 회사를 운영하는지 외부 평판과 팩트를 체크합니다.</li>
-                        <li><b>효율적 자본 배분:</b> 벌어들인 막대한 현금을 낭비하지 않고, 유리한 조건에서의 재투자, 자사주 매입, 혹은 일관된 배당 정책으로 돌려주는지 확인합니다.</li>
-                    </ul>
-                    
-                    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>4. 투자를 집행하기 전 최종 체크리스트</h4>
-                    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장은 도구일 뿐 가치를 알려주는 선생님이 아닙니다. 완벽한 기업을 찾았더라도, 다음 4가지를 스스로 질문하십시오.</p>
-                    <ul style='line-height: 1.7; margin-bottom: 0;'>
-                        <li><b>시장 데이터:</b> 단기 트레이딩 관점의 주의점이나 악재성 공시 일정은 없는가?</li>
-                        <li><b>자본 효율성:</b> 기회비용을 고려할 때 이 투자가 최선인가? 현금 보유나 부채 상환이 더 나은가?</li>
-                        <li><b>재무 건전성:</b> 불황에 외부 자금을 조달하지 않아도 될 만큼 충분한 유동자산을 보유했는가?</li>
-                        <li><b>비상탈출(Exit) 전략:</b> 내 초기 분석에 치명적 실수가 있었거나 예상치 못한 리스크가 발생했을 때 빠져나올 전략이 마련되어 있는가?</li>
-                    </ul>
-                </div>
-                """, unsafe_allow_html=True)
-                
-            else:
-                st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
+st.markdown("""
+<div style='background: rgba(255,255,255,0.02); padding: 25px 30px; border-radius: 16px; border-left: 5px solid #A0C4FF; color: var(--text-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>
+    
+    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>1. 정량적 스크리닝 (아이디어 발굴)</h4>
+    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장에 상장된 수많은 주식 중에서 해자의 징후를 숫자로 먼저 걸러냅니다.</p>
+    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+        <li><b>자본수익률 검증:</b> 투입된 자본 대비 이익을 나타내는 ROIC와 ROCE가 10년 이상 꾸준히 두 자릿수를 유지한다면, 강력한 해자가 작동하고 있다는 가장 명확한 증거입니다.</li>
+        <li><b>수익성의 일관성:</b> PER, EPS, PBR 지표가 5년, 10년 단위로 지속적인 우상향(또는 안정적 유지)을 그렸는지 확인합니다.</li>
+        <li><b>현금흐름 추정 가능성:</b> 비즈니스 구조가 상식으로 이해 가능하고 재무 기록이 투명하여, 불황기에도 향후 10년의 현금흐름을 합리적으로 추정할 수 있어야 합니다.</li>
+    </ul>
+    
+    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>2. 정성적 해부 (비즈니스의 질 검증)</h4>
+    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>전문가의 반론에 논리적으로 재반박할 수 없다면 내 능력 밖의 기업이므로 과감히 제외합니다.</p>
+    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+        <li><b>경쟁우위와 가격결정력:</b> 제품 가격을 인상해도 고객이 이탈하지 않는지, 기술 변화나 규제로부터 안전한지, 비용 통제를 통한 성공적인 규모화(Scaling)가 가능한지 점검합니다.</li>
+        <li><b>이해관계자 상생 구조:</b> 노동자, 공급업체, 고객을 쥐어짜는 구조의 해자는 오래가지 못합니다. 모두가 Win-Win 하는 생태계와 숨겨진 ESG 리스크 여부를 파악합니다.</li>
+        <li><b>다학제적 멘탈 모델:</b>
+            <ul>
+                <li><code>공학</code> 치명적 '단일 실패 지점'이 제거되어 있고, 위기 시 작동할 다중화/백업 시스템이 있는가?</li>
+                <li><code>수학</code> 단순 선형 증가가 아닌 '복리 모형'으로 기하급수적 성장을 하는 구간인가?</li>
+                <li><code>물리/화학</code> 스스로 수요를 창출하는 '자가 촉매(Autocatalysis)' 현상이나 폭발적 성장의 전환점이 있는가?</li>
+                <li><code>생물학</code> 산업 환경 변화에 적응하고 진화하는 '현대 다윈주의적' 생존력이 있는가?</li>
+                <li><code>심리학</code> 투자자인 내가 인지적 오판(희망 회로, 확증 편향)에 빠져 사실을 왜곡하고 있지 않은가?</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>3. 경영진과 자본 배분</h4>
+    <ul style='line-height: 1.7; margin-bottom: 25px;'>
+        <li><b>경영진의 정직성:</b> 확고한 주인의식을 가지고 회사를 운영하는지 외부 평판과 팩트를 체크합니다.</li>
+        <li><b>효율적 자본 배분:</b> 벌어들인 막대한 현금을 낭비하지 않고, 유리한 조건에서의 재투자, 자사주 매입, 혹은 일관된 배당 정책으로 돌려주는지 확인합니다.</li>
+    </ul>
+    
+    <h4 style='color: #A0C4FF; margin-top: 0; font-size: 1.2rem;'>4. 투자를 집행하기 전 최종 체크리스트</h4>
+    <p style='color: #8892b0; font-size: 0.95rem; margin-bottom: 10px;'>시장은 도구일 뿐 가치를 알려주는 선생님이 아닙니다. 완벽한 기업을 찾았더라도, 다음 4가지를 스스로 질문하십시오.</p>
+    <ul style='line-height: 1.7; margin-bottom: 0;'>
+        <li><b>시장 데이터:</b> 단기 트레이딩 관점의 주의점이나 악재성 공시 일정은 없는가?</li>
+        <li><b>자본 효율성:</b> 기회비용을 고려할 때 이 투자가 최선인가? 현금 보유나 부채 상환이 더 나은가?</li>
+        <li><b>재무 건전성:</b> 불황에 외부 자금을 조달하지 않아도 될 만큼 충분한 유동자산을 보유했는가?</li>
+        <li><b>비상탈출(Exit) 전략:</b> 내 초기 분석에 치명적 실수가 있었거나 예상치 못한 리스크가 발생했을 때 빠져나올 전략이 마련되어 있는가?</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
+
+else:
+st.error(t("[데이터 연결 오류] 서버에서 데이터를 정상적으로 불러올 수 없습니다. 인터넷 상태를 확인하거나 티커(종목코드)가 올바른지 확인해주세요.", "[Data Connection Error] Could not fetch data from the server. Please check your internet connection or ticker."))
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
