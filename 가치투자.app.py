@@ -2352,4 +2352,27 @@ with tab5:
     st.subheader(phil_title3)
     
     st.markdown(
-        f"<div style='font-size: 1.1rem; line-height: 1.8;저는 텍스트 기반 AI이기 때문에 그것은 도와드릴 수가 없습니다.
+        f"<div style='font-size: 1.1rem; line-height: 1.8; "
+        f"background: rgba(255,255,255,0.03); padding: 30px; border-radius: 16px; "
+        f"border-left: 5px solid #A0C4FF; color: var(--text-color); "
+        f"box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>", 
+        unsafe_allow_html=True
+    )
+
+# 하단 면책 조항 및 카피라이트 
+st.divider()
+lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
+lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
+lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+
+st.markdown(f"""
+<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
+    <p><b>{lbl_disc_title}</b><br>
+    {lbl_disc_1}<br>
+    {lbl_disc_2}</p>
+    <p><b>[Copyright]</b><br>
+    ⓒ 2026 AGIE. All rights reserved.<br>
+    {lbl_copy}</p>
+</div>
+""", unsafe_allow_html=True)
