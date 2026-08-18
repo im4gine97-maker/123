@@ -226,7 +226,7 @@ fallback_13f_data = {
         {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 10.50},
         {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 9.50}
     ],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "Copart Inc": "CPRT", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
     "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
@@ -860,7 +860,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk=""):
     score = 0
     ceo_score = 0
     
@@ -936,7 +936,17 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g < 0.03: score -= 15
     elif final_g < 0.05: score -= 5
 
-    # 🚀 시클리컬 기업 판단 범위 확장 및 페널티 대폭 강화 (-15 -> -50)
+    # 지정학적 디스카운트 판별 로직
+    chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU"]
+    tk_upper = str(tk).upper()
+    is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
+    
+    if kr:
+        score -= 15
+    elif is_china:
+        score -= 20
+
+    # 시클리컬 기업 판단 범위 확장 및 페널티 대폭 강화 (-50점 유지 또는 -30점 조정 요구 -> 30점으로 완화하면서 강하게 적용 요구 -> 30점으로 세팅)
     is_cyclical = any(k in ceo_text for k in [
         "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
         "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
@@ -944,7 +954,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
     ])
     if is_cyclical:
-        score -= 50
+        score -= 30
 
     if score >= 90:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
@@ -962,9 +972,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
 
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 강력 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
+    if kr:
+        reason += t(" (코리아 디스카운트 적용됨: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount Applied: Poor shareholder returns and geopolitical risks)")
+    elif is_china:
+        reason += t(" (차이나 디스카운트 적용됨: 공산당 규제 및 재무 투명성 리스크)", " (China Discount Applied: Regulatory and financial transparency risks)")
     if is_financial:
-        reason += t(" (금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 7단계 평가 완료)", " (Financial Mode Active: 7-Tier evaluation based on ROE and PBR)")
+        reason += t(" (금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 평가 완료)", " (Financial Mode Active: Evaluation based on ROE and PBR)")
 
     return title, color, reason
 
@@ -1521,7 +1535,7 @@ with tab1:
                 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr)
+                op_title, op_color, op_reason = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk)
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1665,7 +1679,6 @@ with tab1:
                 st.markdown(t("**[비즈니스 및 생물학] 경제적 해자와 생존력**", "**[Business & Biology] Moat & Survivability**"))
                 st.markdown(f"- 비즈니스 수익성: {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
 
                 st.divider()
 
