@@ -1401,12 +1401,19 @@ with tab1:
                 if i is None:
                     i = {}
 
-                distorted_financial_industries = [
-                    'Banks - Regional', 'Banks - Diversified', 'Insurance - Specialists', 
-                    'Insurance - Life', 'Insurance - Property & Casualty', 
-                    'Insurance Brokers', 'Insurance - Diversified'
-                ]
-                is_financial = i.get('industry') in distorted_financial_industries
+                # =====================================================================
+                # [금융/보험주 강력 탐지 로직] 야후파이낸스 섹터 누락 대비
+                # =====================================================================
+                sector_str = str(i.get('sector', '')).lower()
+                industry_str = str(i.get('industry', '')).lower()
+                
+                is_financial = 'financial' in sector_str or 'bank' in industry_str or 'insurance' in industry_str
+                
+                # 한국 주요 금융/지주/보험사 티커 하드코딩 방어 (KB, 신한, 하나, 우리, 메리츠 등)
+                kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS"]
+                if tk in kr_fin_tickers:
+                    is_financial = True
+                # =====================================================================
                 
                 c_title, c_star = st.columns([4, 1])
                 with c_title:
@@ -1491,8 +1498,24 @@ with tab1:
                                     pbr = p / (eq / sh)
                         except: pass
                 
+                # =====================================================================
+                # [ROE 수동 역산 로직] 금융주의 ROE 데이터 누락 대비
+                # =====================================================================
                 roe = safe_float(i.get('returnOnEquity')) * 100
+                if roe == 0.0:
+                    try:
+                        inc = stk.income_stmt
+                        bs = stk.balance_sheet
+                        if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                            if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
+                                ni = safe_float(inc.loc['Net Income'].iloc[0])
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                if eq > 0:
+                                    roe = (ni / eq) * 100
+                    except: pass
+                
                 real_roic = get_real_roic(stk, i)
+                # =====================================================================
                 
                 if is_financial:
                     roic_str = t("금융/보험주 제외", "N/A (Financial)")
