@@ -1836,31 +1836,6 @@ with tab1:
 
                 st.divider()
 
-                # ---------------------------------------------------------
-                # [투자 확신도 산출 및 표출]
-                # ---------------------------------------------------------
-                total_checks = 5
-                ai_checks = sum([
-                    (mos_val >= 15),
-                    (roe >= 15),
-                    (op_m >= 15 if not is_financial else pbr <= 1.0),
-                    (current_ratio >= 1.0 if not is_financial else False),
-                    (erp > 1.0)
-                ])
-                conviction_score = int((ai_checks / total_checks) * 100)
-                
-                st.write(t(f"**투자 확신도 (Conviction Score): {conviction_score}점**", f"**Conviction Score: {conviction_score}/100**"))
-                st.progress(conviction_score / 100)
-                
-                if conviction_score == 100:
-                    st.success(t("[완벽] 정량적 데이터 검증이 완벽히 일치했습니다. 매수를 고려할 만한 훌륭한 수치입니다.", "[Perfect] Quantitative data matches perfectly. Great buy candidate!"))
-                elif conviction_score >= 60:
-                    st.info(t("[고민] 훌륭한 기업일 확률이 높으나, 일부 지표가 아쉽습니다. 다시 한번 검토해 보세요.", "[Good] Likely a great company, but some metrics are lacking. Review again."))
-                else:
-                    st.warning(t("[보류] 정량적 수치가 나쁩니다. 현금을 쥐고 미스터 마켓이 더 좋은 기회를 줄 때까지 기다리십시오.", "[Hold] Poor metrics. Keep cash and wait for a better pitch."))
-
-                st.divider()
-
                 st.subheader(t("8. 분석 결과 공유하기", "8. Share Analysis Results"))
                 st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                 
