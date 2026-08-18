@@ -472,7 +472,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
         "329180": "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)",
         "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
-        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
+        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MB 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
         "033780": "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)",
         "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해 외는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
         "009150": "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)",
@@ -938,7 +938,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
     if is_cyclical:
-        score -= 35
+        score -= 50
 
     if score >= 90:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
@@ -1614,7 +1614,62 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("2. 10년 DCF (내재가치 3가지 시나리오)", "2. 10-Year DCF (3 Scenarios)"))
+                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
+                
+                p_txt = ""
+                if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
+                else: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                
+                if is_financial:
+                    if pbr <= 0.6: p_txt += f"- PBR 측면: <span class='good'>[매우 합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 0.9: p_txt += f"- PBR 측면: <span class='good'>[합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.0: p_txt += f"- PBR 측면: <span style='color:#74b9ff;'>[약간 합격] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.2: p_txt += f"- PBR 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pbr:.2f}배)</span>"
+                    elif pbr <= 1.5: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배)</span>"
+                    else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배)</span>"
+                else:
+                    if mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>"
+                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
+                    else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
+
+                if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
+                elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
+                elif roe >= 10: biz_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
+                elif roe >= 5: biz_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
+                elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
+                else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
+
+                if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
+                elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
+
+                st.markdown(t("**[가격 및 수학] 안전마진과 복리 모형**", "**[Price & Math] Margin of Safety & Compounding**"))
+                st.markdown(p_txt, unsafe_allow_html=True)
+                st.markdown(f"- 수학 (복리 모형): {math_eval}", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                st.markdown(t("**[비즈니스 및 생물학] 경제적 해자와 생존력**", "**[Business & Biology] Moat & Survivability**"))
+                st.markdown(f"- 비즈니스 수익성: {biz_eval}", unsafe_allow_html=True)
+                st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                st.markdown(t("**[경영 및 심리학] 지배구조와 인지적 오판 점검**", "**[Management & Psychology] Governance & Misjudgment**"))
+                st.write(t("- 경영진 신뢰도: 위 질적 분석 리포트 참조 (경영진의 정직성과 자본 배분 효율성 확인 필수)", "- Management Trust: Refer to Qual Analysis (Check integrity & capital allocation)"))
+                st.write(t("- 심리학 및 능력 범위: 나의 투자가 '확증 편향'이나 '포모(FOMO)'에 의한 것은 아닌지, 비즈니스 모델을 타인에게 쉽게 설명할 수 있는지 점검하십시오.", "- Psychology & Competence: Ensure investment is free from confirmation bias/FOMO, and you can easily explain the business model."))
+                st.write(t("- 파급력 및 리스크: 주가 하락이 단순한 미스터 마켓의 우울증인지, 기술 변화 등에 의한 영구적 손상인지 파악하십시오.", "- Impact & Risk: Determine if price drops are temporary Mr. Market depression or permanent damage from technological shifts."))
+
+                st.divider()
+
+                st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
                 
                 dcf_guide_ko = (
                     "<b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
@@ -1688,7 +1743,7 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
+                st.subheader(t("4. 장기 재무 시각화 (최근 연속 지표)", "4. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
                     cf = stk.cash_flow if stk else None
@@ -1742,7 +1797,7 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
+                st.subheader(t("5. 질적 분석 및 리스크 스크리닝", "5. Qualitative Analysis & Risk Screening"))
                 
                 st.markdown(f"- **CEO:** {ceo_cleaned}")
                 
@@ -1779,89 +1834,7 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("5. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "5. AI Multi-dimensional Verification"))
-                
-                p_txt = ""
-                if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
-                elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                else: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
-                
-                if is_financial:
-                    if pbr <= 0.6: p_txt += f"- PBR 측면: <span class='good'>[매우 합격] ({pbr:.2f}배)</span>"
-                    elif pbr <= 0.9: p_txt += f"- PBR 측면: <span class='good'>[합격] ({pbr:.2f}배)</span>"
-                    elif pbr <= 1.0: p_txt += f"- PBR 측면: <span style='color:#74b9ff;'>[약간 합격] ({pbr:.2f}배)</span>"
-                    elif pbr <= 1.2: p_txt += f"- PBR 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pbr:.2f}배)</span>"
-                    elif pbr <= 1.5: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배)</span>"
-                    else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배)</span>"
-                else:
-                    if mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>"
-                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
-                    else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
-
-                if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
-                elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
-                elif roe >= 10: biz_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
-                elif roe >= 5: biz_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
-                elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
-                else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
-
-                if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
-                elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
-                else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
-
-                st.markdown(t("**[가격 및 수학] 안전마진과 복리 모형**", "**[Price & Math] Margin of Safety & Compounding**"))
-                st.markdown(p_txt, unsafe_allow_html=True)
-                st.markdown(f"- 수학 (복리 모형): {math_eval}", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                st.markdown(t("**[비즈니스 및 생물학] 경제적 해자와 생존력**", "**[Business & Biology] Moat & Survivability**"))
-                st.markdown(f"- 비즈니스 수익성: {biz_eval}", unsafe_allow_html=True)
-                st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                st.markdown(t("**[경영 및 심리학] 지배구조와 인지적 오판 점검**", "**[Management & Psychology] Governance & Misjudgment**"))
-                st.write(t("- 경영진 신뢰도: 위 질적 분석 리포트 참조 (경영진의 정직성과 자본 배분 효율성 확인 필수)", "- Management Trust: Refer to Qual Analysis (Check integrity & capital allocation)"))
-                st.write(t("- 심리학 및 능력 범위: 나의 투자가 '확증 편향'이나 '포모(FOMO)'에 의한 것은 아닌지, 비즈니스 모델을 타인에게 쉽게 설명할 수 있는지 점검하십시오.", "- Psychology & Competence: Ensure investment is free from confirmation bias/FOMO, and you can easily explain the business model."))
-                st.write(t("- 파급력 및 리스크: 주가 하락이 단순한 미스터 마켓의 우울증인지, 기술 변화 등에 의한 영구적 손상인지 파악하십시오.", "- Impact & Risk: Determine if price drops are temporary Mr. Market depression or permanent damage from technological shifts."))
-
-                st.divider()
-
-                # ---------------------------------------------------------
-                # [투자 확신도 산출 및 표출]
-                # ---------------------------------------------------------
-                st.subheader(t("6. 투자 확신도 (Conviction Score)", "6. Conviction Score"))
-                
-                total_checks = 5
-                ai_checks = sum([
-                    (mos_val >= 15),
-                    (roe >= 15),
-                    (op_m >= 15 if not is_financial else pbr <= 1.0),
-                    (current_ratio >= 1.0 if not is_financial else False),
-                    (erp > 1.0)
-                ])
-                conviction_score = int((ai_checks / total_checks) * 100)
-                
-                st.write(t(f"**투자 확신도 (Conviction Score): {conviction_score}점**", f"**Conviction Score: {conviction_score}/100**"))
-                st.progress(conviction_score / 100)
-                
-                if conviction_score == 100:
-                    st.success(t("[완벽] 정량적 데이터 검증이 완벽히 일치했습니다. 매수를 고려할 만한 훌륭한 수치입니다.", "[Perfect] Quantitative data matches perfectly. Great buy candidate!"))
-                elif conviction_score >= 60:
-                    st.info(t("[고민] 훌륭한 기업일 확률이 높으나, 일부 지표가 아쉽습니다. 다시 한번 검토해 보세요.", "[Good] Likely a great company, but some metrics are lacking. Review again."))
-                else:
-                    st.warning(t("[보류] 정량적 수치가 나쁩니다. 현금을 쥐고 미스터 마켓이 더 좋은 기회를 줄 때까지 기다리십시오.", "[Hold] Poor metrics. Keep cash and wait for a better pitch."))
-
-                st.divider()
-
-                st.subheader(t("7. 분석 결과 공유하기", "7. Share Analysis Results"))
+                st.subheader(t("6. 분석 결과 공유하기", "6. Share Analysis Results"))
                 st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                 
                 def strip_html(h_str):
@@ -1902,7 +1875,6 @@ AI 핵심 요약
 투자 검증 요약
 - 가격 매력도 (PER 기준): {clean_per_mos}
 - 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}
-- 투자 확신도: {conviction_score}점
 """
                 share_en = f"""[AGIE Value Investing Report]
 Company: {i.get('shortName', tk)} ({tk})
@@ -1923,7 +1895,6 @@ AI Core Summary
 Verification Summary
 - Price Attractiveness (PE): {clean_per_mos}
 - Business Moat (ROE/ROIC): {clean_biz_eval}
-- Conviction Score: {conviction_score}/100
 """
                 st.code(t(share_ko, share_en), language="text")
 
@@ -2086,7 +2057,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
