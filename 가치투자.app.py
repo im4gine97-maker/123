@@ -141,9 +141,9 @@ tmap = {
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드 머티어리얼즈": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "COCACOLA": "KO",
     
-    # 샌디스크 & 웨스턴디지털 & 스페이스X 단독 검색 매핑
+    # 샌디스크 & 웨스턴디지털 & 스페이스X 단독 검색 매핑 (완전 분리)
     "SPACEX": "SPACEX", "스페이스X": "SPACEX", "스페이스엑스": "SPACEX", "스페이스 엑스": "SPACEX",
-    "SANDISK": "SANDISK", "샌디스크": "SANDISK", "샌디": "SANDISK", "SNDK": "SANDISK",
+    "SANDISK": "SNDK", "샌디스크": "SNDK", "샌디": "SNDK", "SNDK": "SNDK",
     "웨스턴 디지털": "WDC", "웨스턴디지털": "WDC", "WESTERN DIGITAL": "WDC", "WDC": "WDC",
     
     "마벨 테크놀로지": "MRVL", "마벨": "MRVL", "MARVELL": "MRVL", "MRVL": "MRVL",
@@ -403,9 +403,9 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     cd_clean = str(cd).strip()
     
     db = {
-        "SANDISK": "샌디스크 (웨스턴 디지털 소속 / 경영자: 데이비드 게클러): 글로벌 소비자용 스토리지 및 낸드플래시 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진의 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
-        "SPACEX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖춘 비상장 기업입니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행과 정치적 리스크에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
-        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 낸드(NAND) 사업부 분할을 통해 전통 스토리지 본업 집중과 주주가치 제고를 추진 중입니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 일본 키옥시아(Kioxia)와의 합병 무산 및 과거 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
+        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 강력한 브랜드 파워를 보유한 기업입니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 타격을 입은 이력이 있습니다.",
+        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
+        "SPACEX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 기술력을 갖춘 기업입니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행과 정치적 리스크에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'가 존재하며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 노무 관련 거버넌스 뇌관이 있습니다.",
         
         "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
         "MRVL": "마벨 테크놀로지 (경영자: 맷 머피): 광통신(PAM4 DSP) 및 데이터센터 네트워킹 칩 분야의 독보적 강자로, 빅테크용 맞춤형 AI 칩(ASIC) 설계를 통해 인공지능 인프라 기업으로 완벽히 체질을 개선했습니다.\n단점 및 리스크: 과거(현 경영진 이전) 스톡옵션 백데이팅 등 회계 부정 스캔들 이력이 있으며, 클라우드를 제외한 전통적인 통신장비 및 엔터프라이즈 전방 산업의 수요 침체 타격을 크게 받습니다.",
@@ -465,7 +465,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "CAT": "캐터필러 (경영자: 짐 엄플비): 미국 인프라 투자 수혜와 압도적 딜러망을 바탕으로 한 강력한 장비 가격 결정력.\n단점 및 리스크: 스위스 자회사를 통한 역외 탈세 혐의로 거액 합의금 납부 이력, 글로벌 경기 침체 시 장비 수요 급락.",
         "BA": "보잉 (경영자: 켈리 오트버그): 에어버스와 함께 글로벌 상용 항공기 시장을 양분하는 대체 불가능한 제조 인프라와 방산 포트폴리오.\n단점 및 리스크: 737 MAX 연쇄 추락 참사 관련 사기 유죄 인정, 품질 관리 붕괴와 500억 달러 부채에 따른 존립 위기.",
         "GM": "제너럴 모터스 (경영자: 메리 바라): 고마진 픽업트럭·SUV 중심의 강력한 현금 창출력과 대규모 자사주 매입을 통한 주당가치 제고.\n단점 및 리스크: 과거 점화스위치 결함 은폐(124명 사망) 형사 처벌 이력, 크루즈 자율주행 사고 은폐 논란.",
-        "F": "포드 모터 (경영자: 짐 팔리): 상용차 사업부(Ford Pro)의 독보적 마진율과 충성도 높은 북미 F-150 트럭 브랜드 가치.\n단점 및 리스크: 북미 완성차 리콜 1위의 만성적 품질 결함과 막대한 보증 수리 비용 지출, 1세대 전기차 부문 적자.",
+        "F": "포드 모터 (경영자: 짐 팔리): 상용차 일익(Ford Pro)의 독보적 마진율과 충성도 높은 북미 F-150 트럭 브랜드 가치.\n단점 및 리스크: 북미 완성차 리콜 1위의 만성적 품질 결함과 막대한 보증 수리 비용 지출, 1세대 전기차 부문 적자.",
         "DOW": "다우 (경영자: 짐 피털링): 엄격한 CAPEX 통제 및 세계 최초 탄소배출 제로 에틸렌 콤플렉스 추진 등 원가 절감 리더십.\n단점 및 리스크: 과거 PFAS(영구 화학물질) 독성 은폐 및 식수 오염 배상금 판결, 글로벌 석유화학 공급 과잉.",
         "FCX": "프리포트 맥모란 (경영자: 캐슬린 쿼크): AI 데이터센터 및 신재생 전력망 확충에 따른 글로벌 구리 수요 폭증의 직접적 수혜.\n단점 및 리스크: 인도네시아 광산 폐기물 무단 방류 등 환경 파괴 스캔들, 채굴국 정부의 자원 민족주의 세금 인상 압박.",
         "NUE": "뉴코어 (경영자: 레온 토파련): 전기로(EAF) 기반의 유연한 가동률 조절 및 북미 철강 시장 1위의 탁월한 원가 경쟁력.\n단점 및 리스크: 과거 대기오염 위반 EPA 제재 이력, 미국 건설 경기 둔화 및 철강 가격 급락 시 실적 변동성 심화.",
@@ -608,11 +608,8 @@ def get_naver_finance(cd):
         pass
     return res
 
-# [최적화] 무거운 재무 데이터 및 크롤링 결과만 따로 캐싱 (하루 1번)
 @st.cache_data(ttl=86400)
 def fetch_cached_info(tk, kr, cd):
-    if tk.upper() in ["SPACEX", "SANDISK"]:
-        return {}
     stk = yf.Ticker(tk)
     i = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -655,33 +652,12 @@ def fetch_cached_info(tk, kr, cd):
         
     return i
 
-# [최적화] 실시간 주가는 캐싱 없이 매번 호출하도록 분리 (비상장 / 분할 단독 엔티티 예외 처리 포함)
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
         tk_raw = str(tk).strip()
         tk = tk_raw.upper()
         
-        # 1) 스페이스X 비상장 전용 프로필 반환
-        if tk == "SPACEX":
-            i_spacex = {
-                'shortName': 'SpaceX (스페이스X)',
-                'longBusinessSummary': '재사용 발사체(Falcon 9, Starship) 및 저궤도 위성 인터넷(Starlink) 서비스를 제공하는 세계 1위 민간 우주 항공 기업입니다. 현재 비상장 상태이며, 독보적인 발사 원가 경쟁력과 발사 횟수 점유율을 자랑합니다.',
-                'companyOfficers': [{'name': '일론 머스크 / 그윈 샷웰'}],
-                'trailingPE': 0.0, 'forwardPE': 0.0, 'priceToBook': 0.0, 'dividendYield': 0.0, 'returnOnEquity': 0.0
-            }
-            return None, 1.0, i_spacex, False
-
-        # 2) 샌디스크 분할 독립 전용 프로필 반환
-        if tk == "SANDISK":
-            i_sandisk = {
-                'shortName': 'SanDisk (샌디스크)',
-                'longBusinessSummary': '글로벌 플래시 메모리 스토리지, SD 카드 및 포터블 SSD 전문 브랜드로, 모회사 웨스턴디지털의 낸드(NAND) 플래시 사업부 분할 상장 대상 기업입니다.',
-                'companyOfficers': [{'name': '데이비드 게클러'}],
-                'trailingPE': 0.0, 'forwardPE': 0.0, 'priceToBook': 0.0, 'dividendYield': 0.0, 'returnOnEquity': 0.0
-            }
-            return None, 1.0, i_sandisk, False
-
         if tk_raw.isdigit() and len(tk_raw) == 6:
             test_tk = tk_raw + ".KS"
             stk_test = yf.Ticker(test_tk)
@@ -718,7 +694,6 @@ def get_data(tk):
     except Exception as e:
         return None, None, {}, False
 
-# [최적화] 최대 10년치 데이터를 자동으로 탐지해 연평균 성장률을 계산
 def get_base_dcf_data(stk, i):
     try:
         if stk is None: return None, None, 0.05, 0
@@ -748,11 +723,10 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len
     except: return None, None, 0.05, 0
 
-# [최적화] 보수적인 영구 성장률 적용 로직 (DCF)
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자 또는 미제공", "Negative / Missing FCF (Owner Earnings)")
-    if not sh or sh <= 0: return 0, 0, t("주식수 누락 (비상장 등)", "Missing Shares Outstanding")
+    if not sh or sh <= 0: return 0, 0, t("주식수 누락 (비상장 등 데이터 부족)", "Missing Shares Outstanding")
     try:
         dr = max(ty / 100, 0.09)
         cv = fcf
@@ -916,10 +890,6 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
     return rnd_trend
 
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk=""):
-    tk_upper = str(tk).upper()
-    if tk_upper in ["SPACEX", "SANDISK"]:
-        return t("정성적 점검 대상 (비상장 / 분할 상장 예정)", "Qualitative Review Target (Unlisted / Spinoff)"), "#74b9ff", t("해당 기업은 비상장 법인이거나 지배구조 분할 상장 예정 기업으로, 수치 기반의 DCF보다는 경영진 도덕성, 브랜드 해자, 집단소송 및 거버넌스 리스크 등 정성적 팩트 체크가 핵심입니다.", "Focus on qualitative checks (governance, moat, management integrity) as numeric DCF is unavailable.")
-
     score = 0
     ceo_score = 0
     
@@ -996,6 +966,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g < 0.05: score -= 5
 
     chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
+    tk_upper = str(tk).upper()
     is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
     
     if kr:
@@ -1254,15 +1225,13 @@ with tab1:
             st.toast(t("데이터를 불러오는 중입니다...", "Fetching data..."))
             stk, p, i, kr = get_data(tk)
             
-            if p or tk in ["SPACEX", "SANDISK"]:
+            if p or tk in ["SPACEX", "SNDK"]:
                 try: ty = safe_float(macro_data["10Y Treasury"]["p"], 4.4)
                 except: ty = 4.4
                 if ty == 0.0: ty = 4.4
 
                 if i is None:
                     i = {}
-
-                is_unlisted_or_special = tk.upper() in ["SPACEX", "SANDISK"]
 
                 distorted_financial_industries = [
                     'Banks - Regional', 'Banks - Diversified', 'Insurance - Specialists', 
@@ -1304,7 +1273,7 @@ with tab1:
                 # ---------------------------------------------------------
                 ext_str = ""
                 is_ext_active = False
-                if not kr and not is_unlisted_or_special:
+                if not kr:
                     pre_p = safe_float(i.get('preMarketPrice', 0.0))
                     post_p = safe_float(i.get('postMarketPrice', 0.0))
                     
@@ -1317,10 +1286,7 @@ with tab1:
                         is_ext_active = True
                         ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: \${post_p:,.2f})</span>"
 
-                if is_unlisted_or_special:
-                    p_str = t("비상장 / 분할 상장 예정 (장외)", "Unlisted / Spinoff Target")
-                else:
-                    p_str = f"{int(p):,}원" if kr else f"\${p:,.2f}"
+                p_str = f"{int(p):,}원" if kr else f"\${p:,.2f}"
 
                 # EPS(주당순이익) 우선 추출
                 t_pe_raw = safe_float(i.get('trailingPE'))
@@ -1347,7 +1313,7 @@ with tab1:
                 else:
                     if pbr > 0 and is_ext_active and reg_p > 0:
                         pbr = pbr * (p / reg_p)
-                    elif pbr == 0.0 and not is_unlisted_or_special:
+                    elif pbr == 0.0:
                         try:
                             bs = stk.balance_sheet
                             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
@@ -1362,14 +1328,12 @@ with tab1:
                 
                 if is_financial:
                     roic_str = t("금융/보험주 제외", "N/A (Financial)")
-                elif is_unlisted_or_special:
-                    roic_str = t("비상장 / 공시 전", "N/A (Unlisted)")
                 else:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                     else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0 and not is_unlisted_or_special: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
                 
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
@@ -1377,20 +1341,19 @@ with tab1:
                 else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
                 
                 div_trend = t("확인 불가", "N/A")
-                if not is_unlisted_or_special:
-                    try:
-                        div_history = stk.dividends
-                        if not div_history.empty:
-                            yearly_div = div_history.groupby(div_history.index.year).sum()
-                            if len(yearly_div) >= 3:
-                                last_3 = yearly_div.tail(3)
-                                if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
-                                    div_trend = f"<span class='good'>{t('지속 상승 중', 'Consistently Increasing')}</span>"
-                                elif last_3.iloc[-1] > 0:
-                                    div_trend = t("유지/변동", "Maintained/Fluctuating")
-                                else:
-                                    div_trend = t("배당 없음", "No Dividend")
-                    except: pass
+                try:
+                    div_history = stk.dividends
+                    if not div_history.empty:
+                        yearly_div = div_history.groupby(div_history.index.year).sum()
+                        if len(yearly_div) >= 3:
+                            last_3 = yearly_div.tail(3)
+                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
+                                div_trend = f"<span class='good'>{t('지속 상승 중', 'Consistently Increasing')}</span>"
+                            elif last_3.iloc[-1] > 0:
+                                div_trend = t("유지/변동", "Maintained/Fluctuating")
+                            else:
+                                div_trend = t("배당 없음", "No Dividend")
+                except: pass
                 
                 pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
@@ -1421,20 +1384,19 @@ with tab1:
                     eps_col = "#8892b0"
                     
                 current_rsi_val, avg_rsi_val = None, None
-                if not is_unlisted_or_special:
-                    try:
-                        hist_1y = stk.history(period="1y")
-                        if hist_1y is not None and not hist_1y.empty and len(hist_1y) >= 15:
-                            delta = hist_1y['Close'].diff()
-                            gain = delta.clip(lower=0)
-                            loss = -1 * delta.clip(upper=0)
-                            ema_gain = gain.ewm(com=13, adjust=False).mean()
-                            ema_loss = loss.ewm(com=13, adjust=False).mean()
-                            rs = ema_gain / ema_loss
-                            rsi_series = 100 - (100 / (1 + rs))
-                            current_rsi_val = safe_float(rsi_series.iloc[-1])
-                            avg_rsi_val = safe_float(rsi_series.dropna().mean())
-                    except: pass
+                try:
+                    hist_1y = stk.history(period="1y")
+                    if hist_1y is not None and not hist_1y.empty and len(hist_1y) >= 15:
+                        delta = hist_1y['Close'].diff()
+                        gain = delta.clip(lower=0)
+                        loss = -1 * delta.clip(upper=0)
+                        ema_gain = gain.ewm(com=13, adjust=False).mean()
+                        ema_loss = loss.ewm(com=13, adjust=False).mean()
+                        rs = ema_gain / ema_loss
+                        rsi_series = 100 - (100 / (1 + rs))
+                        current_rsi_val = safe_float(rsi_series.iloc[-1])
+                        avg_rsi_val = safe_float(rsi_series.dropna().mean())
+                except: pass
 
                 rsi_html = f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
                 if current_rsi_val is not None and current_rsi_val > 0:
@@ -1451,22 +1413,18 @@ with tab1:
                     
                 has_ytd = False
                 ytd_ret = 0.0
-                if not is_unlisted_or_special:
-                    try:
-                        hist_ytd = stk.history(period="ytd")
-                        if not hist_ytd.empty and len(hist_ytd) >= 2:
-                            ytd_start = hist_ytd['Close'].iloc[0]
-                            ytd_ret = ((p - ytd_start) / ytd_start) * 100
-                            ytd_str = f"+{ytd_ret:.1f}%" if ytd_ret > 0 else f"{ytd_ret:.1f}%"
-                            ytd_col = "#2ecc71" if ytd_ret > 0 else "#ff7675"
-                            has_ytd = True
-                        else:
-                            ytd_str = "N/A"
-                            ytd_col = "#8892b0"
-                    except:
+                try:
+                    hist_ytd = stk.history(period="ytd")
+                    if not hist_ytd.empty and len(hist_ytd) >= 2:
+                        ytd_start = hist_ytd['Close'].iloc[0]
+                        ytd_ret = ((p - ytd_start) / ytd_start) * 100
+                        ytd_str = f"+{ytd_ret:.1f}%" if ytd_ret > 0 else f"{ytd_ret:.1f}%"
+                        ytd_col = "#2ecc71" if ytd_ret > 0 else "#ff7675"
+                        has_ytd = True
+                    else:
                         ytd_str = "N/A"
                         ytd_col = "#8892b0"
-                else:
+                except:
                     ytd_str = "N/A"
                     ytd_col = "#8892b0"
 
@@ -1494,7 +1452,7 @@ with tab1:
                 op_m = safe_float(i.get('operatingMargins')) * 100
                 current_ratio = safe_float(i.get('currentRatio'))
                 
-                if (op_m == 0.0 or gross_m == 0.0) and not is_unlisted_or_special:
+                if (op_m == 0.0 or gross_m == 0.0):
                     try:
                         inc = stk.income_stmt
                         if inc is not None and not inc.empty and 'Total Revenue' in inc.index:
@@ -1506,7 +1464,7 @@ with tab1:
                                     gross_m = (safe_float(inc.loc['Gross Profit'].iloc[0]) / rev_val) * 100
                     except: pass
 
-                if current_ratio == 0.0 and not is_unlisted_or_special:
+                if current_ratio == 0.0:
                     try:
                         bs = stk.balance_sheet
                         if bs is not None and not bs.empty and 'Current Assets' in bs.index and 'Current Liabilities' in bs.index:
@@ -1519,66 +1477,65 @@ with tab1:
                 opm_eval = f"<span class='good'>{t('탁월한 비즈니스', 'Excellent Business')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e;'>{t('보통', 'Average')}</span>" if op_m >= 8 else f"<span class='highlight'>{t('수익성 경고', 'Poor Profitability')}</span>")
                 cr_eval = f"<span class='good'>{t('불황 대비 완벽 (유동자산 풍부)', 'Crisis-Ready (Highly Liquid)')}</span>" if current_ratio >= 1.5 else (f"<span style='color:#74b9ff;'>{t('안전', 'Safe')}</span>" if current_ratio >= 1.0 else f"<span class='highlight'>{t('단기 유동성/외부조달 위험', 'Liquidity Risk')}</span>")
                 
-                if (gross_m == 0.0 and op_m == 0.0) or is_unlisted_or_special: gm_eval, opm_eval = "N/A", "N/A"
-                if current_ratio == 0.0 or is_unlisted_or_special: cr_eval = "N/A"
+                if (gross_m == 0.0 and op_m == 0.0): gm_eval, opm_eval = "N/A", "N/A"
+                if current_ratio == 0.0: cr_eval = "N/A"
 
                 if is_financial:
                     cr_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외 (수신금 기반)', 'N/A for Financials')}</span>"
                     gm_eval = f"<span style='color:#8892b0;'>{t('금융주 적용 제외', 'N/A')}</span>"
 
                 bio_eval = f"<span style='color:#8892b0'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
-                if not is_unlisted_or_special:
-                    try:
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty:
-                            debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
-                            eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
+                try:
+                    bs = stk.balance_sheet
+                    if bs is not None and not bs.empty:
+                        debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
+                        eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
+                        
+                        if debt_col and eq_col:
+                            debts = bs.loc[debt_col].dropna().values[:4][::-1]
+                            equities = bs.loc[eq_col].dropna().values[:4][::-1]
                             
-                            if debt_col and eq_col:
-                                debts = bs.loc[debt_col].dropna().values[:4][::-1]
-                                equities = bs.loc[eq_col].dropna().values[:4][::-1]
+                            if len(debts) > 0 and len(equities) > 0:
+                                curr_d = debts[-1]
+                                curr_e = equities[-1]
                                 
-                                if len(debts) > 0 and len(equities) > 0:
-                                    curr_d = debts[-1]
-                                    curr_e = equities[-1]
-                                    
-                                    if curr_e > 0:
-                                        curr_de = (curr_d / curr_e) * 100
-                                        trend_text = ""
-                                        if len(debts) >= 2 and len(equities) >= 2:
-                                            past_e = equities[0]
-                                            past_d = debts[0]
-                                            if past_e > 0:
-                                                past_de = (past_d / past_e) * 100
-                                                if curr_de < past_de - 5:
-                                                    trend_text = t(f"최근 {len(debts)}년 부채 감소 추세", f"{len(debts)}Y Declining debt")
-                                                elif curr_de > past_de + 5:
-                                                    trend_text = t(f"최근 {len(debts)}년 부채 증가 추세", f"{len(debts)}Y Increasing debt")
-                                                else:
-                                                    trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
-                                        
-                                        if is_financial:
-                                            t_ko = f"[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
-                                            t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
-                                            bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
-                                        else:
-                                            if curr_de < 50:
-                                                t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다."
-                                                t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
-                                                bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
-                                            elif curr_de < 120:
-                                                t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다."
-                                                t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
-                                                bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
+                                if curr_e > 0:
+                                    curr_de = (curr_d / curr_e) * 100
+                                    trend_text = ""
+                                    if len(debts) >= 2 and len(equities) >= 2:
+                                        past_e = equities[0]
+                                        past_d = debts[0]
+                                        if past_e > 0:
+                                            past_de = (past_d / past_e) * 100
+                                            if curr_de < past_de - 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 감소 추세", f"{len(debts)}Y Declining debt")
+                                            elif curr_de > past_de + 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 증가 추세", f"{len(debts)}Y Increasing debt")
                                             else:
-                                                t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다."
-                                                t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
-                                                bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                                                trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
+                                    
+                                    if is_financial:
+                                        t_ko = f"[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
+                                        t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
+                                        bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
                                     else:
-                                        t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
-                                        t_en = "[Danger] Capital impairment detected. Fatal survival risk."
-                                        bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                    except: pass
+                                        if curr_de < 50:
+                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다."
+                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
+                                            bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
+                                        elif curr_de < 120:
+                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다."
+                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
+                                            bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
+                                        else:
+                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다."
+                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
+                                            bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                                else:
+                                    t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
+                                    t_en = "[Danger] Capital impairment detected. Fatal survival risk."
+                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                except: pass
 
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
@@ -1600,12 +1557,7 @@ with tab1:
 
                 st.divider()
 
-                if is_unlisted_or_special:
-                    beginner_summary = t(
-                        f"<b>초보자 가이드:</b> <b>{i.get('shortName', tk)}</b>는 현재 비상장이거나 지배구조 분할을 앞둔 특수 기업입니다. 실시간 수치 지표보다는 <b>경영진의 도덕성, 브랜드 파워, 해자(Moat) 및 소송 리스크</b>를 정성적으로 검증하는 것이 필수적입니다.",
-                        f"<b>Beginner Guide:</b> <b>{i.get('shortName', tk)}</b> is unlisted or subject to corporate restructuring. Focus on qualitative moat and governance scrutiny."
-                    )
-                elif is_financial:
+                if is_financial:
                     beginner_summary = t(
                         f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융/보험사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다. 현재 기업의 장부상 자산 가치 대비 <b>{pbr:.2f}배</b>(PBR)의 가격표가 붙어 있습니다.",
                         f"<b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (Fwd PE), equity grows at <b>{roe:.1f}%/yr</b> (ROE), and priced at <b>{pbr:.2f}x</b> its book value (PBR)."
@@ -1649,10 +1601,7 @@ with tab1:
                 elif pmos_val > -20: per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (할증 구간)</span>"
                 else: per_mos_str = f"<span class='highlight'>[매우 주의] {pmos_val:.1f}% (과도한 고평가)</span>"
 
-                if is_unlisted_or_special:
-                    rr_eval = f"<span style='color:#8892b0;'>{t('비상장 기업 (재무제표 미공시)', 'Unlisted')}</span>"
-                    ey_str = f"0.00% <span style='color:#8892b0;'>({t('비상장', 'Unlisted')})</span>"
-                elif is_financial:
+                if is_financial:
                     if roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 탁월한 자본 효율성', '[Very Pass] Excellent Efficiency')}</span>"
                     elif roe >= 10: rr_eval = f"<span class='good'>{t('[합격] 우수한 수익성', '[Pass] Good Profitability')}</span>"
                     elif roe >= 8: rr_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 준수한 수익성', '[Slight Pass] Decent Profitability')}</span>"
@@ -1667,11 +1616,10 @@ with tab1:
                     elif roe >= 0 and roic_val >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 비효율적인 자본 운용', '[Warning] Inefficient Capital')}</span>"
                     else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 사업 구조 훼손', '[Very Warning] Severe Structural Damage')}</span>"
                     
-                if not is_unlisted_or_special:
-                    if erp > 0:
-                        ey_str = f"{ey:.2f}% <span class='good'>(국채 이김! +{erp:.2f}%p 수익률 추가 우위/할인)</span>"
-                    else:
-                        ey_str = f"{ey:.2f}% <span class='highlight'>(국채에 짐! {abs(erp):.2f}%p 매력도 열위/할증)</span>"
+                if erp > 0:
+                    ey_str = f"{ey:.2f}% <span class='good'>(국채 이김! +{erp:.2f}%p 수익률 추가 우위/할인)</span>"
+                else:
+                    ey_str = f"{ey:.2f}% <span class='highlight'>(국채에 짐! {abs(erp):.2f}%p 매력도 열위/할증)</span>"
 
                 c1, c2 = st.columns(2)
                 with c1:
@@ -1697,9 +1645,7 @@ with tab1:
                 st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
                 
                 p_txt = ""
-                if is_unlisted_or_special:
-                    p_txt += f"- 가격 측면: <span style='color:#8892b0;'>[비상장 / 장외] 시장 거래가 미형성 상태입니다.</span>\n"
-                elif pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
@@ -1714,7 +1660,7 @@ with tab1:
                     elif pbr <= 1.2: p_txt += f"- PBR 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pbr:.2f}배)</span>"
                     elif pbr <= 1.5: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배)</span>"
                     else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배)</span>"
-                elif not is_unlisted_or_special:
+                else:
                     if mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>"
@@ -1723,20 +1669,16 @@ with tab1:
                     elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
                     else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
 
-                if is_unlisted_or_special:
-                    biz_eval = f"<span style='color:#74b9ff;'>{t('[검증 진행 중] 강력한 브랜드/기술 해자 보유', '[In Progress] Strong brand/technology moat')}</span>"
-                    math_eval = f"<span style='color:#8892b0;'>{t('공시된 장기 FCF 데이터 부재로 복리 추정 유보', 'CAGR estimation reserved')}</span>"
-                else:
-                    if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
-                    elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
-                    elif roe >= 10: biz_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
-                    elif roe >= 5: biz_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
-                    elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
-                    else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
+                if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
+                elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
+                elif roe >= 10: biz_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
+                elif roe >= 5: biz_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
+                elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
+                else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
 
-                    if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
-                    elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
-                    else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
+                if final_g >= 0.08: math_eval = f"<span class='good'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장하며 복리 모형 탑승 중.', f'[Pass] Growing at {final_g*100:.1f}% CAGR, riding the compound model.')}</span>"
+                elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
+                else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
 
                 st.markdown(t("**[가격 및 수학] 안전마진과 복리 모형**", "**[Price & Math] Margin of Safety & Compounding**"))
                 st.markdown(p_txt, unsafe_allow_html=True)
@@ -1764,9 +1706,7 @@ with tab1:
                     "• <b>Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last available cash flow trends."
                 )
                 
-                if is_unlisted_or_special:
-                    st.info(t("비상장 / 분할 상장 예정 법인은 공시된 재무제표가 확정된 후 DCF 내재가치 연산이 활성화됩니다.", "DCF model will be enabled after public financial statements are filed."))
-                elif is_financial:
+                if is_financial:
                     st.write(f"- **{t('추정 적정가 (DCF)', 'Estimated Fair Value (DCF)')}:** {t('금융 및 보험주는 사업 특성상 고객 예치금/지급준비금이 현금흐름표에 대규모로 부채 처리되어 FCF의 기형적 왜곡이나 착시 적자가 발생합니다. 따라서 본 분석기 매커니즘 상 무의미한 DCF 연산을 강제 차단하고, PBR 기반 자산가치 필터링 시스템으로 완벽 대체하여 의견을 도출했습니다.', 'DCF model disabled due to financial accounting distortions. Intrinsic worth cross-evaluated using PBR metrics instead.')}")
                 elif iv:
                     st.markdown(f"<div style='background: rgba(160, 196, 255, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #A0C4FF; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
@@ -1875,7 +1815,7 @@ with tab1:
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                     else:
-                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다 (비상장 또는 데이터 미제공).", "Visualization data not available."))
+                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다 (데이터 미제공).", "Visualization data not available."))
                 except Exception as e:
                     st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
 
@@ -1899,15 +1839,13 @@ with tab1:
                                     st.markdown(f"- [{item['title']}]({item['link']}) *(출처: {item['publisher']})*")
                             else:
                                 st.caption(t("최근 뉴스가 존재하지 않습니다.", "No recent news found."))
-                        elif not is_unlisted_or_special:
+                        else:
                             news_items = fetch_global_news(tk)
                             if news_items:
                                 for item in news_items:
                                     st.markdown(f"- [{tr_text(item['title'])}]({item['link']}) *(출처: {item['publisher']})*")
                             else:
                                 st.caption(t("최근 뉴스가 존재하지 않습니다.", "No recent news found."))
-                        else:
-                            st.caption(t("비상장 / 분할 상장 예정 기업으로 글로벌 증권 뉴스 피드가 제한적입니다.", "News feed is limited for unlisted entities."))
                     except:
                         st.caption(t("뉴스 피드를 연동하지 못했습니다.", "Failed to load real-time news feed."))
 
@@ -1931,10 +1869,7 @@ with tab1:
                 clean_eps_trend = strip_html(eps_trend)
                 clean_bps_trend = strip_html(bps_trend)
                 
-                if is_unlisted_or_special:
-                    share_fv = t('비상장 / 분할 상장 예정 (정성 평가 전용)', 'Unlisted (Qualitative Only)')
-                    share_mos = t('해당 없음', 'N/A')
-                elif is_financial:
+                if is_financial:
                     share_fv = t('금융/보험주 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
                     share_mos = t('해당 없음', 'N/A')
                 else:
