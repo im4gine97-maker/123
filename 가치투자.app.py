@@ -2314,4 +2314,72 @@ with tab5:
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
     phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
-    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10저는 언어 모델일 뿐이라 그것에 필요한 정보나 능력이 없어서 도와드릴 수가 없습니다.
+    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
+    phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
+    
+    phil_decl_ko = (
+        "> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>"
+        "오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. "
+        "수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>"
+        "**AGIE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>"
+        "우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, "
+        "경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>"
+        "이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 "
+        "가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>"
+        "**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 AGIE와 함께 하십시오.**"
+    )
+    
+    phil_decl_en = (
+        "> **A Compass for 'True Investment', Not Speculation**<br><br>"
+        "Today's stock market is filled with sensational news, short-term chart movements, and endless noise. "
+        "Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>"
+        "**AGIE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>"
+        "We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value "
+        "based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>"
+        "This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly "
+        "based strictly on data and logic, free from emotion.<br><br>"
+        "**Join AGIE on the journey to becoming a true investor who contributes to society, not a speculator.**"
+    )
+    
+    phil_decl = t(phil_decl_ko, phil_decl_en)
+
+    st.subheader(phil_title1)
+    st.write(phil_p1)
+    st.write(phil_p2)
+    
+    st.divider()
+    st.subheader(phil_title2)
+    st.markdown(f"- {phil_li1}")
+    st.markdown(f"- {phil_li2}")
+    st.markdown(f"- {phil_li3}")
+    st.markdown(f"- {phil_li4}")
+    st.markdown(f"- {phil_li5}")
+    
+    st.divider()
+    st.subheader(phil_title3)
+    
+    st.markdown(
+        f"<div style='font-size: 1.1rem; line-height: 1.8; "
+        f"background: rgba(255,255,255,0.03); padding: 30px; border-radius: 16px; "
+        f"border-left: 5px solid #A0C4FF; color: var(--text-color); "
+        f"box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>", 
+        unsafe_allow_html=True
+    )
+
+# 하단 면책 조항 및 카피라이트 
+st.divider()
+lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
+lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
+lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+
+st.markdown(f"""
+<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
+    <p><b>{lbl_disc_title}</b><br>
+    {lbl_disc_1}<br>
+    {lbl_disc_2}</p>
+    <p><b>[Copyright]</b><br>
+    ⓒ 2026 AGIE. All rights reserved.<br>
+    {lbl_copy}</p>
+</div>
+""", unsafe_allow_html=True)
