@@ -405,7 +405,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     db = {
         "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 강력한 브랜드 파워를 보유한 기업입니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 타격을 입은 이력이 있습니다.",
         "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
-        "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 2026년 역사적인 나스닥 상장(IPO)을 통해 대규모 자본을 조달했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업이 휘둘리는 극심한 '키맨 리스크', 거대한 우주 및 AI(xAI) 인프라 투자로 인한 잉여현금흐름(FCF) 적자 압박, 미 연방항공청(FAA)과의 잦은 규제 마찰이 상존합니다.",
+        "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 2026년 역사적인 나스닥 상장(IPO)을 통해 대규모 자본을 조달했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업이 휘둘리는 극심한 '키맨 리스크', 거대한 우주 및 AI(xAI) 인프라 투자로 인한 잉여현금흐름(FCF) 적자 압박, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 부당 해고 소송 등 노무 리스크가 상존합니다.",
         
         "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
         "MRVL": "마벨 테크놀로지 (경영자: 맷 머피): 광통신(PAM4 DSP) 및 데이터센터 네트워킹 칩 분야의 독보적 강자로, 빅테크용 맞춤형 AI 칩(ASIC) 설계를 통해 인공지능 인프라 기업으로 완벽히 체질을 개선했습니다.\n단점 및 리스크: 과거(현 경영진 이전) 스톡옵션 백데이팅 등 회계 부정 스캔들 이력이 있으며, 클라우드를 제외한 전통적인 통신장비 및 엔터프라이즈 전방 산업의 수요 침체 타격을 크게 받습니다.",
@@ -893,24 +893,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    if any(k in ceo_text for k in ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원"]):
+    # 1. 경영진 및 거버넌스 가점/감점 (장단점 업데이트 반영)
+    positive_keywords_20 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
+    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준"]
+    
+    if any(k in ceo_text for k in positive_keywords_20):
         ceo_score += 20
-    elif any(k in ceo_text for k in ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한"]):
+    elif any(k in ceo_text for k in positive_keywords_10):
         ceo_score += 10
     else:
         ceo_score += 5 
         
-    if any(k in ceo_text for k in ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]):
+    negative_keywords_25 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
+    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경"]
+    negative_keywords_5 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰"]
+    
+    if any(k in ceo_text for k in negative_keywords_25):
         ceo_score -= 25
-        
-    if any(k in ceo_text for k in ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크"]):
+    if any(k in ceo_text for k in negative_keywords_15):
         ceo_score -= 15
-        
-    if any(k in ceo_text for k in ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "침체", "잠식", "만료", "포화"]):
+    if any(k in ceo_text for k in negative_keywords_5):
         ceo_score -= 5
         
-    score += max(-20, min(20, ceo_score))
+    score += max(-25, min(25, ceo_score))
         
+    # 2. 가격 매력도 (PER/DCF)
     if pmos >= 30: score += 25
     elif pmos >= 15: score += 15
     elif pmos >= 5: score += 5
@@ -918,6 +925,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif pmos < -10: score -= 15
     elif pmos < 0: score -= 5
 
+    # 3. 자본 효율성 (ROIC 넉넉하게 변경)
     if is_financial:
         if roe >= 15: score += 25
         elif roe >= 10: score += 15
@@ -938,11 +946,12 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif roe < 5: score -= 15
         elif roe < 10: score -= 10
         
-        if roic and roic >= 15: score += 15
-        elif roic and roic >= 10: score += 10
-        elif roic and roic >= 7: score += 5
-        elif roic and roic < 3: score -= 15
-        elif roic and roic < 7: score -= 10
+        if roic and roic >= 15: score += 25
+        elif roic and roic >= 10: score += 15
+        elif roic and roic >= 7: score += 10
+        elif roic and roic >= 5: score += 5
+        elif roic and roic < 3: score -= 10
+        elif roic and roic < 5: score -= 5
         
         if mos >= 30: score += 25
         elif mos >= 15: score += 15
@@ -951,20 +960,23 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif mos < -10: score -= 15
         elif mos < 0: score -= 5
 
-    if erp >= 4: score += 25
-    elif erp >= 2: score += 15
+    # 4. ERP (채권 대비 매력도) 점수 깎기
+    if erp >= 4: score += 15
+    elif erp >= 2: score += 10
     elif erp >= 1: score += 5
-    elif erp < -1: score -= 25
-    elif erp < 0: score -= 15
+    elif erp < -1: score -= 15
+    elif erp < 0: score -= 10
     elif erp < 1: score -= 5
 
-    if final_g >= 0.15: score += 25
-    elif final_g >= 0.08: score += 15
+    # 5. 10년 복리 성장성 (CAGR) 점수 깎기
+    if final_g >= 0.15: score += 15
+    elif final_g >= 0.08: score += 10
     elif final_g >= 0.05: score += 5
-    elif final_g < 0.0: score -= 25
-    elif final_g < 0.03: score -= 15
+    elif final_g < 0.0: score -= 15
+    elif final_g < 0.03: score -= 10
     elif final_g < 0.05: score -= 5
 
+    # 디스카운트 및 시클리컬
     chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     tk_upper = str(tk).upper()
     is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
@@ -974,6 +986,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif is_china:
         score -= 20
 
+    # 시클리컬 감점 확대 (30 -> 40)
     is_cyclical = any(k in ceo_text for k in [
         "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
         "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
@@ -981,7 +994,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
     ])
     if is_cyclical:
-        score -= 30
+        score -= 40
 
     if score >= 90:
         title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
@@ -1647,7 +1660,7 @@ with tab1:
                 p_txt = ""
                 if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
                 elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
                 elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
