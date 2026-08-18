@@ -1667,11 +1667,6 @@ with tab1:
                 st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                st.markdown(t("**[경영 및 심리학] 지배구조와 인지적 오판 점검**", "**[Management & Psychology] Governance & Misjudgment**"))
-                st.write(t("- 경영진 신뢰도: 아래 질적 분석 리포트 참조 (경영진의 정직성과 자본 배분 효율성 확인 필수)", "- Management Trust: Refer to Qual Analysis below (Check integrity & capital allocation)"))
-                st.write(t("- 심리학 및 능력 범위: 나의 투자가 '확증 편향'이나 '포모(FOMO)'에 의한 것은 아닌지, 비즈니스 모델을 타인에게 쉽게 설명할 수 있는지 점검하십시오.", "- Psychology & Competence: Ensure investment is free from confirmation bias/FOMO, and you can easily explain the business model."))
-                st.write(t("- 파급력 및 리스크: 주가 하락이 단순한 미스터 마켓의 우울증인지, 기술 변화 등에 의한 영구적 손상인지 파악하십시오.", "- Impact & Risk: Determine if price drops are temporary Mr. Market depression or permanent damage from technological shifts."))
-
                 st.divider()
 
                 st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
