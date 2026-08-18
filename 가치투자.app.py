@@ -1037,7 +1037,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
     # =========================================================================
-    # [4] DCF 안전마진(MoS) 점수 (독립 분리) - 금융주는 완전히 배제
+    # [4] DCF 안전마진(MoS) 점수 (독립 분리, 가중치 하향: 최대 15점 ~ 최소 -15점)
     # =========================================================================
     dcf_score = 0
     if not is_financial:
@@ -1770,7 +1770,7 @@ with tab1:
 
                 if is_financial:
                     beginner_summary = t(
-                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융사를 사면, 기업의 자본 대비 프리미엄을 <b>{pbr:.2f}배</b>(PBR) 지불하게 됩니다. 현재 회사는 이 돈을 굴려 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
+                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융사를 사면, 기업의 자산 대비 프리미엄을 <b>{pbr:.2f}배</b>(PBR) 지불하게 됩니다. 현재 회사는 이 자본을 굴려 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
                         f"<b>Beginner Guide:</b> If you buy this financial stock for <b>{p_str}</b>, you pay <b>{pbr:.2f}x</b> its book value (PBR). The company currently grows its equity at <b>{roe:.1f}%/yr</b> (ROE)."
                     )
                 else:
@@ -1805,7 +1805,7 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
 
                 if is_financial:
-                    per_mos_str = f"<span style='color:#8892b0;'>{t('[평가 제외] 금융주는 PBR 및 ROE로만 평가합니다.', '[N/A] Financials evaluated solely on PBR/ROE.')}</span>"
+                    per_mos_str = ""
                 else:
                     if pmos_val >= 30: per_mos_str = f"<span class='good'>[매우 합격] +{pmos_val:.1f}% (과거 대비 극심한 저평가)</span>"
                     elif pmos_val >= 15: per_mos_str = f"<span class='good'>[합격] +{pmos_val:.1f}% (안전마진 확보)</span>"
@@ -1831,7 +1831,7 @@ with tab1:
                     else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 사업 구조 훼손', '[Very Warning] Severe Structural Damage')}</span>"
                     
                 if is_financial:
-                    ey_str = f"<span style='color:#8892b0;'>{t('[평가 제외] 금융주는 적용하지 않습니다.', '[N/A] Not applied for Financials.')}</span>"
+                    ey_str = ""
                 else:
                     if erp > 0:
                         ey_str = f"{ey:.2f}% <span class='good'>(국채 이김! +{erp:.2f}%p 수익률 추가 우위/할인)</span>"
@@ -1846,14 +1846,17 @@ with tab1:
                         st.markdown(f"- **ROE {t('(자본수익률 - 금융주 핵심지표)', '(Equity Return)')}:** {roe:.2f}% ➔ {rr_eval}", unsafe_allow_html=True)
                     else:
                         st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
+                    
                     st.write(f"- **{t('현재 PER (참고용)', 'Current PE (Ref)')}:** {t_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('Fwd PER (미래 1년 기준)', 'Fwd PE (Next 1Y)')}:** {f_pe:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
                 with c2:
-                    st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
+                    if not is_financial:
+                        st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
                     st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
                     st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
-                    st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
+                    if not is_financial:
+                        st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('일차트 RSI (기술적 보조지표)', 'Daily RSI (Technical Indicator)')}:** {rsi_html}", unsafe_allow_html=True)
@@ -1867,7 +1870,6 @@ with tab1:
                 
                 p_txt = ""
                 if is_financial:
-                    p_txt += f"- PER 측면: <span style='color:#8892b0;'>{t('[해당 없음] 금융주 적용 제외', '[N/A] Excluded for Financials')}</span>\n"
                     if pbr <= 0.6: p_txt += f"- PBR 측면: <span class='good'>[매우 합격] ({pbr:.2f}배)</span>"
                     elif pbr <= 0.9: p_txt += f"- PBR 측면: <span class='good'>[합격] ({pbr:.2f}배)</span>"
                     elif pbr <= 1.0: p_txt += f"- PBR 측면: <span style='color:#74b9ff;'>[약간 합격] ({pbr:.2f}배)</span>"
@@ -1933,7 +1935,7 @@ with tab1:
                 )
                 
                 if is_financial:
-                    st.markdown(f"<div style='background: rgba(255, 118, 117, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #ff7675; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 및 PER 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 필터링 시스템으로 완벽 대체</b>하여 안전마진을 평가했습니다.', '<b>[N/A]</b> DCF and PE models are disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background: rgba(255, 118, 117, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #ff7675; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
                 elif iv:
                     st.markdown(f"<div style='background: rgba(160, 196, 255, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #A0C4FF; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
                     
@@ -2092,16 +2094,18 @@ with tab1:
                 def strip_html(h_str):
                     return re.sub(r'<[^>]+>', '', h_str)
                 
-                clean_per_mos = strip_html(per_mos_str)
                 clean_biz_eval = strip_html(biz_eval)
                 clean_eps_trend = strip_html(eps_trend)
                 clean_bps_trend = strip_html(bps_trend)
                 
                 if is_financial:
-                    share_fv = t('금융/보험주 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
+                    share_fv = t('금융주 적용 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
                     share_mos = t('해당 없음', 'N/A')
-                    biz_summary_str = f"- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 효율 (ROE/PBR 기준): {clean_biz_eval}"
+                    biz_summary_str = f"- 자산가치(PBR): {pbr:.2f}배\n- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 효율 (ROE/PBR 기준): {clean_biz_eval}"
+                    clean_p_txt = strip_html(p_txt).strip()
+                    share_val_summary = f"- 가격 매력도 (PBR 기준): {clean_p_txt}"
                 else:
+                    clean_per_mos = strip_html(per_mos_str)
                     biz_summary_str = f"- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}"
                     if iv:
                         share_fv = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
@@ -2109,6 +2113,7 @@ with tab1:
                     else:
                         share_fv = t("계산 불가 (FCF 적자 등)", "N/A (Negative FCF)")
                         share_mos = t("계산 불가", "N/A")
+                    share_val_summary = f"- 가격 매력도 (PER 기준): {clean_per_mos}"
 
                 share_ko = f"""[AGIE 가치투자 분석 리포트]
 기업명: {i.get('shortName', tk)} ({tk})
@@ -2120,14 +2125,13 @@ AI 종합 투자의견: {op_title}
 - 안전마진(MoS): {share_mos}
 {biz_summary_str}
 - 본전회수기간(Fwd PER): {f_pe:.1f}배 (과거평균: {a_pe:.1f}배)
-- 주식 위험 프리미엄(ERP): {erp:.2f}%p (국채 대비 주식 매력도)
 - 장기 BPS 성장: {clean_bps_trend}
 
 AI 핵심 요약
 {op_reason}
 
 투자 검증 요약
-- 가격 매력도 (PER 기준): {clean_per_mos}
+{share_val_summary}
 """
                 share_en = f"""[AGIE Value Investing Report]
 Company: {i.get('shortName', tk)} ({tk})
@@ -2139,14 +2143,13 @@ Core Valuation Metrics
 - Margin of Safety (MoS): {share_mos}
 {biz_summary_str}
 - Fwd PE: {f_pe:.1f}x (Hist Avg: {a_pe:.1f}x)
-- Equity Risk Premium (ERP): {erp:.2f}%p
 - Long-term BPS Growth: {clean_bps_trend}
 
 AI Core Summary
 {op_reason}
 
 Verification Summary
-- Price Attractiveness (PE): {clean_per_mos}
+{share_val_summary}
 """
                 st.code(t(share_ko, share_en), language="text")
 
