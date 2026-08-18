@@ -1403,21 +1403,39 @@ with tab1:
                     i = {}
 
                 # =====================================================================
-                # [금융/보험주 강력 탐지 로직] 야후파이낸스 섹터 누락 대비
+                # [금융/보험주 강력 탐지 로직 개선] 미국/한국 전 종목 커버
                 # =====================================================================
                 sector_str = str(i.get('sector', '')).lower()
                 industry_str = str(i.get('industry', '')).lower()
+                summary_str = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
                 
-                is_financial = 'financial' in sector_str or 'bank' in industry_str or 'insurance' in industry_str or 'capital' in industry_str or 'credit' in industry_str or 'securities' in industry_str
+                # 1. 영문 섹터/산업 키워드 (미국 주식 및 yfinance 제공 데이터)
+                eng_fin_keywords = ['financial', 'bank', 'insurance', 'capital market', 'credit service', 'securities', 'asset management', 'investment']
+                is_eng_fin = any(kw in sector_str or kw in industry_str for kw in eng_fin_keywords)
                 
-                # 한국 주요 금융(지주, 은행, 증권, 보험, 카드) 티커 하드코딩
+                # 2. 기업 요약(Summary) 내부 한국어/영어 키워드 감지 (yfinance 섹터 누락 대비)
+                kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
+                is_kor_fin = any(kw in summary_str for kw in kor_fin_keywords)
+                is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
+
+                # 3. 미국 주요 금융주 티커 하드코딩 (안전망)
+                us_fin_tickers = [
+                    "JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A",
+                    "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF",
+                    "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"
+                ]
+                
+                # 4. 한국 주요 금융주 티커 하드코딩 (기존 안전망 유지 + 중소형주 확대)
                 kr_fin_tickers = [
                     "105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", 
                     "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", 
-                    "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS"
+                    "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS",
+                    "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"
                 ]
-                if tk in kr_fin_tickers:
-                    is_financial = True
+
+                # 종합 판별 (티커는 대문자로 변환 후 비교)
+                tk_upper = str(tk).upper()
+                is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
                 # =====================================================================
                 
                 c_title, c_star = st.columns([4, 1])
