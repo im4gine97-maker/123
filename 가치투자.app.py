@@ -226,7 +226,7 @@ fallback_13f_data = {
         {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 10.50},
         {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 9.50}
     ],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "Copart Inc": "CPRT", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
     "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
@@ -472,7 +472,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "096770": "SK이노베이션 (박상규): 정유 부문을 바탕으로 자회사 SK E&S와의 합병 등 그룹 리밸런싱의 총대를 멨습니다.\n리스크: 배터리 자회사(SK온)의 수율 정상화 지연과 흑자 전환 실패에 따른 모기업의 재무적 과부하. (이건 확인이 필요한 부분입니다)",
         "329180": "HD현대중공업 (이상균): 선별 수주 전략과 친환경 엔진 기술력으로 조선업 슈퍼 사이클을 리드 중입니다.\n리스크: 고질적인 조선소 현장 생산 인력 난과 잦은 부분 파업에 따른 공정 지연 패널티. (이건 확인이 필요한 부분입니다)",
         "011200": "HMM (김경배): 팬데믹 시기 벌어들인 막대한 현금을 방어하며 해운동맹(얼라이언스) 재편에 대응 중입니다.\n리스크: 지정학적 갈등에 따른 극단적 운임 변동성 및 최대주주(산은/해진공)의 민영화 매각 실패에 따른 표류. (이건 확인이 필요한 부분입니다)",
-        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MB 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
+        "010130": "고려아연 (최윤범): 글로벌 1위 제련업에 머물지 않고 신재생·2차전지 소재 산업으로 투자를 확대했습니다.\n리스크: 대주주 영풍그룹 및 MBK 파트너스와의 경영권 분쟁 격화에 따른 피로감과 과도한 자금 출혈. (이건 확인이 필요한 부분입니다)",
         "033780": "KT&G (방경만): 행동주의 펀드의 압박 속에서 비주력 자산 매각 및 주주환원 확대를 이끌어냈습니다.\n리스크: 궐련형 전자담배 수출 성장에도 불구하고 환율 및 현지 판관비 증가에 따른 단기 마진 하락. (이건 확인이 필요한 부분입니다)",
         "034020": "두산에너빌리티 (박지원): 원전 수주 등 본업의 기술적 해 외는 명확하나 그룹 체스판의 희생양 논란이 있습니다.\n리스크: 수익성 높은 자회사(두산밥캣)를 타 계열사로 넘기려는 지배구조 개편 추진으로 인한 주주가치 훼손 전력. (이건 확인이 필요한 부분입니다)",
         "009150": "삼성전기 (장덕현): IT 기기용 MLCC 의존도를 줄이고 AI 서버 및 전장용 고부가가치 부품 비중을 늘렸습니다.\n리스크: 여전히 높은 스마트폰 전방 산업에 대한 수요 민감도. (이건 확인이 필요한 부분입니다)",
@@ -936,7 +936,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g < 0.03: score -= 15
     elif final_g < 0.05: score -= 5
 
-    is_cyclical = any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화석 연료", "조선", "해운", "운임", "원자재", "건설", "메모리"])
+    # 🚀 시클리컬 기업 판단 범위 확장 및 페널티 대폭 강화 (-15 -> -50)
+    is_cyclical = any(k in ceo_text for k in [
+        "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
+        "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
+        "메모리", "반도체", "디스플레이", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", 
+        "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
+    ])
     if is_cyclical:
         score -= 50
 
@@ -1252,7 +1258,7 @@ with tab1:
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
                 
-                # EPS 정보가 없을 경우, 장마감 주가와 기존 PER을 이용해 EPS를 역산해둡니다.
+                # EPS 정보가 없을 경우, 장마감 주가와 기존 PER을 이용해 EPS 역산
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
@@ -1271,7 +1277,7 @@ with tab1:
                     pbr = p / bv
                 else:
                     if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)  # 주가 변동 비율만큼 PBR도 미세조정
+                        pbr = pbr * (p / reg_p)  # 주가 변동 비율만큼 PBR 미세조정
                     elif pbr == 0.0:
                         try:
                             bs = stk.balance_sheet
@@ -1542,7 +1548,6 @@ with tab1:
                 st.subheader(t("1. 핵심 밸류에이션 및 재무 지표", "1. Core Valuation & Financials"))
                 st.markdown(f"<div style='background: linear-gradient(to right, rgba(160, 196, 255, 0.1), rgba(255, 198, 255, 0.05)); padding:18px 22px; border-radius:16px; margin-bottom:20px; font-size:1.05rem; color:var(--text-color); line-height:1.6; border-left: 4px solid #A0C4FF;'>{beginner_summary}</div>", unsafe_allow_html=True)
                 
-                # 전문적인 UI 패널 출력 (기존 섹션 2에서 이동)
                 st.markdown(f"""
                 <div style='display: flex; gap: 15px; flex-wrap: wrap;'>
                     <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
@@ -1661,6 +1666,11 @@ with tab1:
                 st.markdown(f"- 비즈니스 수익성: {biz_eval}", unsafe_allow_html=True)
                 st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
                 st.markdown("<br>", unsafe_allow_html=True)
+
+                st.markdown(t("**[경영 및 심리학] 지배구조와 인지적 오판 점검**", "**[Management & Psychology] Governance & Misjudgment**"))
+                st.write(t("- 경영진 신뢰도: 아래 질적 분석 리포트 참조 (경영진의 정직성과 자본 배분 효율성 확인 필수)", "- Management Trust: Refer to Qual Analysis below (Check integrity & capital allocation)"))
+                st.write(t("- 심리학 및 능력 범위: 나의 투자가 '확증 편향'이나 '포모(FOMO)'에 의한 것은 아닌지, 비즈니스 모델을 타인에게 쉽게 설명할 수 있는지 점검하십시오.", "- Psychology & Competence: Ensure investment is free from confirmation bias/FOMO, and you can easily explain the business model."))
+                st.write(t("- 파급력 및 리스크: 주가 하락이 단순한 미스터 마켓의 우울증인지, 기술 변화 등에 의한 영구적 손상인지 파악하십시오.", "- Impact & Risk: Determine if price drops are temporary Mr. Market depression or permanent damage from technological shifts."))
 
                 st.divider()
 
@@ -2052,7 +2062,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
