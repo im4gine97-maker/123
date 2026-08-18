@@ -496,9 +496,10 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "PEP": "펩시코 (경영자: 라몬 라구아르타): 프리토레이 스낵과 음료 포트폴리오의 탄탄한 시장 지배력 및 강력한 가격 전가력.\n단점 및 리스크: 과도한 가격 인상(그리드플레이션)에 따른 유럽 대형마트 퇴출 사태, 플라스틱 공해 피소 및 북미 판매량 둔화."
     }
     
-    for key, text in db.items():
-        if key in tk_clean or (len(cd_clean) == 6 and key == cd_clean):
-            return text
+    if cd_clean in db:
+        return db[cd_clean]
+    if tk_clean in db:
+        return db[tk_clean]
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
 
@@ -1257,7 +1258,7 @@ with tab1:
 
                 if tk.upper() == "SPACEX" or "SPACE EXPLORATION" in str(i.get('shortName', '')).upper() or "SPACE EXPLORATION" in str(i.get('longBusinessSummary', '')).upper() or "SPACEX" in str(i.get('shortName', '')).upper():
                     ceo_cleaned = "일론 머스크"
-                    criticism_text = "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다. (이건 확인이 필요한 부분입니다)"
+                    criticism_text = "일론 머스크 (Elon Musk): 압도적인 혁신과 비전으로 민간 우주 산업을 선도하고 있으나, 특정 리더에 대한 극단적 의존도 및 규제 기관과의 마찰이 가장 치명적인 리스크입니다."
 
                 # ---------------------------------------------------------
                 # [프리/애프터마켓 시세 반영 및 가치 지표 실시간 재계산]
