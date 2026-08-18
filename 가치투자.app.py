@@ -245,7 +245,12 @@ tmap = {
     "트랜스오션": "RIG", "RIG": "RIG",
     "알파메탈러지컬": "AMR", "AMR": "AMR",
     "페라리": "RACE", "RACE": "RACE",
-    "데일리저널": "DJCO", "DJCO": "DJCO"
+    "데일리저널": "DJCO", "DJCO": "DJCO",
+    
+    # [추가] 대만 및 홍콩 / 중화권 주요 종목
+    "TSM": "TSM", "TSMC": "TSM", "티에스엠씨": "TSM", "대만반도체": "TSM", "티에스엠": "TSM",
+    "UMC": "UMC", "유엠씨": "UMC",
+    "TENCENT": "TCEHY", "텐센트": "TCEHY"
 }
 
 primary_names = {}
@@ -402,6 +407,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     cd_clean = str(cd).strip()
     
     db = {
+        "TSM": "TSMC (경영자: C.C. 웨이): 글로벌 파운드리 점유율 60% 이상 및 첨단 미세공정 독점력을 바탕으로 한 압도적인 가격 결정력과 고객 락인 효과.\n단점 및 리스크: 대만-중국 양안 갈등 및 지정학적 침공 리스크, 해외 팹(미국/일본/유럽) 증설에 따른 막대한 CAPEX 및 마진 희석 우려, 파운드리 전방 IT 수요 사이클 변동성.",
         "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
         "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
         "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖추고 2026년 상장(IPO)을 완료했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
@@ -890,21 +896,20 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
 
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk=""):
     score_details = {}
-    
     score = 0
     ceo_score = 0
     
     # [1] 경영진 및 거버넌스 점수 추적
     positive_keywords_20 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
-    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준"]
+    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준", "압도적인 가격 결정력"]
     
     if any(k in ceo_text for k in positive_keywords_20): ceo_score += 20
     elif any(k in ceo_text for k in positive_keywords_10): ceo_score += 10
     else: ceo_score += 5 
         
     negative_keywords_25 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
-    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경"]
-    negative_keywords_5 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰"]
+    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경", "양안 갈등", "침공 리스크"]
+    negative_keywords_5 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰", "마진 희석"]
     
     if any(k in ceo_text for k in negative_keywords_25): ceo_score -= 25
     if any(k in ceo_text for k in negative_keywords_15): ceo_score -= 15
@@ -914,7 +919,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
         
-    # [2] 가격 매력도 점수 추적 (15단계)
+    # [2] 가격 매력도 점수 추적 (PER 안전마진)
     p_score = 0
     if pmos >= 40: p_score = 25
     elif pmos >= 35: p_score = 23
@@ -935,7 +940,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += p_score
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
 
-    # [3] 자본 효율성 점수 추적 (ROIC 강화)
+    # [3] 자본 효율성 및 비즈니스 해자 점수 추적 (ROIC 및 ROE) - DCF 분리
     cap_score = 0
     if is_financial:
         if pbr <= 0.3: cap_score += 25
@@ -970,6 +975,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = cap_score
     else:
+        # 비금융주: ROIC 점수
         if roic >= 25: cap_score += 25
         elif roic >= 20: cap_score += 23
         elif roic >= 17: cap_score += 21
@@ -984,6 +990,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif roic >= -10: cap_score -= 12
         else: cap_score -= 15
 
+        # 비금융주: ROE 점수 추가
         if roe >= 25: cap_score += 15
         elif roe >= 22: cap_score += 13
         elif roe >= 19: cap_score += 11
@@ -995,27 +1002,38 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif roe >= 0: cap_score -= 4
         elif roe >= -5: cap_score -= 9
         else: cap_score -= 15
-        
-        if mos >= 45: cap_score += 25
-        elif mos >= 40: cap_score += 23
-        elif mos >= 35: cap_score += 21
-        elif mos >= 30: cap_score += 19
-        elif mos >= 25: cap_score += 16
-        elif mos >= 20: cap_score += 13
-        elif mos >= 15: cap_score += 10
-        elif mos >= 10: cap_score += 7
-        elif mos >= 5: cap_score += 4
-        elif mos >= 0: cap_score += 1
-        elif mos >= -5: cap_score -= 5
-        elif mos >= -10: cap_score -= 10
-        elif mos >= -15: cap_score -= 16
-        elif mos >= -20: cap_score -= 21
-        else: cap_score -= 25
 
         score += cap_score
-        score_details[t("비즈니스 해자 및 가치 (ROIC, ROE, DCF)", "Business Moat (ROIC, ROE, DCF)")] = cap_score
+        score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
-    # [4] ERP 점수 추적 (비중 축소, 13단계)
+    # [4] DCF 안전마진(MoS) 점수 (독립, 20단계 세분화)
+    dcf_score = 0
+    if not is_financial:
+        if mos >= 50: dcf_score = 25
+        elif mos >= 45: dcf_score = 23
+        elif mos >= 40: dcf_score = 21
+        elif mos >= 35: dcf_score = 19
+        elif mos >= 30: dcf_score = 16
+        elif mos >= 25: dcf_score = 13
+        elif mos >= 20: dcf_score = 10
+        elif mos >= 15: dcf_score = 8
+        elif mos >= 10: dcf_score = 5
+        elif mos >= 5: dcf_score = 3
+        elif mos >= 0: dcf_score = 1
+        elif mos >= -5: dcf_score = -2
+        elif mos >= -10: dcf_score = -5
+        elif mos >= -15: dcf_score = -8
+        elif mos >= -20: dcf_score = -12
+        elif mos >= -25: dcf_score = -15
+        elif mos >= -30: dcf_score = -18
+        elif mos >= -35: dcf_score = -20
+        elif mos >= -40: dcf_score = -23
+        else: dcf_score = -25
+        
+        score += dcf_score
+        score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
+
+    # [5] ERP 점수 추적
     e_score = 0
     if erp >= 5.0: e_score = 15
     elif erp >= 4.0: e_score = 13
@@ -1034,7 +1052,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += e_score
     score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = e_score
 
-    # [5] 10년 복리 성장성 점수 추적 (비중 축소, 13단계)
+    # [6] 10년 복리 성장성 점수 추적
     g_score = 0
     if final_g >= 0.20: g_score = 15
     elif final_g >= 0.18: g_score = 13
@@ -1052,21 +1070,48 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += g_score
     score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = g_score
 
-    # [6] 디스카운트 및 시클리컬 패널티 추적
+    # =========================================================================
+    # [7] 국가별 디스카운트 및 시클리컬 패널티 추적
+    # =========================================================================
     pen_score = 0
-    chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     tk_upper = str(tk).upper()
-    is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
-    
-    if kr: pen_score -= 15
-    elif is_china: pen_score -= 20
 
-    is_cyclical = any(k in ceo_text for k in [
+    # 1. 중국/홍콩 디스카운트 (-20점)
+    chinese_hk_adrs = [
+        "PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", 
+        "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"
+    ]
+    is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
+
+    # 2. 대만 지정학적/양안 갈등 디스카운트 (-20점)
+    taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
+    is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
+
+    if kr:
+        pen_score -= 15
+    elif is_china_hk:
+        pen_score -= 20
+    elif is_taiwan:
+        pen_score -= 20
+
+    # 3. 시클리컬(경기민감주) 판정 (-40점)
+    # [설정] 애플을 시클리컬로 포함하려면 True로 변경하세요.
+    INCLUDE_APPLE_AS_CYCLICAL = False
+
+    explicit_cyclicals = [
+        "TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK",
+        "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL"
+    ]
+    if INCLUDE_APPLE_AS_CYCLICAL:
+        explicit_cyclicals.append("AAPL")
+
+    is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in [
         "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
         "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
-        "메모리", "반도체", "디스플레이", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", 
-        "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
+        "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", 
+        "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
     ])
+
     if is_cyclical:
         pen_score -= 40
         
@@ -1074,6 +1119,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = pen_score
 
+    # 종합 등급 판정
     if score >= 90:
         title, color, reason = t(f"적극적 할인 ({score}점)", f"Deep Discount ({score} pts)"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
     elif score >= 50:
@@ -1089,12 +1135,16 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
 
+    # 페널티 설명 텍스트 결합
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -40점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
         reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
-    elif is_china:
-        reason += t(" (차이나 디스카운트 -20점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China Discount -20 Applied: Regulatory and financial transparency risks)")
+    elif is_china_hk:
+        reason += t(" (차이나/홍콩 디스카운트 -20점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -20 Applied: Regulatory and financial transparency risks)")
+    elif is_taiwan:
+        reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
+        
     if is_financial:
         reason += t(" (금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 평가 완료)", " (Financial Mode Active: Evaluation based on ROE and PBR)")
 
@@ -2050,7 +2100,7 @@ with tab2:
     if guru_option == "세스 클라만 (Baupost Group)":
         st.write("**세스 클라만(Seth Klarman):** '보스턴의 오라클'로 불리는 거장으로, 벤자민 그레이엄의 철학을 철저히 계승한 정통 가치투자자입니다. 리스크 관리를 최우선으로 삼아 현금 비중을 유연하게 조절하며, 훌륭한 비즈니스 모델을 가진 산업재, 헬스케어, 그리고 매력적인 가격대의 테크 기업에 집중투자합니다.")
     elif guru_option == "빌 애크먼 (Pershing Square)":
-        st.write("**빌 애크먼(Bill Ackman):** 철저한 기본적 분석을 바탕으로 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 행동주의 투자자로도 유명하며, 단순한 주가 변동을 넘어 강력 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오를 구성합니다.")
+        st.write("**빌 애크먼(Bill Ackman):** 철저한 기본적 분석을 바탕으로 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 행동주의 투자자로도 유명하며, 단순한 주가 변동을 넘어 강력 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오 정예화를 구성합니다.")
     elif guru_option == "워런 버핏 (Berkshire Hathaway)":
         st.write("**워런 버핏(Warren Buffett):** 역사상 가장 위대한 투자자로, 가치투자의 대명사입니다. '경제적 해자'와 정직한 경영진을 갖춘 위대한 기업을 적당한 가격에 사서 영원히 보유하는 소유권 관점의 투자를 실천합니다.")
     elif guru_option == "리 루 (Himalaya Capital)":
@@ -2190,7 +2240,7 @@ with tab5:
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
@@ -2249,7 +2299,7 @@ st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
 lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
 lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호 파악을 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
 
 st.markdown(f"""
 <div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
