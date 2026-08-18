@@ -75,13 +75,13 @@ def trigger_scan():
 tmap = {
     "삼성전자": "005930.KS", "삼전": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "HYNIX": "000660.KS",
-    "LG에너지솔루션": "373220.KS", "LG엔솔": "373220.KS",
-    "현대자동차": "005380.KS", "현대차": "005380.KS", "HYUNDAI": "005380.KS",
+    "LG에너지솔루션": "373220.KS", "LG엔솔": "373220.KS", "엔솔": "373220.KS",
+    "현대자동차": "005380.KS", "현대차": "005380.KS", "현차": "005380.KS", "HYUNDAI": "005380.KS",
     "삼성바이오로직스": "207940.KS", "삼바": "207940.KS",
     "기아": "000270.KS", "기아차": "000270.KS", "KIA": "000270.KS",
     "셀트리온": "068270.KS", "CELLTRION": "068270.KS",
     "KB금융": "105560.KS", "국민은행": "105560.KS",
-    "POSCO홀딩스": "005490.KS", "포스코": "005490.KS", "POSCO": "005490.KS",
+    "POSCO홀딩스": "005490.KS", "포스코": "005490.KS", "포홀": "005490.KS", "POSCO": "005490.KS",
     "신한지주": "055550.KS", "신한금융": "055550.KS", "신한은행": "055550.KS",
     "삼성SDI": "006400.KS", "SDI": "006400.KS",
     "NAVER": "035420.KS", "네이버": "035420.KS",
@@ -109,20 +109,20 @@ tmap = {
     "한국전력": "015760.KS", "한전": "015760.KS",
     "삼성에스디에스": "018260.KS", "삼성SDS": "018260.KS",
     
-    "NVIDIA": "NVDA", "엔비디아": "NVDA", "앤비디아": "NVDA",
+    "NVIDIA": "NVDA", "엔비디아": "NVDA", "앤비디아": "NVDA", "엔비": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
-    "MICROSOFT": "MSFT", "마이크로소프트": "MSFT",
-    "AMAZON": "AMZN", "아마존": "AMZN",
-    "BROADCOM": "AVGO", "브로드컴": "AVGO",
-    "TESLA": "TSLA", "테슬라": "TSLA",
-    "META": "META", "메타": "META", "페이스북": "META",
+    "MICROSOFT": "MSFT", "마이크로소프트": "MSFT", "마소": "MSFT",
+    "AMAZON": "AMZN", "아마존": "AMZN", "아마": "AMZN",
+    "BROADCOM": "AVGO", "브로드컴": "AVGO", "브컴": "AVGO",
+    "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA", "텔라": "TSLA",
+    "META": "META", "메타": "META", "페이스북": "META", "페북": "META",
     "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU", "마이크론 테크놀로지": "MU",
     "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B",
-    "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY",
+    "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY", "일릴": "LLY",
     "WALMART": "WMT", "월마트": "WMT",
     "AMD": "AMD", "에이엠디": "AMD",
-    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM",
+    "JPMORGAN": "JPM", "제이피모건": "JPM", "JP모건": "JPM", "제이피": "JPM",
     "ORACLE": "ORCL", "오라클": "ORCL",
     "VISA": "V", "비자": "V",
     "EXXONMOBIL": "XOM", "엑손모빌": "XOM", "엑손": "XOM",
@@ -134,14 +134,13 @@ tmap = {
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
     "LAMRESEARCH": "LRCX", "램리서치": "LRCX", "램 리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
-    "PALANTIR": "PLTR", "팔란티어": "PLTR",
+    "PALANTIR": "PLTR", "팔란티어": "PLTR", "팔란": "PLTR",
     "BANKOFAMERICA": "BAC", "뱅크오브아메리카": "BAC", "뱅크 오브 아메리카": "BAC",
     "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
-    "NETFLIX": "NFLX", "넷플릭스": "NFLX",
-    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드 머티어리얼즈": "AMAT",
+    "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
+    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드 머티어리얼즈": "AMAT", "어플": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "COCACOLA": "KO",
     
-    # 샌디스크 & 웨스턴디지털 & 스페이스X(상장 티커: SPCX) 검색 매핑
     "SPACEX": "SPCX", "스페이스X": "SPCX", "스페이스엑스": "SPCX", "스페이스 엑스": "SPCX", "스엑": "SPCX",
     "SANDISK": "SNDK", "샌디스크": "SNDK", "샌디": "SNDK", "SNDK": "SNDK",
     "웨스턴 디지털": "WDC", "웨스턴디지털": "WDC", "WESTERN DIGITAL": "WDC", "WDC": "WDC",
@@ -403,9 +402,9 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     cd_clean = str(cd).strip()
     
     db = {
-        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 강력한 브랜드 파워를 보유한 기업입니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 타격을 입은 이력이 있습니다.",
+        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
         "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
-        "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 2026년 역사적인 나스닥 상장(IPO)을 통해 대규모 자본을 조달했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업이 휘둘리는 극심한 '키맨 리스크', 거대한 우주 및 AI(xAI) 인프라 투자로 인한 잉여현금흐름(FCF) 적자 압박, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 부당 해고 소송 등 노무 리스크가 상존합니다.",
+        "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖추고 2026년 상장(IPO)을 완료했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
         
         "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
         "MRVL": "마벨 테크놀로지 (경영자: 맷 머피): 광통신(PAM4 DSP) 및 데이터센터 네트워킹 칩 분야의 독보적 강자로, 빅테크용 맞춤형 AI 칩(ASIC) 설계를 통해 인공지능 인프라 기업으로 완벽히 체질을 개선했습니다.\n단점 및 리스크: 과거(현 경영진 이전) 스톡옵션 백데이팅 등 회계 부정 스캔들 이력이 있으며, 클라우드를 제외한 전통적인 통신장비 및 엔터프라이즈 전방 산업의 수요 침체 타격을 크게 받습니다.",
@@ -893,90 +892,149 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # 1. 경영진 및 거버넌스 가점/감점 (장단점 업데이트 반영)
-    positive_keywords_20 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
-    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준"]
+    # [1] 경영진 및 거버넌스 가점/감점
+    positive_keywords_20 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원", "압도적인 발사 원가 경쟁력", "독점 수준으로 장악"]
+    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가"]
     
-    if any(k in ceo_text for k in positive_keywords_20):
-        ceo_score += 20
-    elif any(k in ceo_text for k in positive_keywords_10):
-        ceo_score += 10
-    else:
-        ceo_score += 5 
+    if any(k in ceo_text for k in positive_keywords_20): ceo_score += 20
+    elif any(k in ceo_text for k in positive_keywords_10): ceo_score += 10
+    else: ceo_score += 5 
         
     negative_keywords_25 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
-    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경"]
+    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "가혹한 노동 환경", "부당 해고"]
     negative_keywords_5 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰"]
     
-    if any(k in ceo_text for k in negative_keywords_25):
-        ceo_score -= 25
-    if any(k in ceo_text for k in negative_keywords_15):
-        ceo_score -= 15
-    if any(k in ceo_text for k in negative_keywords_5):
-        ceo_score -= 5
+    if any(k in ceo_text for k in negative_keywords_25): ceo_score -= 25
+    if any(k in ceo_text for k in negative_keywords_15): ceo_score -= 15
+    if any(k in ceo_text for k in negative_keywords_5): ceo_score -= 5
         
     score += max(-25, min(25, ceo_score))
         
-    # 2. 가격 매력도 (PER/DCF)
-    if pmos >= 30: score += 25
-    elif pmos >= 15: score += 15
+    # [2] 가격 매력도 (PER 안전마진) - 15단계 (최대 25, 최소 -25)
+    if pmos >= 40: score += 25
+    elif pmos >= 35: score += 23
+    elif pmos >= 30: score += 21
+    elif pmos >= 25: score += 18
+    elif pmos >= 20: score += 15
+    elif pmos >= 15: score += 12
+    elif pmos >= 10: score += 9
     elif pmos >= 5: score += 5
-    elif pmos < -20: score -= 25
-    elif pmos < -10: score -= 15
-    elif pmos < 0: score -= 5
+    elif pmos >= 0: score += 2
+    elif pmos >= -5: score -= 3
+    elif pmos >= -10: score -= 8
+    elif pmos >= -15: score -= 14
+    elif pmos >= -20: score -= 19
+    elif pmos >= -25: score -= 22
+    else: score -= 25
 
-    # 3. 자본 효율성 (ROIC 넉넉하게 변경)
+    # [3] 자본 효율성 (ROIC 기준 완화 및 비중 강화)
     if is_financial:
-        if roe >= 15: score += 25
-        elif roe >= 10: score += 15
-        elif roe >= 8: score += 5
-        elif roe < 5: score -= 25
-        elif roe < 8: score -= 15
+        # PBR - 15단계 (최대 25, 최소 -25)
+        if pbr <= 0.3: score += 25
+        elif pbr <= 0.4: score += 23
+        elif pbr <= 0.5: score += 21
+        elif pbr <= 0.6: score += 18
+        elif pbr <= 0.7: score += 15
+        elif pbr <= 0.8: score += 12
+        elif pbr <= 0.9: score += 9
+        elif pbr <= 1.0: score += 5
+        elif pbr <= 1.1: score += 1
+        elif pbr <= 1.2: score -= 4
+        elif pbr <= 1.3: score -= 9
+        elif pbr <= 1.4: score -= 14
+        elif pbr <= 1.5: score -= 19
+        else: score -= 25
 
-        if pbr > 0 and pbr <= 0.6: score += 25
-        elif pbr > 0.6 and pbr <= 0.9: score += 15
-        elif pbr > 0.9 and pbr <= 1.0: score += 5
-        elif pbr >= 1.5: score -= 25
-        elif pbr >= 1.2: score -= 15
-        elif pbr > 1.0: score -= 5
+        # ROE - 15단계 (최대 25, 최소 -25)
+        if roe >= 20: score += 25
+        elif roe >= 18: score += 23
+        elif roe >= 16: score += 21
+        elif roe >= 14: score += 18
+        elif roe >= 12: score += 15
+        elif roe >= 10: score += 12
+        elif roe >= 8: score += 9
+        elif roe >= 6: score += 5
+        elif roe >= 4: score += 1
+        elif roe >= 2: score -= 5
+        elif roe >= 0: score -= 12
+        elif roe >= -5: score -= 19
+        else: score -= 25
     else:
-        if roe >= 20: score += 15
-        elif roe >= 15: score += 10
+        # ROIC - 14단계 (최대 25, 최소 -15) *넉넉하게 부스트*
+        if roic >= 25: score += 25
+        elif roic >= 20: score += 23
+        elif roic >= 17: score += 21
+        elif roic >= 14: score += 18
+        elif roic >= 11: score += 15
+        elif roic >= 9: score += 12
+        elif roic >= 7: score += 9
+        elif roic >= 5: score += 6
+        elif roic >= 3: score += 3
+        elif roic >= 0: score -= 3
+        elif roic >= -5: score -= 8
+        elif roic >= -10: score -= 12
+        else: score -= 15
+
+        # 일반 기업 ROE - 12단계 (최대 15, 최소 -15)
+        if roe >= 25: score += 15
+        elif roe >= 22: score += 13
+        elif roe >= 19: score += 11
+        elif roe >= 16: score += 9
+        elif roe >= 13: score += 7
         elif roe >= 10: score += 5
-        elif roe < 5: score -= 15
-        elif roe < 10: score -= 10
+        elif roe >= 7: score += 3
+        elif roe >= 4: score += 1
+        elif roe >= 0: score -= 4
+        elif roe >= -5: score -= 9
+        else: score -= 15
         
-        if roic and roic >= 15: score += 25
-        elif roic and roic >= 10: score += 15
-        elif roic and roic >= 7: score += 10
-        elif roic and roic >= 5: score += 5
-        elif roic and roic < 3: score -= 10
-        elif roic and roic < 5: score -= 5
-        
-        if mos >= 30: score += 25
-        elif mos >= 15: score += 15
-        elif mos >= 5: score += 5
-        elif mos < -20: score -= 25
-        elif mos < -10: score -= 15
-        elif mos < 0: score -= 5
+        # DCF 안전마진 (mos) - 15단계 (최대 25, 최소 -25)
+        if mos >= 45: score += 25
+        elif mos >= 40: score += 23
+        elif mos >= 35: score += 21
+        elif mos >= 30: score += 19
+        elif mos >= 25: score += 16
+        elif mos >= 20: score += 13
+        elif mos >= 15: score += 10
+        elif mos >= 10: score += 7
+        elif mos >= 5: score += 4
+        elif mos >= 0: score += 1
+        elif mos >= -5: score -= 5
+        elif mos >= -10: score -= 10
+        elif mos >= -15: score -= 16
+        elif mos >= -20: score -= 21
+        else: score -= 25
 
-    # 4. ERP (채권 대비 매력도) 점수 깎기
-    if erp >= 4: score += 15
-    elif erp >= 2: score += 10
-    elif erp >= 1: score += 5
-    elif erp < -1: score -= 15
-    elif erp < 0: score -= 10
-    elif erp < 1: score -= 5
+    # [4] ERP (채권 프리미엄 - 비중 축소) - 13단계 (최대 15, 최소 -15)
+    if erp >= 5.0: score += 15
+    elif erp >= 4.0: score += 13
+    elif erp >= 3.5: score += 11
+    elif erp >= 3.0: score += 9
+    elif erp >= 2.5: score += 7
+    elif erp >= 2.0: score += 5
+    elif erp >= 1.5: score += 3
+    elif erp >= 1.0: score += 1
+    elif erp >= 0.5: score += 0
+    elif erp >= 0.0: score -= 3
+    elif erp >= -1.0: score -= 7
+    elif erp >= -2.0: score -= 11
+    else: score -= 15
 
-    # 5. 10년 복리 성장성 (CAGR) 점수 깎기
-    if final_g >= 0.15: score += 15
-    elif final_g >= 0.08: score += 10
-    elif final_g >= 0.05: score += 5
-    elif final_g < 0.0: score -= 15
-    elif final_g < 0.03: score -= 10
-    elif final_g < 0.05: score -= 5
+    # [5] 10년 복리 성장률(CAGR) 비중 축소 - 13단계 (최대 15, 최소 -15)
+    if final_g >= 0.20: score += 15
+    elif final_g >= 0.18: score += 13
+    elif final_g >= 0.15: score += 11
+    elif final_g >= 0.12: score += 9
+    elif final_g >= 0.09: score += 7
+    elif final_g >= 0.07: score += 5
+    elif final_g >= 0.05: score += 3
+    elif final_g >= 0.03: score += 1
+    elif final_g >= 0.01: score -= 2
+    elif final_g >= -0.02: score -= 6
+    elif final_g >= -0.05: score -= 10
+    else: score -= 15
 
-    # 디스카운트 및 시클리컬
+    # [6] 디스카운트 및 시클리컬 패널티
     chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     tk_upper = str(tk).upper()
     is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
@@ -997,26 +1055,26 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score -= 40
 
     if score >= 90:
-        title, color, reason = t("적극적 할인 (Deep Discount)", "Deep Discount"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
+        title, color, reason = t(f"적극적 할인 ({score}점)", f"Deep Discount ({score} pts)"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
     elif score >= 50:
-        title, color, reason = t("할인 (Discount)", "Discount"), "#00b894", t("충분한 안전마진 and 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
+        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#00b894", t("충분한 안전마진 and 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
     elif score >= 15:
-        title, color, reason = t("약간 할인 (Slight Discount)", "Slight Discount"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 합리적인 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point despite a modest margin of safety.")
+        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 합리적인 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point despite a modest margin of safety.")
     elif score >= -15:
-        title, color, reason = t("적정 가치 (Fair Value)", "Fair Value"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality despite some 'Slight Warning' metrics.")
+        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality despite some 'Slight Warning' metrics.")
     elif score >= -45:
-        title, color, reason = t("약간 할증 (Slight Premium)", "Slight Premium"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 분할 접근이나 조정 시 매수가 유리합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance or waiting for a pullback is recommended.")
+        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 분할 접근이나 조정 시 매수가 유리합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance or waiting for a pullback is recommended.")
     elif score >= -75:
-        title, color, reason = t("할증 (Premium)", "Premium"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
+        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
     else:
-        title, color, reason = t("과도한 할증 (Excessive Premium)", "Excessive Premium"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
+        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
 
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 적용됨: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -40점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 적용됨: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china:
-        reason += t(" (차이나 디스카운트 적용됨: 공산당 규제 및 재무 투명성 리스크)", " (China Discount Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나 디스카운트 -20점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China Discount -20 Applied: Regulatory and financial transparency risks)")
     if is_financial:
         reason += t(" (금융/보험주 특수 로직 적용됨: ROE와 장부가 가치 PBR 분석 기반 평가 완료)", " (Financial Mode Active: Evaluation based on ROE and PBR)")
 
@@ -1209,12 +1267,12 @@ with tab1:
     with col_input:
         ui = st.text_input(
             t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
-            placeholder=t("예: 샌디스크, 스페이스X, 삼전, 하닉, AAPL (입력 후 Enter)", "e.g., SanDisk, SpaceX, 삼전, AAPL (Press Enter)"), 
+            placeholder=t("예: 마소, 엔비, 스페이스X, 삼전, 하닉 (입력 후 Enter)", "e.g., MSFT, NVDA, SpaceX, AAPL (Press Enter)"), 
             label_visibility="collapsed",
             key="main_input",
             on_change=trigger_scan 
         )
-        st.caption(t("[안내] 초성이나 일부분만 쳐도 스마트하게 찾아냅니다. (예: '샌디' -> 샌디스크, '스페이스' -> 스페이스X)", "[Info] Smart partial match supported."))
+        st.caption(t("[안내] 초성이나 일부분만 쳐도 스마트하게 찾아냅니다. (예: '마소' -> 마이크로소프트, '엔비' -> 엔비디아)", "[Info] Smart partial match supported."))
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
