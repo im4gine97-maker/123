@@ -408,8 +408,8 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     
     db = {
         "TSM": "TSMC (경영자: C.C. 웨이): 글로벌 파운드리 점유율 60% 이상 및 첨단 미세공정 독점력을 바탕으로 한 압도적인 가격 결정력과 고객 락인 효과.\n단점 및 리스크: 대만-중국 양안 갈등 및 지정학적 침공 리스크, 해외 팹(미국/일본/유럽) 증설에 따른 막대한 CAPEX 및 마진 희석 우려, 파운드리 전방 IT 수요 사이클 변동성.",
-        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
-        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
+        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
+        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
         "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖추고 2026년 상장(IPO)을 완료했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
         
         "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
@@ -894,7 +894,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk=""):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0):
     score_details = {}
     score = 0
     ceo_score = 0
@@ -1017,19 +1017,22 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # =========================================================================
     dcf_score = 0
     if not is_financial:
-        if mos >= 50: dcf_score = 15
-        elif mos >= 40: dcf_score = 13
-        elif mos >= 30: dcf_score = 11
-        elif mos >= 20: dcf_score = 8
-        elif mos >= 10: dcf_score = 5
-        elif mos >= 5: dcf_score = 2
-        elif mos >= 0: dcf_score = 0
-        elif mos >= -10: dcf_score = -3
-        elif mos >= -20: dcf_score = -6
-        elif mos >= -30: dcf_score = -10
-        elif mos >= -40: dcf_score = -13
-        else: dcf_score = -15
-        
+        if base_fcf is None or base_fcf <= 0:
+            dcf_score = -15
+        else:
+            if mos >= 50: dcf_score = 15
+            elif mos >= 40: dcf_score = 13
+            elif mos >= 30: dcf_score = 11
+            elif mos >= 20: dcf_score = 8
+            elif mos >= 10: dcf_score = 5
+            elif mos >= 5: dcf_score = 2
+            elif mos >= 0: dcf_score = 0
+            elif mos >= -10: dcf_score = -3
+            elif mos >= -20: dcf_score = -6
+            elif mos >= -30: dcf_score = -10
+            elif mos >= -40: dcf_score = -13
+            else: dcf_score = -15
+            
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
 
@@ -1689,7 +1692,7 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk)
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf)
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1821,13 +1824,14 @@ with tab1:
                     elif pbr <= 1.5: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배)</span>"
                     else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배)</span>"
                 else:
-                    if mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>"
-                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>"
-                    else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>"
+                    if base_fcf is None or base_fcf <= 0: p_txt += f"- DCF 측면: <span class='highlight'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Very Warning] Negative FCF (N/A)')}</span>\n"
+                    elif mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>\n"
+                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>\n"
+                    else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>\n"
 
                 if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
                 elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
