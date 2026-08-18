@@ -140,6 +140,7 @@ tmap = {
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드 머티어리얼즈": "AMAT", "어플": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "COCACOLA": "KO",
+    "OCCIDENTAL": "OXY", "옥시덴탈": "OXY", "옥시": "OXY",
     
     "SPACEX": "SPCX", "스페이스X": "SPCX", "스페이스엑스": "SPCX", "스페이스 엑스": "SPCX", "스엑": "SPCX",
     "SANDISK": "SNDK", "샌디스크": "SNDK", "샌디": "SNDK", "SNDK": "SNDK",
@@ -408,7 +409,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     
     db = {
         "TSM": "TSMC (경영자: C.C. 웨이): 글로벌 파운드리 점유율 60% 이상 및 첨단 미세공정 독점력을 바탕으로 한 압도적인 가격 결정력과 고객 락인 효과.\n단점 및 리스크: 대만-중국 양안 갈등 및 지정학적 침공 리스크, 해외 팹(미국/일본/유럽) 증설에 따른 막대한 CAPEX 및 마진 희석 우려, 파운드리 전방 IT 수요 사이클 변동성.",
-        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
+        "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
         "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
         "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖추고 2026년 상장(IPO)을 완료했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
         
@@ -648,12 +649,6 @@ def fetch_cached_info(tk, kr, cd):
             nv_res = future_naver.result()
             for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
                 if k in nv_res: i[k] = nv_res[k]
-
-    if 'sharesOutstanding' not in i or not i.get('sharesOutstanding') or i.get('sharesOutstanding') == 0:
-        try:
-            sh_count = safe_float(i.get('impliedSharesOutstanding', 0))
-            if sh_count > 0: i['sharesOutstanding'] = sh_count
-        except: pass
         
     return i
 
@@ -695,6 +690,31 @@ def get_data(tk):
         if p == 0:
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
+        # =====================================================================
+        # [주식수(Shares Outstanding) 완벽 복구/Fallback 로직]
+        # 기아(000270.KS), 옥시덴탈(OXY) 등 야후 파이낸스 누락 대비
+        # =====================================================================
+        sh = safe_float(i.get('sharesOutstanding'))
+        if sh <= 0:
+            sh = safe_float(i.get('impliedSharesOutstanding'))
+        if sh <= 0:
+            mcap = safe_float(i.get('marketCap'))
+            if mcap > 0 and p > 0:
+                sh = mcap / p
+        if sh <= 0:
+            try:
+                # Net Income / EPS 로 주식수 역산
+                inc = stk.income_stmt
+                if inc is not None and not inc.empty and 'Net Income' in inc.index:
+                    ni = safe_float(inc.loc['Net Income'].iloc[0])
+                    eps = safe_float(i.get('trailingEps'))
+                    if ni != 0 and eps != 0:
+                        sh = abs(ni / eps)
+            except: pass
+        
+        i['sharesOutstanding'] = sh
+        # =====================================================================
+
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
@@ -2310,12 +2330,4 @@ lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 
 lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
 
 st.markdown(f"""
-<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>{lbl_disc_title}</b><br>
-    {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
-    <p><b>[Copyright]</b><br>
-    ⓒ 2026 AGIE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
+<div style='text-align: center; color: #8892b저는 텍스트 기반 AI입니다. 그것은 저의 능력을 벗어나는 것이에요.
