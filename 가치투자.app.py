@@ -117,7 +117,7 @@ tmap = {
     "BROADCOM": "AVGO", "브로드컴": "AVGO",
     "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA",
     "META": "META", "메타": "META", "페이스북": "META", "METAPLATFORMS": "META",
-    "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU",
+    "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU", "마이크론 테크놀로지": "MU",
     "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B", "버핏": "BRK-B",
     "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY",
     "WALMART": "WMT", "월마트": "WMT",
@@ -132,16 +132,21 @@ tmap = {
     "MASTERCARD": "MA", "마스터카드": "MA",
     "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
-    "LAMRESEARCH": "LRCX", "램리서치": "LRCX",
+    "LAMRESEARCH": "LRCX", "램리서치": "LRCX", "램 리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
     "PALANTIR": "PLTR", "팔란티어": "PLTR", "팔란": "PLTR",
-    "BANKOFAMERICA": "BAC", "뱅크오브아메리카": "BAC", "뱅아": "BAC",
+    "BANKOFAMERICA": "BAC", "뱅크오브아메리카": "BAC", "뱅아": "BAC", "뱅크 오브 아메리카": "BAC",
     "CHEVRON": "CVX", "쉐브론": "CVX", "셰브론": "CVX",
     "NETFLIX": "NFLX", "넷플릭스": "NFLX", "넷플": "NFLX",
-    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
+    "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT", "어플라이드 머티어리얼즈": "AMAT", "어플라이드 머티리얼즈": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
     "SPACEX": "SPACEX", "스페이스엑스": "SPACEX",
     
+    "웨스턴 디지털": "WDC", "웨스턴디지털": "WDC", "샌디스크": "WDC", "WESTERN DIGITAL": "WDC", "WDC": "WDC",
+    "마벨 테크놀로지": "MRVL", "마벨": "MRVL", "MARVELL": "MRVL", "MRVL": "MRVL",
+    "텍사스 인스트루먼트": "TXN", "텍사스인스트루먼트": "TXN", "TI": "TXN", "TEXAS INSTRUMENTS": "TXN", "TXN": "TXN",
+    "퀄컴": "QCOM", "QUALCOMM": "QCOM", "QCOM": "QCOM",
+
     "유나이티드헬스 그룹": "UNH", "유나이티드헬스": "UNH", "UNH": "UNH",
     "프록터 앤 갬블": "PG", "피앤지": "PG", "P&G": "PG", "PG": "PG",
     "홈디포": "HD", "HD": "HD",
@@ -270,7 +275,7 @@ fallback_13f_data = {
         {"티커": "META", "기업명": "Meta Platforms Inc.", "비중(%)": 10.50},
         {"티커": "HHH", "기업명": "Howard Hughes Holdings Inc.", "비중(%)": 9.50}
     ],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "기업명": "Copart Inc", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 18.64}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 11.27}, {"티커": "KKR", "기업명": "KKR & Co Inc", "비중(%)": 10.16}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.89}, {"티커": "V", "기업명": "Visa Inc-Class A Shares", "비중(%)": 8.10}, {"티커": "ROP", "기업명": "Roper Technologies Inc", "비중(%)": 7.27}, {"티커": "CSGP", "기업명": "CoStar Group Inc", "비중(%)": 6.80}, {"티커": "ORLY", "기업명": "O'Reilly Automotive Inc", "비중(%)": 5.87}, {"티커": "ABNB", "기업명": "Airbnb, Inc.", "비중(%)": 4.18}, {"티커": "CRM", "기업명": "Salesforce.com Inc", "비중(%)": 2.19}, {"티커": "NOW", "기업명": "ServiceNow Inc", "비중(%)": 1.87}, {"티커": "GSHD", "기업명": "Goosehead Insurance Inc - A", "비중(%)": 0.31}, {"티커": "SOPH", "기업명": "SOPHiA GENETICS SA", "비중(%)": 0.30}, {"티커": "AMT", "기업명": "American Tower Corp", "비중(%)": 0.14}, {"티커": "PRM", "기업명": "Perimeter Solutions Inc", "비중(%)": 0.10}, {"티커": "CCCS", "기업명": "CCC Intelligent Solutions", "비중(%)": 0.00}, {"티커": "CPRT", "Copart Inc": "CPRT", "비중(%)": 0.00}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 0.00}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal, Inc.", "비중(%)": 39.88}, {"티커": "RIG", "기업명": "Transocean Ltd.", "비중(%)": 31.97}, {"티커": "AMR", "기업명": "Alpha Metallurgical Resources, Inc.", "비중(%)": 28.14}],
     "AQUA": [{"티커": "BRK-B", "기업명": "Berkshire Hathaway Inc Cl-B", "비중(%)": 34.57}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway Inc Cl-A", "비중(%)": 15.92}, {"티커": "MA", "기업명": "Mastercard Inc - A", "비중(%)": 14.77}, {"티커": "AXP", "기업명": "American Express Co", "비중(%)": 14.53}, {"티커": "MCO", "기업명": "Moody's Corp", "비중(%)": 8.71}, {"티커": "DJCO", "기업명": "Daily Journal Corp", "비중(%)": 0.00}, {"티커": "RACE", "기업명": "Ferrari NV", "비중(%)": 0.00}]
 }
@@ -395,6 +400,15 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     cd_clean = str(cd).strip()
     
     db = {
+        "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
+        "WDC": "웨스턴 디지털 / 샌디스크 (경영자: 데이비드 게클러): 샌디스크 인수를 통해 하드디스크(HDD)와 낸드플래시 양대 스토리지 포트폴리오를 구축했으며, 낸드 사업부 분할 상장을 통해 주주가치 제고 및 디스카운트 해소를 추진 중입니다.\n단점 및 리스크: 극심한 낸드플래시 적자 사이클에 취약하며, 파트너사인 일본 키옥시아(Kioxia)와의 합병 무산 및 과거 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
+        "MRVL": "마벨 테크놀로지 (경영자: 맷 머피): 광통신(PAM4 DSP) 및 데이터센터 네트워킹 칩 분야의 독보적 강자로, 빅테크용 맞춤형 AI 칩(ASIC) 설계를 통해 인공지능 인프라 기업으로 완벽히 체질을 개선했습니다.\n단점 및 리스크: 과거(현 경영진 이전) 스톡옵션 백데이팅 등 회계 부정 스캔들 이력이 있으며, 클라우드를 제외한 전통적인 통신장비 및 엔터프라이즈 전방 산업의 수요 침체 타격을 크게 받습니다.",
+        "TXN": "텍사스 인스트루먼트 (경영자: 하비브 일란): 아날로그 반도체 분야의 압도적 1위로, 강력한 잉여현금흐름(FCF) 창출과 지속적인 자사주 매입·배당 확대를 실천하는 자본 배분의 교과서적인 기업입니다.\n단점 및 리스크: 산업용 및 차량용 거시경제 침체 사이클에 매우 민감하며, 미국 내 300mm 웨이퍼 팹 증설을 위한 대대적인 자본 지출(CAPEX) 구간에 진입해 단기 잉여현금흐름이 축소되고 있습니다.",
+        "QCOM": "퀄컴 (경영자: 크리스티아노 아몬): 모바일 AP(스냅드래곤)와 베이스밴드 모뎀칩 시장의 독점적 지배력, 그리고 막대한 무선 통신 특허 라이선스 수익(QTL)을 기반으로 한 압도적인 마진 창출력을 자랑합니다.\n단점 및 리스크: 과거 애플·FTC 등과의 과도한 로열티 수취 관련 반독점 소송 이력이 있으며, 최대 고객사인 애플의 자체 모뎀칩 개발 위협 및 스마트폰 교체 주기 장기화가 뇌관입니다.",
+        "AMAT": "어플라이드 머티어리얼즈 (경영자: 개리 디커슨): 증착·식각·검사 등 반도체 전공정 전반을 아우르는 세계 1위 반도체 장비 기업으로, 파운드리 미세화(GAA) 및 첨단 패키징 전환 공정의 최대 수혜를 받습니다.\n단점 및 리스크: 미국의 대중국 반도체 수출 통제 규제를 우회하여 중국 최대 파운드리(SMIC) 등에 장비를 불법 수출했다는 혐의로 미 법무부(DOJ)의 형사 조사를 받고 있는 심각한 컴플라이언스 리스크가 있습니다.",
+        "LRCX": "램리서치 (경영자: 팀 아처): 식각(Etch) 및 증착 장비 분야의 글로벌 리더로, 특히 3D 낸드 고단화 기술에서 대체 불가능한 점유율과 고수익성 부품·서비스 매출(CSBG)을 갖추고 있습니다.\n단점 및 리스크: 주요 메모리 고객사들의 낸드플래시 설비투자 축소 시 실적이 급감하는 구조적 한계가 있으며, 대중국 첨단 장비 수출 통제에 따른 매출 타격 비중이 경쟁사 대비 높은 편입니다.",
+        "INTC": "인텔 (경영자: 팻 겔싱어): x86 PC 및 서버 CPU 시장의 전통적 1위 기업이며, 막대한 보조금을 지급하는 미 정부의 반도체 지원법(CHIPS Act)과 '미국 내 반도체 제조 부활' 정책의 전폭적인 지원을 받습니다.\n단점 및 리스크: TSMC와 AMD에 공정 기술 및 설계 리더십을 완전히 상실했고, 파운드리 사업부의 천문학적 적자로 인해 배당 중단과 대규모 정리해고를 단행하는 등 창사 이래 최악의 펀더멘털 훼손을 겪고 있습니다.",
+
         "BABA": "알리바바 그룹 (경영자: 에디 우 / 차이충신): 클라우드·AI 중심 사업 재편, 중국 최대 이커머스 생태계 및 대규모 자사주 매입을 통한 주주환원 강화.\n단점 및 리스크: 공산당의 정치적 통제 리스크(과거 앤트그룹 상장 중단 및 과징금), 테무·더우인 등과의 출혈 경쟁에 따른 점유율 잠식.",
         "PDD": "PDD 홀딩스 (경영자: 천레이 / 자오자전): 초저가 알고리즘과 테무(Temu)의 글로벌 폭발적 확장, 극단적 원가 절감을 통한 업계 최고 수준의 수익성.\n단점 및 리스크: 불투명한 회계 공시 및 폐쇄적 거버넌스, 악성코드 의혹·강제노동 연루 조사·소액 면세 폐지 등 전 세계적 규제 직면.",
         "JD": "징동닷컴 (경영자: 쉬란): 자체 직영 풀필먼트 물류망 기반의 강력한 공급망 통제력과 신뢰도 높은 정품 배송 경쟁력.\n단점 및 리스크: 창업자(류창둥)의 1인 지배력 및 사생활 구설, 중국 내수 소비 둔화와 초저가 플랫폼 대비 성장 탄력 약화.",
@@ -496,6 +510,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         "PEP": "펩시코 (경영자: 라몬 라구아르타): 프리토레이 스낵과 음료 포트폴리오의 탄탄한 시장 지배력 및 강력한 가격 전가력.\n단점 및 리스크: 과도한 가격 인상(그리드플레이션)에 따른 유럽 대형마트 퇴출 사태, 플라스틱 공해 피소 및 북미 판매량 둔화."
     }
     
+    # 정확한 티커 일치(Exact match) 방식으로 매핑 버그 수정
     if cd_clean in db:
         return db[cd_clean]
     if tk_clean in db:
@@ -1325,7 +1340,7 @@ with tab1:
                     roic_str = t("금융/보험주 제외", "N/A (Financial)")
                 else:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족 (확인 요망)", "N/A (Needs verification)")
+                    else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
