@@ -70,7 +70,7 @@ def trigger_scan():
             st.session_state.suggestions = []
 
 # ==========================================
-# [2] 글로벌 상수 및 고정 데이터
+# [2] 글로벌 상수 및 고정 데이터 (검색 매핑)
 # ==========================================
 tmap = {
     "삼성전자": "005930.KS", "삼전": "005930.KS", "삼성": "005930.KS", "SAMSUNG": "005930.KS",
@@ -103,6 +103,12 @@ tmap = {
     "삼성전기": "009150.KS", "삼전기": "009150.KS",
     "크래프톤": "259960.KS", "KRAFTON": "259960.KS",
     "한화에어로스페이스": "012450.KS", "한화에어로": "012450.KS", "에어로스페이스": "012450.KS",
+    "SK": "034730.KS", "에스케이": "034730.KS",
+    "삼성화재": "000810.KS", "삼화": "000810.KS",
+    "우리금융지주": "316140.KS", "우리금융": "316140.KS", "우리은행": "316140.KS",
+    "한국전력": "015760.KS", "한전": "015760.KS",
+    "삼성에스디에스": "018260.KS", "삼성SDS": "018260.KS",
+    
     "NVIDIA": "NVDA", "엔비디아": "NVDA", "엔비": "NVDA", "앤비디아": "NVDA",
     "APPLE": "AAPL", "애플": "AAPL", "앱등이": "AAPL",
     "ALPHABET": "GOOGL", "구글": "GOOGL", "알파벳": "GOOGL", "GOOGLE": "GOOGL",
@@ -135,10 +141,51 @@ tmap = {
     "APPLIEDMATERIALS": "AMAT", "어플라이드머티리얼즈": "AMAT", "어플라이드": "AMAT",
     "COCA-COLA": "KO", "코카콜라": "KO", "코카": "KO", "콜라": "KO", "COCACOLA": "KO",
     "SPACEX": "SPACEX", "스페이스엑스": "SPACEX",
-    "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
+    
+    "유나이티드헬스 그룹": "UNH", "유나이티드헬스": "UNH", "UNH": "UNH",
+    "프록터 앤 갬블": "PG", "피앤지": "PG", "P&G": "PG", "PG": "PG",
+    "홈디포": "HD", "HD": "HD",
+    "머크": "MRK", "MRK": "MRK",
+    "펩시코": "PEP", "펩시": "PEP", "PEP": "PEP",
+    
+    "보잉": "BA", "BA": "BA",
+    "제너럴 모터스": "GM", "제너럴모터스": "GM", "지엠": "GM",
+    "포드 모터": "F", "포드": "F",
+    "다우": "DOW", "DOW": "DOW",
+    "프리포트 맥모란": "FCX", "프리포트맥모란": "FCX", "FCX": "FCX",
+    "뉴코어": "NUE", "NUE": "NUE",
+    "델타 항공": "DAL", "델타항공": "DAL", "DAL": "DAL",
+    "유나이티드 항공": "UAL", "유나이티드항공": "UAL", "UAL": "UAL",
+    "유니온 퍼시픽": "UNP", "유니온퍼시픽": "UNP", "UNP": "UNP",
+    "디어 앤 컴퍼니": "DE", "존 디어": "DE", "존디어": "DE", "DE": "DE",
+    "알코아": "AA", "AA": "AA",
+    "레나": "LEN", "LEN": "LEN",
+    "DR 호튼": "DHI", "디알호튼": "DHI", "DR호튼": "DHI", "DHI": "DHI",
+    "월풀": "WHR", "WHR": "WHR",
+    "로얄 캐리비안": "RCL", "로얄캐리비안": "RCL", "RCL": "RCL",
+    "카니발": "CCL", "CCL": "CCL",
+    "메리어트 인터내셔널": "MAR", "메리어트": "MAR", "MAR": "MAR",
+    "힐튼 월드와이드": "HLT", "힐튼": "HLT", "HLT": "HLT",
+    "익스피디아": "EXPE", "EXPE": "EXPE",
+    
+    "알리바바 그룹": "BABA", "알리바바": "BABA", "BABA": "BABA",
+    "PDD 홀딩스": "PDD", "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
+    "징동닷컴": "JD", "징동": "JD", "JD": "JD",
+    "넷이즈": "NTES", "NTES": "NTES",
+    "바이두": "BIDU", "BIDU": "BIDU",
+    "트립닷컴 그룹": "TCOM", "트립닷컴": "TCOM", "TCOM": "TCOM",
+    "얌 차이나": "YUMC", "YUMC": "YUMC",
+    "니오": "NIO", "NIO": "NIO",
+    "리 오토": "LI", "리오토": "LI", "LI": "LI",
+    "샤오펑": "XPEV", "XPEV": "XPEV",
+    "ZTO 익스프레스": "ZTO", "ZTO": "ZTO",
+    "KE 홀딩스": "BEKE", "BEKE": "BEKE",
+    "텐센트 뮤직 엔터테인먼트": "TME", "텐센트 뮤직": "TME", "TME": "TME",
+    "빌리빌리": "BILI", "BILI": "BILI",
+    "푸투 홀딩스": "FUTU", "FUTU": "FUTU",
+    
     "이스트웨스트뱅코프": "EWBC", "EWBC": "EWBC",
     "크록스": "CROX", "CROX": "CROX",
-    "텐센트뮤직": "TME", "TME": "TME",
     "에스앤피글로벌": "SPGI", "S&P글로벌": "SPGI", "SPGI": "SPGI",
     "H&R블록": "HRB", "HRB": "HRB",
     "무디스": "MCO", "MCO": "MCO",
@@ -148,9 +195,7 @@ tmap = {
     "크래프트하인즈": "KHC", "크래프트": "KHC", "하인즈": "KHC", "KHC": "KHC",
     "다비타": "DVA", "DVA": "DVA",
     "크로거": "KR", "KR": "KR",
-    "델타항공": "DAL", "델타": "DAL", "DAL": "DAL",
     "얼라이파이낸셜": "ALLY", "얼라이": "ALLY", "ALLY": "ALLY",
-    "레나": "LEN", "LEN": "LEN",
     "콘스텔레이션브랜즈": "STZ", "STZ": "STZ",
     "제퍼리스": "JEF", "제퍼리스파이낸셜": "JEF", "JEF": "JEF",
     "캐피탈원": "COF", "캐피털원": "COF", "COF": "COF",
@@ -161,7 +206,6 @@ tmap = {
     "허츠": "HTZ", "HTZ": "HTZ",
     "씨포트엔터테인먼트": "SEG", "SEG": "SEG",
     "웨스코": "WCC", "WCC": "WCC",
-    "유니온퍼시픽": "UNP", "UNP": "UNP",
     "엘리번스헬스": "ELV", "엘리번스": "ELV", "ELV": "ELV",
     "퍼거슨": "FERG", "FERG": "FERG",
     "윌리스타워스왓슨": "WTW", "WTW": "WTW",
@@ -936,7 +980,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif final_g < 0.03: score -= 15
     elif final_g < 0.05: score -= 5
 
-    # 지정학적 디스카운트 판별 로직
     chinese_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU"]
     tk_upper = str(tk).upper()
     is_china = any(tk_upper.startswith(c) for c in chinese_adrs) or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
@@ -946,7 +989,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif is_china:
         score -= 20
 
-    # 시클리컬 기업 판단 범위 확장 및 페널티 대폭 강화 (-50점 유지 또는 -30점 조정 요구 -> 30점으로 완화하면서 강하게 적용 요구 -> 30점으로 세팅)
     is_cyclical = any(k in ceo_text for k in [
         "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
         "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
