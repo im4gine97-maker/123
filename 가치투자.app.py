@@ -982,7 +982,13 @@ def clean_ceo_name(name):
     for prefix in ["Mr. ", "Ms. ", "Mrs. ", "Dr. ", "Mr ", "Ms ", "Mrs ", "Dr "]:
         if name_str.startswith(prefix): name_str = name_str[len(prefix):]
     if is_ko:
-        k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
+        try:
+            k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
+            if not k_name:
+                k_name = name_str
+        except:
+            k_name = name_str
+            
         suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
         for s in suffixes:
             if k_name.endswith(s):
