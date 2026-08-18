@@ -409,7 +409,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     db = {
         "TSM": "TSMC (경영자: C.C. 웨이): 글로벌 파운드리 점유율 60% 이상 및 첨단 미세공정 독점력을 바탕으로 한 압도적인 가격 결정력과 고객 락인 효과.\n단점 및 리스크: 대만-중국 양안 갈등 및 지정학적 침공 리스크, 해외 팹(미국/일본/유럽) 증설에 따른 막대한 CAPEX 및 마진 희석 우려, 파운드리 전방 IT 수요 사이클 변동성.",
         "SNDK": "샌디스크 (경영자: 데이비드 게클러): 글로벌 플래시 메모리 스토리지 및 소비자용 SSD, SD 카드 시장에서 압도적인 브랜드 파워를 지녔으며, 모회사 웨스턴디지털의 낸드 사업부 분할 상장을 통해 기업가치 재평가를 앞두고 있습니다.\n단점 및 리스크: 최근 '익스트림 포터블 SSD' 라인업에서 데이터가 대규모로 증발하는 치명적 결함이 발생해 미국 내 집단소송에 직면했으며, 과거 모델명 변경 없이 몰래 저사양 부품으로 교체해 판매한 '부품 바꿔치기(스펙 다운)' 논란으로 경영진 도덕성과 제품 신뢰도에 큰 타격을 입은 이력이 있습니다.",
-        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 있습니다.\n단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
+        "WDC": "웨스턴 디지털 (경영자: 데이비드 게클러): 하드디스크(HDD) 및 엔터프라이즈 스토리지 분야의 글로벌 강자로, 본업에 집중하며 수익성 개선을 도모하고 단점 및 리스크: 극심한 스토리지 다운사이클에 취약하며, 과거 일본 키옥시아(Kioxia)와의 합병 무산 및 무리한 인수로 누적된 막대한 부채 부담 등 재무 건전성 리스크가 상존합니다.",
         "SPCX": "스페이스X (경영자: 일론 머스크 / 그윈 샷웰): 재사용 로켓(팰컨9, 스타십)과 저궤도 위성 인터넷(스타링크)을 통해 전 세계 민간 우주 산업을 독점 수준으로 장악했으며, 경쟁사가 따라올 수 없는 압도적인 발사 원가 경쟁력을 갖추고 2026년 상장(IPO)을 완료했습니다.\n단점 및 리스크: 일론 머스크 개인의 돌발적 언행에 기업 전체가 휘둘리는 극심한 '키맨 리스크(Key-man Risk)'를 안고 있으며, 미 연방항공청(FAA)과의 잦은 규제 마찰 및 사내 가혹한 노동 환경·부당 해고 관련 소송 등 노무 및 거버넌스 뇌관이 존재합니다.",
         
         "MU": "마이크론 테크놀로지 (경영자: 산제이 메로트라): D램과 낸드플래시를 모두 제조하는 글로벌 Top 3 메모리 기업으로, 엔비디아 HBM3E 공급망에 성공적으로 진입하며 첨단 메모리 기술력을 입증했습니다.\n단점 및 리스크: 메모리 반도체 특유의 극심한 수요 사이클(호황/불황) 변동성에 취약하며, 중국 당국의 마이크론 제품 제재 등 미·중 패권 경쟁의 직접적인 타격에 노출되어 있습니다.",
@@ -899,27 +899,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # [1] 경영진 및 거버넌스 점수 추적
-    positive_keywords_20 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "주주환원", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
-    positive_keywords_10 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준", "압도적인 가격 결정력"]
+    # =========================================================================
+    # [1] 경영진 및 거버넌스 점수 (최대 35점, 최소 -35점) - 영향력 강화
+    # =========================================================================
+    positive_keywords_30 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
+    positive_keywords_15 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준", "압도적인 가격 결정력"]
     
-    if any(k in ceo_text for k in positive_keywords_20): ceo_score += 20
-    elif any(k in ceo_text for k in positive_keywords_10): ceo_score += 10
+    if any(k in ceo_text for k in positive_keywords_30): ceo_score += 30
+    elif any(k in ceo_text for k in positive_keywords_15): ceo_score += 15
     else: ceo_score += 5 
         
-    negative_keywords_25 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
-    negative_keywords_15 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경", "양안 갈등", "침공 리스크"]
-    negative_keywords_5 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰", "마진 희석"]
+    negative_keywords_35 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
+    negative_keywords_20 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경", "양안 갈등", "침공 리스크"]
+    negative_keywords_10 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰", "마진 희석"]
     
-    if any(k in ceo_text for k in negative_keywords_25): ceo_score -= 25
-    if any(k in ceo_text for k in negative_keywords_15): ceo_score -= 15
-    if any(k in ceo_text for k in negative_keywords_5): ceo_score -= 5
+    if any(k in ceo_text for k in negative_keywords_35): ceo_score -= 35
+    if any(k in ceo_text for k in negative_keywords_20): ceo_score -= 20
+    if any(k in ceo_text for k in negative_keywords_10): ceo_score -= 10
         
-    ceo_final = max(-25, min(25, ceo_score))
+    ceo_final = max(-35, min(35, ceo_score))
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
         
+    # =========================================================================
     # [2] 가격 매력도 점수 추적 (PER 안전마진)
+    # =========================================================================
     p_score = 0
     if pmos >= 40: p_score = 25
     elif pmos >= 35: p_score = 23
@@ -940,7 +944,9 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += p_score
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
 
-    # [3] 자본 효율성 및 비즈니스 해자 점수 추적 (ROIC 및 ROE) - DCF 분리
+    # =========================================================================
+    # [3] 자본 효율성 및 비즈니스 해자 점수 추적 (ROIC 및 ROE) - 가장 큰 비중
+    # =========================================================================
     cap_score = 0
     if is_financial:
         if pbr <= 0.3: cap_score += 25
@@ -975,7 +981,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = cap_score
     else:
-        # 비금융주: ROIC 점수
+        # 비금융주: ROIC 점수 (최대 25점)
         if roic >= 25: cap_score += 25
         elif roic >= 20: cap_score += 23
         elif roic >= 17: cap_score += 21
@@ -990,7 +996,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif roic >= -10: cap_score -= 12
         else: cap_score -= 15
 
-        # 비금융주: ROE 점수 추가
+        # 비금융주: ROE 점수 추가 (최대 15점) -> 자본효율성 총합 최대 40점
         if roe >= 25: cap_score += 15
         elif roe >= 22: cap_score += 13
         elif roe >= 19: cap_score += 11
@@ -1006,34 +1012,30 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
-    # [4] DCF 안전마진(MoS) 점수 (독립, 20단계 세분화)
+    # =========================================================================
+    # [4] DCF 안전마진(MoS) 점수 (독립 분리, 가중치 하향: 최대 15점 ~ 최소 -15점)
+    # =========================================================================
     dcf_score = 0
     if not is_financial:
-        if mos >= 50: dcf_score = 25
-        elif mos >= 45: dcf_score = 23
-        elif mos >= 40: dcf_score = 21
-        elif mos >= 35: dcf_score = 19
-        elif mos >= 30: dcf_score = 16
-        elif mos >= 25: dcf_score = 13
-        elif mos >= 20: dcf_score = 10
-        elif mos >= 15: dcf_score = 8
+        if mos >= 50: dcf_score = 15
+        elif mos >= 40: dcf_score = 13
+        elif mos >= 30: dcf_score = 11
+        elif mos >= 20: dcf_score = 8
         elif mos >= 10: dcf_score = 5
-        elif mos >= 5: dcf_score = 3
-        elif mos >= 0: dcf_score = 1
-        elif mos >= -5: dcf_score = -2
-        elif mos >= -10: dcf_score = -5
-        elif mos >= -15: dcf_score = -8
-        elif mos >= -20: dcf_score = -12
-        elif mos >= -25: dcf_score = -15
-        elif mos >= -30: dcf_score = -18
-        elif mos >= -35: dcf_score = -20
-        elif mos >= -40: dcf_score = -23
-        else: dcf_score = -25
+        elif mos >= 5: dcf_score = 2
+        elif mos >= 0: dcf_score = 0
+        elif mos >= -10: dcf_score = -3
+        elif mos >= -20: dcf_score = -6
+        elif mos >= -30: dcf_score = -10
+        elif mos >= -40: dcf_score = -13
+        else: dcf_score = -15
         
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
 
-    # [5] ERP 점수 추적
+    # =========================================================================
+    # [5] ERP 점수 추적 (거시 경제 매력도)
+    # =========================================================================
     e_score = 0
     if erp >= 5.0: e_score = 15
     elif erp >= 4.0: e_score = 13
@@ -1052,7 +1054,9 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += e_score
     score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = e_score
 
-    # [6] 10년 복리 성장성 점수 추적
+    # =========================================================================
+    # [6] 10년 복리 성장성 점수 추적 (CAGR)
+    # =========================================================================
     g_score = 0
     if final_g >= 0.20: g_score = 15
     elif final_g >= 0.18: g_score = 13
@@ -1095,8 +1099,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_score -= 20
 
     # 3. 시클리컬(경기민감주) 판정 (-40점)
-    # [설정] 애플을 시클리컬로 포함하려면 True로 변경하세요.
-    INCLUDE_APPLE_AS_CYCLICAL = False
+    # [설정] 애플을 시클리컬로 포함하도록 True로 설정되었습니다.
+    INCLUDE_APPLE_AS_CYCLICAL = True
 
     explicit_cyclicals = [
         "TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK",
@@ -1121,19 +1125,19 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 종합 등급 판정
     if score >= 90:
-        title, color, reason = t(f"적극적 할인 ({score}점)", f"Deep Discount ({score} pts)"), "#2ecc71", t("경영진, 훌륭한 자본효율(ROE>20%), 30% 이상의 안전마진, 압도적 국채 대비 매력도(ERP) 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across management, ROE, MoS, and ERP.")
+        title, color, reason = t(f"적극적 할인 ({score}점)", f"Deep Discount ({score} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
     elif score >= 50:
-        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#00b894", t("충분한 안전마진 and 훌륭한 자본 배치 능력이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by overall 'Pass' levels of margin of safety and excellent capital allocation metrics.")
+        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#00b894", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management.")
     elif score >= 15:
-        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 합리적인 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point despite a modest margin of safety.")
+        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
     elif score >= -15:
-        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Lacks deep margin of safety, but perfectly justifiable as a fair price given business quality despite some 'Slight Warning' metrics.")
+        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Perfectly justifiable as a fair price given business quality despite some 'Slight Warning' valuation metrics.")
     elif score >= -45:
-        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 분할 접근이나 조정 시 매수가 유리합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance or waiting for a pullback is recommended.")
+        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
     elif score >= -75:
-        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 성장성 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations relative to fundamentals.")
+        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations.")
     else:
-        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 심각한 훼손이나 비상식적인 밸류에이션 거품이 낀 매우 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or extreme valuation bubbles.")
+        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 훼손이나 비상식적인 밸류에이션 거품이 낀 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or bubbles.")
 
     # 페널티 설명 텍스트 결합
     if is_cyclical:
@@ -2240,7 +2244,7 @@ with tab5:
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
+    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
     phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
     phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
     phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
