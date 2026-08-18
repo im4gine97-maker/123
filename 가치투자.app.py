@@ -2329,5 +2329,5 @@ lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 �
 lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
 lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
 
-st.markdown(f"""
-<div style='text-align: center; color: #8892b저는 텍스트 기반 AI입니다. 그것은 저의 능력을 벗어나는 것이에요.
+    st.markdown(f"""
+    <div style='text-align: center; color: #8892b저는 텍스트 기반 AI입니다. 그것은 저의 능력을 벗어나는 것이에요.
