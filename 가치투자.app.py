@@ -1547,7 +1547,7 @@ with tab1:
                     else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                is_new_ipo = (a_pe == 0.0) # 5년 평균이 0.0이면 상장된 지 얼마 안 된 기업으로 감지
                 
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
@@ -1822,16 +1822,34 @@ with tab1:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
 
+               # ==============================================================================
+                # 여기서부터 새로운 화면 출력 로직 시작
+                # ==============================================================================
+                # PER 문자열 포맷팅 함수 (적자일 경우 0.00배 대신 '적자' 표기)
+                def format_pe(pe_val, eps_val):
+                    if eps_val < 0 or pe_val <= 0:
+                        return f"<span style='color:#ff7675;'>{t('적자 (계산 불가)', 'Loss (N/A)')}</span>"
+                    return f"{pe_val:.2f}{t('배', 'x')}"
+
+                t_pe_display = format_pe(t_pe, t_eps)
+                f_pe_display = format_pe(f_pe, f_eps)
+                a_pe_display = f"<span style='color:#8892b0;'>{t('데이터 부족 (신규 상장 등)', 'No Data (New IPO)')}</span>" if is_new_ipo else f"{a_pe:.2f}{t('배', 'x')}"
+
                 if is_financial:
                     per_mos_str = ""
                 else:
-                    if pmos_val >= 30: per_mos_str = f"<span class='good'>[매우 합격] +{pmos_val:.1f}% (과거 대비 극심한 저평가)</span>"
-                    elif pmos_val >= 15: per_mos_str = f"<span class='good'>[합격] +{pmos_val:.1f}% (안전마진 확보)</span>"
-                    elif pmos_val >= 5: per_mos_str = f"<span style='color:#74b9ff;'>[약간 합격] +{pmos_val:.1f}% (양호한 할인)</span>"
-                    elif pmos_val >= 0: per_mos_str = f"<span style='color:#fdcb6e;'>[보통] +{pmos_val:.1f}% (적정 수준)</span>"
-                    elif pmos_val > -10: per_mos_str = f"<span style='color:#fdcb6e;'>[약간 주의] {pmos_val:.1f}% (약간의 할증)</span>"
-                    elif pmos_val > -20: per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (할증 구간)</span>"
-                    else: per_mos_str = f"<span class='highlight'>[매우 주의] {pmos_val:.1f}% (과도한 고평가)</span>"
+                    if is_new_ipo:
+                        per_mos_str = f"<span style='color:#8892b0;'>{t('[판단 보류] 상장 기간이 짧아 과거와 비교 불가', '[N/A] Too short history to compare')}</span>"
+                    elif f_eps < 0 or f_pe <= 0:
+                        per_mos_str = f"<span class='highlight'>{t('[계산 불가] 예상 순이익 적자', '[N/A] Forward EPS is negative')}</span>"
+                    else:
+                        if pmos_val >= 30: per_mos_str = f"<span class='good'>[매우 합격] +{pmos_val:.1f}% (과거 대비 극심한 저평가)</span>"
+                        elif pmos_val >= 15: per_mos_str = f"<span class='good'>[합격] +{pmos_val:.1f}% (안전마진 확보)</span>"
+                        elif pmos_val >= 5: per_mos_str = f"<span style='color:#74b9ff;'>[약간 합격] +{pmos_val:.1f}% (양호한 할인)</span>"
+                        elif pmos_val >= 0: per_mos_str = f"<span style='color:#fdcb6e;'>[보통] +{pmos_val:.1f}% (적정 수준)</span>"
+                        elif pmos_val > -10: per_mos_str = f"<span style='color:#fdcb6e;'>[약간 주의] {pmos_val:.1f}% (약간의 할증)</span>"
+                        elif pmos_val > -20: per_mos_str = f"<span class='highlight'>[주의] {pmos_val:.1f}% (할증 구간)</span>"
+                        else: per_mos_str = f"<span class='highlight'>[매우 주의] {pmos_val:.1f}% (과도한 고평가)</span>"
 
                 if is_financial:
                     if roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 탁월한 자본 효율성', '[Very Pass] Excellent Efficiency')}</span>"
@@ -1847,7 +1865,7 @@ with tab1:
                     elif roe >= 5 and roic_val >= 3: rr_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 이하의 효율성', '[Slight Warning] Below Average')}</span>"
                     elif roe >= 0 and roic_val >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 비효율적인 자본 운용', '[Warning] Inefficient Capital')}</span>"
                     else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 사업 구조 훼손', '[Very Warning] Severe Structural Damage')}</span>"
-                    
+
                 if is_financial:
                     ey_str = ""
                 else:
@@ -1865,9 +1883,9 @@ with tab1:
                     else:
                         st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} ➔ {rr_eval}", unsafe_allow_html=True)
                     
-                    st.write(f"- **{t('현재 PER (참고용)', 'Current PE (Ref)')}:** {t_pe:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('Fwd PER (미래 1년 기준)', 'Fwd PE (Next 1Y)')}:** {f_pe:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
+                    st.markdown(f"- **{t('현재 PER (참고용)', 'Current PE (Ref)')}:** {t_pe_display}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('Fwd PER (미래 1년 기준)', 'Fwd PE (Next 1Y)')}:** {f_pe_display}", unsafe_allow_html=True)
+                    st.markdown(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe_display}", unsafe_allow_html=True)
                 with c2:
                     if not is_financial:
                         st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
