@@ -1014,7 +1014,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -15
+            dcf_score = -40
         else:
             if mos >= 50: dcf_score = 15
             elif mos >= 40: dcf_score = 13
@@ -1085,11 +1085,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
 
     if kr:
-        pen_score -= 15
+        pen_score -= 25
     elif is_china_hk:
-        pen_score -= 20
+        pen_score -= 30
     elif is_taiwan:
-        pen_score -= 20
+        pen_score -= 30
 
     INCLUDE_APPLE_AS_CYCLICAL = True
     explicit_cyclicals = [
