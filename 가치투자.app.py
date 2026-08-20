@@ -949,20 +949,37 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # [3] 자본 효율성 및 비즈니스 해자 점수
     cap_score = 0
     if is_financial:
-        if pbr <= 0.3: cap_score += 40
-        elif pbr <= 0.4: cap_score += 35
-        elif pbr <= 0.5: cap_score += 30
-        elif pbr <= 0.6: cap_score += 25
-        elif pbr <= 0.7: cap_score += 20
-        elif pbr <= 0.8: cap_score += 15
-        elif pbr <= 0.9: cap_score += 10
-        elif pbr <= 1.0: cap_score += 5
-        elif pbr <= 1.1: cap_score += 0
-        elif pbr <= 1.2: cap_score -= 5
-        elif pbr <= 1.3: cap_score -= 10
-        elif pbr <= 1.4: cap_score -= 15
-        elif pbr <= 1.5: cap_score -= 20
-        else: cap_score -= 30
+        if kr:
+            # 🇰🇷 한국 금융주 로직 (기존 유지: PBR 1.1부터 감점)
+            if pbr <= 0.3: cap_score += 40
+            elif pbr <= 0.4: cap_score += 35
+            elif pbr <= 0.5: cap_score += 30
+            elif pbr <= 0.6: cap_score += 25
+            elif pbr <= 0.7: cap_score += 20
+            elif pbr <= 0.8: cap_score += 15
+            elif pbr <= 0.9: cap_score += 10
+            elif pbr <= 1.0: cap_score += 5
+            elif pbr <= 1.1: cap_score += 0
+            elif pbr <= 1.2: cap_score -= 5
+            elif pbr <= 1.3: cap_score -= 10
+            elif pbr <= 1.4: cap_score -= 15
+            elif pbr <= 1.5: cap_score -= 20
+            else: cap_score -= 30
+        else:
+            # 🇺🇸 미국 금융주 로직 (수정됨: 높은 ROE를 반영해 PBR 3.0까지는 감점 없음)
+            # 미국 대형 은행/보험사는 통상 PBR 1.0~2.0 내외에서 거래됩니다.
+            if pbr <= 0.8: cap_score += 40
+            elif pbr <= 1.0: cap_score += 35
+            elif pbr <= 1.2: cap_score += 30
+            elif pbr <= 1.5: cap_score += 25
+            elif pbr <= 1.8: cap_score += 20
+            elif pbr <= 2.1: cap_score += 15
+            elif pbr <= 2.4: cap_score += 10
+            elif pbr <= 2.7: cap_score += 5
+            elif pbr <= 3.0: cap_score += 0  # 3.0배까지는 정상 범주로 보아 감점 없음
+            elif pbr <= 4.0: cap_score -= 10 # 4.0배를 넘어가면 고평가 경고 시작
+            elif pbr <= 6.0: cap_score -= 20
+            else: cap_score -= 30
 
         if roe >= 20: cap_score += 40
         elif roe >= 18: cap_score += 35
