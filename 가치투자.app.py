@@ -924,24 +924,28 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
         
-    # [2] 가격 매력도 점수
+    # [2] 가격 매력도 점수 (버핏의 안전마진 철학 반영, 만점 40점)
     p_score = 0
     if not is_financial:
-        if pmos >= 40: p_score = 25
-        elif pmos >= 35: p_score = 23
-        elif pmos >= 30: p_score = 21
-        elif pmos >= 25: p_score = 18
-        elif pmos >= 20: p_score = 15
-        elif pmos >= 15: p_score = 12
-        elif pmos >= 10: p_score = 9
-        elif pmos >= 5: p_score = 5
-        elif pmos >= 0: p_score = 2
-        elif pmos >= -5: p_score = -3
-        elif pmos >= -10: p_score = -8
-        elif pmos >= -15: p_score = -14
-        elif pmos >= -20: p_score = -19
-        elif pmos >= -25: p_score = -22
-        else: p_score = -25
+        if pmos >= 50: p_score = 40      # [극단적 저평가] 역사적 바닥 수준, 미스터 마켓의 극심한 우울증
+        elif pmos >= 45: p_score = 37
+        elif pmos >= 40: p_score = 34    # [강력한 안전마진] 벤저민 그레이엄이 사랑하는 40% 폭탄 세일
+        elif pmos >= 35: p_score = 31
+        elif pmos >= 30: p_score = 28
+        elif pmos >= 25: p_score = 24
+        elif pmos >= 20: p_score = 20    # [훌륭한 할인] 버핏의 일반적인 매수 타겟 (20% 할인)
+        elif pmos >= 15: p_score = 16
+        elif pmos >= 10: p_score = 12
+        elif pmos >= 5: p_score = 8      # [약간의 할인]
+        elif pmos >= 0: p_score = 4      # [적정 가격] "위대한 기업이라면 적정가에 사라" (약간의 플러스 부여)
+        elif pmos >= -5: p_score = 0     # [약간의 할증] 압도적 경제적 해자가 있다면 용인되는 마지노선
+        elif pmos >= -10: p_score = -5   # [주의] 미래 성장이 선반영됨. 보수적 접근 필요
+        elif pmos >= -15: p_score = -10
+        elif pmos >= -20: p_score = -15  # [경고] 확연한 할증, 미스터 마켓의 흥분 상태 (안전마진 상실)
+        elif pmos >= -25: p_score = -20
+        elif pmos >= -30: p_score = -26
+        elif pmos >= -40: p_score = -33  # [위험] 밸류에이션 붕괴, 자본 손실 위험 극대화
+        else: p_score = -40              # [극위험] 터무니없는 버블
         
         score += p_score
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
@@ -1853,13 +1857,15 @@ with tab1:
                         elif pbr <= 2.2: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배 - 전통 금융업 대비 명백한 할증/버블)</span>"
                         else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배 - 안전마진 붕괴/극심한 고평가)</span>"
                 else:
-                    if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    else: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                    # PER 측면 판정 (버핏 철학 동기화)
+                    if pmos_val >= 40: p_txt += f"- PER 측면: <span class='good'>[극단적 저평가] (+{pmos_val:.1f}% 할인 - 완벽한 안전마진 확보)</span>\n"
+                    elif pmos_val >= 20: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인 - 훌륭한 매수 기회)</span>\n"
+                    elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[합격] (+{pmos_val:.1f}% 할인 - 적절한 안전마진)</span>\n"
+                    elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인 - 위대한 기업이라면 훌륭한 적정가)</span>\n"
+                    elif pmos_val >= -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({abs(pmos_val):.1f}% 할증 - 해자가 없다면 다소 비쌈)</span>\n"
+                    elif pmos_val >= -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({abs(pmos_val):.1f}% 할증 - 미스터 마켓의 과열 구간)</span>\n"
+                    elif pmos_val >= -40: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({abs(pmos_val):.1f}% 할증 - 안전마진 상실)</span>\n"
+                    else: p_txt += f"- PER 측면: <span class='highlight'>[극위험] ({abs(pmos_val):.1f}% 할증 - 비상식적 버블)</span>\n"
                     
                     if base_fcf is None or base_fcf <= 0: p_txt += f"- DCF 측면: <span class='highlight'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Very Warning] Negative FCF (N/A)')}</span>\n"
                     elif mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
