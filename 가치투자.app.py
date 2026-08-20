@@ -950,7 +950,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     cap_score = 0
     if is_financial:
         if kr:
-            # 🇰🇷 한국 금융주 로직 (기존 유지: PBR 1.1부터 감점)
+            # 🇰🇷 한국 금융주 로직: 만성적 코리아 디스카운트 반영 (기존 유지)
             if pbr <= 0.3: cap_score += 40
             elif pbr <= 0.4: cap_score += 35
             elif pbr <= 0.5: cap_score += 30
@@ -966,20 +966,18 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif pbr <= 1.5: cap_score -= 20
             else: cap_score -= 30
         else:
-            # 🇺🇸 미국 금융주 로직 (수정됨: 높은 ROE를 반영해 PBR 3.0까지는 감점 없음)
-            # 미국 대형 은행/보험사는 통상 PBR 1.0~2.0 내외에서 거래됩니다.
-            if pbr <= 0.8: cap_score += 40
-            elif pbr <= 1.0: cap_score += 35
-            elif pbr <= 1.2: cap_score += 30
-            elif pbr <= 1.5: cap_score += 25
-            elif pbr <= 1.8: cap_score += 20
-            elif pbr <= 2.1: cap_score += 15
-            elif pbr <= 2.4: cap_score += 10
-            elif pbr <= 2.7: cap_score += 5
-            elif pbr <= 3.0: cap_score += 0  # 3.0배까지는 정상 범주로 보아 감점 없음
-            elif pbr <= 4.0: cap_score -= 10 # 4.0배를 넘어가면 고평가 경고 시작
-            elif pbr <= 6.0: cap_score -= 20
-            else: cap_score -= 30
+            # 🇺🇸 미국 금융주 로직: 워런 버핏의 '안전마진' 잣대 적용
+            # 버크셔 역사적 자사주 매입 상한선인 'PBR 1.2배'를 핵심 허들로 설정
+            if pbr <= 0.8: cap_score += 40    # [최상] 강력한 안전마진 (과거 BAC 대량 매수 구간)
+            elif pbr <= 1.0: cap_score += 35  # [우수] 청산가치 이하의 훌륭한 가격
+            elif pbr <= 1.2: cap_score += 25  # [합격] 버핏의 전통적인 적정가 상한선
+            elif pbr <= 1.4: cap_score += 15  # [약간 프리미엄] JP모건처럼 ROE가 매우 뛰어난 은행에만 정당화되는 한계선
+            elif pbr <= 1.6: cap_score += 5   # [보통] 가격 매력도 상실 (미스터 마켓이 제값 이상을 부르는 중)
+            elif pbr <= 1.8: cap_score += 0   # [한계] 수익성(ROE)이 아무리 좋아도 비싼 구간
+            elif pbr <= 2.0: cap_score -= 10  # [주의] 전통 은행/보험업으로서 버블 위험 발생
+            elif pbr <= 2.3: cap_score -= 20  # [매우 주의] 
+            elif pbr <= 2.6: cap_score -= 30  # [위험] 안전마진 붕괴
+            else: cap_score -= 40             # [극위험] 자본 대비 상식 밖의 버블
 
         if roe >= 20: cap_score += 40
         elif roe >= 18: cap_score += 35
