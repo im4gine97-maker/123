@@ -842,15 +842,15 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                 if curr_rnd > 0:
                     mv = max([abs(x) for x in rnd_vals])
                     if kr:
-                        if mv >= 1e12: div, u = 1e12, "조원"
-                        elif mv >= 1e8: div, u = 1e8, "억원"
-                        else: div, u = 1, "원"
+                        if mv >= 1e12: div_rnd, u = 1e12, "조원"
+                        elif mv >= 1e8: div_rnd, u = 1e8, "억원"
+                        else: div_rnd, u = 1, "원"
                     else:
-                        if mv >= 1e9: div, u = 1e9, "B"
-                        elif mv >= 1e6: div, u = 1e6, "M"
-                        else: div, u = 1, "$"
+                        if mv >= 1e9: div_rnd, u = 1e9, "B"
+                        elif mv >= 1e6: div_rnd, u = 1e6, "M"
+                        else: div_rnd, u = 1, "$"
                     
-                    history_str = ", ".join([f"<b>{y}년</b>: {v/div:.1f}{u}" for y, v in zip(rnd_years, rnd_vals)])
+                    history_str = ", ".join([f"<b>{y}년</b>: {v/div_rnd:.1f}{u}" for y, v in zip(rnd_years, rnd_vals)])
                     
                     sudden_alert = ""
                     for idx in range(len(rnd_vals) - 1, 0, -1):
@@ -899,7 +899,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div=0.0):
     score_details = {}
     score = 0
     ceo_score = 0
@@ -1070,8 +1070,21 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
         score += g_score
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = g_score
+        
+    # [7] 배당 매력도 보너스 점수 (최고 15점, 20단계, 4.5% 최고점, 감점 없음)
+    div_score = 0
+    if div > 0:
+        if div >= 4.5:
+            div_score = 15.0
+        else:
+            step = int((div + 0.0001) / 0.225)
+            div_score = step * 0.75
+            
+    if div_score > 0:
+        score += div_score
+        score_details[t(f"배당 수익률 보너스 (기준: 4.5% 최고점)", "Dividend Yield Bonus")] = div_score
 
-    # [7] 국가별 디스카운트 및 시클리컬 패널티
+    # [8] 국가별 디스카운트 및 시클리컬 패널티
     pen_score = 0
     tk_upper = str(tk).upper()
 
@@ -1115,19 +1128,19 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 종합 등급 판정
     if score >= 90:
-        title, color, reason = t(f"적극적 할인 ({score}점)", f"Deep Discount ({score} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
+        title, color, reason = t(f"적극적 할인 ({score:g}점)", f"Deep Discount ({score:g} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
     elif score >= 50:
-        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#00b894", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management.")
+        title, color, reason = t(f"할인 ({score:g}점)", f"Discount ({score:g} pts)"), "#00b894", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management.")
     elif score >= 15:
-        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
+        title, color, reason = t(f"약간 할인 ({score:g}점)", f"Slight Discount ({score:g} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
     elif score >= -15:
-        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Perfectly justifiable as a fair price given business quality despite some 'Slight Warning' valuation metrics.")
+        title, color, reason = t(f"적정 가치 ({score:g}점)", f"Fair Value ({score:g} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Perfectly justifiable as a fair price given business quality despite some 'Slight Warning' valuation metrics.")
     elif score >= -45:
-        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
+        title, color, reason = t(f"약간 할증 ({score:g}점)", f"Slight Premium ({score:g} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
     elif score >= -75:
-        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations.")
+        title, color, reason = t(f"할증 ({score:g}점)", f"Premium ({score:g} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations.")
     else:
-        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 훼손이나 비상식적인 밸류에이션 거품이 낀 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or bubbles.")
+        title, color, reason = t(f"과도한 할증 ({score:g}점)", f"Excessive Premium ({score:g} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 훼손이나 비상식적인 밸류에이션 거품이 낀 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or bubbles.")
 
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -45점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
@@ -1682,7 +1695,7 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf)
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div)
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1699,9 +1712,9 @@ with tab1:
                     for k, v in score_breakdown.items():
                         color_sd = "#2ecc71" if v > 0 else ("#ff7675" if v < 0 else "#8892b0")
                         sign_sd = "+" if v > 0 else ""
-                        breakdown_html += f"<li style='margin-bottom: 8px; font-size: 1.05rem;'><b>{k}:</b> <span style='color: {color_sd}; font-weight: bold;'>{sign_sd}{v}점</span></li>"
+                        breakdown_html += f"<li style='margin-bottom: 8px; font-size: 1.05rem;'><b>{k}:</b> <span style='color: {color_sd}; font-weight: bold;'>{sign_sd}{v:g}점</span></li>"
                         total_score += v
-                    breakdown_html += f"<hr style='margin: 10px 0; border-color: rgba(255,255,255,0.1);'><li style='font-size: 1.15rem;'><b>{t('총합', 'Total Score')}:</b> <span style='color: {op_color}; font-weight: bold;'>{total_score}점</span></li>"
+                    breakdown_html += f"<hr style='margin: 10px 0; border-color: rgba(255,255,255,0.1);'><li style='font-size: 1.15rem;'><b>{t('총합', 'Total Score')}:</b> <span style='color: {op_color}; font-weight: bold;'>{total_score:g}점</span></li>"
                     breakdown_html += "</ul>"
                     st.markdown(breakdown_html, unsafe_allow_html=True)
 
@@ -1966,8 +1979,8 @@ with tab1:
                         c_v1, c_v2 = st.columns(2)
                         with c_v1:
                             if len(rev) == len(years) and len(ni) == len(years):
-                                div, u_str = scale_vals([rev, ni], kr)
-                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div for x in rev], t('순이익', 'Net Income'): [x/div for x in ni]}, index=years)
+                                div_val, u_str = scale_vals([rev, ni], kr)
+                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div_val for x in rev], t('순이익', 'Net Income'): [x/div_val for x in ni]}, index=years)
                                 st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
                                 st.bar_chart(df_rev_ni, color=["#A0C4FF", "#2ecc71"], height=300, use_container_width=False, width=600)
                             else:
@@ -1976,8 +1989,8 @@ with tab1:
                             if is_financial:
                                 st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials as operating cash flows include customer deposits and assets, making FCF analysis meaningless."))
                             elif len(fcf_chart) == len(years):
-                                div, u_str = scale_vals([fcf_chart], kr)
-                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div for x in fcf_chart]}, index=years)
+                                div_val, u_str = scale_vals([fcf_chart], kr)
+                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div_val for x in fcf_chart]}, index=years)
                                 st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
                                 st.bar_chart(df_fcf, color="#fdcb6e", height=300, use_container_width=False, width=600)
                             else:
@@ -2249,7 +2262,7 @@ with tab4:
 with tab5:
     phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
     phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력한 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
+    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
     phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
     phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
     phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
@@ -2312,15 +2325,4 @@ st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
 lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
 lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
-
-st.markdown(f"""
-<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>{lbl_disc_title}</b><br>
-    {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
-    <p><b>[Copyright]</b><br>
-    (c) 2026 AGIE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
+lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금그것을 도와드릴 수는 없습니다. 저는 언어 모델일 뿐이에요.
