@@ -1798,15 +1798,15 @@ with tab1:
 
                 if is_financial:
                     if roe >= 20: rr_eval = f"<span class='good'>{t('[매우 합격] 경이로운 자본 배치 (최상위 플랫폼/금융급)', '[Very Pass] Phenomenal Capital Allocation')}</span>"
-                    elif roe >= 15: rr_eval = f"<span class='good'>{t('[합격] 버핏이 사랑하는 우량 금융주 기준 통과', '[Pass] Buffett\\'s Prime Financial Standard')}</span>"
+                    elif roe >= 15: rr_eval = f"<span class='good'>{t('[합격] 버핏이 사랑하는 우량 금융주 기준 통과', '[Pass] Buffett’s Prime Financial Standard')}</span>"
                     elif roe >= 10: rr_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 안정적인 수익 창출 (인플레이션 방어)', '[Slight Pass] Stable Earnings')}</span>"
                     elif roe >= 7: rr_eval = f"<span style='color:#fdcb6e;'>{t('[보통] 평범한 수익성 (성장보다 유지 수준)', '[Average] Ordinary Profitability')}</span>"
                     elif roe >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 예금 이자만도 못한 비효율적 자산 운용', '[Warning] Inefficient Asset Management')}</span>"
                     else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 자본 훼손 및 적자 상태', '[Very Warning] Severe Capital Destruction')}</span>"
                     biz_eval = rr_eval
                 else:
-                    if roic_val >= 20 and roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 멍거의 완벽한 복리 기계 (압도적 해자)', '[Very Pass] Munger\\'s Compounding Machine')}</span>"
-                    elif roic_val >= 15 and roe >= 12: rr_eval = f"<span class='good'>{t('[합격] 버핏의 경제적 해자 통과 (탁월한 비즈니스)', '[Pass] Buffett\\'s Economic Moat')}</span>"
+                    if roic_val >= 20 and roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 멍거의 완벽한 복리 기계 (압도적 해자)', '[Very Pass] Munger’s Compounding Machine')}</span>"
+                    elif roic_val >= 15 and roe >= 12: rr_eval = f"<span class='good'>{t('[합격] 버핏의 경제적 해자 통과 (탁월한 비즈니스)', '[Pass] Buffett’s Economic Moat')}</span>"
                     elif roic_val >= 10 and roe >= 10: rr_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 자본비용을 상회하는 준수한 수익성', '[Slight Pass] Good Profitability')}</span>"
                     elif roic_val >= 7 and roe >= 7: rr_eval = f"<span style='color:#fdcb6e;'>{t('[보통] 평범한 비즈니스 (뚜렷한 해자 없음)', '[Average] Ordinary Business, No Moat')}</span>"
                     elif roic_val >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 장사를 할수록 손해 (자본 파괴 구간)', '[Warning] Value Destructive')}</span>"
