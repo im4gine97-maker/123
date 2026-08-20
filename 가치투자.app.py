@@ -1107,7 +1107,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     ])
 
     if is_cyclical:
-        pen_score -= 40
+        pen_score -= 45
         
     if pen_score < 0:
         score += pen_score
@@ -1130,13 +1130,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 훼손이나 비상식적인 밸류에이션 거품이 낀 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or bubbles.")
 
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -40점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -45점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -25점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -20점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -20 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -30점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -20 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -30점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: PER, DCF, ERP 등을 완전히 배제하고 오직 자산가치(PBR)와 자본효율성(ROE), 그리고 경영진 점수로만 평가를 도출했습니다.)", " (Financial Mode Active: PER, DCF, ERP excluded. Evaluated solely on PBR, ROE, and Management.)")
