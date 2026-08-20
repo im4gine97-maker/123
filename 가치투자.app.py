@@ -1010,47 +1010,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
-# 함수 정의의 맨 끝에 div_yield_pct 파라미터를 추가합니다.
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0):
-    score_details = {}
-    score = 0
-    ceo_score = 0
-    
-    # (기존 [1] 경영진, [2] 가격 매력도, [3] 자본 효율성 코드는 그대로 둡니다) ...
-
-    # =========================================================================
-    # [금융주 전용] 배당 매력도 점수 (최대 20점 ~ 최소 -10점, 20단계 세분화)
-    # =========================================================================
-    div_score = 0
-    if is_financial:
-        if div_yield_pct >= 9.5: div_score = 20
-        elif div_yield_pct >= 9.0: div_score = 19
-        elif div_yield_pct >= 8.5: div_score = 18
-        elif div_yield_pct >= 8.0: div_score = 17
-        elif div_yield_pct >= 7.5: div_score = 16
-        elif div_yield_pct >= 7.0: div_score = 15
-        elif div_yield_pct >= 6.5: div_score = 14
-        elif div_yield_pct >= 6.0: div_score = 13
-        elif div_yield_pct >= 5.5: div_score = 12
-        elif div_yield_pct >= 5.0: div_score = 11
-        elif div_yield_pct >= 4.5: div_score = 10
-        elif div_yield_pct >= 4.0: div_score = 8
-        elif div_yield_pct >= 3.5: div_score = 6
-        elif div_yield_pct >= 3.0: div_score = 4
-        elif div_yield_pct >= 2.5: div_score = 2
-        elif div_yield_pct >= 2.0: div_score = 0
-        elif div_yield_pct >= 1.5: div_score = -2
-        elif div_yield_pct >= 1.0: div_score = -4
-        elif div_yield_pct > 0.0: div_score = -6
-        else: div_score = -10 # 배당이 아예 없는 경우 (금융주는 주주환원 미흡으로 큰 감점)
-
-        # 예외 처리: 버크셔 해서웨이는 금융주로 분류되나 배당을 주지 않고 자산증식에 집중하므로 감점 면제
-        if tk.upper() in ["BRK-A", "BRK-B"]:
-            div_score = 0
-
-        score += div_score
-        score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = div_score
-
     # [4] DCF 안전마진(MoS) 점수
     dcf_score = 0
     if not is_financial:
@@ -1723,8 +1682,7 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                # 맨 끝에 div 파라미터를 추가하여 배당수익률 데이터를 함수로 전달합니다.
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div)
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf)
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
