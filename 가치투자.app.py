@@ -1832,11 +1832,11 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))        
+                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
+                
                 p_txt = ""
                 if is_financial:
                     if kr:
-                        # 🇰🇷 한국 금융주: 코리아 디스카운트 및 규제 리스크 반영 기준
                         if pbr <= 0.4: p_txt += f"- PBR 측면: <span class='good'>[매우 합격] ({pbr:.2f}배 - 극단적 자산 저평가/풍부한 안전마진)</span>"
                         elif pbr <= 0.7: p_txt += f"- PBR 측면: <span class='good'>[합격] ({pbr:.2f}배 - 우량한 자산 할인 구간)</span>"
                         elif pbr <= 0.9: p_txt += f"- PBR 측면: <span style='color:#74b9ff;'>[약간 합격] ({pbr:.2f}배 - 청산가치 이하 안전 구간)</span>"
@@ -1845,7 +1845,6 @@ with tab1:
                         elif pbr <= 1.5: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배 - 자본 대비 고평가 경고)</span>"
                         else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배 - 극심한 밸류에이션 거품)</span>"
                     else:
-                        # 🇺🇸 미국 금융주: 버핏의 1.2배 자사주 매입 상한선 잣대 적용
                         if pbr <= 0.8: p_txt += f"- PBR 측면: <span class='good'>[매우 합격] ({pbr:.2f}배 - 버핏급 강력한 안전마진 확보)</span>"
                         elif pbr <= 1.0: p_txt += f"- PBR 측면: <span class='good'>[합격] ({pbr:.2f}배 - 청산가치 이하의 매력적인 가격)</span>"
                         elif pbr <= 1.2: p_txt += f"- PBR 측면: <span style='color:#74b9ff;'>[약간 합격] ({pbr:.2f}배 - 버핏식 적정 가치 상한선)</span>"
@@ -1853,23 +1852,6 @@ with tab1:
                         elif pbr <= 1.8: p_txt += f"- PBR 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pbr:.2f}배 - 가격 매력도 상실/보수적 접근 필요)</span>"
                         elif pbr <= 2.2: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배 - 전통 금융업 대비 명백한 할증/버블)</span>"
                         else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배 - 안전마진 붕괴/극심한 고평가)</span>"
-                else:
-                    if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    else: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"- DCF 측면: <span class='highlight'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Very Warning] Negative FCF (N/A)')}</span>\n"
-                    elif mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>\n"
-                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>\n"
-                    else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>\n"
                 else:
                     if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
                     elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
