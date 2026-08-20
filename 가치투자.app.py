@@ -904,23 +904,33 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-    # [1] 경영진 및 거버넌스 점수
-    positive_keywords_30 = ["역사상 가장 신뢰받는", "탁월한 자본 배분", "주주 환원", "자사주 매입", "상생", "훌륭한 방어", "압도적인 기술력", "압도적인 발사 원가 경쟁력"]
-    positive_keywords_15 = ["검증된 경영자", "안정적", "수익성 우위", "선점", "실행력", "투명한", "신뢰도가 높으나", "역량은 우수", "지배적 지위", "독보적", "확실한", "압도적인 브랜드 파워", "기업가치 재평가", "독점 수준", "압도적인 가격 결정력"]
+    # [1] 경영진 및 거버넌스 점수 (버핏의 철학 반영, 최고 40점 / 최저 -40점)
+    ceo_score = 0
     
-    if any(k in ceo_text for k in positive_keywords_30): ceo_score += 30
-    elif any(k in ceo_text for k in positive_keywords_15): ceo_score += 15
+    # 긍정 요소 (버핏이 사랑하는 주주환원, 자본배분, 독점력, 정직성)
+    kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"] # +40점
+    kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"] # +30점
+    kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"] # +15점
+
+    # 부정 요소 (버핏이 혐오하는 부도덕, 가치 훼손, 리스크)
+    kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"] # -80점 (도덕성 결여 - 가차없는 감점)
+    kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"] # -40점 (심각한 주주가치 훼손 및 컴플라이언스 위반)
+    kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"] # -20점 (비즈니스 및 거버넌스 소음)
+    kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"] # -5점 (일반적인 산업 리스크)
+    
+    # 긍정적 측면 채점
+    if any(k in ceo_text for k in kw_super_pos): ceo_score += 40
+    elif any(k in ceo_text for k in kw_high_pos): ceo_score += 30
+    elif any(k in ceo_text for k in kw_pos): ceo_score += 15
     else: ceo_score += 5 
-        
-    negative_keywords_35 = ["구속", "횡령", "사법 리스크", "사법적 리스크", "배임", "재판에 얽힌", "대규모 배상금", "파산", "회계 처리 논란", "부품 바꿔치기", "스펙 다운"]
-    negative_keywords_20 = ["물적분할", "주주가치 훼손", "차등의결권", "지배력 유지", "경영권 분쟁", "과도한 출혈", "잉여 현금 지속 소각", "가이던스 수정", "희생양", "자본 배치 비효율", "반독점", "독점 규제", "인수 합병 규제", "합병 규제", "지배구조 개편", "집단소송", "키맨 리스크", "부당 해고", "가혹한 노동 환경", "양안 갈등", "침공 리스크"]
-    negative_keywords_10 = ["관료주의", "지정학적", "노조", "마진 압박", "경쟁 격화", "침체", "수요 둔화", "부채 부담", "환차손", "파업", "변동성", "둔화", "위축", "잠식", "만료", "포화", "규제 마찰", "마진 희석"]
     
-    if any(k in ceo_text for k in negative_keywords_35): ceo_score -= 35
-    if any(k in ceo_text for k in negative_keywords_20): ceo_score -= 20
-    if any(k in ceo_text for k in negative_keywords_10): ceo_score -= 10
+    # 부정적 측면 감점 (도덕성 결함 발견 시 긍정 점수를 무시하고 나락으로 떨어짐)
+    if any(k in ceo_text for k in kw_super_neg): ceo_score -= 80
+    elif any(k in ceo_text for k in kw_high_neg): ceo_score -= 40
+    elif any(k in ceo_text for k in kw_neg): ceo_score -= 20
+    elif any(k in ceo_text for k in kw_minor_neg): ceo_score -= 5
         
-    ceo_final = max(-35, min(35, ceo_score))
+    ceo_final = max(-40, min(40, ceo_score))
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
         
