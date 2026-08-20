@@ -960,11 +960,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += p_score
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
 
-    # [3] 자본 효율성 및 비즈니스 해자 점수
+    # [3] 자본 효율성 및 비즈니스 해자 점수 (버핏 & 멍거 철학, 만점 40점)
     cap_score = 0
     if is_financial:
+        # PBR 로직 (이전 답변에서 수정된 국가별 잣대 유지)
         if kr:
-            # 🇰🇷 한국 금융주 로직: 만성적 코리아 디스카운트 반영 (기존 유지)
             if pbr <= 0.3: cap_score += 40
             elif pbr <= 0.4: cap_score += 35
             elif pbr <= 0.5: cap_score += 30
@@ -980,60 +980,48 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif pbr <= 1.5: cap_score -= 20
             else: cap_score -= 30
         else:
-            # 🇺🇸 미국 금융주 로직: 워런 버핏의 '안전마진' 잣대 적용
-            # 버크셔 역사적 자사주 매입 상한선인 'PBR 1.2배'를 핵심 허들로 설정
-            if pbr <= 0.8: cap_score += 40    # [최상] 강력한 안전마진 (과거 BAC 대량 매수 구간)
-            elif pbr <= 1.0: cap_score += 35  # [우수] 청산가치 이하의 훌륭한 가격
-            elif pbr <= 1.2: cap_score += 25  # [합격] 버핏의 전통적인 적정가 상한선
-            elif pbr <= 1.4: cap_score += 15  # [약간 프리미엄] JP모건처럼 ROE가 매우 뛰어난 은행에만 정당화되는 한계선
-            elif pbr <= 1.6: cap_score += 5   # [보통] 가격 매력도 상실 (미스터 마켓이 제값 이상을 부르는 중)
-            elif pbr <= 1.8: cap_score += 0   # [한계] 수익성(ROE)이 아무리 좋아도 비싼 구간
-            elif pbr <= 2.0: cap_score -= 10  # [주의] 전통 은행/보험업으로서 버블 위험 발생
-            elif pbr <= 2.3: cap_score -= 20  # [매우 주의] 
-            elif pbr <= 2.6: cap_score -= 30  # [위험] 안전마진 붕괴
-            else: cap_score -= 40             # [극위험] 자본 대비 상식 밖의 버블
+            if pbr <= 0.8: cap_score += 40
+            elif pbr <= 1.0: cap_score += 35
+            elif pbr <= 1.2: cap_score += 25
+            elif pbr <= 1.4: cap_score += 15
+            elif pbr <= 1.6: cap_score += 5
+            elif pbr <= 1.8: cap_score += 0
+            elif pbr <= 2.0: cap_score -= 10
+            elif pbr <= 2.3: cap_score -= 20
+            elif pbr <= 2.6: cap_score -= 30
+            else: cap_score -= 40
 
-        if roe >= 20: cap_score += 40
-        elif roe >= 18: cap_score += 35
-        elif roe >= 16: cap_score += 30
-        elif roe >= 14: cap_score += 25
-        elif roe >= 12: cap_score += 20
-        elif roe >= 10: cap_score += 15
-        elif roe >= 8: cap_score += 10
-        elif roe >= 6: cap_score += 5
-        elif roe >= 4: cap_score += 0
-        elif roe >= 2: cap_score -= 5
-        elif roe >= 0: cap_score -= 15
-        elif roe >= -5: cap_score -= 25
-        else: cap_score -= 40
+        # ROE: 금융주의 사실상 핵심 해자 (만점 40점)
+        if roe >= 20: cap_score += 40       # [경이로운 수준] 마스터카드, 무디스급 완벽한 복리 기계
+        elif roe >= 15: cap_score += 35     # [탁월한 자본배분] 버핏이 사랑하는 우량 금융주 기준선
+        elif roe >= 12: cap_score += 25     # [우수] 안정적인 수익 창출
+        elif roe >= 10: cap_score += 15     # [양호]
+        elif roe >= 8: cap_score += 5       # [보통] 인플레이션 방어 수준
+        elif roe >= 5: cap_score -= 5       # [미흡] 비효율적인 자산 운용
+        elif roe >= 0: cap_score -= 15      # [주의] 이익 창출력 훼손
+        else: cap_score -= 30               # [위험] 자산 부실화 및 적자
         
         score += cap_score
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = cap_score
     else:
-        if roic >= 25: cap_score += 25
-        elif roic >= 20: cap_score += 23
-        elif roic >= 17: cap_score += 21
-        elif roic >= 14: cap_score += 18
-        elif roic >= 11: cap_score += 15
-        elif roic >= 9: cap_score += 12
-        elif roic >= 7: cap_score += 9
-        elif roic >= 5: cap_score += 6
-        elif roic >= 3: cap_score += 3
-        elif roic >= 0: cap_score -= 3
-        elif roic >= -5: cap_score -= 8
-        elif roic >= -10: cap_score -= 12
-        else: cap_score -= 15
-
-        if roe >= 25: cap_score += 15
-        elif roe >= 22: cap_score += 13
-        elif roe >= 19: cap_score += 11
-        elif roe >= 16: cap_score += 9
-        elif roe >= 13: cap_score += 7
-        elif roe >= 10: cap_score += 5
-        elif roe >= 7: cap_score += 3
-        elif roe >= 4: cap_score += 1
-        elif roe >= 0: cap_score -= 4
-        elif roe >= -5: cap_score -= 9
+        # ROIC: 버핏과 멍거의 경제적 해자 판단 핵심 지표 (만점 25점)
+        if roic >= 20: cap_score += 25      # [훌륭한 비즈니스] 끝없이 자본을 재투자할 수 있는 완벽한 복리 기계
+        elif roic >= 15: cap_score += 20    # [강력한 해자] 버핏의 전통적인 경제적 해자 합격 기준선
+        elif roic >= 12: cap_score += 15    # [우수한 비즈니스] 자본 비용(WACC)을 상회하는 안정적 가치 창출
+        elif roic >= 10: cap_score += 10    # [양호] 평범한 기업보다는 우수한 수준
+        elif roic >= 7: cap_score += 5      # [일반] 해자는 없으나 자본을 까먹지는 않음
+        elif roic >= 4: cap_score += 0      # [미흡] 은행 예금 수준, 치열한 경쟁 상황
+        elif roic >= 0: cap_score -= 10     # [자본 파괴] 장사를 할수록 인플레이션을 이기지 못함
+        elif roic >= -5: cap_score -= 20    # [위험] 자본 훼손 구간
+        else: cap_score -= 30               # [극위험] 밑빠진 독
+        
+        # ROE: 부채 레버리지를 감안하더라도 주주 몫을 얼마나 잘 불려주는가 (만점 15점)
+        if roe >= 20: cap_score += 15
+        elif roe >= 15: cap_score += 12
+        elif roe >= 10: cap_score += 8
+        elif roe >= 7: cap_score += 4
+        elif roe >= 4: cap_score += 0
+        elif roe >= 0: cap_score -= 5
         else: cap_score -= 15
 
         score += cap_score
@@ -1886,13 +1874,22 @@ with tab1:
                     elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>\n"
                     else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>\n"
 
-                if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
-                elif roe >= 15: biz_eval = f"<span class='good'>{t('[합격] 자본효율 탁월, 해자 확률 높음', '[Pass] Great efficiency, high moat probability')}</span>"
-                elif roe >= 10: biz_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 양호한 수익성', '[Slight Pass] Good profitability')}</span>"
-                elif roe >= 5: biz_eval = f"<span style='color:#fdcb6e;'>{t('[약간 주의] 평균 수준, 독점력 확인 필요', '[Slight Warning] Average, verify moat')}</span>"
-                elif roe >= 0: biz_eval = f"<span class='highlight'>{t('[주의] 부진한 비즈니스', '[Warning] Poor business')}</span>"
-                else: biz_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 구조 훼손 점검 시급', '[Very Warning] Structural damage check urgent')}</span>"
-
+                if is_financial:
+                    if roe >= 20: rr_eval = f"<span class='good'>{t('[매우 합격] 경이로운 자본 배치 (최상위 플랫폼/금융급)', '[Very Pass] Phenomenal Capital Allocation')}</span>"
+                    elif roe >= 15: rr_eval = f"<span class='good'>{t('[합격] 버핏이 사랑하는 우량 금융주 기준 통과', '[Pass] Buffett\\'s Prime Financial Standard')}</span>"
+                    elif roe >= 10: rr_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 안정적인 수익 창출 (인플레이션 방어)', '[Slight Pass] Stable Earnings')}</span>"
+                    elif roe >= 7: rr_eval = f"<span style='color:#fdcb6e;'>{t('[보통] 평범한 수익성 (성장보다 유지 수준)', '[Average] Ordinary Profitability')}</span>"
+                    elif roe >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 예금 이자만도 못한 비효율적 자산 운용', '[Warning] Inefficient Asset Management')}</span>"
+                    else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 심각한 자본 훼손 및 적자 상태', '[Very Warning] Severe Capital Destruction')}</span>"
+                    biz_eval = rr_eval
+                else:
+                    if roic_val >= 20 and roe >= 15: rr_eval = f"<span class='good'>{t('[매우 합격] 멍거의 완벽한 복리 기계 (압도적 해자)', '[Very Pass] Munger\\'s Compounding Machine')}</span>"
+                    elif roic_val >= 15 and roe >= 12: rr_eval = f"<span class='good'>{t('[합격] 버핏의 경제적 해자 통과 (탁월한 비즈니스)', '[Pass] Buffett\\'s Economic Moat')}</span>"
+                    elif roic_val >= 10 and roe >= 10: rr_eval = f"<span style='color:#74b9ff;'>{t('[약간 합격] 자본비용을 상회하는 준수한 수익성', '[Slight Pass] Good Profitability')}</span>"
+                    elif roic_val >= 7 and roe >= 7: rr_eval = f"<span style='color:#fdcb6e;'>{t('[보통] 평범한 비즈니스 (뚜렷한 해자 없음)', '[Average] Ordinary Business, No Moat')}</span>"
+                    elif roic_val >= 0: rr_eval = f"<span class='highlight'>{t('[주의] 장사를 할수록 손해 (자본 파괴 구간)', '[Warning] Value Destructive')}</span>"
+                    else: rr_eval = f"<span class='highlight'>{t('[매우 주의] 밑빠진 독 (극심한 펀더멘털 훼손)', '[Very Warning] Severe Fundamental Damage')}</span>"
+                    biz_eval = rr_eval
                 if is_financial:
                     math_eval = f"<span class='good'>{t('[해당 없음] 금융주는 PBR/ROE 듀폰 모델로 가치 창출을 평가합니다.', '[N/A] Financials evaluated via PBR/ROE.')}</span>"
                 else:
