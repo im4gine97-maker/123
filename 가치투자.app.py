@@ -1832,8 +1832,7 @@ with tab1:
                 
                 st.divider()
 
-                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
-                
+                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))        
                 p_txt = ""
                 if is_financial:
                     if kr:
