@@ -963,60 +963,100 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         ceo_final = 0
     else:
         # (기존에 작성하신 경영진 키워드 점수 스캔 로직이 그대로 들어갑니다. 생략 없이 유지해주세요.)
-        # [1] 경영진 및 거버넌스 점수 (상대평가 및 20단계 세분화)
-        kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
-        kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
-        kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
-
+            # =========================================================================
+    # [1] 경영진 및 거버넌스 점수 (원아웃 제도 도입 및 중복 스캔 방지)
+    # =========================================================================
+    # 💡 매크로 답변(DB에 없는 기업)일 경우 스캔을 멈추고 강제 0점 처리
+    if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
+        ceo_final = 0
+    else:
+        # [최악의 치명적 결함 리스트]
         kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
-        kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
-        kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
-        kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
-
-        raw_score = 0
-        for k in kw_super_pos:
-            if k in ceo_text: raw_score += 40
-        for k in kw_high_pos:
-            if k in ceo_text: raw_score += 30
-        for k in kw_pos:
-            if k in ceo_text: raw_score += 15
+        
+        # 🚨 [원아웃(One-strike) 룰 적용]
+        # 치명적 결함이 단 하나라도 텍스트에 포함되어 있다면 묻지도 따지지도 않고 즉시 최하점(-40점) 처리
+        is_one_strike = False
         for k in kw_super_neg:
-            if k in ceo_text: raw_score -= 80
-        for k in kw_high_neg:
-            if k in ceo_text: raw_score -= 40
-        for k in kw_neg:
-            if k in ceo_text: raw_score -= 20
-        for k in kw_minor_neg:
-            if k in ceo_text: raw_score -= 5
+            if k in ceo_text:
+                is_one_strike = True
+                break
+                
+        if is_one_strike:
+            ceo_final = -40
+        else:
+            # 치명적 결함이 없는 일반 기업들에 한해 정상적인 가점/감점 스캔 진행
+            kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
+            kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
+            kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
 
-        max_raw_score = 180.0
-        ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
-        scaled_score = ratio * 40.0
+            kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+            kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
+            kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
 
-        if scaled_score >= 38: ceo_final = 40
-        elif scaled_score >= 34: ceo_final = 36
-        elif scaled_score >= 30: ceo_final = 32
-        elif scaled_score >= 26: ceo_final = 28
-        elif scaled_score >= 22: ceo_final = 24
-        elif scaled_score >= 18: ceo_final = 20
-        elif scaled_score >= 14: ceo_final = 16
-        elif scaled_score >= 10: ceo_final = 12
-        elif scaled_score >= 6:  ceo_final = 8
-        elif scaled_score >= 2:  ceo_final = 4
-        elif scaled_score >= -2: ceo_final = 0
-        elif scaled_score >= -6: ceo_final = -4
-        elif scaled_score >= -10: ceo_final = -8
-        elif scaled_score >= -14: ceo_final = -12
-        elif scaled_score >= -18: ceo_final = -16
-        elif scaled_score >= -22: ceo_final = -20
-        elif scaled_score >= -26: ceo_final = -24
-        elif scaled_score >= -30: ceo_final = -28
-        elif scaled_score >= -34: ceo_final = -32
-        elif scaled_score >= -38: ceo_final = -36
-        else: ceo_final = -40
+            raw_score = 0
+            temp_text = ceo_text # 중복 스캔 방지용 복사본 생성
+
+            # 긍정 요소 합산 (긴 단어부터 스캔하여 텍스트에서 삭제. '압도적인 마진'과 '압도적인'의 중복 가점 방지)
+            for k in kw_super_pos:
+                if k in temp_text:
+                    raw_score += 40
+                    temp_text = temp_text.replace(k, "") 
+            for k in kw_high_pos:
+                if k in temp_text:
+                    raw_score += 30
+                    temp_text = temp_text.replace(k, "")
+            for k in kw_pos:
+                if k in temp_text:
+                    raw_score += 15
+                    temp_text = temp_text.replace(k, "")
+                    
+            # 부정 요소 차감 (super_neg는 위에서 이미 원아웃 처리했으므로 제외)
+            for k in kw_high_neg:
+                if k in temp_text:
+                    raw_score -= 40
+                    temp_text = temp_text.replace(k, "")
+            for k in kw_neg:
+                if k in temp_text:
+                    raw_score -= 20
+                    temp_text = temp_text.replace(k, "")
+            for k in kw_minor_neg:
+                if k in temp_text:
+                    raw_score -= 5
+                    temp_text = temp_text.replace(k, "")
+
+            # 만점 기준 설정 (중복 스캔을 제거했으므로 점수 허들을 180에서 120으로 낮추어 정교화)
+            max_raw_score = 120.0
+            
+            # 비율 스케일링 (-40점 ~ +40점)
+            ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
+            scaled_score = ratio * 40.0
+
+            # 20단계 세분화
+            if scaled_score >= 38: ceo_final = 40
+            elif scaled_score >= 34: ceo_final = 36
+            elif scaled_score >= 30: ceo_final = 32
+            elif scaled_score >= 26: ceo_final = 28
+            elif scaled_score >= 22: ceo_final = 24
+            elif scaled_score >= 18: ceo_final = 20
+            elif scaled_score >= 14: ceo_final = 16
+            elif scaled_score >= 10: ceo_final = 12
+            elif scaled_score >= 6:  ceo_final = 8
+            elif scaled_score >= 2:  ceo_final = 4
+            elif scaled_score >= -2: ceo_final = 0
+            elif scaled_score >= -6: ceo_final = -4
+            elif scaled_score >= -10: ceo_final = -8
+            elif scaled_score >= -14: ceo_final = -12
+            elif scaled_score >= -18: ceo_final = -16
+            elif scaled_score >= -22: ceo_final = -20
+            elif scaled_score >= -26: ceo_final = -24
+            elif scaled_score >= -30: ceo_final = -28
+            elif scaled_score >= -34: ceo_final = -32
+            elif scaled_score >= -38: ceo_final = -36
+            else: ceo_final = -40
 
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
+
 
     # =========================================================================
     # [금융주 전용] 배당 매력도 점수 
