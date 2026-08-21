@@ -1135,7 +1135,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -20
+            dcf_score = -25
         elif is_zigzag:
             dcf_score = -25 # 🚨 현금흐름이 위아래로 요동치는 지그재그 기업은 즉시 최하점 낙인
         else:
