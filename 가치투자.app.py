@@ -1087,81 +1087,102 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
-    # [4] DCF 안전마진(MoS) 점수
+    # =========================================================================
+    # [4] DCF 안전마진(MoS) 점수 (최대 15점 ~ 최소 -25점 / 20단계 세분화)
+    # 기준: 50% 이상 초저평가 시 만점(15점)
+    # =========================================================================
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -40
+            dcf_score = -20
         else:
             if mos >= 50: dcf_score = 15
+            elif mos >= 45: dcf_score = 14
             elif mos >= 40: dcf_score = 13
+            elif mos >= 35: dcf_score = 12
             elif mos >= 30: dcf_score = 11
+            elif mos >= 25: dcf_score = 10
             elif mos >= 20: dcf_score = 8
-            elif mos >= 10: dcf_score = 5
-            elif mos >= 5: dcf_score = 2
-            elif mos >= 0: dcf_score = 0
-            elif mos >= -10: dcf_score = -3
-            elif mos >= -20: dcf_score = -6
-            elif mos >= -30: dcf_score = -10
-            elif mos >= -40: dcf_score = -13
-            else: dcf_score = -15
+            elif mos >= 15: dcf_score = 6
+            elif mos >= 10: dcf_score = 4
+            elif mos >= 5:  dcf_score = 2
+            elif mos >= 0:  dcf_score = 0
+            elif mos >= -5: dcf_score = -2
+            elif mos >= -10: dcf_score = -4
+            elif mos >= -15: dcf_score = -6
+            elif mos >= -20: dcf_score = -9
+            elif mos >= -25: dcf_score = -12
+            elif mos >= -30: dcf_score = -15
+            elif mos >= -40: dcf_score = -18
+            elif mos >= -50: dcf_score = -21
+            else: dcf_score = -25
             
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
 
-    # [5] ERP 점수
+    # =========================================================================
+    # [5] ERP 점수 (거시 매력도 - 이익수익률 vs 국채) (최대 15점 ~ 최소 -25점 / 20단계 세분화)
+    # 기준: 국채 대비 5.0%p 이상 초과 수익 시 만점(15점)
+    # =========================================================================
     e_score = 0
     if not is_financial:
         if erp >= 5.0: e_score = 15
+        elif erp >= 4.5: e_score = 14
         elif erp >= 4.0: e_score = 13
-        elif erp >= 3.5: e_score = 11
-        elif erp >= 3.0: e_score = 9
-        elif erp >= 2.5: e_score = 7
-        elif erp >= 2.0: e_score = 5
-        elif erp >= 1.5: e_score = 3
-        elif erp >= 1.0: e_score = 1
-        elif erp >= 0.5: e_score = 0
-        elif erp >= 0.0: e_score -= 3
-        elif erp >= -1.0: e_score -= 7
-        elif erp >= -2.0: e_score -= 11
-        else: e_score -= 15
+        elif erp >= 3.5: e_score = 12
+        elif erp >= 3.0: e_score = 11
+        elif erp >= 2.5: e_score = 9
+        elif erp >= 2.0: e_score = 7
+        elif erp >= 1.5: e_score = 5
+        elif erp >= 1.0: e_score = 3
+        elif erp >= 0.5: e_score = 1
+        elif erp >= 0.0: e_score = -1
+        elif erp >= -0.5: e_score = -3
+        elif erp >= -1.0: e_score = -5
+        elif erp >= -1.5: e_score = -8
+        elif erp >= -2.0: e_score = -11
+        elif erp >= -2.5: e_score = -14
+        elif erp >= -3.0: e_score = -17
+        elif erp >= -4.0: e_score = -20
+        elif erp >= -5.0: e_score = -23
+        else: e_score = -25
         
         score += e_score
         score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = e_score
 
-    # [6] 10년 복리 성장성 점수 (CAGR)
+    # =========================================================================
+    # [6] 10년 복리 성장성 점수 (CAGR) (최대 15점 ~ 최소 -30점 / 20단계 세분화)
+    # 기준: 연평균 20% 이상 폭발적 성장 시 만점(15점)
+    # =========================================================================
     g_score = 0
     if not is_financial:
         if final_g >= 0.20: g_score = 15
-        elif final_g >= 0.18: g_score = 13
-        elif final_g >= 0.15: g_score = 11
-        elif final_g >= 0.12: g_score = 9
-        elif final_g >= 0.09: g_score = 7
-        elif final_g >= 0.07: g_score = 5
-        elif final_g >= 0.05: g_score = 3
-        elif final_g >= 0.03: g_score = 1
-        elif final_g >= 0.01: g_score -= 2
-        elif final_g >= -0.02: g_score -= 6
-        elif final_g >= -0.05: g_score -= 10
-        else: g_score -= 15
+        elif final_g >= 0.18: g_score = 14
+        elif final_g >= 0.16: g_score = 13
+        elif final_g >= 0.14: g_score = 12
+        elif final_g >= 0.12: g_score = 11
+        elif final_g >= 0.10: g_score = 9
+        elif final_g >= 0.08: g_score = 7
+        elif final_g >= 0.06: g_score = 5
+        elif final_g >= 0.04: g_score = 3
+        elif final_g >= 0.02: g_score = 1
+        elif final_g >= 0.00: g_score = -2
+        elif final_g >= -0.02: g_score = -5
+        elif final_g >= -0.04: g_score = -8
+        elif final_g >= -0.06: g_score = -11
+        elif final_g >= -0.08: g_score = -14
+        elif final_g >= -0.10: g_score = -17
+        elif final_g >= -0.15: g_score = -20
+        elif final_g >= -0.20: g_score = -23
+        elif final_g >= -0.25: g_score = -26
+        else: g_score = -30
         
         score += g_score
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = g_score
-        
-    # [7] 배당 매력도 보너스 점수 (최고 15점, 20단계, 4.5% 최고점, 감점 없음)
-    div_score = 0
-    if div > 0:
-        if div >= 4.5:
-            div_score = 15.0
-        else:
-            step = int((div + 0.0001) / 0.225)
-            div_score = step * 0.75
-            
-    if div_score > 0:
-        score += div_score
-        score_details[t(f"배당 수익률 보너스 (기준: 4.5% 최고점)", "Dividend Yield Bonus")] = div_score
 
-    # [8] 국가별 디스카운트 및 시클리컬 패널티
+    # =========================================================================
+    # [7] 국가별 디스카운트 및 시클리컬 패널티 (요청하신 감점 점수 반영)
+    # =========================================================================
     pen_score = 0
     tk_upper = str(tk).upper()
 
@@ -1174,10 +1195,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
     is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
 
+    # 코리아 디스카운트 -25점
     if kr:
         pen_score -= 25
+    # 중국/홍콩 -30점
     elif is_china_hk:
         pen_score -= 30
+    # 대만 -30점
     elif is_taiwan:
         pen_score -= 30
 
@@ -1196,6 +1220,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
     ])
 
+    # 시클리컬 감점 -45점
     if is_cyclical:
         pen_score -= 45
         
@@ -1203,30 +1228,37 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = pen_score
 
-    # 종합 등급 판정
-    if score >= 90:
-        title, color, reason = t(f"적극적 할인 ({score:g}점)", f"Deep Discount ({score:g} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 모든 평가에서 '매우 합격'을 기록한 워런 버핏급 초저평가 기회입니다.", "An extremely rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
-    elif score >= 50:
-        title, color, reason = t(f"할인 ({score:g}점)", f"Discount ({score:g} pts)"), "#00b894", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 '합격' 수준의 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management.")
-    elif score >= 15:
-        title, color, reason = t(f"약간 할인 ({score:g}점)", f"Slight Discount ({score:g} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 '약간 할인'되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
-    elif score >= -15:
-        title, color, reason = t(f"적정 가치 ({score:g}점)", f"Fair Value ({score:g} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 일부 지표가 '약간 주의' 수준이더라도 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다.", "Perfectly justifiable as a fair price given business quality despite some 'Slight Warning' valuation metrics.")
-    elif score >= -45:
-        title, color, reason = t(f"약간 할증 ({score:g}점)", f"Slight Premium ({score:g} pts)"), "#ff7675", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 '약간의 할증(Premium)'이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
-    elif score >= -75:
-        title, color, reason = t(f"할증 ({score:g}점)", f"Premium ({score:g} pts)"), "#e17055", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 과도하게 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects excessive market expectations.")
+    # =========================================================================
+    # 종합 등급 판정 (기존 7단계 -> 9단계 확장)
+    # =========================================================================
+    if score >= 110:
+        title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
+    elif score >= 85:
+        title, color, reason = t(f"적극적 할인 ({score}점)", f"Strong Discount ({score} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 핵심 평가에서 흠잡을 데 없는 워런 버핏급 초저평가 기회입니다.", "An exceptionally rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
+    elif score >= 60:
+        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#1dd1a1", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 안전하게 매수할 수 있는 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management, offering a safe entry.")
+    elif score >= 30:
+        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 약간 할인되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
+    elif score >= 0:
+        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다. 장기 투자자에게는 여전히 유효합니다.", "Perfectly justifiable as a fair price given business quality. Still a valid hold/buy for long-term investors.")
+    elif score >= -25:
+        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#fab1a0", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 약간의 할증(Premium)이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
+    elif score >= -50:
+        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#ff7675", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 꽤 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects somewhat excessive market expectations.")
+    elif score >= -80:
+        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#e17055", t("가치평가 지표가 대체로 '매우 주의'를 가리킵니다. 비상식적인 밸류에이션 거품이 끼어 있어 투자에 상당한 위험이 따릅니다.", "Highly speculative territory with multiple 'Very Warning' signals, indicating a significant valuation bubble.")
     else:
-        title, color, reason = t(f"과도한 할증 ({score:g}점)", f"Excessive Premium ({score:g} pts)"), "#d63031", t("가치평가 지표가 대부분 '매우 주의'를 가리킵니다. 펀더멘털의 훼손이나 비상식적인 밸류에이션 거품이 낀 위험한 구간입니다.", "Highly dangerous speculative territory with multiple 'Very Warning' signals, indicating compromised fundamentals or bubbles.")
-
+        title, color, reason = t(f"극단적 버블 / 가치 훼손 ({score}점)", f"Extreme Bubble / Value Trap ({score} pts)"), "#d63031", t("심각한 펀더멘털의 훼손(거버넌스 붕괴 등)이 있거나, 수식을 완전히 벗어난 극단적인 광기의 버블 구간입니다. 절대적인 주의가 필요합니다.", "Absolute extreme bubble or severe fundamental destruction (e.g., governance collapse). Demands extreme caution; likely a value trap.")
+   
+    # 페널티 설명 텍스트 결합 (텍스트의 감점 수치도 모두 맞춤)
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -45점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -40 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -45점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -45 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -25점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -25점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -25 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -30점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -20 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -30점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -30 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -30점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -30점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -30 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: PER, DCF, ERP 등을 완전히 배제하고 오직 자산가치(PBR)와 자본효율성(ROE), 그리고 경영진 점수로만 평가를 도출했습니다.)", " (Financial Mode Active: PER, DCF, ERP excluded. Evaluated solely on PBR, ROE, and Management.)")
