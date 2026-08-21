@@ -1250,19 +1250,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         title, color, reason = t(f"극단적 버블 / 가치 훼손 ({score}점)", f"Extreme Bubble / Value Trap ({score} pts)"), "#d63031", t("심각한 펀더멘털의 훼손(거버넌스 붕괴 등)이 있거나, 수식을 완전히 벗어난 극단적인 광기의 버블 구간입니다. 절대적인 주의가 필요합니다.", "Absolute extreme bubble or severe fundamental destruction (e.g., governance collapse). Demands extreme caution; likely a value trap.")
    
-    # 페널티 설명 텍스트 결합 (텍스트의 감점 수치도 모두 맞춤)
-    if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -50점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -45 Applied: Lower valuation reliability due to earnings volatility)")
-    if kr:
-        reason += t(" (코리아 디스카운트 -30점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -25 Applied: Poor shareholder returns and geopolitical risks)")
-    elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -40점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -30 Applied: Regulatory and financial transparency risks)")
-    elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -40점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -30 Applied: Geopolitical conflict and invasion risks)")
-        
-    if is_financial:
-        reason += t(" (금융/보험주 로직 적용됨: PER, DCF, ERP 등을 완전히 배제하고 오직 자산가치(PBR)와 자본효율성(ROE), 그리고 경영진 점수로만 평가를 도출했습니다.)", " (Financial Mode Active: PER, DCF, ERP excluded. Evaluated solely on PBR, ROE, and Management.)")
-
     return title, color, reason, score_details
 
 def get_market_op_simple(erp):
