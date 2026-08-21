@@ -1130,39 +1130,40 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
     # =========================================================================
-    # [4] DCF 안전마진(MoS) 점수 (최대 15점 ~ 최소 -25점 / 20단계 세분화)
+    # [4] DCF 안전마진(MoS) 점수 (최대 40점 ~ 최소 -40점 / 20단계 세분화)
+    # 기준: 50% 이상 초저평가 시 만점(40점), 적자 및 지그재그 기업 최하점(-40점)
     # =========================================================================
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -25
+            dcf_score = -40 # 적자 기업 강제 최하점
         elif is_zigzag:
-            dcf_score = -25 # 🚨 현금흐름이 위아래로 요동치는 지그재그 기업은 즉시 최하점 낙인
+            dcf_score = -40 # 지그재그 기업 강제 최하점
         else:
-            if mos >= 50: dcf_score = 15
-            elif mos >= 45: dcf_score = 14
-            elif mos >= 40: dcf_score = 13
-            elif mos >= 35: dcf_score = 12
-            elif mos >= 30: dcf_score = 11
-            elif mos >= 25: dcf_score = 10
-            elif mos >= 20: dcf_score = 8
-            elif mos >= 15: dcf_score = 6
-            elif mos >= 10: dcf_score = 4
-            elif mos >= 5:  dcf_score = 2
+            if mos >= 50: dcf_score = 40
+            elif mos >= 45: dcf_score = 36
+            elif mos >= 40: dcf_score = 32
+            elif mos >= 35: dcf_score = 28
+            elif mos >= 30: dcf_score = 24
+            elif mos >= 25: dcf_score = 20
+            elif mos >= 20: dcf_score = 16
+            elif mos >= 15: dcf_score = 12
+            elif mos >= 10: dcf_score = 8
+            elif mos >= 5:  dcf_score = 4
             elif mos >= 0:  dcf_score = 0
-            elif mos >= -5: dcf_score = -2
-            elif mos >= -10: dcf_score = -4
-            elif mos >= -15: dcf_score = -6
-            elif mos >= -20: dcf_score = -9
-            elif mos >= -25: dcf_score = -12
-            elif mos >= -30: dcf_score = -15
-            elif mos >= -40: dcf_score = -18
-            elif mos >= -50: dcf_score = -21
-            else: dcf_score = -25
+            elif mos >= -5: dcf_score = -4
+            elif mos >= -10: dcf_score = -8
+            elif mos >= -15: dcf_score = -12
+            elif mos >= -20: dcf_score = -16
+            elif mos >= -25: dcf_score = -20
+            elif mos >= -30: dcf_score = -24
+            elif mos >= -40: dcf_score = -28
+            elif mos >= -50: dcf_score = -32
+            elif mos >= -60: dcf_score = -36
+            else: dcf_score = -40
             
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
-
     # =========================================================================
     # [5] ERP 점수 (거시 매력도 - 이익수익률 vs 국채) (최대 15점 ~ 최소 -25점 / 20단계 세분화)
     # 기준: 국채 대비 5.0%p 이상 초과 수익 시 만점(15점)
