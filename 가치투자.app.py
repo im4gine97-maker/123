@@ -913,7 +913,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = 0
     ceo_score = 0
     
-        # =========================================================================
+    # =========================================================================
     # [1] 경영진 및 거버넌스 점수 (상대평가 및 20단계 세분화)
     # =========================================================================
     kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
@@ -925,58 +925,61 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
     kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
 
-    raw_score = 0
-    
-    # 긍정 요소 합산
-    for k in kw_super_pos:
-        if k in ceo_text: raw_score += 40
-    for k in kw_high_pos:
-        if k in ceo_text: raw_score += 30
-    for k in kw_pos:
-        if k in ceo_text: raw_score += 15
+    # 💡 매크로 답변(DB에 없는 기업)일 경우 스캔을 멈추고 강제 0점 처리
+    if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
+        ceo_final = 0
+    else:
+        raw_score = 0
         
-    # 부정 요소 차감
-    for k in kw_super_neg:
-        if k in ceo_text: raw_score -= 80
-    for k in kw_high_neg:
-        if k in ceo_text: raw_score -= 40
-    for k in kw_neg:
-        if k in ceo_text: raw_score -= 20
-    for k in kw_minor_neg:
-        if k in ceo_text: raw_score -= 5
+        # 긍정 요소 합산
+        for k in kw_super_pos:
+            if k in ceo_text: raw_score += 40
+        for k in kw_high_pos:
+            if k in ceo_text: raw_score += 30
+        for k in kw_pos:
+            if k in ceo_text: raw_score += 15
+            
+        # 부정 요소 차감
+        for k in kw_super_neg:
+            if k in ceo_text: raw_score -= 80
+        for k in kw_high_neg:
+            if k in ceo_text: raw_score -= 40
+        for k in kw_neg:
+            if k in ceo_text: raw_score -= 20
+        for k in kw_minor_neg:
+            if k in ceo_text: raw_score -= 5
 
-    # 만점 기준 설정 (현재 데이터베이스 내 합산 원점수 1등은 애플로 180점입니다.)
-    # 이 180점을 상대평가의 '완벽한 만점 기준(Denominator)'으로 삼습니다.
-    max_raw_score = 180.0
-    
-    # 1등 기업 대비 현재 기업의 점수 비율 계산 (최대 1.0 ~ 최소 -1.0)
-    ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
+        # 만점 기준 설정 (현재 데이터베이스 내 합산 원점수 1등은 애플로 180점입니다.)
+        max_raw_score = 180.0
+        
+        # 1등 기업 대비 현재 기업의 점수 비율 계산 (최대 1.0 ~ 최소 -1.0)
+        ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
 
-    # 최종 40점 스케일로 변환 (-40점 ~ +40점)
-    scaled_score = ratio * 40.0
+        # 최종 40점 스케일로 변환 (-40점 ~ +40점)
+        scaled_score = ratio * 40.0
 
-    # 20단계 세분화 (총 80점 구간을 4점 단위의 20개 구간으로 등급화)
-    if scaled_score >= 38: ceo_final = 40
-    elif scaled_score >= 34: ceo_final = 36
-    elif scaled_score >= 30: ceo_final = 32
-    elif scaled_score >= 26: ceo_final = 28
-    elif scaled_score >= 22: ceo_final = 24
-    elif scaled_score >= 18: ceo_final = 20
-    elif scaled_score >= 14: ceo_final = 16
-    elif scaled_score >= 10: ceo_final = 12
-    elif scaled_score >= 6:  ceo_final = 8
-    elif scaled_score >= 2:  ceo_final = 4
-    elif scaled_score >= -2: ceo_final = 0
-    elif scaled_score >= -6: ceo_final = -4
-    elif scaled_score >= -10: ceo_final = -8
-    elif scaled_score >= -14: ceo_final = -12
-    elif scaled_score >= -18: ceo_final = -16
-    elif scaled_score >= -22: ceo_final = -20
-    elif scaled_score >= -26: ceo_final = -24
-    elif scaled_score >= -30: ceo_final = -28
-    elif scaled_score >= -34: ceo_final = -32
-    elif scaled_score >= -38: ceo_final = -36
-    else: ceo_final = -40
+        # 20단계 세분화
+        if scaled_score >= 38: ceo_final = 40
+        elif scaled_score >= 34: ceo_final = 36
+        elif scaled_score >= 30: ceo_final = 32
+        elif scaled_score >= 26: ceo_final = 28
+        elif scaled_score >= 22: ceo_final = 24
+        elif scaled_score >= 18: ceo_final = 20
+        elif scaled_score >= 14: ceo_final = 16
+        elif scaled_score >= 10: ceo_final = 12
+        elif scaled_score >= 6:  ceo_final = 8
+        elif scaled_score >= 2:  ceo_final = 4
+        elif scaled_score >= -2: ceo_final = 0
+        elif scaled_score >= -6: ceo_final = -4
+        elif scaled_score >= -10: ceo_final = -8
+        elif scaled_score >= -14: ceo_final = -12
+        elif scaled_score >= -18: ceo_final = -16
+        elif scaled_score >= -22: ceo_final = -20
+        elif scaled_score >= -26: ceo_final = -24
+        elif scaled_score >= -30: ceo_final = -28
+        elif scaled_score >= -34: ceo_final = -32
+        elif scaled_score >= -38: ceo_final = -36
+        else: ceo_final = -40
 
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
