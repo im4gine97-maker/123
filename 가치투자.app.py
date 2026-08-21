@@ -715,7 +715,7 @@ def get_data(tk):
 
 def get_base_dcf_data(stk, i):
     try:
-        if stk is None: return None, None, 0.05, 0
+        if stk is None: return None, None, 0.05, 0, False
         fcf_s = None
         cf = stk.cash_flow
         
@@ -728,19 +728,39 @@ def get_base_dcf_data(stk, i):
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.05, 0
+        is_zigzag = False
         
         if fcf_s is not None and len(fcf_s) >= 2:
-            c, o = safe_float(fcf_s.iloc[0]), safe_float(fcf_s.iloc[-1])
-            data_len = len(fcf_s)
+            vals = fcf_s.values[::-1] # 과거에서 현재 순으로 정렬
+            c, o = safe_float(vals[-1]), safe_float(vals[0])
+            data_len = len(vals)
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
+            
+            # [지그재그(변동성) 감지 로직] 3년 이상의 데이터가 있을 때 10% 이상 상승과 하락이 섞여 있으면 해자가 없는 것으로 간주
+            if data_len >= 3:
+                directions = []
+                for idx in range(1, data_len):
+                    prev = safe_float(vals[idx-1])
+                    curr = safe_float(vals[idx])
+                    if prev == 0:
+                        directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
+                    else:
+                        change_pct = (curr - prev) / abs(prev)
+                        if change_pct >= 0.10: directions.append(1)   # 10% 이상 상승
+                        elif change_pct <= -0.10: directions.append(-1) # 10% 이상 하락
+                        else: directions.append(0) # 횡보
+                
+                # 상승(+1)과 하락(-1)이 모두 존재하면 일관성 없는 지그재그 기업으로 낙인
+                if 1 in directions and -1 in directions:
+                    is_zigzag = True
         else:
             eg = safe_float(i.get('earningsGrowth'))
             if eg != 0.0: g = eg
             data_len = 1
             
         g = max(0.02, min(g, 0.15))
-        return fcf, sh, g, data_len
-    except: return None, None, 0.05, 0
+        return fcf, sh, g, data_len, is_zigzag
+    except: return None, None, 0.05, 0, False
 
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
@@ -908,38 +928,34 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div=0.0):
+# 파라미터 맨 끝에 is_zigzag=False 를 추가로 받습니다.
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False):
     score_details = {}
     score = 0
     ceo_score = 0
     
-    # =========================================================================
-    # [1] 경영진 및 거버넌스 점수 (상대평가 및 20단계 세분화)
-    # =========================================================================
-    kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
-    kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
-    kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
-
-    kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
-    kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
-    kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
-    kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
-
     # 💡 매크로 답변(DB에 없는 기업)일 경우 스캔을 멈추고 강제 0점 처리
     if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
     else:
+        # (기존에 작성하신 경영진 키워드 점수 스캔 로직이 그대로 들어갑니다. 생략 없이 유지해주세요.)
+        # [1] 경영진 및 거버넌스 점수 (상대평가 및 20단계 세분화)
+        kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
+        kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
+        kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
+
+        kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
+        kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+        kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
+        kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
+
         raw_score = 0
-        
-        # 긍정 요소 합산
         for k in kw_super_pos:
             if k in ceo_text: raw_score += 40
         for k in kw_high_pos:
             if k in ceo_text: raw_score += 30
         for k in kw_pos:
             if k in ceo_text: raw_score += 15
-            
-        # 부정 요소 차감
         for k in kw_super_neg:
             if k in ceo_text: raw_score -= 80
         for k in kw_high_neg:
@@ -949,16 +965,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         for k in kw_minor_neg:
             if k in ceo_text: raw_score -= 5
 
-        # 만점 기준 설정 (현재 데이터베이스 내 합산 원점수 1등은 애플로 180점입니다.)
         max_raw_score = 180.0
-        
-        # 1등 기업 대비 현재 기업의 점수 비율 계산 (최대 1.0 ~ 최소 -1.0)
         ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
-
-        # 최종 40점 스케일로 변환 (-40점 ~ +40점)
         scaled_score = ratio * 40.0
 
-        # 20단계 세분화
         if scaled_score >= 38: ceo_final = 40
         elif scaled_score >= 34: ceo_final = 36
         elif scaled_score >= 30: ceo_final = 32
@@ -983,6 +993,35 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
+
+    # =========================================================================
+    # [금융주 전용] 배당 매력도 점수 
+    # =========================================================================
+    div_score = 0
+    if is_financial:
+        if div_yield_pct >= 9.5: div_score = 20
+        elif div_yield_pct >= 9.0: div_score = 19
+        elif div_yield_pct >= 8.5: div_score = 18
+        elif div_yield_pct >= 8.0: div_score = 17
+        elif div_yield_pct >= 7.5: div_score = 16
+        elif div_yield_pct >= 7.0: div_score = 15
+        elif div_yield_pct >= 6.5: div_score = 14
+        elif div_yield_pct >= 6.0: div_score = 13
+        elif div_yield_pct >= 5.5: div_score = 12
+        elif div_yield_pct >= 5.0: div_score = 11
+        elif div_yield_pct >= 4.5: div_score = 10
+        elif div_yield_pct >= 4.0: div_score = 8
+        elif div_yield_pct >= 3.5: div_score = 6
+        elif div_yield_pct >= 3.0: div_score = 4
+        elif div_yield_pct >= 2.5: div_score = 2
+        elif div_yield_pct >= 2.0: div_score = 0
+        elif div_yield_pct >= 1.5: div_score = -2
+        elif div_yield_pct >= 1.0: div_score = -4
+        elif div_yield_pct > 0.0: div_score = -6
+        else: div_score = -10
+        if tk.upper() in ["BRK-A", "BRK-B"]: div_score = 0
+        score += div_score
+        score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = div_score
 
         
     # [2] 가격 매력도 점수 (버핏의 안전마진 철학 반영, 만점 40점)
@@ -1092,12 +1131,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # =========================================================================
     # [4] DCF 안전마진(MoS) 점수 (최대 15점 ~ 최소 -25점 / 20단계 세분화)
-    # 기준: 50% 이상 초저평가 시 만점(15점)
     # =========================================================================
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
             dcf_score = -20
+        elif is_zigzag:
+            dcf_score = -25 # 🚨 현금흐름이 위아래로 요동치는 지그재그 기업은 즉시 최하점 낙인
         else:
             if mos >= 50: dcf_score = 15
             elif mos >= 45: dcf_score = 14
@@ -1637,7 +1677,8 @@ with tab1:
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 erp = ey - ty
                 
-                base_fcf, sh, final_g, data_len = get_base_dcf_data(stk, i)
+                # 1. 5개의 변수를 받도록 변경
+                base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
@@ -1794,7 +1835,8 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div)
+                # 2. 맨 끝에 div와 is_zigzag 파라미터 전달
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div, is_zigzag)
 
                 st.markdown(f"""
                 <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
@@ -1939,23 +1981,22 @@ with tab1:
                         elif pbr <= 2.2: p_txt += f"- PBR 측면: <span class='highlight'>[주의] ({pbr:.2f}배 - 전통 금융업 대비 명백한 할증/버블)</span>"
                         else: p_txt += f"- PBR 측면: <span class='highlight'>[매우 주의] ({pbr:.2f}배 - 안전마진 붕괴/극심한 고평가)</span>"
                 else:
-                    # PER 측면 판정 (버핏 철학 동기화)
-                    if pmos_val >= 40: p_txt += f"- PER 측면: <span class='good'>[극단적 저평가] (+{pmos_val:.1f}% 할인 - 완벽한 안전마진 확보)</span>\n"
-                    elif pmos_val >= 20: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인 - 훌륭한 매수 기회)</span>\n"
-                    elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[합격] (+{pmos_val:.1f}% 할인 - 적절한 안전마진)</span>\n"
-                    elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인 - 위대한 기업이라면 훌륭한 적정가)</span>\n"
-                    elif pmos_val >= -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({abs(pmos_val):.1f}% 할증 - 해자가 없다면 다소 비쌈)</span>\n"
-                    elif pmos_val >= -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({abs(pmos_val):.1f}% 할증 - 미스터 마켓의 과열 구간)</span>\n"
-                    elif pmos_val >= -40: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({abs(pmos_val):.1f}% 할증 - 안전마진 상실)</span>\n"
-                    else: p_txt += f"- PER 측면: <span class='highlight'>[극위험] ({abs(pmos_val):.1f}% 할증 - 비상식적 버블)</span>\n"
+                    if pmos_val >= 30: p_txt += f"- PER 측면: <span class='good'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                    elif pmos_val >= 15: p_txt += f"- PER 측면: <span class='good'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                    elif pmos_val >= 5: p_txt += f"- PER 측면: <span style='color:#74b9ff;'>[약간 합격] (+{pmos_val:.1f}% 할인)</span>\n"
+                    elif pmos_val >= 0: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
+                    elif pmos_val > -10: p_txt += f"- PER 측면: <span style='color:#fdcb6e;'>[약간 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                    elif pmos_val > -20: p_txt += f"- PER 측면: <span class='highlight'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
+                    else: p_txt += f"- PER 측면: <span class='highlight'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
                     
                     if base_fcf is None or base_fcf <= 0: p_txt += f"- DCF 측면: <span class='highlight'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Very Warning] Negative FCF (N/A)')}</span>\n"
-                    elif mos_val >= 30: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 15: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 5: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif is_zigzag: p_txt += f"- DCF 측면: <span class='highlight'>{t('[매우 주의] 현금흐름 지그재그(변동성 극심). 해자 없음 및 DCF 무의미 (최하점)', '[Very Warning] FCF fluctuates (Zigzag). No Moat. DCF is meaningless (Lowest Score)')}</span>\n"
+                    elif mos_val >= 50: p_txt += f"- DCF 측면: <span class='good'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val >= 25: p_txt += f"- DCF 측면: <span class='good'>[합격] (+{mos_val:.1f}% 할인)</span>\n"
+                    elif mos_val >= 10: p_txt += f"- DCF 측면: <span style='color:#74b9ff;'>[약간 합격] (+{mos_val:.1f}% 할인)</span>\n"
                     elif mos_val >= 0: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[보통] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val > -10: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>\n"
-                    elif mos_val > -20: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>\n"
+                    elif mos_val > -15: p_txt += f"- DCF 측면: <span style='color:#fdcb6e;'>[약간 주의] ({mos_val:.1f}% 할증)</span>\n"
+                    elif mos_val > -30: p_txt += f"- DCF 측면: <span class='highlight'>[주의] ({mos_val:.1f}% 할증)</span>\n"
                     else: p_txt += f"- DCF 측면: <span class='highlight'>[매우 주의] ({mos_val:.1f}% 할증)</span>\n"
 
                 if roe >= 20: biz_eval = f"<span class='good'>{t('[매우 합격] 자본효율 압도적, 강력한 해자 확률', '[Very Pass] Outstanding efficiency, high moat probability')}</span>"
