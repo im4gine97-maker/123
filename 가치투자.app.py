@@ -731,12 +731,13 @@ def get_base_dcf_data(stk, i):
         is_zigzag = False
         
         if fcf_s is not None and len(fcf_s) >= 2:
-            vals = fcf_s.values[::-1] # 과거에서 현재 순으로 정렬
+            vals = fcf_s.values[::-1]
             c, o = safe_float(vals[-1]), safe_float(vals[0])
             data_len = len(vals)
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
             
-            # [지그재그(변동성) 감지 로직] 3년 이상의 데이터가 있을 때 10% 이상 상승과 하락이 섞여 있으면 해자가 없는 것으로 간주
+            # [수정됨] 지그재그 감지 기준 현실화: 10% -> 30% 로 대폭 상향
+            # 우량주들의 일시적 FCF 변동(10~20%)은 봐주고, 진짜 널뛰기 기업만 잡습니다.
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
@@ -746,11 +747,10 @@ def get_base_dcf_data(stk, i):
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
                         change_pct = (curr - prev) / abs(prev)
-                        if change_pct >= 0.10: directions.append(1)   # 10% 이상 상승
-                        elif change_pct <= -0.10: directions.append(-1) # 10% 이상 하락
-                        else: directions.append(0) # 횡보
+                        if change_pct >= 0.30: directions.append(1)     # 30% 이상 폭등
+                        elif change_pct <= -0.30: directions.append(-1) # 30% 이상 폭락
+                        else: directions.append(0) # 30% 미만의 변동은 정상적인 횡보/유지로 간주
                 
-                # 상승(+1)과 하락(-1)이 모두 존재하면 일관성 없는 지그재그 기업으로 낙인
                 if 1 in directions and -1 in directions:
                     is_zigzag = True
         else:
