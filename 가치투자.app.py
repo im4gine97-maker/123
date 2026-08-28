@@ -1383,13 +1383,38 @@ def clean_ceo_name(name):
         return k_name
     return name_str
 
-def get_safe_macro(key, is_currency=False, is_rate=False):
-    data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
-    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
-    if is_currency: p_str = f"${p:,.2f}"
-    elif is_rate: p_str = f"{p:.3f}%"
-    else: p_str = f"{p:,.2f}"
-    return p_str, c, pct
+def generate_quick_ai_preview(tk):
+    stk, p, i, kr = get_data(tk)
+    if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
+    
+    ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
+    if ty == 0: ty = 4.4
+    
+    sector_str = str(i.get('sector', '')).lower()
+    industry_str = str(i.get('industry', '')).lower()
+    summary_str = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
+    is_financial = any(kw in sector_str or kw in industry_str for kw in ['financial', 'bank', 'insurance']) or any(kw in summary_str for kw in ['금융지주', '은행', '증권', '보험'])
+    
+    t_pe = safe_float(i.get('trailingPE'))
+    f_pe = safe_float(i.get('forwardPE'))
+    a_pe = safe_float(i.get('fiveYearAvgPE', t_pe * 1.1 if t_pe > 0 else 15.0))
+    pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+    pbr = safe_float(i.get('priceToBook'))
+    roe = safe_float(i.get('returnOnEquity')) * 100
+    real_roic = get_real_roic(stk, i)
+    roic_val = real_roic if real_roic is not None else 0
+    erp = ((1 / f_pe * 100) if f_pe > 0 else 0) - ty
+    
+    base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+    iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
+    mos_val = safe_float(mos_val)
+    div = safe_float(i.get('dividendYield')) * 100 if kr else (safe_float(i.get('dividendRate')) / p * 100 if p > 0 else 0.0)
+    
+    op_title, op_color, op_reason, _ = get_comprehensive_investment_opinion(
+        mos_val, pmos_val, roe, roic_val, erp, final_g, "위키 및 공공 기록 스크리닝", is_financial, pbr, kr, tk, base_fcf, div, is_zigzag
+    )
+    
+    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
 
 # ==========================================
 # [4] 메인 UI 렌더링
