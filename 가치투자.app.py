@@ -539,13 +539,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         return db[tk_clean]
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
-    
-    if cd_clean in db:
-        return db[cd_clean]
-    if tk_clean in db:
-        return db[tk_clean]
-            
-    return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
 
 def get_yf_info(stk):
     try:
@@ -761,7 +754,6 @@ def get_base_dcf_data(stk, i):
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
             
             # [수정됨] 지그재그 감지 기준 현실화: 10% -> 30% 로 대폭 상향
-            # 우량주들의 일시적 FCF 변동(10~20%)은 봐주고, 진짜 널뛰기 기업만 잡습니다.
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
@@ -771,9 +763,9 @@ def get_base_dcf_data(stk, i):
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
                         change_pct = (curr - prev) / abs(prev)
-                        if change_pct >= 0.30: directions.append(1)     # 30% 이상 폭등
-                        elif change_pct <= -0.30: directions.append(-1) # 30% 이상 폭락
-                        else: directions.append(0) # 30% 미만의 변동은 정상적인 횡보/유지로 간주
+                        if change_pct >= 0.30: directions.append(1)     
+                        elif change_pct <= -0.30: directions.append(-1) 
+                        else: directions.append(0) 
                 
                 if 1 in directions and -1 in directions:
                     is_zigzag = True
@@ -916,15 +908,9 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                                 if years_ago == 0:
                                     txt_ko = f"작년에 {inc_pct:.1f}% 급상승"
                                     txt_en = f"Spiked {inc_pct:.1f}% last year"
-                                elif years_ago == 1:
-                                    txt_ko = f"2년 전에 {inc_pct:.1f}% 급상승"
-                                    txt_en = f"Spiked {inc_pct:.1f}% 2 years ago"
-                                elif years_ago == 2:
-                                    txt_ko = f"3년 전에 {inc_pct:.1f}% 급상승"
-                                    txt_en = f"Spiked {inc_pct:.1f}% 3 years ago"
                                 else:
-                                    continue
-                                
+                                    txt_ko = f"{years_ago+1}년 전에 {inc_pct:.1f}% 급상승"
+                                    txt_en = f"Spiked {inc_pct:.1f}% {years_ago+1} years ago"
                                 sudden_alert = f" <span class='highlight'>[{t(txt_ko, txt_en)}]</span>"
                                 break 
                     
@@ -938,7 +924,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                             desc = t("벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.", "Healthy reinvestment rate into future growth within generated cash.")
                         else:
                             r_eval = f"<span style='color:#fdcb6e;'>{t('[지출 적음] 투자 미흡 가능성', '[Low] Potential Underinvestment')}</span>"
-                            desc = t("FCF 대비 R&D 비율이 낮습니다. (단, 코카콜라 같은 필수소비재 등 성숙 산업은 이 비율이 낮아도 정상입니다)", "Low R&D relative to FCF. (Normal for mature non-tech industries).")
+                            desc = t("FCF 대비 R&D 비율이 낮습니다. (단, 필수소비재 등 성숙 산업은 정상입니다)", "Low R&D relative to FCF. (Normal for mature non-tech industries).")
                             
                         rnd_trend = f"{r_eval}{sudden_alert} <span style='font-size:0.95em;'>-> FCF의 <b>{ratio:.1f}%</b> 지출 ({desc})<br><span style='color:#8892b0;'>4개년 지출 추이: [{history_str}]</span></span>"
                     elif base_fcf and base_fcf <= 0:
@@ -952,19 +938,14 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-# 파라미터 맨 끝에 is_zigzag=False 를 추가로 받습니다.
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False):
     score_details = {}
     score = 0
     ceo_score = 0
     
-    # =========================================================================
-    # [1] 경영진 및 거버넌스 점수 (원아웃 제도 도입 및 중복 스캔 방지)
-    # =========================================================================
     if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
     else:
-        # [최악의 치명적 결함 리스트]
         kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
         
         is_one_strike = False
@@ -1042,9 +1023,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
 
-    # =========================================================================
-    # [2] 금융주 배당 매력도
-    # =========================================================================
     div_score = 0
     if is_financial:
         if div_yield_pct >= 9.5: div_score = 20
@@ -1072,9 +1050,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += div_score
         score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = div_score
 
-    # =========================================================================
-    # [3] 가격 매력도 점수 (PER 안전마진)
-    # =========================================================================
     p_score = 0
     if not is_financial:
         if pmos >= 50: p_score = 40
@@ -1100,9 +1075,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += p_score
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
 
-    # =========================================================================
-    # [4] 자본 효율성 (PBR, ROE, ROIC)
-    # =========================================================================
     cap_score = 0
     if is_financial:
         if kr:
@@ -1178,9 +1150,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += cap_score
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
 
-    # =========================================================================
-    # [5] DCF 안전마진(MoS) 점수 (최대 40점 ~ 최소 -40점 / 20단계 세분화)
-    # =========================================================================
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
@@ -1213,9 +1182,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
 
-    # =========================================================================
-    # [6] ERP 점수 (거시 매력도) (최대 15점 ~ 최소 -25점 / 20단계 세분화)
-    # =========================================================================
     e_score = 0
     if not is_financial:
         if erp >= 5.0: e_score = 15
@@ -1242,9 +1208,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += e_score
         score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = e_score
 
-    # =========================================================================
-    # [7] 10년 복리 성장성 점수 (CAGR) (최대 15점 ~ 최소 -30점 / 20단계 세분화)
-    # =========================================================================
     g_score = 0
     if not is_financial:
         if final_g >= 0.20: g_score = 15
@@ -1271,9 +1234,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += g_score
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = g_score
 
-    # =========================================================================
-    # [8] 국가별 디스카운트 및 시클리컬 패널티
-    # =========================================================================
     pen_score = 0
     tk_upper = str(tk).upper()
 
@@ -1312,9 +1272,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = pen_score
 
-    # =========================================================================
-    # 종합 등급 판정 (기존 7단계 -> 9단계 확장)
-    # =========================================================================
     if score >= 110:
         title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
     elif score >= 85:
@@ -1333,7 +1290,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#e17055", t("가치평가 지표가 대체로 '매우 주의'를 가리킵니다. 비상식적인 밸류에이션 거품이 끼어 있어 투자에 상당한 위험이 따릅니다.", "Highly speculative territory with multiple 'Very Warning' signals, indicating a significant valuation bubble.")
     else:
         title, color, reason = t(f"극단적 버블 / 가치 훼손 ({score}점)", f"Extreme Bubble / Value Trap ({score} pts)"), "#d63031", t("심각한 펀더멘털의 훼손(거버넌스 붕괴 등)이 있거나, 수식을 완전히 벗어난 극단적인 광기의 버블 구간입니다. 절대적인 주의가 필요합니다.", "Absolute extreme bubble or severe fundamental destruction (e.g., governance collapse). Demands extreme caution; likely a value trap.")
-
 
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -50점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -50 Applied: Lower valuation reliability due to earnings volatility)")
@@ -1383,6 +1339,14 @@ def clean_ceo_name(name):
         return k_name
     return name_str
 
+def get_safe_macro(key, is_currency=False, is_rate=False):
+    data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
+    p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
+    if is_currency: p_str = f"${p:,.2f}"
+    elif is_rate: p_str = f"{p:.3f}%"
+    else: p_str = f"{p:,.2f}"
+    return p_str, c, pct
+
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
@@ -1415,6 +1379,7 @@ def generate_quick_ai_preview(tk):
     )
     
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
+
 
 # ==========================================
 # [4] 메인 UI 렌더링
@@ -1494,7 +1459,6 @@ krw_p, krw_c, krw_pct = get_safe_macro("USD/KRW")
 wti_p, wti_c, wti_pct = get_safe_macro("WTI Crude", is_currency=True)
 tnx_p, tnx_c, tnx_pct = get_safe_macro("10Y Treasury", is_rate=True)
 
-# [패널 배치 순서: 환율 -> 채권 -> 원유 -> 미국 지수 -> 한국 지수]
 macro_items = [
     (t("환율(KRW/USD)", "USD/KRW"), krw_p, krw_pct, "%"),
     (t("10년물 국채", "10Y Treasury"), tnx_p, tnx_c, " bp"),
@@ -1756,7 +1720,6 @@ with tab1:
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 erp = ey - ty
                 
-                # 1. 5개의 변수를 받도록 변경
                 base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
@@ -1914,7 +1877,6 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                # 2. 맨 끝에 div와 is_zigzag 파라미터 전달
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div, is_zigzag)
 
                 st.markdown(f"""
@@ -2385,15 +2347,20 @@ with tab2:
                 st.caption(t("※ 비중이 0.00%로 표기된 종목은 비중 미상이거나 전량 매도된 종목입니다.", "※ Stocks with 0.00% weight are unknown or fully sold."))
             
             st.markdown("---")
-            st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
+            st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
             c_tk, c_btn = st.columns([3, 1])
-            with c_tk: fast_name = st.selectbox("Company Name", df["기업명"].tolist(), label_visibility="collapsed")
+            with c_tk: 
+                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), label_visibility="collapsed")
             with c_btn:
-                if st.button(t("검색창에 장전하기", "Load to Search"), use_container_width=True):
-                    matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True):
                     st.session_state.search_tk = matched_ticker
-                    st.toast(t(f"{fast_name} ({matched_ticker}) 분석 장전 완료!", f"{fast_name} ({matched_ticker}) Loaded!"))
-                    st.rerun() 
+                    with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                        st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+            
+            if "preview_tab2" in st.session_state:
+                st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
+                st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
         else:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
@@ -2415,158 +2382,15 @@ with tab3:
     })
     
     st.markdown("---")
-    st.write(t("[랭킹 종목 빠른 분석 장전]", "[Fast Load for Analysis]"))
+    st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
     c_tk2, c_btn2 = st.columns([3, 1])
-    with c_tk2: fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
+    with c_tk2: 
+        fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
     with c_btn2:
-        if st.button(t("검색창에 장전하기", "Load to Search"), key="mkt_load_btn", use_container_width=True):
-            matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
+        matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
+        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", use_container_width=True):
             st.session_state.search_tk = matched_ticker_mkt
-            st.toast(t(f"{fast_name_mkt} ({matched_ticker_mkt}) 분석 장전 완료!", f"{fast_name_mkt} ({matched_ticker_mkt}) Loaded!"))
-            st.rerun() 
-
-# ==========================================
-# 탭 4: 주식 용어 사전 
-# ==========================================
-with tab4:
-    st.subheader(t("주식 용어 사전", "Stock Glossary"))
-    st.write(t("앱에서 자주 쓰이는 금융 용어들을 알기 쉽게 설명해 드립니다.", "Complex financial jargon used in this app, explained simply using everyday analogies."))
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    terms = [
-        ("시가총액 (Market Cap)", 
-         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
-         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
-        
-        ("PER (주가수익비율)", 
-         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
-         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
-        
-        ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
-         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
-        
-        ("PBR (주가순자산비율)", 
-         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company closes tomorrow and sells its assets, will you get your money back?"), 
-         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
-        
-        ("ROE (자기자본이익률)", 
-         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its equity capital."), 
-         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
-        
-        ("ROIC (투하자본수익률)", 
-         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", "The true return on all capital invested (debt + equity), removing leverage distortions."), 
-         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
-        
-        ("FCF (잉여현금흐름)", 
-         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' after paying all expenses and capital investments."), 
-         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
-        
-        ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
-         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
-        
-        ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
-         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
-        
-        ("이익수익률 (Earnings Yield)", 
-         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", "If a stock were a bank account, this is the annual interest rate it yields."), 
-         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
-        
-        ("주식 위험 프리미엄 (ERP)", 
-         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
-         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
-    ]
-
-    lbl_analogy = t('이해하기:', 'Analogy:')
-    for term, definition, example in terms:
-        st.markdown(f"""
-        <div style="background: rgba(255,255,255,0.03); color: var(--text-color); padding: 22px; border-radius: 16px; border: 1px solid rgba(160,196,255,0.2); margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            <h4 style="margin-top: 0; color: #A0C4FF; margin-bottom: 12px; font-size: 1.2rem;">{term}</h4>
-            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
-            <div style="font-size: 0.95rem; color: #8892b0;"><b>{lbl_analogy}</b> {example}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ==========================================
-# 탭 5: AGIE 철학
-# ==========================================
-with tab5:
-    phil_title1 = t("가치투자의 진정한 의미와 의의: 투기(Speculation) vs 투자(Investment)", "The True Meaning of Value Investing: Speculation vs. Investment")
-    phil_p1 = t("주식 시장에는 두 부류의 참여자가 있습니다. 가격 변동에 베팅하며 누군가 나보다 더 비싼 가격에 사주기만을 바라는 '투기자(Speculator)', 그리고 기업의 비즈니스 모델과 내재가치를 분석하여 성장을 함께 나누고자 하는 '투자자(Investor)'입니다.", "There are two types of participants in the stock market: 'Speculators' who bet on price fluctuations, hoping someone will buy at a higher price, and 'Investors' who analyze business models and intrinsic value to share in the company's growth.")
-    phil_p2 = t("가치투자(Value Investing)는 매일같이 요동치는 주가의 이면을 꿰뚫어 보고, 그 기업이 실제로 창출하는 현금흐름과 자산에 집중하는 행위입니다. 시장의 광기나 패닉에 휩쓸리지 않고, '가격(Price)은 우리가 지불하는 것이며, 가치(Value)는 우리가 얻는 것'이라는 확고한 믿음을 실천하는 가장 강력 무기입니다.", "Value investing focuses on the cash flows and assets a company actually generates, seeing through daily price fluctuations. It is the practice of maintaining the firm belief that 'Price is what you pay, Value is what you get,' without being swept away by market mania or panic.")
-    phil_title2 = t("워런 버핏과 찰리 멍거의 핵심 철학", "Core Philosophy of Warren Buffett & Charlie Munger")
-    phil_li1 = t("**기업의 소유권 (Business Ownership):** 주식은 단순한 거래의 수단이나 종이가 아닙니다. 주식을 산다는 것은 기업의 지분을 인수하여 진정한 '동업자'가 되는 것입니다. 지분 100%를 인수한다는 마음가짐으로 비즈니스를 해부해야 합니다.", "**Business Ownership:** Stocks are not just trading instruments or pieces of paper. Buying a stock means acquiring an equity stake and becoming a true 'partner'. You must dissect the business as if you were buying 100% of it.")
-    phil_li2 = t("**미스터 마켓 (Mr. Market):** 시장은 매일 기분에 따라 터무니없이 비싼 가격이나 싼 가격을 부르는 변덕스러운 동업자일 뿐입니다. 시장은 선생님이 아니라, 가격이 내재가치보다 현저히 낮을 때만 이용해야 하는 도구입니다.", "**Mr. Market:** The market is merely a fickle partner who quotes absurdly high or low prices depending on its daily mood. The market is not your teacher, but a tool to be used only when prices are significantly below intrinsic value.")
-    phil_li3 = t("**경영진의 정직성 (Integrity of Management):** 재무적 성과만큼이나 중요한 것이 경영진의 도덕성입니다. 비즈니스 모델이 훌륭해도 경영진의 정직성에 의구심이 든다면 미련 없이 동업을 끝내야 합니다. 신뢰할 수 없는 사람과는 좋은 거래 파트너가 될 수 없습니다.", "**Integrity of Management:** Management's morality is just as important as financial performance. Even if the business is great, if you doubt their integrity, you must walk away. You cannot make a good deal with a bad person.")
-    phil_li4 = t("**능력 범위 (Circle of Competence):** 완벽히 이해할 수 있고, 논리적으로 설명할 수 있으며, 전문가의 반론에도 재반박할 수 있는 비즈니스에만 투자해야 합니다. 무엇을 아는지보다 '무엇을 모르는지'를 아는 것이 훨씬 중요합니다.", "**Circle of Competence:** Invest only in businesses you fully understand, can logically explain, and can defend against expert counterarguments. Knowing 'what you don't know' is far more important than what you know.")
-    phil_li5 = t("**안전마진 (Margin of Safety):** 1만 파운드의 트럭이 지나갈 다리를 3만 파운드를 견딜 수 있도록 짓는 것이 안전마진입니다. 분석에 실수가 있거나 예기치 못한 위기가 닥쳐도 자본을 잃지 않도록 지켜주는 방패입니다.", "**Margin of Safety:** Building a bridge to withstand 30,000 pounds when only 10,000-pound trucks will drive across it. It is the shield that protects your capital from analysis errors or unforeseen crises.")
-    phil_title3 = t("AGIE 앱의 존재 이유", "Why AGIE Exists")
-    
-    phil_decl_ko = (
-        "> **투기가 아닌 '진정한 투자'를 위한 나침반**<br><br>"
-        "오늘날의 주식 시장은 자극적인 뉴스, 단기적인 차트의 움직임, 그리고 끊임없이 쏟아지는 소음들로 가득 차 있습니다. "
-        "수많은 투자자들이 기업의 본질이 아닌 주가창의 붉고 푸른 숫자에 매몰되어 투기적 거래의 늪에 빠지곤 합니다.<br><br>"
-        "**AGIE**는 이러한 시장의 광기 속에서 흔들리지 않는 이성을 유지하기 위해 탄생했습니다.<br><br>"
-        "우리는 일시적인 주가 상승률이나 테마주를 쫓지 않습니다. 대신, 철저한 잉여현금흐름(FCF) 기반의 내재가치를 계산하고, "
-        "경제적 해자(Moat)를 점검하며, 안전마진이 확보된 위대한 기업을 적당한 가격에 발굴하는 데 모든 역량을 집중합니다.<br><br>"
-        "이 터미널은 당신이 감정에 휘둘리지 않고, 철저히 데이터와 논리에 기반해 '기업의 소유권'을 올바르게 매입할 수 있도록 돕는 "
-        "가장 강력하고 냉철한 보조 도구가 될 것입니다.<br><br>"
-        "**투기자가 아닌, 사회에 기여하는 진정한 투자자로서의 여정을 AGIE와 함께 하십시오.**"
-    )
-    
-    phil_decl_en = (
-        "> **A Compass for 'True Investment', Not Speculation**<br><br>"
-        "Today's stock market is filled with sensational news, short-term chart movements, and endless noise. "
-        "Many fall into the swamp of speculative trading, fixated on the red and green numbers rather than the essence of the business.<br><br>"
-        "**AGIE** was created to help you maintain unwavering rationality amidst this market mania.<br><br>"
-        "We do not chase temporary stock surges or thematic trends. Instead, we focus all our capabilities on calculating intrinsic value "
-        "based on Free Cash Flow (FCF), examining economic moats, and discovering great companies with a secured margin of safety at fair prices.<br><br>"
-        "This terminal will serve as your most powerful and objective auxiliary tool, helping you purchase 'business ownership' correctly "
-        "based strictly on data and logic, free from emotion.<br><br>"
-        "**Join AGIE on the journey to becoming a true investor who contributes to society, not a speculator.**"
-    )
-    
-    phil_decl = t(phil_decl_ko, phil_decl_en)
-
-    st.subheader(phil_title1)
-    st.write(phil_p1)
-    st.write(phil_p2)
-    
-    st.divider()
-    st.subheader(phil_title2)
-    st.markdown(f"- {phil_li1}")
-    st.markdown(f"- {phil_li2}")
-    st.markdown(f"- {phil_li3}")
-    st.markdown(f"- {phil_li4}")
-    st.markdown(f"- {phil_li5}")
-    
-    st.divider()
-    st.subheader(phil_title3)
-    
-    st.markdown(
-        f"<div style='font-size: 1.1rem; line-height: 1.8; "
-        f"background: rgba(255,255,255,0.03); padding: 30px; border-radius: 16px; "
-        f"border-left: 5px solid #A0C4FF; color: var(--text-color); "
-        f"box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>", 
-        unsafe_allow_html=True
-    )
-
-# 하단 면책 조항 및 카피라이트 
-st.divider()
-lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
-lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
-lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
-
-st.markdown(f"""
-<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
-    <p><b>{lbl_disc_title}</b><br>
-    {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
-    <p><b>[Copyright]</b><br>
-    (c) 2026 AGIE. All rights reserved.<br>
-    {lbl_copy}</p>
-</div>
-""", unsafe_allow_html=True)
+            with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
+                
+    if "preview_tab3" in st.session_state저는 언어 모델입니다. 그것은 제가 할 수 있는 범위를 넘어서는 것이라 할 수 없어요.
