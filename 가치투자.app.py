@@ -945,6 +945,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     
     if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
+        ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
     else:
         kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
         
@@ -956,6 +957,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
                 
         if is_one_strike:
             ceo_final = -40
+            ceo_reason = t("치명적 결함(사기/배임 등) 감지됨", "Fatal flaws detected (fraud/embezzlement)")
         else:
             kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
             kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
@@ -969,30 +971,18 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             temp_text = ceo_text
 
             for k in kw_super_pos:
-                if k in temp_text:
-                    raw_score += 40
-                    temp_text = temp_text.replace(k, "") 
+                if k in temp_text: raw_score += 40; temp_text = temp_text.replace(k, "") 
             for k in kw_high_pos:
-                if k in temp_text:
-                    raw_score += 30
-                    temp_text = temp_text.replace(k, "")
+                if k in temp_text: raw_score += 30; temp_text = temp_text.replace(k, "")
             for k in kw_pos:
-                if k in temp_text:
-                    raw_score += 15
-                    temp_text = temp_text.replace(k, "")
+                if k in temp_text: raw_score += 15; temp_text = temp_text.replace(k, "")
                     
             for k in kw_high_neg:
-                if k in temp_text:
-                    raw_score -= 40
-                    temp_text = temp_text.replace(k, "")
+                if k in temp_text: raw_score -= 40; temp_text = temp_text.replace(k, "")
             for k in kw_neg:
-                if k in temp_text:
-                    raw_score -= 20
-                    temp_text = temp_text.replace(k, "")
+                if k in temp_text: raw_score -= 20; temp_text = temp_text.replace(k, "")
             for k in kw_minor_neg:
-                if k in temp_text:
-                    raw_score -= 5
-                    temp_text = temp_text.replace(k, "")
+                if k in temp_text: raw_score -= 5; temp_text = temp_text.replace(k, "")
 
             max_raw_score = 120.0
             ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
@@ -1019,9 +1009,14 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif scaled_score >= -34: ceo_final = -32
             elif scaled_score >= -38: ceo_final = -36
             else: ceo_final = -40
+            
+            if ceo_final >= 20: ceo_reason = t("주주친화, 자본배분 탁월 등 긍정적 팩터 우세", "Highly shareholder-friendly & excellent allocation")
+            elif ceo_final > 0: ceo_reason = t("우수한 경영진 팩터 감지", "Good management factors dominate")
+            elif ceo_final == 0: ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
+            else: ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
 
     score += ceo_final
-    score_details[t("경영진 및 거버넌스", "Management & Governance")] = ceo_final
+    score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
     div_score = 0
     if is_financial:
@@ -1048,7 +1043,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
         if tk.upper() in ["BRK-A", "BRK-B"]: div_score = 0
         score += div_score
-        score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = div_score
+        div_reason = t(f"현재 배당수익률 {div_yield_pct:.1f}% 반영", f"Current dividend yield {div_yield_pct:.1f}%")
+        score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
     p_score = 0
     if not is_financial:
@@ -1073,7 +1069,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: p_score = -40
         
         score += p_score
-        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = p_score
+        p_reason = t(f"과거 5~10년 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs 5-10Y avg PE")
+        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
     cap_score = 0
     if is_financial:
@@ -1119,7 +1116,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: cap_score -= 40
         
         score += cap_score
-        score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = cap_score
+        cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
+        score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
     else:
         if roic >= 25: cap_score += 25
         elif roic >= 20: cap_score += 23
@@ -1148,14 +1146,17 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: cap_score -= 15
 
         score += cap_score
-        score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = cap_score
+        cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
+        score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = (cap_score, cap_reason)
 
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
             dcf_score = -40
+            dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
             dcf_score = -40
+            dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             if mos >= 50: dcf_score = 40
             elif mos >= 45: dcf_score = 36
@@ -1178,9 +1179,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif mos >= -50: dcf_score = -32
             elif mos >= -60: dcf_score = -36
             else: dcf_score = -40
+            dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
         score += dcf_score
-        score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = dcf_score
+        score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
     e_score = 0
     if not is_financial:
@@ -1206,7 +1208,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: e_score = -25
         
         score += e_score
-        score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = e_score
+        e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
+        score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = (e_score, e_reason)
 
     g_score = 0
     if not is_financial:
@@ -1232,45 +1235,40 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: g_score = -30
         
         score += g_score
-        score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = g_score
+        g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
+        score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
     pen_score = 0
     tk_upper = str(tk).upper()
 
-    chinese_hk_adrs = [
-        "PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", 
-        "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"
-    ]
+    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
 
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
     is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
 
-    if kr: pen_score -= 30
-    elif is_china_hk: pen_score -= 40
-    elif is_taiwan: pen_score -= 40
+    pen_reasons = []
+    if kr: 
+        pen_score -= 30
+        pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
+    elif is_china_hk: 
+        pen_score -= 40
+        pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
+    elif is_taiwan: 
+        pen_score -= 40
+        pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
 
-    INCLUDE_APPLE_AS_CYCLICAL = True
-    explicit_cyclicals = [
-        "TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK",
-        "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL"
-    ]
-    if INCLUDE_APPLE_AS_CYCLICAL:
-        explicit_cyclicals.append("AAPL")
-
-    is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in [
-        "사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", 
-        "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행",
-        "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", 
-        "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"
-    ])
+    explicit_cyclicals = ["TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK", "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL", "AAPL"]
+    is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
 
     if is_cyclical:
         pen_score -= 50
+        pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
         
     if pen_score < 0:
         score += pen_score
-        score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = pen_score
+        pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
+        score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
 
     if score >= 110:
         title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
@@ -1891,10 +1889,15 @@ with tab1:
                 with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
                     breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
                     total_score = 0
-                    for k, v in score_breakdown.items():
+                    for k, val_data in score_breakdown.items():
+                        if isinstance(val_data, tuple):
+                            v, reason = val_data
+                        else:
+                            v, reason = val_data, ""
+                            
                         color_sd = "#2ecc71" if v > 0 else ("#ff7675" if v < 0 else "#8892b0")
                         sign_sd = "+" if v > 0 else ""
-                        breakdown_html += f"<li style='margin-bottom: 8px; font-size: 1.05rem;'><b>{k}:</b> <span style='color: {color_sd}; font-weight: bold;'>{sign_sd}{v:g}점</span></li>"
+                        breakdown_html += f"<li style='margin-bottom: 8px; font-size: 1.05rem;'><b>{k}:</b> <span style='color: {color_sd}; font-weight: bold;'>{sign_sd}{v:g}점</span> <br><span style='font-size: 0.9em; color: #a29bfe; margin-left: 10px;'>ㄴ {reason}</span></li>"
                         total_score += v
                     breakdown_html += f"<hr style='margin: 10px 0; border-color: rgba(255,255,255,0.1);'><li style='font-size: 1.15rem;'><b>{t('총합', 'Total Score')}:</b> <span style='color: {op_color}; font-weight: bold;'>{total_score:g}점</span></li>"
                     breakdown_html += "</ul>"
