@@ -1119,31 +1119,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
     else:
-        if roic >= 25: cap_score += 25
-        elif roic >= 20: cap_score += 23
-        elif roic >= 17: cap_score += 21
-        elif roic >= 14: cap_score += 18
-        elif roic >= 11: cap_score += 15
-        elif roic >= 9: cap_score += 12
-        elif roic >= 7: cap_score += 9
-        elif roic >= 5: cap_score += 6
-        elif roic >= 3: cap_score += 3
-        elif roic >= 0: cap_score -= 3
-        elif roic >= -5: cap_score -= 8
-        elif roic >= -10: cap_score -= 12
-        else: cap_score -= 15
-
-        if roe >= 25: cap_score += 15
-        elif roe >= 22: cap_score += 13
-        elif roe >= 19: cap_score += 11
-        elif roe >= 16: cap_score += 9
-        elif roe >= 13: cap_score += 7
-        elif roe >= 10: cap_score += 5
-        elif roe >= 7: cap_score += 3
-        elif roe >= 4: cap_score += 1
-        elif roe >= 0: cap_score -= 4
-        elif roe >= -5: cap_score -= 9
-        else: cap_score -= 15
+        # [신규 로직] 비즈니스 수익성 및 해자 (ROIC, ROE) - 총점 30점 만점 / 20단계 정밀 세분화
+        # ROIC(진짜 수익률)에 2배의 가중치를 부여하여 부채(레버리지)로 부풀린 ROE의 착시를 방어합니다.
+        moat_power = (roic * 2 + roe) / 3
+        
+        # 정확히 20개의 구간으로 나누어 30점부터 -30점까지 채점 (+3점 단위)
+        if moat_power >= 25.0:   cap_score += 30
+        elif moat_power >= 22.0: cap_score += 27
+        elif moat_power >= 19.0: cap_score += 24
+        elif moat_power >= 17.0: cap_score += 21
+        elif moat_power >= 15.0: cap_score += 18
+        elif moat_power >= 13.0: cap_score += 15
+        elif moat_power >= 11.0: cap_score += 12
+        elif moat_power >= 9.0:  cap_score += 9
+        elif moat_power >= 7.0:  cap_score += 6
+        elif moat_power >= 5.0:  cap_score += 3
+        elif moat_power >= 3.0:  cap_score += 0
+        elif moat_power >= 1.0:  cap_score -= 3
+        elif moat_power >= -1.0: cap_score -= 6
+        elif moat_power >= -3.0: cap_score -= 9
+        elif moat_power >= -5.0: cap_score -= 12
+        elif moat_power >= -7.0: cap_score -= 15
+        elif moat_power >= -10.0: cap_score -= 18
+        elif moat_power >= -13.0: cap_score -= 21
+        elif moat_power >= -16.0: cap_score -= 24
+        else:                     cap_score -= 30
 
         score += cap_score
         cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
