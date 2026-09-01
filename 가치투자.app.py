@@ -1269,7 +1269,55 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
+    # ----------------------------------------------------
+    # [신규] S&P 500 대비 비즈니스 해자(ROIC/ROE) 20단계 비교 로직
+    # ----------------------------------------------------
+    market_score = 0
+    spy_roe_avg = 15.0
+    spy_roic_avg = 12.0
+    
+    if not is_financial and roic > 0:
+        # 일반 기업은 진짜 수익률인 ROIC를 S&P 500 평균(12%)과 비교
+        diff = roic - spy_roic_avg
+        metric_name = "ROIC"
+    else:
+        # 금융주거나 ROIC 데이터가 없으면 ROE를 S&P 500 평균(15%)과 비교
+        diff = roe - spy_roe_avg
+        metric_name = "ROE"
+        
+    if roe > 0 or roic > 0:
+        if diff >= 15.0:   market_score = 20
+        elif diff >= 12.0: market_score = 18
+        elif diff >= 9.0:  market_score = 16
+        elif diff >= 7.0:  market_score = 14
+        elif diff >= 5.0:  market_score = 12
+        elif diff >= 4.0:  market_score = 10
+        elif diff >= 3.0:  market_score = 8
+        elif diff >= 2.0:  market_score = 6
+        elif diff >= 1.0:  market_score = 4
+        elif diff >= 0.0:  market_score = 2
+        elif diff >= -1.0: market_score = -2
+        elif diff >= -2.0: market_score = -4
+        elif diff >= -3.0: market_score = -6
+        elif diff >= -4.0: market_score = -8
+        elif diff >= -5.0: market_score = -10
+        elif diff >= -6.0: market_score = -12
+        elif diff >= -7.0: market_score = -14
+        elif diff >= -8.0: market_score = -16
+        elif diff >= -10.0: market_score = -18
+        else:               market_score = -20
+        
+        score += market_score
+        sign = "+" if diff > 0 else ""
+        market_reason = t(
+            f"시장(S&P 500) 대비 퀄리티 우위: {metric_name} {sign}{diff:.1f}%p 격차 반영", 
+            f"Quality vs S&P 500: {metric_name} {sign}{diff:.1f}%p gap"
+        )
+        score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
+    # 이 아래부터 기존의 if score >= 110: 코드가 이어집니다.
+    if score >= 110:
+        title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
     if score >= 110:
         title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
     elif score >= 85:
@@ -1977,6 +2025,25 @@ with tab1:
                     else:
                         ey_str = f"{ey:.2f}% <span class='highlight'>(국채에 짐! {abs(erp):.2f}%p 매력도 열위/할증)</span>"
 
+                # --- S&P 500 및 나스닥 벤치마크 고정값 세팅 ---
+                spy_roe_avg, spy_roic_avg = 15.0, 12.0
+                qqq_roe_avg, qqq_roic_avg = 20.0, 15.0
+
+                if not is_financial and real_roic is not None and real_roic > 0:
+                    spy_gap = real_roic - spy_roic_avg
+                    qqq_gap = real_roic - qqq_roic_avg
+                    metric_label = "ROIC"
+                else:
+                    spy_gap = roe - spy_roe_avg
+                    qqq_gap = roe - qqq_roe_avg
+                    metric_label = "ROE"
+
+                spy_col = "#2ecc71" if spy_gap >= 0 else "#ff7675"
+                qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff7675"
+
+                bench_html = f"<span style='color:{spy_col}; font-weight:bold;'>S&P 500 대비 {spy_gap:+.1f}%p</span> | <span style='color:{qqq_col}; font-weight:bold;'>나스닥 대비 {qqq_gap:+.1f}%p</span>"
+                # ---------------------------------------------
+
                 c1, c2 = st.columns(2)
                 with c1:
                     st.markdown(f"- **{t('현재 주가', 'Current Price')}:** {p_str}{ext_str}", unsafe_allow_html=True)
@@ -1996,13 +2063,15 @@ with tab1:
                     st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
                     if not is_financial:
                         st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
+                    
+                    # [신규 추가됨] 지수 대비 비교 UI
+                    st.markdown(f"- **{t(f'시장 지수 대비 자본효율({metric_label}) 우위', f'Capital Efficiency({metric_label}) vs Index')}:** <br> ↳ {bench_html}", unsafe_allow_html=True)
+                    
                     st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
                     if not is_financial:
                         st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
                     st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
-                
-                st.divider()
 
                 st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
                 
