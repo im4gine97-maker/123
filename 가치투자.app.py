@@ -1480,43 +1480,13 @@ def generate_quick_ai_preview(tk):
     sector_str = str(i.get('sector', '')).lower()
     industry_str = str(i.get('industry', '')).lower()
     summary_str = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
+    is_financial = any(kw in sector_str or kw in industry_str for kw in ['financial', 'bank', 'insurance']) or any(kw in summary_str for kw in ['금융지주', '은행', '증권', '보험'])
     
-    eng_fin_keywords = ['financial', 'bank', 'insurance', 'capital market', 'credit service', 'securities', 'asset management', 'investment']
-    is_eng_fin = any(kw in sector_str or kw in industry_str for kw in eng_fin_keywords)
-    kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
-    is_kor_fin = any(kw in summary_str for kw in kor_fin_keywords)
-    is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
-    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A", "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF", "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"]
-    kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
-    tk_upper = str(tk).upper()
-    is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
-    
-    t_pe_raw = safe_float(i.get('trailingPE'))
-    f_pe_raw = safe_float(i.get('forwardPE'))
-    t_eps = safe_float(i.get('trailingEps'))
-    f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-    reg_p = safe_float(i.get('regularMarketPrice', p))
-    if reg_p == 0: reg_p = p
-    if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
-    if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
-    t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
-    f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
-
+    t_pe = safe_float(i.get('trailingPE'))
+    f_pe = safe_float(i.get('forwardPE'))
     a_pe = safe_float(i.get('fiveYearAvgPE', t_pe * 1.1 if t_pe > 0 else 15.0))
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-    
     pbr = safe_float(i.get('priceToBook'))
-    bv = safe_float(i.get('bookValue'))
-    if bv > 0: pbr = p / bv
-    elif pbr == 0.0:
-        try:
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                sh = safe_float(i.get('sharesOutstanding'))
-                if eq > 0 and sh > 0: pbr = p / (eq / sh)
-        except: pass
-
     roe = safe_float(i.get('returnOnEquity')) * 100
     real_roic = get_real_roic(stk, i)
     roic_val = real_roic if real_roic is not None else 0
@@ -1527,28 +1497,12 @@ def generate_quick_ai_preview(tk):
     mos_val = safe_float(mos_val)
     div = safe_float(i.get('dividendYield')) * 100 if kr else (safe_float(i.get('dividendRate')) / p * 100 if p > 0 else 0.0)
     
-    # [수정됨] 프리뷰에서도 경영진 및 리스크 텍스트를 제대로 불러와서 감점 로직이 발동하게 함
-    off = i.get('companyOfficers', [])
-    ceo_raw = '누락'
-    if isinstance(off, list) and len(off) > 0:
-        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-        else: ceo_raw = str(off[0])
-    elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-    elif isinstance(off, str): ceo_raw = off
-    ceo_cleaned = clean_ceo_name(ceo_raw)
-    
-    cd = tk.split('.')[0] if kr else tk
-    criticism_text = fetch_governance_criticism(tk, cd, ceo_cleaned)
-    
-    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-    
     op_title, op_color, op_reason, _ = get_comprehensive_investment_opinion(
-        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-        is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val
+        mos_val, pmos_val, roe, roic_val, erp, final_g, "위키 및 공공 기록 스크리닝", is_financial, pbr, kr, tk, base_fcf, div, is_zigzag
     )
     
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
+
 
 # ==========================================
 # [4] 메인 UI 렌더링
@@ -2550,8 +2504,6 @@ with tab2:
                 matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
                 if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True):
                     st.session_state.search_tk = matched_ticker
-                    st.session_state.main_input = matched_ticker # [추가됨] 검색창 글자 동기화
-                    st.session_state.suggestions = []            # [추가됨] 제안 목록 초기화
                     with st.spinner("AI가 데이터를 스캔 중입니다..."):
                         st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
             
@@ -2587,8 +2539,6 @@ with tab3:
         matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
         if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", use_container_width=True):
             st.session_state.search_tk = matched_ticker_mkt
-            st.session_state.main_input = matched_ticker_mkt # [추가됨] 검색창 글자 동기화
-            st.session_state.suggestions = []                # [추가됨] 제안 목록 초기화
             with st.spinner("AI가 데이터를 스캔 중입니다..."):
                 st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
                 
