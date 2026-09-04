@@ -39,6 +39,12 @@ def fmt_f(val, decimals=1):
     except:
         return "0.0" if decimals == 1 else "0.00"
 
+# [신규] 탭 이동 및 빠른 분석 시 검색창과 분석 대상을 안전하게 동기화하는 콜백
+def select_ticker(tk):
+    st.session_state.search_tk = tk
+    st.session_state.main_input = tk
+    st.session_state.suggestions = []
+    
 # [스마트 자동완성 검색 로직]
 def trigger_scan():
     if st.session_state.get("main_input"):
@@ -2548,10 +2554,7 @@ with tab2:
                 fast_name = st.selectbox("Company Name", df["기업명"].tolist(), label_visibility="collapsed")
             with c_btn:
                 matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
-                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True):
-                    st.session_state.search_tk = matched_ticker
-                    st.session_state.main_input = matched_ticker # [추가됨] 검색창 글자 동기화
-                    st.session_state.suggestions = []            # [추가됨] 제안 목록 초기화
+                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", on_click=select_ticker, args=(matched_ticker,), use_container_width=True):
                     with st.spinner("AI가 데이터를 스캔 중입니다..."):
                         st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
             
@@ -2585,10 +2588,7 @@ with tab3:
         fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), key="mkt_fast_tk", label_visibility="collapsed")
     with c_btn2:
         matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", use_container_width=True):
-            st.session_state.search_tk = matched_ticker_mkt
-            st.session_state.main_input = matched_ticker_mkt # [추가됨] 검색창 글자 동기화
-            st.session_state.suggestions = []                # [추가됨] 제안 목록 초기화
+        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", on_click=select_ticker, args=(matched_ticker_mkt,), use_container_width=True):
             with st.spinner("AI가 데이터를 스캔 중입니다..."):
                 st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
                 
