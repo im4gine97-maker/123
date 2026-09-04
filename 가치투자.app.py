@@ -1021,17 +1021,17 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
     score_details = {}
     score = 0
     ceo_score = 0
     
+    # 1. 경영진
     if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
         ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
     else:
         kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
-        
         is_one_strike = False
         for k in kw_super_neg:
             if k in ceo_text:
@@ -1101,6 +1101,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
+    # 2. 배당
     div_score = 0
     if is_financial:
         if div_yield_pct >= 9.5: div_score = 20
@@ -1129,6 +1130,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         div_reason = t(f"현재 배당수익률 {div_yield_pct:.1f}% 반영", f"Current dividend yield {div_yield_pct:.1f}%")
         score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
+    # 3. PER MoS
     p_score = 0
     if not is_financial:
         if pmos >= 50: p_score = 40
@@ -1155,6 +1157,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         p_reason = t(f"과거 5~10년 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs 5-10Y avg PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
+    # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
         if kr:
@@ -1203,10 +1206,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
     else:
         # [신규 로직] 비즈니스 수익성 및 해자 (ROIC, ROE) - 총점 30점 만점 / 20단계 정밀 세분화
-        # ROIC(진짜 수익률)에 2배의 가중치를 부여하여 부채(레버리지)로 부풀린 ROE의 착시를 방어합니다.
         moat_power = (roic * 2 + roe) / 3
         
-        # 정확히 20개의 구간으로 나누어 30점부터 -30점까지 채점 (+3점 단위)
         if moat_power >= 25.0:   cap_score += 30
         elif moat_power >= 22.0: cap_score += 27
         elif moat_power >= 19.0: cap_score += 24
@@ -1232,6 +1233,113 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = (cap_score, cap_reason)
 
+    # 5. 레버리지 왜곡 방어 (ROE vs ROIC)
+    lev_score = 0
+    if not is_financial and roic > 0 and roe > 0:
+        gap = roe - roic
+        if gap >= 20: 
+            lev_score = -20
+            lev_reason = t(f"과도한 레버리지: ROE({roe:.1f}%)가 ROIC({roic:.1f}%)보다 비정상적으로 높음 (빚으로 쌓아올린 수익률)", 
+                           f"Excessive Leverage: ROE({roe:.1f}%) is artificially inflated by debt vs ROIC({roic:.1f}%)")
+        elif gap >= 10:
+            lev_score = -10
+            lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음 (부채 활용도 높음)", 
+                           f"Leverage Warning: ROE is {gap:.1f}%p higher than ROIC")
+        elif gap >= 4:
+            lev_score = 0
+            lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p (정상 범위)", 
+                           f"Normal Leverage: {gap:.1f}%p gap between ROE and ROIC")
+        elif gap >= -5:
+            lev_score = 15
+            lev_reason = t(f"우량한 자본 구조: ROE({roe:.1f}%)와 ROIC({roic:.1f}%)가 유사함 (부채 없는 순수 비즈니스 해자)", 
+                           f"Healthy Capital: ROE & ROIC are similar. True business moat without debt.")
+        else:
+            lev_score = 5
+            lev_reason = t(f"현금성 자산 풍부: ROIC({roic:.1f}%)가 ROE({roe:.1f}%)보다 높음", 
+                           f"Cash Rich: ROIC is higher than ROE")
+            
+        score += lev_score
+        score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
+
+    # 6. S&P 500 기대수익률 (ERP) 비교
+    spy_score = 0
+    if not is_financial and f_pe > 0 and spy_pe > 0:
+        stock_ey = (1 / f_pe) * 100
+        spy_ey = (1 / spy_pe) * 100
+        spy_diff = stock_ey - spy_ey
+        
+        if spy_diff >= 4.5:    spy_score = 20
+        elif spy_diff >= 4.0:  spy_score = 18
+        elif spy_diff >= 3.5:  spy_score = 16
+        elif spy_diff >= 3.0:  spy_score = 14
+        elif spy_diff >= 2.5:  spy_score = 12
+        elif spy_diff >= 2.0:  spy_score = 10
+        elif spy_diff >= 1.5:  spy_score = 8
+        elif spy_diff >= 1.0:  spy_score = 6
+        elif spy_diff >= 0.5:  spy_score = 4
+        elif spy_diff >= 0.0:  spy_score = 2
+        elif spy_diff >= -0.5: spy_score = -2
+        elif spy_diff >= -1.0: spy_score = -4
+        elif spy_diff >= -1.5: spy_score = -6
+        elif spy_diff >= -2.0: spy_score = -8
+        elif spy_diff >= -2.5: spy_score = -10
+        elif spy_diff >= -3.0: spy_score = -12
+        elif spy_diff >= -3.5: spy_score = -14
+        elif spy_diff >= -4.0: spy_score = -16
+        elif spy_diff >= -4.5: spy_score = -18
+        else:                  spy_score = -20
+        
+        score += spy_score
+        sign = "+" if spy_diff > 0 else ""
+        spy_reason = t(
+            f"S&P 500(EY {spy_ey:.1f}%) 대비 기대수익률 {sign}{spy_diff:.2f}%p 격차 반영", 
+            f"{sign}{spy_diff:.2f}%p expected return gap vs S&P 500 (EY {spy_ey:.1f}%)"
+        )
+        score_details[t("시장 지수(S&P 500) 대비 매력도", "Relative Attractiveness vs S&P 500")] = (spy_score, spy_reason)
+
+    # 7. 시장 퀄리티 (ROIC/ROE vs S&P 500)
+    market_score = 0
+    spy_roe_avg = 15.0
+    spy_roic_avg = 12.0
+    
+    if not is_financial and roic > 0:
+        diff = roic - spy_roic_avg
+        metric_name = "ROIC"
+    else:
+        diff = roe - spy_roe_avg
+        metric_name = "ROE"
+        
+    if roe > 0 or roic > 0:
+        if diff >= 15.0:   market_score = 20
+        elif diff >= 12.0: market_score = 18
+        elif diff >= 9.0:  market_score = 16
+        elif diff >= 7.0:  market_score = 14
+        elif diff >= 5.0:  market_score = 12
+        elif diff >= 4.0:  market_score = 10
+        elif diff >= 3.0:  market_score = 8
+        elif diff >= 2.0:  market_score = 6
+        elif diff >= 1.0:  market_score = 4
+        elif diff >= 0.0:  market_score = 2
+        elif diff >= -1.0: market_score = -2
+        elif diff >= -2.0: market_score = -4
+        elif diff >= -3.0: market_score = -6
+        elif diff >= -4.0: market_score = -8
+        elif diff >= -5.0: market_score = -10
+        elif diff >= -6.0: market_score = -12
+        elif diff >= -7.0: market_score = -14
+        elif diff >= -8.0: market_score = -16
+        elif diff >= -10.0: market_score = -18
+        else:               market_score = -20
+        
+        score += market_score
+        sign = "+" if diff > 0 else ""
+        market_reason = t(
+            f"시장(S&P 500) 대비 퀄리티 우위: {metric_name} {sign}{diff:.1f}%p 격차 반영", 
+            f"Quality vs S&P 500: {metric_name} {sign}{diff:.1f}%p gap"
+        )
+        score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
+
+    # 8. DCF
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
@@ -1267,6 +1375,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
+    # 9. ERP (국채 비교)
     e_score = 0
     if not is_financial:
         if erp >= 5.0: e_score = 15
@@ -1294,6 +1403,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
         score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = (e_score, e_reason)
 
+    # 10. 복리 성장률 (CAGR)
     g_score = 0
     if not is_financial:
         if final_g >= 0.20: g_score = 15
@@ -1321,6 +1431,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
+    # 11. 시장 페널티 (지정학, 시클리컬)
     pen_score = 0
     tk_upper = str(tk).upper()
 
@@ -1352,55 +1463,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
-    # ----------------------------------------------------
-    # [신규] S&P 500 대비 비즈니스 해자(ROIC/ROE) 20단계 비교 로직
-    # ----------------------------------------------------
-    market_score = 0
-    spy_roe_avg = 15.0
-    spy_roic_avg = 12.0
-    
-    if not is_financial and roic > 0:
-        # 일반 기업은 진짜 수익률인 ROIC를 S&P 500 평균(12%)과 비교
-        diff = roic - spy_roic_avg
-        metric_name = "ROIC"
-    else:
-        # 금융주거나 ROIC 데이터가 없으면 ROE를 S&P 500 평균(15%)과 비교
-        diff = roe - spy_roe_avg
-        metric_name = "ROE"
-        
-    if roe > 0 or roic > 0:
-        if diff >= 15.0:   market_score = 20
-        elif diff >= 12.0: market_score = 18
-        elif diff >= 9.0:  market_score = 16
-        elif diff >= 7.0:  market_score = 14
-        elif diff >= 5.0:  market_score = 12
-        elif diff >= 4.0:  market_score = 10
-        elif diff >= 3.0:  market_score = 8
-        elif diff >= 2.0:  market_score = 6
-        elif diff >= 1.0:  market_score = 4
-        elif diff >= 0.0:  market_score = 2
-        elif diff >= -1.0: market_score = -2
-        elif diff >= -2.0: market_score = -4
-        elif diff >= -3.0: market_score = -6
-        elif diff >= -4.0: market_score = -8
-        elif diff >= -5.0: market_score = -10
-        elif diff >= -6.0: market_score = -12
-        elif diff >= -7.0: market_score = -14
-        elif diff >= -8.0: market_score = -16
-        elif diff >= -10.0: market_score = -18
-        else:               market_score = -20
-        
-        score += market_score
-        sign = "+" if diff > 0 else ""
-        market_reason = t(
-            f"시장(S&P 500) 대비 퀄리티 우위: {metric_name} {sign}{diff:.1f}%p 격차 반영", 
-            f"Quality vs S&P 500: {metric_name} {sign}{diff:.1f}%p gap"
-        )
-        score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 이 아래부터 기존의 if score >= 110: 코드가 이어집니다.
-    if score >= 110:
-        title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
+    # 12. 최종 결과 매핑
     if score >= 110:
         title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
     elif score >= 85:
