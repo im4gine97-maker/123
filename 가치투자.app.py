@@ -829,7 +829,7 @@ def get_base_dcf_data(stk, i):
                 
         fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
         
-        # [신규 로직] FCF가 0 이하거나 적자일 경우 정상화(Normalized) FCF 추정
+        # [수정된 B코드] FCF 정상화 및 지그재그 페널티 면제 로직
         if fcf <= 0 and cf is not None and not cf.empty:
             try:
                 ocf = safe_float(cf.loc['Operating Cash Flow'].iloc[0]) if 'Operating Cash Flow' in cf.index else 0
@@ -837,11 +837,11 @@ def get_base_dcf_data(stk, i):
                 ni = safe_float(inc.loc['Net Income'].iloc[0]) if inc is not None and 'Net Income' in inc.index else 0
                 
                 if ocf > 0:
-                    # 영업현금흐름은 흑자인데 CAPEX 투자로 적자인 경우: OCF의 70%를 보수적 FCF로 간주 (유지보수 CAPEX 30% 가정)
                     fcf = ocf * 0.7 
+                    is_zigzag = False  # <--- 핵심: 본업(OCF)이 흑자라 정상화했으므로, 억울한 지그재그 감점 면제
                 elif ni > 0:
-                    # OCF도 확보 불가하나 당기순이익이 흑자인 경우: 순이익의 80% 차용
                     fcf = ni * 0.8
+                    is_zigzag = False  # <--- 핵심: 순이익이 흑자라 정상화했으므로 지그재그 감점 면제
             except Exception:
                 pass
 
