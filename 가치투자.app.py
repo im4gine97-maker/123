@@ -2394,21 +2394,42 @@ with tab1:
                     txt_b_title = t('평균 (Base)', 'Base Case')
                     txt_e_title = t('최상 (Best)', 'Best Case')
 
-                    # --- 기존 3단 시나리오 렌더링 코드 (with c_w, c_b, c_e) 아래에 추가 ---
+                    with c_w:
+                        st.markdown(
+                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #ff7675; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
+                            f"<b>{txt_w_title}</b><br><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>"
+                            f"{str_mos}: <span style='color:{worst_mos_color}'>{mos_worst:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
+                    with c_b:
+                        st.markdown(
+                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #fdcb6e; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
+                            f"<b>{txt_b_title}</b><br><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>"
+                            f"{str_mos}: <span style='color:{base_mos_color}'>{mos_val:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
+                    with c_e:
+                        st.markdown(
+                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #2ecc71; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
+                            f"<b>{txt_e_title}</b><br><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>"
+                            f"{str_mos}: <span style='color:{best_mos_color}'>{mos_best:.1f}%</span></div>", 
+                            unsafe_allow_html=True
+                        )
+                    st.markdown("<br>", unsafe_allow_html=True)
+                else:
+                    st.error(f"{err}")
                 
+                # --- 신규 추가된 DCF 시뮬레이터 (막대기 조절) 영역 ---
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("### 🎛️ 내재가치 직접 계산하기 (Custom DCF Simulator)")
                 st.caption(t("AI의 기본 가정을 변경하여 나만의 적정 주가를 시뮬레이션 해보세요.", "Adjust assumptions to simulate your own fair value."))
 
-                # 시뮬레이터용 초기값 설정
                 sim_fcf = safe_float(base_fcf) if base_fcf and base_fcf > 0 else 1000.0
                 sim_g_default = float(final_g * 100) if not is_financial else 10.0
                 sim_dr_default = max(float(ty), 9.0)
 
-                # 슬라이더 UI (2단 컬럼 구성)
                 col_sim1, col_sim2 = st.columns(2)
                 with col_sim1:
-                    # FCF는 단위가 크고 종목마다 천차만별이므로 number_input 사용
                     user_fcf = st.number_input(t("초기 잉여현금흐름 (FCF)", "Initial FCF"), value=sim_fcf, step=100.0)
                     user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0)
 
@@ -2416,7 +2437,6 @@ with tab1:
                     user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=5.0, max_value=25.0, value=sim_dr_default, step=0.5)
                     user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5)
 
-                # 사용자 맞춤형 DCF 연산
                 if not is_financial and sh > 0:
                     u_dr = user_dr / 100
                     u_g = user_g / 100
@@ -2428,7 +2448,6 @@ with tab1:
                         cv *= (1 + u_g)
                         fut.append(cv / ((1 + u_dr) ** y))
 
-                    # 영구 성장률이 할인율보다 크면 수식이 붕괴되므로 예외 처리
                     if u_dr > u_tg:
                         tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
                     else:
@@ -2439,7 +2458,6 @@ with tab1:
                     custom_iv = (sum(fut) + dtv) / sh
                     custom_mos = ((custom_iv - p) / custom_iv) * 100 if custom_iv > 0 else 0
 
-                    # 결과 표출 UI
                     custom_color = "#2ecc71" if custom_mos > 0 else "#ff7675"
                     val_c_str = f"{int(custom_iv):,}원" if kr else f"${custom_iv:,.2f}"
 
@@ -2455,6 +2473,8 @@ with tab1:
                     st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
                 else:
                     st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
+
+                st.divider()
                     
                     with c_w:
                         st.markdown(
