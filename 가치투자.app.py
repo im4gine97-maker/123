@@ -2244,34 +2244,31 @@ with tab1:
 
                 bench_html = f"<span style='color:{spy_col}; font-weight:bold;'>S&P 500 대비 {spy_gap:+.1f}%p</span> | <span style='color:{qqq_col}; font-weight:bold;'>나스닥 대비 {qqq_gap:+.1f}%p</span>"
 
-                # [블록형 UI 스타일 정의]
-                card_style = "flex: 1 1 calc(50% - 15px); min-width: 250px; background: rgba(160, 196, 255, 0.05); border: 1px solid rgba(160, 196, 255, 0.15); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);"
-                lbl_style = "font-size: 0.9rem; color: #8892b0; font-weight: 600; margin-bottom: 8px;"
-                val_style = "font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 8px;"
-                desc_style = "font-size: 0.9rem; line-height: 1.6; color: var(--text-color);"
+                # [미니멀 블록 UI 스타일 정의 - 첨부 이미지 스타일]
+                item_style = "flex: 1 1 calc(33.33% - 15px); min-width: 250px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;"
+                lbl_style = "font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;"
+                val_style = "font-size: 1.4rem; font-weight: bold; color: var(--text-color); margin-bottom: 5px;"
+                desc_style = "font-size: 0.85rem; line-height: 1.6; color: var(--text-color);"
                 
                 # 금융/비금융 조건부 텍스트 처리
-                roe_roic_title = t('ROE (자본수익률 - 금융주 핵심지표)', 'ROE (Equity Return)') if is_financial else t('ROE (이익률) / ROIC (진짜 수익률)', 'ROE / ROIC')
-                roe_roic_val = f"{roe:.2f}%" if is_financial else f"{roe:.2f}% / {roic_str}"
-                
-                ey_title = t('10년물 미국채 금리 (안전자산)', '10Y Treasury Yield') if is_financial else t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')
-                ey_val = f"{ty:.2f}%" if is_financial else ey_str
+                roe_roic_title = t('ROE / ROIC (수익률)', 'ROE / ROIC') if not is_financial else t('ROE (자본수익률 - 금융)', 'ROE (Equity Return)')
+                roe_roic_val = f"{roe:.2f}% / {roic_str}" if not is_financial else f"{roe:.2f}%"
                 
                 rnd_block = ""
                 if not is_financial:
-                    rnd_block = f"<div style='{card_style}'><div style='{lbl_style}'>{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D(연구개발비) 분석', 'R&D Check')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
 
                 # Streamlit 버그 방지를 위해 엔터와 주석을 제거한 한 덩어리 HTML
                 section1_html = (
                     f"<div style='display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;'>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('현재 주가 및 배당 추이', 'Price & Dividend Trend')}</div><div style='{val_style}'>{p_str}{ext_str}</div><div style='{desc_style}'>배당 추이: {div:.2f}% ({div_trend})</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('멀티플 (PER)', 'Multiples (PE)')}</div><div style='{val_style}'>Fwd PER (미래 1년): {f_pe:.2f}배</div><div style='{desc_style}'>현재 PER: {t_pe:.2f}배 | 5~10년 평균: {a_pe:.2f}배</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('가치 평가 지표', 'Valuation Metrics')}</div><div style='{desc_style}'><b>PBR (청산가치 배수):</b> {pbr:.2f}배<br><b>PER 안전마진:</b> {per_mos_str if not is_financial else '해당 없음 (N/A)'}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{ey_title}</div><div style='{desc_style}'><b>10년물 미국채 금리:</b> {ty:.2f}%<br>{ey_val if not is_financial else ''}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t(f'시장 지수 대비 자본효율({metric_label}) 우위', f'Capital Efficiency({metric_label}) vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('성장 추세 (EPS / BPS)', 'Growth Trend (EPS / BPS)')}</div><div style='{desc_style}'><b>EPS 추세:</b> {eps_trend}<br><b>자본/BPS 추세:</b> {bps_trend}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Current Price')}</div><div style='{val_style}'>{p_str}{ext_str}</div><div style='{desc_style}'>배당 추이: {div:.2f}% ({div_trend})</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('멀티플 (PER)', 'Multiples (PE)')}</div><div style='{val_style}'>{f_pe:.2f}배 <span style='font-size:0.9rem; font-weight:normal; color:#8892b0;'>(Fwd)</span></div><div style='{desc_style}'>현재: {t_pe:.2f}배 | 5~10년 평균: {a_pe:.2f}배</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR 및 안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'><b>PER 안전마진:</b> {per_mos_str if not is_financial else '해당 없음 (N/A)'}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('예상 이익수익률 vs 국채', 'Earnings Yield vs Treasury')}</div><div style='{desc_style}'><b>이익수익률:</b> {ey_str if not is_financial else '해당 없음'}<br><b>국채 금리:</b> {ty:.2f}%</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 지수 대비 자본효율 우위', 'Efficiency vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세 (EPS / BPS)', 'Growth Trend')}</div><div style='{desc_style}'><b>EPS:</b> {eps_trend}<br><b>자본:</b> {bps_trend}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Gap')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
                     f"</div>"
                 )
@@ -2330,15 +2327,15 @@ with tab1:
                     else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
 
                 # 텍스트 내 줄바꿈과 마크다운 뷰 통일을 위한 정리
-                clean_p_txt = p_txt.replace('- PER 측면: ', '<b>[PER 측면]</b> ').replace('- DCF 측면: ', '<b>[DCF 측면]</b> ').replace('- PBR 측면: ', '<b>[PBR 측면]</b> ').replace('\n', '')
+                clean_p_txt = p_txt.replace('- PER 측면: ', '<b>[PER]</b> ').replace('- DCF 측면: ', '<br><b>[DCF]</b> ').replace('- PBR 측면: ', '<b>[PBR]</b> ').replace('\n', '')
                 
                 # Streamlit 버그 방지를 위해 엔터와 주석을 제거한 한 덩어리 HTML
                 section2_html = (
                     f"<div style='display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;'>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('가격 평가 (안전마진)', 'Price Valuation (MoS)')}</div><div style='{desc_style}'>{clean_p_txt}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('수학 (복리 모형)', 'Math (Compounding Model)')}</div><div style='{desc_style}'>{math_eval}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('비즈니스 및 생태계 해자', 'Business & Ecosystem Moat')}</div><div style='{desc_style}'>{biz_eval}</div></div>"
-                    f"<div style='{card_style}'><div style='{lbl_style}'>{t('생물학 (다윈주의적 생존력)', 'Biology (Darwinian Survivability)')}</div><div style='{desc_style}'>{bio_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style}'>{clean_p_txt}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학 (복리 모형)', 'Math (Compounding)')}</div><div style='{desc_style}'>{math_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 및 생태계 해자', 'Business Moat')}</div><div style='{desc_style}'>{biz_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학 (다윈주의적 생존력)', 'Biology (Survivability)')}</div><div style='{desc_style}'>{bio_eval}</div></div>"
                     f"</div>"
                 )
                 st.markdown(section2_html, unsafe_allow_html=True)
