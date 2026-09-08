@@ -825,6 +825,23 @@ def get_base_dcf_data(stk, i):
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
         fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
+        
+        # [신규 로직] FCF가 0 이하거나 적자일 경우 정상화(Normalized) FCF 추정
+        if fcf <= 0 and cf is not None and not cf.empty:
+            try:
+                ocf = safe_float(cf.loc['Operating Cash Flow'].iloc[0]) if 'Operating Cash Flow' in cf.index else 0
+                inc = stk.income_stmt
+                ni = safe_float(inc.loc['Net Income'].iloc[0]) if inc is not None and 'Net Income' in inc.index else 0
+                
+                if ocf > 0:
+                    # 영업현금흐름은 흑자인데 CAPEX 투자로 적자인 경우: OCF의 70%를 보수적 FCF로 간주 (유지보수 CAPEX 30% 가정)
+                    fcf = ocf * 0.7 
+                elif ni > 0:
+                    # OCF도 확보 불가하나 당기순이익이 흑자인 경우: 순이익의 80% 차용
+                    fcf = ni * 0.8
+            except Exception:
+                pass
+
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.05, 0
