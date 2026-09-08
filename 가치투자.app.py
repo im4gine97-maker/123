@@ -1464,26 +1464,43 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
 
-    # 12. 최종 결과 매핑
+    # 12. 최종 결과 매핑 (완곡하고 전문적인 표현으로 순화)
     if score >= 110:
-        title, color, reason = t(f"초극단적 저평가 ({score}점)", f"Deep Value ({score} pts)"), "#00b894", t("거버넌스, 비즈니스 해자, 밸류에이션 모든 면에서 완벽하며 극단적인 안전마진을 제공하는 일생일대의 가치투자 기회입니다.", "A once-in-a-lifetime value investing opportunity with extreme margin of safety, flawless governance, and a massive moat.")
+        title = t(f"강력 매수 고려 구간 ({score}점)", f"Strong Buy Consideration ({score} pts)")
+        color = "#00b894"
+        reason = t("거버넌스, 비즈니스 해자, 밸류에이션 모두 탁월하며 매우 넉넉한 안전마진을 제공하는 훌륭한 투자 기회입니다.", "Exceptional business moat, valuation, and governance. Presents a massive margin of safety.")
     elif score >= 85:
-        title, color, reason = t(f"적극적 할인 ({score}점)", f"Strong Discount ({score} pts)"), "#2ecc71", t("비즈니스 해자(ROIC), 경영진, 안전마진 등 핵심 평가에서 흠잡을 데 없는 워런 버핏급 초저평가 기회입니다.", "An exceptionally rare 'Buffett-level' deep discount meeting 'Very Pass' criteria across ROIC, management, and MoS.")
+        title = t(f"적극적 투자 검토 ({score}점)", f"Active Investment Review ({score} pts)")
+        color = "#2ecc71"
+        reason = t("핵심 지표(ROIC, 경영진, 안전마진)에서 흠잡을 데 없는 우량 기업으로, 투자 비중 확대를 긍정적으로 고려할 만한 구간입니다.", "A pristine company meeting stringent ROIC and MoS criteria. Good zone to consider increasing exposure.")
     elif score >= 60:
-        title, color, reason = t(f"할인 ({score}점)", f"Discount ({score} pts)"), "#1dd1a1", t("훌륭한 자본 배치 능력(ROIC/ROE)과 검증된 경영진이 교차 검증되어 전반적으로 안전하게 매수할 수 있는 우량한 할인 구간입니다.", "A solid discount zone backed by excellent capital allocation metrics and verified management, offering a safe entry.")
+        title = t(f"투자 매력도 높음 ({score}점)", f"High Attractiveness ({score} pts)")
+        color = "#1dd1a1"
+        reason = t("훌륭한 자본 배치 능력과 검증된 수익성을 갖추었으며, 현재 주가 역시 합리적인 수준의 안전마진을 제공하고 있습니다.", "Excellent capital allocation and verified profitability, currently offering a reasonable margin of safety.")
     elif score >= 30:
-        title, color, reason = t(f"약간 할인 ({score}점)", f"Slight Discount ({score} pts)"), "#74b9ff", t("안전마진이 아주 넉넉하지는 않지만, 우량한 사업 퀄리티 대비 현재 가격이 약간 할인되어 충분히 긍정적으로 검토할 수 있는 구간입니다.", "Priced at a slight discount relative to its high-quality business profile, presenting a reasonable entry point.")
+        title = t(f"긍정적 관찰 구간 ({score}점)", f"Positive Observation Zone ({score} pts)")
+        color = "#74b9ff"
+        reason = t("안전마진이 넉넉하지는 않으나, 우량한 펀더멘털을 고려할 때 충분히 분할 매수를 검토해볼 수 있는 구간입니다.", "While MoS is not massive, the strong fundamentals make it a reasonable zone for dollar-cost averaging.")
     elif score >= 0:
-        title, color, reason = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#fdcb6e", t("비즈니스 퀄리티와 성장성을 감안할 때 충분히 납득할 수 있는 적당한 가격(Fair Price)입니다. 장기 투자자에게는 여전히 유효합니다.", "Perfectly justifiable as a fair price given business quality. Still a valid hold/buy for long-term investors.")
+        title = t(f"적정 가치 / 보유 ({score}점)", f"Fair Value / Hold ({score} pts)")
+        color = "#fdcb6e"
+        reason = t("기업의 성장성과 퀄리티를 감안할 때 합당하게 평가받고 있는 가격(Fair Price)입니다. 장기 투자자라면 계속 보유할 만합니다.", "Perfectly justifiable fair price given the business quality. A valid hold for long-term investors.")
     elif score >= -25:
-        title, color, reason = t(f"약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#fab1a0", t("기업의 펀더멘털은 견고하지만 시장의 기대감이 선반영되어 가격에 약간의 할증(Premium)이 붙어 있습니다. 보수적인 접근이 필요합니다.", "Solid fundamentals, but trading at a slight premium due to pre-reflected market optimism. A conservative stance is recommended.")
+        title = t(f"보수적 접근 필요 ({score}점)", f"Conservative Approach Needed ({score} pts)")
+        color = "#fab1a0"
+        reason = t("기업의 펀더멘털은 견고하지만, 시장의 긍정적 기대감이 가격에 다소 선반영되어 있습니다. 신규 진입 시 보수적인 관점이 필요합니다.", "Solid fundamentals, but pre-reflected market optimism indicates a need for a cautious entry.")
     elif score >= -50:
-        title, color, reason = t(f"할증 ({score}점)", f"Premium ({score} pts)"), "#ff7675", t("다수의 밸류에이션 지표에서 '주의' 판정을 받았습니다. 비즈니스 퀄리티 대비 시장의 기대감이 꽤 선반영되어 비싸게 거래 중입니다.", "Trading at a premium with multiple 'Warning' signals. The price reflects somewhat excessive market expectations.")
+        title = t(f"관망 및 리스크 점검 ({score}점)", f"Wait & Check Risks ({score} pts)")
+        color = "#ff7675"
+        reason = t("비즈니스 퀄리티 대비 시장의 기대치가 다소 높게 형성되어 있습니다. 밸류에이션 부담이 있으므로 리스크 관리가 필요합니다.", "Market expectations outpace business quality. Valuation burden exists; risk management advised.")
     elif score >= -80:
-        title, color, reason = t(f"과도한 할증 ({score}점)", f"Excessive Premium ({score} pts)"), "#e17055", t("가치평가 지표가 대체로 '매우 주의'를 가리킵니다. 비상식적인 밸류에이션 거품이 끼어 있어 투자에 상당한 위험이 따릅니다.", "Highly speculative territory with multiple 'Very Warning' signals, indicating a significant valuation bubble.")
+        title = t(f"신규 투자 보류 ({score}점)", f"Hold Off Investment ({score} pts)")
+        color = "#e17055"
+        reason = t("대다수 가치평가 지표가 '주의'를 가리킵니다. 가격에 지나친 낙관론이 반영되어 있어 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings. Prices reflect excessive optimism; new investments are not recommended.")
     else:
-        title, color, reason = t(f"극단적 버블 / 가치 훼손 ({score}점)", f"Extreme Bubble / Value Trap ({score} pts)"), "#d63031", t("심각한 펀더멘털의 훼손(거버넌스 붕괴 등)이 있거나, 수식을 완전히 벗어난 극단적인 광기의 버블 구간입니다. 절대적인 주의가 필요합니다.", "Absolute extreme bubble or severe fundamental destruction (e.g., governance collapse). Demands extreme caution; likely a value trap.")
-
+        title = t(f"비중 축소 고려 / 핵심 리스크 점검 ({score}점)", f"Consider Reducing Exposure / High Risk ({score} pts)")
+        color = "#d63031"
+        reason = t("심각한 펀더멘털 훼손(거버넌스 이슈 등)이 있거나 가치평가 수식을 크게 벗어난 과열 구간입니다. 자본 보호를 위한 비중 축소나 극도의 주의가 필요합니다.", "Indicates either severe fundamental damage or an extreme valuation disconnect. Capital preservation should be the priority.")
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -50점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -50 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
