@@ -1669,10 +1669,10 @@ with c_title:
 with c_lang:
     st.write("")
     if st.session_state.lang == "ko":
-        if st.button("🌐 EN", use_container_width=True):
+        if st.button("EN", use_container_width=True):
             st.session_state.lang = "en"; st.rerun()
     else:
-        if st.button("🌐 KO", use_container_width=True):
+        if st.button("KO", use_container_width=True):
             st.session_state.lang = "ko"; st.rerun()
 
 st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (우측 상단의 버튼을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the button on the top right instead."))
@@ -1765,7 +1765,7 @@ with tab1:
             trigger_scan(); st.rerun() 
 
     # --- 기존 사이드바에 있던 북마크(내 서재) 탭1 검색바 밑으로 이동 ---
-    with st.expander(t("⭐️ 내 서재 (즐겨찾기 목록 열기)", "⭐️ My Library (Bookmarks)"), expanded=bool(st.session_state.bookmarks)):
+    with st.expander(t("내 서재 (즐겨찾기 목록 열기)", "My Library (Bookmarks)"), expanded=bool(st.session_state.bookmarks)):
         if not st.session_state.bookmarks:
             st.caption(t("즐겨찾기한 종목이 없습니다. 아래에서 종목 분석 후 '즐겨찾기 추가' 버튼을 눌러보세요.", "No bookmarked tickers yet. Analyze a ticker and click 'Add Bookmark'."))
         else:
@@ -2244,34 +2244,94 @@ with tab1:
 
                 bench_html = f"<span style='color:{spy_col}; font-weight:bold;'>S&P 500 대비 {spy_gap:+.1f}%p</span> | <span style='color:{qqq_col}; font-weight:bold;'>나스닥 대비 {qqq_gap:+.1f}%p</span>"
 
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown(f"- **{t('현재 주가', 'Current Price')}:** {p_str}{ext_str}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('배당 추이', 'Dividend Trend')}:** {div:.2f}% ({div_trend})", unsafe_allow_html=True)
-                    if is_financial:
-                        st.markdown(f"- **ROE {t('(자본수익률 - 금융주 핵심지표)', '(Equity Return)')}:** {roe:.2f}% -> {rr_eval}", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"- **ROE {t('(내 돈 굴리는 이자율)', '(Equity Return)')} / ROIC {t('(진짜 수익률)', '(True Return)')}:** {roe:.2f}% / {roic_str} -> {rr_eval}", unsafe_allow_html=True)
-                    
-                    st.write(f"- **{t('현재 PER', 'Current PE (Ref)')}:** {t_pe:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('Fwd PER (미래 1년 기준)', 'Fwd PE (Next 1Y)')}:** {f_pe:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('5~10년 평균 PER', '5-10Y Avg PE')}:** {a_pe:.2f}{t('배', 'x')}")
-                with c2:
-                    if not is_financial:
-                        st.markdown(f"- **{t('PER 안전마진', 'PE Margin of Safety')}:** {per_mos_str}", unsafe_allow_html=True)
-                    st.write(f"- **PBR {t('(청산 가치 대비 배수)', '(Price to Book)')}:** {pbr:.2f}{t('배', 'x')}")
-                    st.write(f"- **{t('10년물 미국채 금리 (안전 자산)', '10Y US Treasury Yield (Risk-free)')}:** {ty:.2f}%")
-                    if not is_financial:
-                        st.markdown(f"- **{t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')}:** {ey_str}", unsafe_allow_html=True)
-                    
-                    st.markdown(f"- **{t(f'시장 지수 대비 자본효율({metric_label}) 우위', f'Capital Efficiency({metric_label}) vs Index')}:** <br> ↳ {bench_html}", unsafe_allow_html=True)
-                    
-                    st.markdown(f"- **{t('EPS 추세 (최근 4년 1주당 순이익 / 기업의 진짜 벌이 체력)', 'EPS Trend (4 Years / Net Income per Share)')}:** {eps_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('자본/BPS 추세 (최근 4년 1주당 순자산 / 기업의 덩치와 재산 성장)', 'Equity Trend (4 Years / Book Value per Share)')}:** {bps_trend}", unsafe_allow_html=True)
-                    if not is_financial:
-                        st.markdown(f"- **{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}:** {rnd_trend}", unsafe_allow_html=True)
-                    st.markdown(f"- **{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}:** {eps_vs_ytd_html}", unsafe_allow_html=True)
+                # [블록형 UI 스타일 정의]
+                card_style = "flex: 1 1 calc(50% - 15px); min-width: 250px; background: rgba(160, 196, 255, 0.05); border: 1px solid rgba(160, 196, 255, 0.15); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);"
+                lbl_style = "font-size: 0.9rem; color: #8892b0; font-weight: 600; margin-bottom: 8px;"
+                val_style = "font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 8px;"
+                desc_style = "font-size: 0.9rem; line-height: 1.6; color: var(--text-color);"
+                
+                # 금융/비금융 조건부 텍스트 처리
+                roe_roic_title = t('ROE (자본수익률 - 금융주 핵심지표)', 'ROE (Equity Return)') if is_financial else t('ROE (이익률) / ROIC (진짜 수익률)', 'ROE / ROIC')
+                roe_roic_val = f"{roe:.2f}%" if is_financial else f"{roe:.2f}% / {roic_str}"
+                
+                ey_title = t('10년물 미국채 금리 (안전자산)', '10Y Treasury Yield') if is_financial else t('예상 이익수익률 (주식의 연간 기대 이자율)', 'Expected Earnings Yield')
+                ey_val = f"{ty:.2f}%" if is_financial else ey_str
+                
+                rnd_block = ""
+                if not is_financial:
+                    rnd_block = f"""
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('R&D(연구개발비) 분석 (FCF 대비 미래 투자 체력)', 'R&D Check (vs FCF)')}</div>
+                        <div style="{desc_style}">{rnd_trend}</div>
+                    </div>
+                    """
 
+                section1_html = f"""
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+                    <!-- 카드 1: 가격 및 배당 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('현재 주가 및 배당 추이', 'Price & Dividend Trend')}</div>
+                        <div style="{val_style}">{p_str}{ext_str}</div>
+                        <div style="{desc_style}">배당 추이: {div:.2f}% ({div_trend})</div>
+                    </div>
+                    
+                    <!-- 카드 2: 자본효율성 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{roe_roic_title}</div>
+                        <div style="{val_style}">{roe_roic_val}</div>
+                        <div style="{desc_style}">{rr_eval}</div>
+                    </div>
+                    
+                    <!-- 카드 3: PER 지표 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('멀티플 (PER)', 'Multiples (PE)')}</div>
+                        <div style="{val_style}">Fwd PER (미래 1년): {f_pe:.2f}배</div>
+                        <div style="{desc_style}">현재 PER: {t_pe:.2f}배 | 5~10년 평균: {a_pe:.2f}배</div>
+                    </div>
+                    
+                    <!-- 카드 4: 가치 및 안전마진 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('가치 평가 지표', 'Valuation Metrics')}</div>
+                        <div style="{desc_style}">
+                            <b>PBR (청산가치 배수):</b> {pbr:.2f}배<br>
+                            <b>PER 안전마진:</b> {per_mos_str if not is_financial else "해당 없음 (N/A)"}
+                        </div>
+                    </div>
+                    
+                    <!-- 카드 5: 이익수익률/국채 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{ey_title}</div>
+                        <div style="{desc_style}">
+                            <b>10년물 미국채 금리:</b> {ty:.2f}%<br>
+                            {ey_val if not is_financial else ""}
+                        </div>
+                    </div>
+                    
+                    <!-- 카드 6: 벤치마크 비교 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t(f'시장 지수 대비 자본효율({metric_label}) 우위', f'Capital Efficiency({metric_label}) vs Index')}</div>
+                        <div style="{desc_style}">{bench_html}</div>
+                    </div>
+                    
+                    <!-- 카드 7: 추세 지표 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('성장 추세 (EPS / BPS)', 'Growth Trend (EPS / BPS)')}</div>
+                        <div style="{desc_style}">
+                            <b>EPS 추세:</b> {eps_trend}<br>
+                            <b>자본/BPS 추세:</b> {bps_trend}
+                        </div>
+                    </div>
+                    
+                    <!-- 카드 8: 컨센서스 괴리 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('올해시장(eps)컨센서스 vs 실제 주가 괴리', 'Consensus vs YTD Price Gap')}</div>
+                        <div style="{desc_style}">{eps_vs_ytd_html}</div>
+                    </div>
+                    
+                    {rnd_block}
+                </div>
+                """
+                st.markdown(section1_html, unsafe_allow_html=True)
                 st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
                 
                 p_txt = ""
@@ -2325,15 +2385,37 @@ with tab1:
                     elif final_g > 0.0: math_eval = f"<span style='color:#74b9ff;'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] Slow growth at {final_g*100:.1f}% CAGR.')}</span>"
                     else: math_eval = f"<span class='highlight'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아닙니다).', '[Very Warning] Negative FCF (Not a compounding phase).')}</span>"
 
-                st.markdown(t("**[가격 및 수학] 안전마진과 복리 모형**", "**[Price & Math] Margin of Safety & Compounding**"))
-                st.markdown(p_txt, unsafe_allow_html=True)
-                st.markdown(f"- 수학 (복리 모형): {math_eval}", unsafe_allow_html=True)
-                st.markdown("<br>", unsafe_allow_html=True)
+                # 텍스트 내 줄바꿈과 마크다운 뷰 통일을 위한 정리
+                clean_p_txt = p_txt.replace('- PER 측면: ', '<b>[PER 측면]</b> ').replace('- DCF 측면: ', '<b>[DCF 측면]</b> ').replace('- PBR 측면: ', '<b>[PBR 측면]</b> ').replace('\n', '<br>')
+                
+                section2_html = f"""
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                    <!-- 카드 1: 가격 평가 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('가격 평가 (안전마진)', 'Price Valuation (MoS)')}</div>
+                        <div style="{desc_style}">{clean_p_txt}</div>
+                    </div>
+                    
+                    <!-- 카드 2: 수학 (복리 모형) -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('수학 (복리 모형)', 'Math (Compounding Model)')}</div>
+                        <div style="{desc_style}">{math_eval}</div>
+                    </div>
 
-                st.markdown(t("**[비즈니스 및 생물학] 경제적 해자와 생존력**", "**[Business & Biology] Moat & Survivability**"))
-                st.markdown(f"- 비즈니스 수익성: {biz_eval}", unsafe_allow_html=True)
-                st.markdown(f"- 생물학 (생존력): {bio_eval}", unsafe_allow_html=True)
+                    <!-- 카드 3: 비즈니스 수익성 -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('비즈니스 및 생태계 해자', 'Business & Ecosystem Moat')}</div>
+                        <div style="{desc_style}">{biz_eval}</div>
+                    </div>
 
+                    <!-- 카드 4: 생물학 (생존력) -->
+                    <div style="{card_style}">
+                        <div style="{lbl_style}">{t('생물학 (다윈주의적 생존력)', 'Biology (Darwinian Survivability)')}</div>
+                        <div style="{desc_style}">{bio_eval}</div>
+                    </div>
+                </div>
+                """
+                st.markdown(section2_html, unsafe_allow_html=True)
                 st.divider()
 
                 st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
@@ -2410,7 +2492,7 @@ with tab1:
                 
                 # --- 신규 추가된 DCF 시뮬레이터 (막대기 조절) 영역 ---
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("### 🎛️ 내재가치 직접 계산하기 (Custom DCF Simulator)")
+                st.markdown("### 내재가치 직접 계산하기 (Custom DCF Simulator)")
                 st.caption(t("AI의 기본 가정을 변경하여 나만의 적정 주가를 시뮬레이션 해보세요.", "Adjust assumptions to simulate your own fair value."))
 
                 sim_fcf = safe_float(base_fcf) if base_fcf and base_fcf > 0 else 1000.0
@@ -2685,7 +2767,7 @@ with tab2:
             
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
-                st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
+                st.info("스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
         else:
             st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
 
