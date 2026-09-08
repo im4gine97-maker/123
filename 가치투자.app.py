@@ -482,7 +482,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
             return {"score": 0, "reason": "API 키가 설정되지 않았습니다. Secrets를 확인해주세요."}
         
         # 2. 구글 Gemini API에 직접 연결하는 주소 (최신 2.0-flash 모델 적용)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key={api_key}"
         
         # 3. AI에게 내릴 명령 (프롬프트)
         prompt = f"""
