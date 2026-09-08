@@ -2343,20 +2343,20 @@ with tab1:
                         st.caption(t("뉴스 피드를 연동하지 못했습니다.", "Failed to load real-time news feed."))
 
                 st.write(t("**AI 경영진 및 거버넌스 리포트**", "AI Management & Governance Report"))
-        
-        # 딕셔너리에서 평가 코멘트(reason)와 AI 점수(score) 추출
-        ai_reason = criticism_text.get("reason", "분석 불가") if isinstance(criticism_text, dict) else criticism_text
-        ai_score = criticism_text.get("score", 0) if isinstance(criticism_text, dict) else 0
-        
-        # 점수에 따라 박스 테두리 색상을 다르게 적용 (녹색=긍정, 붉은색=부정, 노란색=보통)
-        box_color = "#2ecc71" if ai_score > 0 else ("#ff7675" if ai_score < 0 else "#fdcb6e")
-        
-        st.markdown(f"""
-        <div style="background-color: rgba(255, 255, 255, 0.02); color: var(--text-color); padding: 20px; border-radius: 16px; border: 1px solid {box_color}; font-size: 1.05rem; line-height: 1.7; border-left: 5px solid {box_color};">
-            <span style="font-weight:bold; color:{box_color};">[AI 거버넌스 점수: {ai_score}점]</span><br><br>
-            {ai_reason}
-        </div>
-        """, unsafe_allow_html=True)
+                
+                # 딕셔너리에서 평가 코멘트(reason)와 AI 점수(score) 추출
+                ai_reason = criticism_text.get("reason", "분석 불가") if isinstance(criticism_text, dict) else criticism_text
+                ai_score = criticism_text.get("score", 0) if isinstance(criticism_text, dict) else 0
+                
+                # 점수에 따라 박스 테두리 색상을 다르게 적용 (녹색=긍정, 붉은색=부정, 노란색=보통)
+                box_color = "#2ecc71" if ai_score > 0 else ("#ff7675" if ai_score < 0 else "#fdcb6e")
+                
+                st.markdown(f"""
+                <div style="background-color: rgba(255, 255, 255, 0.02); color: var(--text-color); padding: 20px; border-radius: 16px; border: 1px solid {box_color}; font-size: 1.05rem; line-height: 1.7; border-left: 5px solid {box_color};">
+                    <span style="font-weight:bold; color:{box_color};">[AI 거버넌스 점수: {ai_score}점]</span><br><br>
+                    {ai_reason}
+                </div>
+                """, unsafe_allow_html=True)
 
                 st.divider()
 
