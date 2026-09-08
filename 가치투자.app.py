@@ -470,11 +470,21 @@ def fetch_global_news(tk):
         pass
     return news_list
 
-@st.cache_data(ttl=86400)
+@st.cache_data(ttl=86400) # 똑같은 기업은 하루에 한 번만 AI 호출 (속도 및 비용 최적화)
 def fetch_governance_criticism(tk, cd, ceo_name):
     try:
-        model = genai.GenerativeModel('gemini-pro') # <--- 'gemini-pro'로 변경!
+        import requests
+        import json
+
+        # 1. API 키 확인
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
+        if not api_key:
+            return {"score": 0, "reason": "API 키가 설정되지 않았습니다. Secrets를 확인해주세요."}
         
+        # 2. 구글 Gemini API에 직접 연결하는 주소 (가장 빠르고 똑똑한 1.5-flash 모델)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        
+        # 3. AI에게 내릴 명령 (프롬프트)
         prompt = f"""
         당신은 워런 버핏과 찰리 멍거의 철학을 따르는 냉철한 가치투자 전문가입니다.
         기업 티커 '{tk}'(코드:{cd}), CEO '{ceo_name}'의 과거부터 현재까지의 거버넌스, 도덕성, 자본 배분 능력을 평가해주세요.
@@ -496,16 +506,29 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         }}
         """
         
-        response = model.generate_content(prompt)
+        # 4. 인터넷으로 직접 데이터 쏘기 (requests 방식)
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
         
-        # AI 응답 텍스트를 파이썬 딕셔너리로 변환
-        clean_text = response.text.replace('```json', '').replace('```', '').strip()
-        result = json.loads(clean_text)
-        return result
+        response = requests.post(url, headers=headers, json=data, timeout=15)
         
+        # 5. 정상적으로 응답이 왔을 경우 처리
+        if response.status_code == 200:
+            res_json = response.json()
+            # AI가 준 텍스트 추출
+            text_output = res_json['candidates'][0]['content']['parts'][0]['text']
+            
+            # JSON 형태로 깔끔하게 변환
+            clean_text = text_output.replace('```json', '').replace('```', '').strip()
+            result = json.loads(clean_text)
+            return result
+        else:
+            return {"score": 0, "reason": f"AI 서버 응답 지연 (상태코드: {response.status_code}). 잠시 후 다시 시도해주세요."}
+            
     except Exception as e:
-        return {"score": 0, "reason": f"위키 및 공공 기록 스크리닝 결과, 특이사항이 없습니다. (AI 연동 오류: {e})"}
-def get_yf_info(stk):
+        return {"score": 0, "reason": f"위키 및 공공 기록 스크리닝 결과, 특이사항이 없습니다. (통신 오류: {e})"}
     try:
         res = stk.info
         return res if isinstance(res, dict) else {}
