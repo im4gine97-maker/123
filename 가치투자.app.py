@@ -470,10 +470,10 @@ def fetch_global_news(tk):
         pass
     return news_list
 
-@st.cache_data(ttl=86400) # 똑같은 기업은 하루에 한 번만 AI 호출 (속도 및 비용 최적화)
+@st.cache_data(ttl=86400)
 def fetch_governance_criticism(tk, cd, ceo_name):
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-pro') # <--- 'gemini-pro'로 변경!
         
         prompt = f"""
         당신은 워런 버핏과 찰리 멍거의 철학을 따르는 냉철한 가치투자 전문가입니다.
