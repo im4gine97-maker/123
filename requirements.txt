@@ -3,3 +3,4 @@ yfinance
 deep-translator
 requests
 beautifulsoup4
+google-generativeai
