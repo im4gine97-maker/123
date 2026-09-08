@@ -11,6 +11,10 @@ import concurrent.futures
 import google.generativeai as genai
 import json
 
+# Streamlit secrets에서 API 키 불러오기
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    
 # API 키 설정 코드 등등...
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="expanded")
