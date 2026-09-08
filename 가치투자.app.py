@@ -8,7 +8,10 @@ import pandas as pd
 from datetime import datetime
 import re
 import concurrent.futures
+import google.generativeai as genai
+import json
 
+# API 키 설정 코드 등등...
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="expanded")
 
