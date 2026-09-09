@@ -1479,10 +1479,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else:
         title = t(f"신규 투자 보류 및 주의 ({score}점)", f"Hold Off Investment ({score} pts)")
         color = "#ff4757" # Tier 1
-        reason = t("대다수 가치평가 지표가 '위험'을 가리키거나 심각한 펀더멘털 훼손이 있습니다. 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings or severe fundamental damage. New investments are not recommended.")    else:
-        title = t(f"비중 축소 고려 / 핵심 리스크 점검 ({score}점)", f"Consider Reducing Exposure / High Risk ({score} pts)")
-        color = "#d63031"
-        reason = t("심각한 펀더멘털 훼손(거버넌스 이슈 등)이 있거나 가치평가 수식을 크게 벗어난 과열 구간입니다. 자본 보호를 위한 비중 축소나 극도의 주의가 필요합니다.", "Indicates either severe fundamental damage or an extreme valuation disconnect. Capital preservation should be the priority.")
+        reason = t("대다수 가치평가 지표가 '위험'을 가리키거나 심각한 펀더멘털 훼손이 있습니다. 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings or severe fundamental damage. New investments are not recommended.")
+
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -50점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -50 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
