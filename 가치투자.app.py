@@ -1624,12 +1624,6 @@ def generate_quick_ai_preview(tk):
 macro_data = fetch_macro_realtime_v6()
 
 st.markdown("""
-# ==========================================
-# [4] 메인 UI 렌더링
-# ==========================================
-macro_data = fetch_macro_realtime_v6()
-
-st.markdown("""
 <style>
 .main { background-color: var(--background-color); color: var(--text-color); font-family: 'Pretendard', sans-serif; }
 h1, h2, h3 { color: #A0C4FF; font-weight: 800; letter-spacing: -0.5px; }
