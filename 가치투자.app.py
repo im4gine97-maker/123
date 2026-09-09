@@ -2342,48 +2342,135 @@ with tab1:
                     f"</div>"
                 )
                 st.markdown(section1_html, unsafe_allow_html=True)
+                # ------------------- 5단계 컬러 시스템 및 핵심 내용 시각적 강조 -------------------
+                if is_financial:
+                    per_mos_str = ""
+                else:
+                    if pmos_val >= 30: per_mos_str = f"<b class='tier-5'>[매우 합격] +{pmos_val:.1f}%</b> <span style='font-size:0.9em;'>(극심한 저평가)</span>"
+                    elif pmos_val >= 10: per_mos_str = f"<b class='tier-4'>[합격] +{pmos_val:.1f}%</b> <span style='font-size:0.9em;'>(안전마진 확보)</span>"
+                    elif pmos_val >= -5: per_mos_str = f"<b class='tier-3'>[보통] +{pmos_val:.1f}%</b> <span style='font-size:0.9em;'>(적정 수준)</span>"
+                    elif pmos_val >= -20: per_mos_str = f"<b class='tier-2'>[주의] {pmos_val:.1f}%</b> <span style='font-size:0.9em;'>(할증 구간)</span>"
+                    else: per_mos_str = f"<b class='tier-1'>[매우 주의] {pmos_val:.1f}%</b> <span style='font-size:0.9em;'>(과도한 고평가)</span>"
+
+                if is_financial:
+                    if roe >= 15: rr_eval = f"<b class='tier-5'>{t('[매우 합격] 강력한 자본 배치', '[Very Pass]')}</b>"
+                    elif roe >= 10: rr_eval = f"<b class='tier-4'>{t('[합격] 우량 금융주 기준 통과', '[Pass]')}</b>"
+                    elif roe >= 7: rr_eval = f"<b class='tier-3'>{t('[보통] 안정적 수익 창출', '[Average]')}</b>"
+                    elif roe >= 0: rr_eval = f"<b class='tier-2'>{t('[주의] 비효율적 자산 운용', '[Warning]')}</b>"
+                    else: rr_eval = f"<b class='tier-1'>{t('[매우 주의] 자본 훼손 및 적자', '[Danger]')}</b>"
+                    biz_eval = rr_eval
+                else:
+                    if roic_val >= 15 and roe >= 12: rr_eval = f"<b class='tier-5'>{t('[매우 합격] 완벽한 복리 기계 (압도적 해자)', '[Very Pass]')}</b>"
+                    elif roic_val >= 10 and roe >= 10: rr_eval = f"<b class='tier-4'>{t('[합격] 자본비용 상회하는 탁월한 비즈니스', '[Pass]')}</b>"
+                    elif roic_val >= 7 and roe >= 7: rr_eval = f"<b class='tier-3'>{t('[보통] 평범한 비즈니스', '[Average]')}</b>"
+                    elif roic_val >= 0: rr_eval = f"<b class='tier-2'>{t('[주의] 장사할수록 손해', '[Warning]')}</b>"
+                    else: rr_eval = f"<b class='tier-1'>{t('[매우 주의] 극심한 펀더멘털 훼손', '[Danger]')}</b>"
+                    biz_eval = rr_eval
+                    
+                if is_financial:
+                    ey_str = ""
+                else:
+                    if erp > 1.5:
+                        ey_str = f"<b style='font-size:1.1em;'>{ey:.2f}%</b> <span class='tier-4'>(국채 대비 <b>+{erp:.2f}%p</b> 우위)</span>"
+                    elif erp > 0:
+                        ey_str = f"<b style='font-size:1.1em;'>{ey:.2f}%</b> <span class='tier-3'>(국채와 유사: <b>+{erp:.2f}%p</b>)</span>"
+                    else:
+                        ey_str = f"<b style='font-size:1.1em;'>{ey:.2f}%</b> <span class='tier-1'>(국채에 짐! <b>{abs(erp):.2f}%p</b> 열위)</span>"
+
+                # 벤치마크 및 컬러
+                spy_roe_avg, spy_roic_avg = 15.0, 12.0
+                qqq_roe_avg, qqq_roic_avg = 20.0, 15.0
+                if not is_financial and real_roic is not None and real_roic > 0:
+                    spy_gap = real_roic - spy_roic_avg
+                    qqq_gap = real_roic - qqq_roic_avg
+                    metric_label = "ROIC"
+                else:
+                    spy_gap = roe - spy_roe_avg
+                    qqq_gap = roe - qqq_roe_avg
+                    metric_label = "ROE"
+
+                spy_col = "#2ecc71" if spy_gap >= 0 else "#ff4757"
+                qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff4757"
+                bench_html = f"<span style='color:{spy_col};'>S&P 500 대비 <b>{spy_gap:+.1f}%p</b></span> <br> <span style='color:{qqq_col};'>나스닥 대비 <b>{qqq_gap:+.1f}%p</b></span>"
+
+                # 미니멀 블록 스타일 (입체감 있는 디자인 강화)
+                item_style = "flex: 1 1 calc(33.33% - 15px); min-width: 250px; background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid rgba(160,196,255,0.15); padding: 18px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);"
+                lbl_style = "font-size: 0.95rem; color: #A0C4FF; font-weight: 700; margin-bottom: 8px;"
+                val_style = "font-size: 1.5rem; font-weight: 800; color: var(--text-color); margin-bottom: 8px; letter-spacing: -0.5px;"
+                desc_style = "font-size: 0.9rem; line-height: 1.6; color: #d1d8e0;"
+                
+                roe_roic_title = t('ROE / ROIC (수익률)', 'ROE / ROIC') if not is_financial else t('ROE (자본수익률 - 금융)', 'ROE (Equity Return)')
+                roe_roic_val = f"{roe:.2f}% / {roic_str}" if not is_financial else f"{roe:.2f}%"
+                
+                rnd_block = ""
+                if not is_financial:
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>🧪 {t('R&D(연구개발비) 분석', 'R&D Check')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
+
+                section1_html = (
+                    f"<div style='display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;'>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🏷️ {t('현재 주가', 'Current Price')}</div><div style='{val_style}'>{p_str}{ext_str}</div><div style='{desc_style}'>배당 추이: <b>{div:.2f}%</b> ({div_trend})</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🔥 {roe_roic_title}</div><div style='{val_style}'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>⚖️ {t('멀티플 (PER)', 'Multiples (PE)')}</div><div style='{val_style}'>{f_pe:.2f}배 <span style='font-size:0.8rem; font-weight:normal; color:#8892b0; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;'>(Fwd)</span></div><div style='{desc_style}'>현재: <b>{t_pe:.2f}배</b> | 5~10년 평균: <b>{a_pe:.2f}배</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🛡️ {t('PBR 및 안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'><b>PER 마진:</b> {per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음 (N/A)</span>'}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>💵 {t('예상 수익률 vs 국채', 'Earnings Yield vs Treasury')}</div><div style='{desc_style}'><b>이익수익률:</b> {ey_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}<br><b>국채 금리:</b> <b style='font-size:1.1em;'>{ty:.2f}%</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🏆 {t('시장 지수 대비 자본효율', 'Efficiency vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>📈 {t('성장 추세 (EPS / BPS)', 'Growth Trend')}</div><div style='{desc_style}'><b>EPS:</b> {eps_trend}<br><b>자본:</b> {bps_trend}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🎯 {t('컨센서스 vs 실제 주가', 'Consensus vs YTD Gap')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
+                    f"{rnd_block}"
+                    f"</div>"
+                )
+                st.markdown(section1_html, unsafe_allow_html=True)
+                
                 st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
                 
                 p_txt = ""
                 if is_financial:
-                    if pbr <= 0.6: p_txt += f"- PBR 측면: <span class='tier-5'>[매우 합격] ({pbr:.2f}배 - 극단적 자산 저평가)</span>"
-                    elif pbr <= 1.0: p_txt += f"- PBR 측면: <span class='tier-4'>[합격] ({pbr:.2f}배 - 청산가치 이하 안전 구간)</span>"
-                    elif pbr <= 1.3: p_txt += f"- PBR 측면: <span class='tier-3'>[보통] ({pbr:.2f}배 - 장부가 수준 적정 가격)</span>"
-                    elif pbr <= 1.8: p_txt += f"- PBR 측면: <span class='tier-2'>[주의] ({pbr:.2f}배 - 자본 대비 고평가 경고)</span>"
-                    else: p_txt += f"- PBR 측면: <span class='tier-1'>[매우 주의] ({pbr:.2f}배 - 극심한 밸류에이션 거품)</span>"
+                    if pbr <= 0.6: p_txt += f"<b class='tier-5'>[매우 합격] ({pbr:.2f}배)</b> - 극단적 자산 저평가"
+                    elif pbr <= 1.0: p_txt += f"<b class='tier-4'>[합격] ({pbr:.2f}배)</b> - 청산가치 이하 안전 구간"
+                    elif pbr <= 1.3: p_txt += f"<b class='tier-3'>[보통] ({pbr:.2f}배)</b> - 장부가 수준 적정 가격"
+                    elif pbr <= 1.8: p_txt += f"<b class='tier-2'>[주의] ({pbr:.2f}배)</b> - 자본 대비 고평가 경고"
+                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pbr:.2f}배)</b> - 극심한 밸류에이션 거품"
                 else:
-                    if pmos_val >= 30: p_txt += f"- PER 측면: <span class='tier-5'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= 10: p_txt += f"- PER 측면: <span class='tier-4'>[합격] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= -5: p_txt += f"- PER 측면: <span class='tier-3'>[보통] (+{pmos_val:.1f}% 할인)</span>\n"
-                    elif pmos_val >= -20: p_txt += f"- PER 측면: <span class='tier-2'>[주의] ({pmos_val:.1f}% 할증)</span>\n"
-                    else: p_txt += f"- PER 측면: <span class='tier-1'>[매우 주의] ({pmos_val:.1f}% 할증)</span>\n"
+                    if pmos_val >= 30: p_txt += f"<b class='tier-5'>[매우 합격] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= 10: p_txt += f"<b class='tier-4'>[합격] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= -5: p_txt += f"<b class='tier-3'>[보통] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= -20: p_txt += f"<b class='tier-2'>[주의] ({pmos_val:.1f}% 할증)</b>\n"
+                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pmos_val:.1f}% 할증)</b>\n"
                     
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"- DCF 측면: <span class='tier-1'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Danger]')}</span>\n"
-                    elif is_zigzag: p_txt += f"- DCF 측면: <span class='tier-1'>{t('[매우 주의] 현금흐름 변동성 극심. DCF 무의미', '[Danger]')}</span>\n"
-                    elif mos_val >= 30: p_txt += f"- DCF 측면: <span class='tier-5'>[매우 합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= 10: p_txt += f"- DCF 측면: <span class='tier-4'>[합격] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= -5: p_txt += f"- DCF 측면: <span class='tier-3'>[보통] (+{mos_val:.1f}% 할인)</span>\n"
-                    elif mos_val >= -20: p_txt += f"- DCF 측면: <span class='tier-2'>[주의] ({mos_val:.1f}% 할증)</span>\n"
-                    else: p_txt += f"- DCF 측면: <span class='tier-1'>[매우 주의] ({mos_val:.1f}% 할증)</span>\n"
+                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Danger]')}</b>\n"
+                    elif is_zigzag: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 현금흐름 변동성 극심. DCF 무의미', '[Danger]')}</b>\n"
+                    elif mos_val >= 30: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-5'>[매우 합격] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= 10: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-4'>[합격] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= -5: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-3'>[보통] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= -20: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-2'>[주의] ({mos_val:.1f}% 할증)</b>\n"
+                    else: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>[매우 주의] ({mos_val:.1f}% 할증)</b>\n"
 
                 if is_financial:
-                    math_eval = f"<span class='tier-4'>{t('[해당 없음] 금융주는 PBR/ROE 모델로 평가합니다.', '[N/A]')}</span>"
+                    math_eval = f"<b class='tier-4'>{t('[해당 없음] 금융주는 PBR/ROE 모델로 평가합니다.', '[N/A]')}</b>"
                 else:
-                    if final_g >= 0.08: math_eval = f"<span class='tier-5'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    elif final_g > 0.0: math_eval = f"<span class='tier-4'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    else: math_eval = f"<span class='tier-1'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Danger] Negative FCF.')}</span>"
+                    if final_g >= 0.08: math_eval = f"<b class='tier-5'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</b>"
+                    elif final_g > 0.0: math_eval = f"<b class='tier-4'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</b>"
+                    else: math_eval = f"<b class='tier-1'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Danger] Negative FCF.')}</b>"
 
-                clean_p_txt = p_txt.replace('- PER 측면: ', '<b>[PER]</b> ').replace('- DCF 측면: ', '<br><b>[DCF]</b> ').replace('- PBR 측면: ', '<b>[PBR]</b> ').replace('\n', '')
+                clean_p_txt = p_txt.replace('\n', '')
+                if not is_financial:
+                    clean_p_txt = f"<b style='color:#A0C4FF;'>[PER]</b> {clean_p_txt}"
+                else:
+                    clean_p_txt = f"<b style='color:#A0C4FF;'>[PBR]</b> {clean_p_txt}"
+                
+                # 2번 섹션 핵심 문구 강조 (어두운 박스 효과)
+                highlight_box = "background: rgba(0, 0, 0, 0.25); padding: 12px; border-radius: 8px; margin-top: 5px; border-left: 3px solid #A0C4FF;"
                 
                 section2_html = (
                     f"<div style='display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;'>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style}'>{clean_p_txt}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학 (복리 모형)', 'Math (Compounding)')}</div><div style='{desc_style}'>{math_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 및 생태계 해자', 'Business Moat')}</div><div style='{desc_style}'>{biz_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학 (다윈주의적 생존력)', 'Biology (Survivability)')}</div><div style='{desc_style}'>{bio_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🛒 {t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style}'><div style='{highlight_box}'>{clean_p_txt}</div></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🧮 {t('수학 (복리 모형)', 'Math (Compounding)')}</div><div style='{desc_style}'><div style='{highlight_box}'>{math_eval}</div></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🏰 {t('비즈니스 및 생태계 해자', 'Business Moat')}</div><div style='{desc_style}'><div style='{highlight_box}'>{biz_eval}</div></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>🧬 {t('생물학 (다윈주의적 생존력)', 'Biology (Survivability)')}</div><div style='{desc_style}'><div style='{highlight_box}'>{bio_eval}</div></div></div>"
                     f"</div>"
                 )
                 st.markdown(section2_html, unsafe_allow_html=True)
+                st.divider()
                 st.divider()
                 st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
                 
