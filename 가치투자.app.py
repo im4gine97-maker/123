@@ -1683,9 +1683,6 @@ with c_lang:
         if st.button("KO", use_container_width=True):
             st.session_state.lang = "ko"; st.rerun()
 
-st.info(t("[안내] 화면 글씨가 어색하게 번역되어 보인다면 브라우저의 '자동 번역' 기능을 꺼주세요. (우측 상단의 버튼을 이용해 주십시오)", "[Info] If the text looks distorted, please disable your browser's auto-translate. Use the button on the top right instead."))
-st.warning(t("[참고] 본 가치투자 분석 모델은 해운, 철강, 화학 등 실적 변동성이 극심한 **시클리컬(경기민감) 기업**의 내재가치 평가에는 적합하지 않을 수 있습니다.", "[Note] This value investing model may not be suitable for evaluating the intrinsic value of **cyclical companies** (e.g., shipping, steel, chemicals) with extreme earnings volatility."))
-
 k_p, k_c, k_pct = get_safe_macro("KOSPI")
 kq_p, kq_c, kq_pct = get_safe_macro("KOSDAQ")
 sp_p, sp_c, sp_pct = get_safe_macro("S&P 500")
@@ -1715,35 +1712,6 @@ for name, val, chg, unit in macro_items:
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
 
-spy_pe = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-qqq_pe = safe_float(macro_data.get("QQQ_PE", 30.0), 30.0)
-tnx_val = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
-if tnx_val == 0.0: tnx_val = 4.4
-
-spy_ey = (1 / spy_pe) * 100 if spy_pe > 0 else 0
-qqq_ey = (1 / qqq_pe) * 100 if qqq_pe > 0 else 0
-spy_erp, qqq_erp = spy_ey - tnx_val, qqq_ey - tnx_val
-
-spy_op, spy_col = get_market_op_simple(spy_erp)
-qqq_op, qqq_col = get_market_op_simple(qqq_erp)
-
-spy_pe_str = fmt_f(spy_pe, 1)
-spy_ey_str = fmt_f(spy_ey, 2)
-tnx_val_str = fmt_f(tnx_val, 2)
-spy_erp_str = fmt_f(spy_erp, 2)
-
-qqq_pe_str = fmt_f(qqq_pe, 1)
-qqq_ey_str = fmt_f(qqq_ey, 2)
-qqq_erp_str = fmt_f(qqq_erp, 2)
-
-with st.expander(t("현재 미 증시 밸류에이션 매력도 분석 (이익수익률 vs 국채)", "Current US Market Valuation Attractiveness (Earnings Yield vs Treasury)")):
-    st.write(t("주식의 예상 수익률(이익수익률 = 1/PER)과 무위험 이자인 10년물 국채를 비교하는 [주식 위험 프리미엄(ERP)] 분석입니다. (ERP가 높을수록 주식이 싸고, 마이너스면 채권을 사는 것이 유리합니다.)", "This is an [Equity Risk Premium (ERP)] analysis comparing the expected return of stocks (Earnings Yield = 1/PE) with the risk-free 10-year Treasury yield."))
-    c_m1, c_m2 = st.columns(2)
-    with c_m1:
-        st.markdown(f"<div style='background: rgba(255,255,255,0.03); color:var(--text-color); padding:20px; border-radius:16px; border-top: 4px solid {spy_col}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'><h4 style='margin-top:0; color:#A0C4FF;'>S&P 500 밸류에이션</h4><p style='margin:6px 0;'>- Fwd PER: <b>{spy_pe_str}배</b></p><p style='margin:6px 0;'>- 예상 이익수익률(EY): <b>{spy_ey_str}%</b></p><p style='margin:6px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:6px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{spy_col}'>{spy_erp_str}%</b></p><hr style='margin:15px 0; border-color:rgba(255,255,255,0.1);'><b>[AI 시장 의견] <span style='color:{spy_col}'>{spy_op}</span></b></div>", unsafe_allow_html=True)
-    with c_m2:
-        st.markdown(f"<div style='background: rgba(255,255,255,0.03); color:var(--text-color); padding:20px; border-radius:16px; border-top: 4px solid {qqq_col}; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'><h4 style='margin-top:0; color:#A0C4FF;'>Nasdaq 100 밸류에이션</h4><p style='margin:6px 0;'>- Fwd PER: <b>{qqq_pe_str}배</b></p><p style='margin:6px 0;'>- 예상 이익수익률(EY): <b>{qqq_ey_str}%</b></p><p style='margin:6px 0;'>- 10년물 국채: <b>{tnx_val_str}%</b></p><p style='margin:6px 0;'>- 주식 위험 프리미엄(ERP): <b style='color:{qqq_col}'>{qqq_erp_str}%</b></p><hr style='margin:15px 0; border-color:rgba(255,255,255,0.1);'><b>[AI 시장 의견] <span style='color:{qqq_col}'>{qqq_op}</span></b></div>", unsafe_allow_html=True)
-
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -1771,28 +1739,6 @@ with tab1:
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
-
-    # --- 기존 사이드바에 있던 북마크(내 서재) 탭1 검색바 밑으로 이동 ---
-    with st.expander(t("내 서재 (즐겨찾기 목록 열기)", "My Library (Bookmarks)"), expanded=bool(st.session_state.bookmarks)):
-        if not st.session_state.bookmarks:
-            st.caption(t("즐겨찾기한 종목이 없습니다. 아래에서 종목 분석 후 '즐겨찾기 추가' 버튼을 눌러보세요.", "No bookmarked tickers yet. Analyze a ticker and click 'Add Bookmark'."))
-        else:
-            bk_cols = st.columns(4)
-            for idx, b_tk in enumerate(st.session_state.bookmarks):
-                with bk_cols[idx % 4]:
-                    c1, c2 = st.columns([3, 1])
-                    with c1:
-                        if st.button(b_tk, key=f"bk_main_{b_tk}", use_container_width=True):
-                            st.session_state.search_tk = b_tk
-                            st.session_state.main_input = b_tk
-                            st.session_state.suggestions = []
-                            st.rerun()
-                    with c2:
-                        if st.button("X", key=f"del_bk_main_{b_tk}", type="secondary"):
-                            st.session_state.bookmarks.remove(b_tk)
-                            st.rerun()
-    st.divider()
-    # --------------------------------------------------------------------
 
     if st.session_state.suggestions:
         st.markdown(f"<div style='color:#fdcb6e; font-weight:bold; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;'>여러 종목이 발견되었습니다. 찾으시는 기업을 클릭해주세요.</div>", unsafe_allow_html=True)
