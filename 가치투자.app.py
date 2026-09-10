@@ -1629,12 +1629,13 @@ def generate_quick_ai_preview(tk):
     criticism_text = fetch_governance_criticism(tk, cd, ceo_cleaned)
     
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-    
-    op_title, op_color, op_reason, _ = get_comprehensive_investment_opinion(
-        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-        is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val
-    )
+                
+                # 누락되었던 f_pe와 spy_pe 인자를 추가하여 완벽하게 동기화합니다.
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+                    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+                    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+                    f_pe=f_pe, spy_pe=spy_pe_val
+                )
     
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
 
