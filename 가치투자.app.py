@@ -1370,34 +1370,49 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
-    # 9. ERP (국채 비교)
-    e_score = 0
-    if not is_financial:
-        if erp >= 5.0: e_score = 15
-        elif erp >= 4.5: e_score = 14
-        elif erp >= 4.0: e_score = 13
-        elif erp >= 3.5: e_score = 12
-        elif erp >= 3.0: e_score = 11
-        elif erp >= 2.5: e_score = 9
-        elif erp >= 2.0: e_score = 7
-        elif erp >= 1.5: e_score = 5
-        elif erp >= 1.0: e_score = 3
-        elif erp >= 0.5: e_score = 1
-        elif erp >= 0.0: e_score = -1
-        elif erp >= -0.5: e_score = -3
-        elif erp >= -1.0: e_score = -5
-        elif erp >= -1.5: e_score = -8
-        elif erp >= -2.0: e_score = -11
-        elif erp >= -2.5: e_score = -14
-        elif erp >= -3.0: e_score = -17
-        elif erp >= -4.0: e_score = -20
-        elif erp >= -5.0: e_score = -23
-        else: e_score = -25
-        
-        score += e_score
-        e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
-        score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = (e_score, e_reason)
+    # 3. PER MoS (금융주 제한 해제: 금융주도 이익 대비 싼지 확인해야 함)
+    p_score = 0
+    if pmos >= 50: p_score = 40
+    elif pmos >= 45: p_score = 37
+    elif pmos >= 40: p_score = 34
+    elif pmos >= 35: p_score = 31
+    elif pmos >= 30: p_score = 28
+    elif pmos >= 25: p_score = 24
+    elif pmos >= 20: p_score = 20
+    elif pmos >= 15: p_score = 16
+    elif pmos >= 10: p_score = 12
+    elif pmos >= 5: p_score = 8
+    elif pmos >= 0: p_score = 4
+    elif pmos >= -5: p_score = 0
+    elif pmos >= -10: p_score = -5
+    elif pmos >= -15: p_score = -10
+    elif pmos >= -20: p_score = -15
+    elif pmos >= -25: p_score = -20
+    elif pmos >= -30: p_score = -26
+    elif pmos >= -40: p_score = -33
+    else: p_score = -40
+    
+    score += p_score
+    p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+    score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
+    # 9. ERP (국채 비교 - 금융주 제한 해제: 주식이 국채보다 매력적인지 교차 검증)
+    e_score = 0
+    if erp >= 5.0: e_score = 15
+    elif erp >= 4.0: e_score = 13
+    elif erp >= 3.0: e_score = 11
+    elif erp >= 2.0: e_score = 7
+    elif erp >= 1.0: e_score = 3
+    elif erp >= 0.0: e_score = -1
+    elif erp >= -1.0: e_score = -5
+    elif erp >= -2.0: e_score = -11
+    elif erp >= -3.0: e_score = -17
+    elif erp >= -4.0: e_score = -20
+    else: e_score = -25
+    
+    score += e_score
+    e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
+    score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = (e_score, e_reason)
     # 10. 복리 성장률 (CAGR)
     g_score = 0
     if not is_financial:
@@ -1492,8 +1507,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
-        reason += t(" (금융/보험주 로직 적용됨: PER, DCF, ERP 등을 완전히 배제하고 오직 자산가치(PBR)와 자본효율성(ROE), 그리고 경영진 점수로만 평가를 도출했습니다.)", " (Financial Mode Active: PER, DCF, ERP excluded. Evaluated solely on PBR, ROE, and Management.)")
-
+        reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 철저히 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 가치 함정을 방어했습니다.)", " (Financial Mode Active: DCF excluded to prevent cash flow distortion, but cross-verified using PBR, PER, and ROE to avoid value traps.)")
     return title, color, reason, score_details
 
 def get_market_op_simple(erp):
