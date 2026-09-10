@@ -2163,29 +2163,47 @@ with tab1:
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
                 
-                rnd_block = ""
+                # R&D 텍스트에서 불필요한 설명 괄호 부분 일괄 삭제 (깔끔한 UI를 위해)
+                rnd_trend_clean = rnd_trend.replace(" (FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.)", "")
+                rnd_trend_clean = rnd_trend_clean.replace(" (벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.)", "")
+                rnd_trend_clean = rnd_trend_clean.replace(" (FCF 대비 R&D 비율이 낮습니다. (단, 필수소비재 등 성숙 산업은 정상입니다))", "")
+                rnd_trend_clean = rnd_trend_clean.replace(" (Consuming over half of FCF on R&D. Highly aggressive, watch for cash burn.)", "")
+                rnd_trend_clean = rnd_trend_clean.replace(" (Healthy reinvestment rate into future growth within generated cash.)", "")
+                rnd_trend_clean = rnd_trend_clean.replace(" (Low R&D relative to FCF. (Normal for mature non-tech industries).)", "")
+                
+                # 금융주도 빈 칸이 생기지 않도록 12칸 그리드 비율을 완벽하게 맞춤
                 if not is_financial:
-                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
-                ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend_clean}</div></div>"
+                else:
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'><span class='tier-na'>{t('금융주 적용 제외', 'N/A')}</span></div></div>"
 
+                ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
 
                 # ------------------- 파트 1. 현재 주가 및 핵심 재무 지표 -------------------
                 st.markdown(f"**{t('1. 현재 주가 및 핵심 재무 지표', '1. Current Price & Core Metrics')}**")
                 
+                # 💡 수정된 순서 (가장 보편적이고 논리적인 가치투자 분석 순서)
+                # [1열: 밸류에이션] 현재 주가 -> PER -> PBR
+                # [2열: 수익성 및 해자] ROE/ROIC -> 매출총이익률 -> 영업이익률
+                # [3열: 성장 및 모멘텀] 성장 추세 -> 주가 vs 실적 -> R&D
+                # [4열: 거시 및 안정성] 수익률 vs 국채 -> 시장 대비 효율 -> 유동비율
                 section1_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>배당: <b>{div:.1f}%</b><br><span style='font-size:0.9em; color:var(--primary-color); opacity:0.8;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd)', 'Fwd PE')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>현재: <b>{t_pe:.1f}배</b><br>평균: <b>{a_pe:.1f}배</b></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR/안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'>{per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span class=\"tier-na\">N/A</span>'}</div>국채: <b style='font-size:1.1em;'>{ty:.2f}%</b></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
+                    
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
+                    
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
+                    
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span class=\"tier-na\">N/A</span>'}</div>국채: <b style='font-size:1.1em;'>{ty:.2f}%</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"</div>"
                 )
                 st.markdown(section1_html, unsafe_allow_html=True)
