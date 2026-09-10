@@ -1097,35 +1097,37 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
-    # 2. 배당
+    # 2. 배당 매력도 (모든 기업 공통 적용, 현실적인 배당률 기준 20단계 세분화)
     div_score = 0
-    if is_financial:
-        if div_yield_pct >= 9.5: div_score = 20
-        elif div_yield_pct >= 9.0: div_score = 19
-        elif div_yield_pct >= 8.5: div_score = 18
-        elif div_yield_pct >= 8.0: div_score = 17
-        elif div_yield_pct >= 7.5: div_score = 16
-        elif div_yield_pct >= 7.0: div_score = 15
-        elif div_yield_pct >= 6.5: div_score = 14
-        elif div_yield_pct >= 6.0: div_score = 13
-        elif div_yield_pct >= 5.5: div_score = 12
-        elif div_yield_pct >= 5.0: div_score = 11
-        elif div_yield_pct >= 4.5: div_score = 10
-        elif div_yield_pct >= 4.0: div_score = 8
-        elif div_yield_pct >= 3.5: div_score = 6
-        elif div_yield_pct >= 3.0: div_score = 4
-        elif div_yield_pct >= 2.5: div_score = 2
-        elif div_yield_pct >= 2.0: div_score = 0
-        elif div_yield_pct >= 1.5: div_score = -2
-        elif div_yield_pct >= 1.0: div_score = -4
-        elif div_yield_pct > 0.0: div_score = -6
-        else: div_score = -10
-        
-        if tk.upper() in ["BRK-A", "BRK-B"]: div_score = 0
-        score += div_score
-        div_reason = t(f"현재 배당수익률 {div_yield_pct:.1f}% 반영", f"Current dividend yield {div_yield_pct:.1f}%")
-        score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
+    if div_yield_pct >= 5.0: div_score = 20  # 5% 이상이면 만점 (건강한 고배당 상한선)
+    elif div_yield_pct >= 4.8: div_score = 19
+    elif div_yield_pct >= 4.6: div_score = 18
+    elif div_yield_pct >= 4.4: div_score = 17
+    elif div_yield_pct >= 4.2: div_score = 16
+    elif div_yield_pct >= 4.0: div_score = 15
+    elif div_yield_pct >= 3.8: div_score = 14
+    elif div_yield_pct >= 3.6: div_score = 13
+    elif div_yield_pct >= 3.4: div_score = 12
+    elif div_yield_pct >= 3.2: div_score = 11
+    elif div_yield_pct >= 3.0: div_score = 10  # 3% 진입 시 10점 (절반) 확보
+    elif div_yield_pct >= 2.7: div_score = 9
+    elif div_yield_pct >= 2.4: div_score = 8
+    elif div_yield_pct >= 2.1: div_score = 7
+    elif div_yield_pct >= 1.8: div_score = 6
+    elif div_yield_pct >= 1.5: div_score = 5
+    elif div_yield_pct >= 1.2: div_score = 4
+    elif div_yield_pct >= 0.9: div_score = 3
+    elif div_yield_pct >= 0.5: div_score = 2
+    elif div_yield_pct > 0.0: div_score = 1
+    else: div_score = 0  # 무배당 시 감점 없음
 
+    score += div_score
+    if div_yield_pct > 0:
+        div_reason = t(f"현재 배당수익률 {div_yield_pct:.2f}% 반영 (가점 +{div_score}점)", f"Current dividend yield {div_yield_pct:.2f}% (+{div_score} pts)")
+    else:
+        div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
+        
+    score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
     # 3. PER MoS
     p_score = 0
     if not is_financial:
