@@ -2100,10 +2100,15 @@ with tab1:
                         f"<b>Beginner Guide:<b> It takes <b>{f_pe:.1f} yrs</b> to break even (Fwd PE), and the company grows your money at <b>{roe:.1f}%/yr</b> (ROE)."
                     )
 
-                st.subheader(t("1. 핵심 밸류에이션 및 재무 지표", "1. Core Valuation & Financials"))
-                st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:20px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
+                # =====================================================================
+                # 통합 섹션: 기업 가치 심층 분석 (재무 -> DCF -> AI 검증)
+                # =====================================================================
+                st.subheader(t("📊 기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "📊 Deep Value Analysis (Financials · DCF · AI)"))
                 
-                # ------------------- 5단계 컬러 시스템 및 모바일 3열/2열 최적화 그리드 -------------------
+                # [도입부] 초보자 가이드
+                st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:25px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
+                
+                # ------------------- 1. 평가 로직 연산 (문자열 및 점수 준비) -------------------
                 if is_financial:
                     per_mos_str = ""
                 else:
@@ -2136,7 +2141,6 @@ with tab1:
                     else:
                         ey_str = f"<b style='font-size:1.1em;'>{ey:.1f}%</b><br><span class='tier-1'>(국채 <b>{erp:.1f}%p</b> 열위)</span>"
 
-                # 벤치마크 및 컬러
                 spy_roe_avg, spy_roic_avg = 15.0, 12.0
                 qqq_roe_avg, qqq_roic_avg = 20.0, 15.0
                 if not is_financial and real_roic is not None and real_roic > 0:
@@ -2150,7 +2154,7 @@ with tab1:
                 qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff4757"
                 bench_html = f"<div style='margin-bottom:4px; color:{spy_col};'>S&P <b>{spy_gap:+.1f}%p</b></div><div style='color:{qqq_col};'>NDX <b>{qqq_gap:+.1f}%p</b></div>"
 
-                # 미니멀 블록 스타일 (라이트/다크모드 완벽 호환, 이모지 제거)
+                # 공통 스타일 정의 (라이트/다크모드 호환 미니멀 박스)
                 item_style = "background: rgba(128, 128, 128, 0.05); border: 1px solid rgba(128, 128, 128, 0.15); padding: 12px 6px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center;"
                 lbl_style = "font-size: 0.75rem; color: var(--primary-color); font-weight: 700; margin-bottom: 6px; line-height: 1.2;"
                 val_style = "font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 6px; letter-spacing: -0.5px;"
@@ -2162,10 +2166,12 @@ with tab1:
                 rnd_block = ""
                 if not is_financial:
                     rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
-
                 ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
 
-                # 모든 항목을 1번 섹션 그리드 안에 통합 (매출총이익률 등 3개 추가)
+
+                # ------------------- 파트 1. 현재 주가 및 핵심 재무 지표 -------------------
+                st.markdown(f"**{t('1. 현재 주가 및 핵심 재무 지표', '1. Current Price & Core Metrics')}**")
+                
                 section1_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
@@ -2184,7 +2190,134 @@ with tab1:
                 )
                 st.markdown(section1_html, unsafe_allow_html=True)
                 
-                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
+
+                # ------------------- 파트 2. 10년 DCF 내재가치 평가 -------------------
+                st.markdown(f"**{t('2. 10년 내재가치 평가 (DCF 3가지 시나리오)', '2. 10-Year Intrinsic Value (DCF Scenarios)')}**")
+                
+                dcf_guide_ko = (
+                    "<b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
+                    "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
+                    "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
+                    "• <b>투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4~10년의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
+                )
+                dcf_guide_en = (
+                    "<b>[Must Read] Understanding DCF Valuation Easily</b><br>"
+                    "• <b>What is FCF (Free Cash Flow)?</b> It is the <b>'pure leftover cash'</b> a company can keep after paying all operational expenses, taxes, and capital expenditures.<br>"
+                    "• <b>What do the scenarios mean?</b> The fair values below assume the company will consistently grow its FCF at the given rate (%) every year for the next <b>10 years</b>.<br>"
+                    "• <b>Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last available cash flow trends."
+                )
+                
+                if is_financial:
+                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
+                elif iv:
+                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
+                    
+                    implied_g = get_implied_g(base_fcf, sh, p, ty)
+                    if implied_g is not None:
+                        implied_g_str = f"{implied_g*100:.1f}%"
+                        implied_text = f"<br><span style='color:var(--text-color); opacity:0.8;'><b>※ 현재 주가({p_str}) 정당화 조건:</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 현재 주가가 합리적이라고 볼 수 있습니다. 이 수치가 한계치를 넘는다면 고평가 상태입니다.</span>"
+                    else:
+                        implied_text = ""
+
+                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt}{implied_text}</div>", unsafe_allow_html=True)
+                    
+                    str_g = t("성장률", "Growth")
+                    str_fv = t("적정가", "Fair Val")
+                    str_mos = t("안전마진", "MoS")
+                    
+                    val_w = f"{int(iv_worst):,}원" if kr else f"${iv_worst:,.2f}"
+                    val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                    val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
+                    
+                    def get_mos_tier(m):
+                        if m >= 30: return "tier-5"
+                        elif m >= 10: return "tier-4"
+                        elif m >= -5: return "tier-3"
+                        elif m >= -20: return "tier-2"
+                        else: return "tier-1"
+
+                    worst_mos_class = get_mos_tier(mos_worst)
+                    base_mos_class = get_mos_tier(mos_val)
+                    best_mos_class = get_mos_tier(mos_best)
+
+                    txt_w_title = t('최악 시나리오', 'Worst Case')
+                    txt_b_title = t('평균 시나리오', 'Base Case')
+                    txt_e_title = t('최상 시나리오', 'Best Case')
+
+                    section3_html = (
+                        f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <b class='{worst_mos_class}'>{mos_worst:.1f}%</b></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <b class='{base_mos_class}'>{mos_val:.1f}%</b></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <b class='{best_mos_class}'>{mos_best:.1f}%</b></div></div>"
+                        f"</div>"
+                    )
+                    st.markdown(section3_html, unsafe_allow_html=True)
+                else:
+                    st.error(f"{err}")
+                
+                # --- 내재가치 직접 계산하기 (시뮬레이터) ---
+                with st.expander(t("🎛️ 내재가치 직접 계산하기 (Custom DCF Simulator)", "🎛️ Custom DCF Simulator")):
+                    st.caption(t("AI의 기본 가정을 변경하여 나만의 적정 주가를 시뮬레이션 해보세요.", "Adjust assumptions to simulate your own fair value."))
+
+                    sim_fcf = safe_float(base_fcf) if base_fcf and base_fcf > 0 else 1000.0
+                    sim_g_default = float(final_g * 100) if not is_financial else 10.0
+                    sim_dr_default = max(float(ty), 9.0)
+
+                    col_sim1, col_sim2 = st.columns(2)
+                    with col_sim1:
+                        user_fcf = st.number_input(t("초기 잉여현금흐름 (FCF)", "Initial FCF"), value=sim_fcf, step=100.0)
+                        user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0)
+
+                    with col_sim2:
+                        user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=5.0, max_value=25.0, value=sim_dr_default, step=0.5)
+                        user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5)
+
+                    if not is_financial and sh > 0:
+                        u_dr = user_dr / 100
+                        u_g = user_g / 100
+                        u_tg = user_tg / 100
+
+                        cv = user_fcf
+                        fut = []
+                        for y in range(1, 11):
+                            cv *= (1 + u_g)
+                            fut.append(cv / ((1 + u_dr) ** y))
+
+                        if u_dr > u_tg:
+                            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+                        else:
+                            tv = 0
+                            st.warning(t("할인율은 영구 성장률보다 커야 계산이 가능합니다.", "Discount rate must be greater than terminal growth."))
+
+                        dtv = tv / ((1 + u_dr) ** 10)
+                        custom_iv = (sum(fut) + dtv) / sh
+                        custom_mos = ((custom_iv - p) / custom_iv) * 100 if custom_iv > 0 else 0
+
+                        if custom_mos >= 30: custom_mos_class = "tier-5"
+                        elif custom_mos >= 10: custom_mos_class = "tier-4"
+                        elif custom_mos >= -5: custom_mos_class = "tier-3"
+                        elif custom_mos >= -20: custom_mos_class = "tier-2"
+                        else: custom_mos_class = "tier-1"
+
+                        val_c_str = f"{int(custom_iv):,}원" if kr else f"${custom_iv:,.2f}"
+
+                        st.markdown(
+                            f"<div style='{item_style} margin-top: 15px; padding: 25px; max-width: 500px; margin-left: auto; margin-right: auto;'>"
+                            f"<div style='{lbl_style} font-size:0.9rem;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
+                            f"<div style='{val_style} font-size:1.8rem; margin:10px 0;'>{val_c_str}</div>"
+                            f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <b class='{custom_mos_class}' style='font-size:1.0rem;'>{custom_mos:.1f}%</b></div>"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    elif is_financial:
+                        st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
+                    else:
+                        st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
+                st.markdown("<br>", unsafe_allow_html=True)
+
+
+                # ------------------- 파트 3. AI 다차원 투자 검증 -------------------
+                st.markdown(f"**{t('3. AI 다차원 투자 검증 (6원칙 모델)', '3. AI Multi-dimensional Verification')}**")
                 
                 p_txt = ""
                 if is_financial:
@@ -2200,8 +2333,8 @@ with tab1:
                     elif pmos_val >= -20: p_txt += f"<b class='tier-2'>[주의] ({pmos_val:.1f}% 할증)</b>\n"
                     else: p_txt += f"<b class='tier-1'>[매우 주의] ({pmos_val:.1f}% 할증)</b>\n"
                     
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Danger]')}</b>\n"
-                    elif is_zigzag: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 현금흐름 변동성 극심. DCF 무의미', '[Danger]')}</b>\n"
+                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</b>\n"
+                    elif is_zigzag: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</b>\n"
                     elif mos_val >= 30: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-5'>[매우 합격] (+{mos_val:.1f}% 할인)</b>\n"
                     elif mos_val >= 10: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-4'>[합격] (+{mos_val:.1f}% 할인)</b>\n"
                     elif mos_val >= -5: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-3'>[보통] (+{mos_val:.1f}% 할인)</b>\n"
@@ -2221,7 +2354,6 @@ with tab1:
                 else:
                     clean_p_txt = f"<b style='color:var(--primary-color);'>[PBR]</b> {clean_p_txt}"
                 
-                # 바탕 없애고 글씨만 나오도록 (Section 1과 동일한 item_style 적용 및 내부 박스 제거)
                 section2_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;'>"
                     f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{clean_p_txt}</div></div>"
