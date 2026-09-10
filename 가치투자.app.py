@@ -1131,62 +1131,49 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
-    # 3. PER MoS
+    # 3. PER MoS (금융주 제한 해제됨 - 주가 민감도 극대화)
     p_score = 0
-    if not is_financial:
-        if pmos >= 50: p_score = 40
-        elif pmos >= 45: p_score = 37
-        elif pmos >= 40: p_score = 34
-        elif pmos >= 35: p_score = 31
-        elif pmos >= 30: p_score = 28
-        elif pmos >= 25: p_score = 24
-        elif pmos >= 20: p_score = 20
-        elif pmos >= 15: p_score = 16
-        elif pmos >= 10: p_score = 12
-        elif pmos >= 5: p_score = 8
-        elif pmos >= 0: p_score = 4
-        elif pmos >= -5: p_score = 0
-        elif pmos >= -10: p_score = -5
-        elif pmos >= -15: p_score = -10
-        elif pmos >= -20: p_score = -15
-        elif pmos >= -25: p_score = -20
-        elif pmos >= -30: p_score = -26
-        elif pmos >= -40: p_score = -33
-        else: p_score = -40
-        
-        score += p_score
-        p_reason = t(f"과거 5~10년 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs 5-10Y avg PE")
-        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
+    if pmos >= 40: p_score = 50
+    elif pmos >= 30: p_score = 40
+    elif pmos >= 20: p_score = 30
+    elif pmos >= 10: p_score = 20
+    elif pmos >= 5: p_score = 10
+    elif pmos >= 0: p_score = 0
+    elif pmos >= -5: p_score = -15  # 할증 진입 시 즉각적인 강한 감점
+    elif pmos >= -10: p_score = -30
+    elif pmos >= -20: p_score = -45
+    else: p_score = -60  # 심각한 고평가 시 -60점 철퇴
+    
+    score += p_score
+    p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+    score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
     # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
+        # 금융주 자산가치(PBR) 민감도 극대화
         if kr:
-            if pbr <= 0.3: cap_score += 40
-            elif pbr <= 0.4: cap_score += 35
+            if pbr <= 0.3: cap_score += 50
+            elif pbr <= 0.4: cap_score += 40
             elif pbr <= 0.5: cap_score += 30
-            elif pbr <= 0.6: cap_score += 25
-            elif pbr <= 0.7: cap_score += 20
-            elif pbr <= 0.8: cap_score += 15
-            elif pbr <= 0.9: cap_score += 10
-            elif pbr <= 1.0: cap_score += 5
-            elif pbr <= 1.1: cap_score += 0
-            elif pbr <= 1.2: cap_score -= 5
-            elif pbr <= 1.3: cap_score -= 10
-            elif pbr <= 1.4: cap_score -= 15
-            elif pbr <= 1.5: cap_score -= 20
-            else: cap_score -= 30
+            elif pbr <= 0.6: cap_score += 20
+            elif pbr <= 0.7: cap_score += 10
+            elif pbr <= 0.8: cap_score += 0
+            elif pbr <= 0.9: cap_score -= 15
+            elif pbr <= 1.0: cap_score -= 30
+            elif pbr <= 1.2: cap_score -= 45
+            else: cap_score -= 60
         else:
-            if pbr <= 0.8: cap_score += 40
-            elif pbr <= 1.0: cap_score += 35
+            if pbr <= 0.8: cap_score += 50
+            elif pbr <= 1.0: cap_score += 40
             elif pbr <= 1.2: cap_score += 25
-            elif pbr <= 1.4: cap_score += 15
-            elif pbr <= 1.6: cap_score += 5
-            elif pbr <= 1.8: cap_score += 0
-            elif pbr <= 2.0: cap_score -= 10
-            elif pbr <= 2.3: cap_score -= 20
-            elif pbr <= 2.6: cap_score -= 30
-            else: cap_score -= 40
+            elif pbr <= 1.4: cap_score += 10
+            elif pbr <= 1.6: cap_score += 0
+            elif pbr <= 1.8: cap_score -= 20
+            elif pbr <= 2.2: cap_score -= 40
+            else: cap_score -= 60
+
+        # 이 아래부터 있는 if roe >= 20: ... 코드는 그대로 둡니다.
 
         if roe >= 20: cap_score += 40
         elif roe >= 18: cap_score += 35
@@ -1339,37 +1326,25 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 8. DCF
+    # 8. DCF (주가 변동 민감도 극대화)
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -40
+            dcf_score = -60
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -40
+            dcf_score = -60
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            if mos >= 50: dcf_score = 40
-            elif mos >= 45: dcf_score = 36
-            elif mos >= 40: dcf_score = 32
-            elif mos >= 35: dcf_score = 28
-            elif mos >= 30: dcf_score = 24
-            elif mos >= 25: dcf_score = 20
-            elif mos >= 20: dcf_score = 16
-            elif mos >= 15: dcf_score = 12
-            elif mos >= 10: dcf_score = 8
-            elif mos >= 5:  dcf_score = 4
-            elif mos >= 0:  dcf_score = 0
-            elif mos >= -5: dcf_score = -4
-            elif mos >= -10: dcf_score = -8
-            elif mos >= -15: dcf_score = -12
-            elif mos >= -20: dcf_score = -16
-            elif mos >= -25: dcf_score = -20
-            elif mos >= -30: dcf_score = -24
-            elif mos >= -40: dcf_score = -28
-            elif mos >= -50: dcf_score = -32
-            elif mos >= -60: dcf_score = -36
-            else: dcf_score = -40
+            if mos >= 40: dcf_score = 60
+            elif mos >= 30: dcf_score = 45
+            elif mos >= 20: dcf_score = 30
+            elif mos >= 10: dcf_score = 15
+            elif mos >= 0: dcf_score = 0
+            elif mos >= -10: dcf_score = -20
+            elif mos >= -20: dcf_score = -40
+            elif mos >= -30: dcf_score = -60
+            else: dcf_score = -80  # 고평가 시 치명적인 감점
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
         score += dcf_score
@@ -1401,19 +1376,17 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
-    # 9. ERP (국채 비교 - 금융주 제한 해제: 주식이 국채보다 매력적인지 교차 검증)
+    # 9. ERP (국채 비교 - 주가 연동 수익률 민감도 강화)
     e_score = 0
-    if erp >= 5.0: e_score = 15
-    elif erp >= 4.0: e_score = 13
-    elif erp >= 3.0: e_score = 11
-    elif erp >= 2.0: e_score = 7
-    elif erp >= 1.0: e_score = 3
-    elif erp >= 0.0: e_score = -1
-    elif erp >= -1.0: e_score = -5
-    elif erp >= -2.0: e_score = -11
-    elif erp >= -3.0: e_score = -17
-    elif erp >= -4.0: e_score = -20
-    else: e_score = -25
+    if erp >= 4.0: e_score = 20
+    elif erp >= 3.0: e_score = 15
+    elif erp >= 2.0: e_score = 10
+    elif erp >= 1.0: e_score = 5
+    elif erp >= 0.0: e_score = 0
+    elif erp >= -1.0: e_score = -10
+    elif erp >= -2.0: e_score = -20
+    elif erp >= -3.0: e_score = -30
+    else: e_score = -40
     
     score += e_score
     e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
@@ -1481,27 +1454,39 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # 딕셔너리에 들어간 점수의 총합과 score 변수를 완벽히 동기화 (괴리 원천 차단)
     score = sum(val[0] if isinstance(val, tuple) else val for val in score_details.values())
 
-    # 12. 최종 결과 매핑 (5단계 컬러 시스템 적용)
-    if score >= 80:
-        title = t(f"강력 매수 고려 구간 ({score}점)", f"Strong Buy Consideration ({score} pts)")
+    # 12. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
+    if score >= 120:
+        title = t(f"압도적 매수 기회 ({score}점)", f"Strong Buy Opportunity ({score} pts)")
         color = "#00b894" # Tier 5
-        reason = t("거버넌스, 비즈니스 해자, 밸류에이션 모두 탁월하며 매우 넉넉한 안전마진을 제공하는 훌륭한 투자 기회입니다.", "Exceptional business moat, valuation, and governance. Presents a massive margin of safety.")
-    elif score >= 30:
+        reason = t("모든 가치평가 지표가 완벽하며, 극단적으로 저평가된 상태입니다. 넉넉한 안전마진을 제공하는 강력한 매수 기회일 확률이 높습니다.", "All valuation metrics are perfect, indicating an extreme undervaluation. High probability of a strong buy opportunity.")
+    elif score >= 70:
         title = t(f"투자 매력도 높음 ({score}점)", f"High Attractiveness ({score} pts)")
+        color = "#00b894" # Tier 5
+        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있습니다. 적극적인 투자를 긍정적으로 고려할 만한 훌륭한 구간입니다.", "Excellent fundamentals with a generous margin of safety. A great zone to consider active investment.")
+    elif score >= 30:
+        title = t(f"긍정적 관찰 구간 ({score}점)", f"Positive Observation ({score} pts)")
         color = "#2ecc71" # Tier 4
-        reason = t("훌륭한 자본 배치 능력과 검증된 수익성을 갖추었으며, 현재 주가 역시 합리적인 수준의 안전마진을 제공하고 있습니다.", "Excellent capital allocation and verified profitability, currently offering a reasonable margin of safety.")
+        reason = t("기업의 퀄리티는 훌륭하며 가격도 합리적입니다. 분할 매수로 접근하기에 적절한 수준의 안전마진을 제공합니다.", "Great business quality at a reasonable price. Offers an adequate margin of safety for dollar-cost averaging.")
     elif score >= 0:
         title = t(f"적정 가치 / 보유 ({score}점)", f"Fair Value / Hold ({score} pts)")
         color = "#fdcb6e" # Tier 3
-        reason = t("기업의 성장성과 퀄리티를 감안할 때 합당하게 평가받고 있는 가격(Fair Price)입니다. 장기 투자자라면 계속 보유할 만합니다.", "Perfectly justifiable fair price given the business quality. A valid hold for long-term investors.")
+        reason = t("시장 기대치와 내재가치가 일치하는 적정 가격(Fair Price)입니다. 장기 투자자라면 흔들림 없이 계속 보유할 만합니다.", "Fair price where market expectations meet intrinsic value. A solid hold for long-term investors.")
     elif score >= -40:
-        title = t(f"관망 및 리스크 점검 ({score}점)", f"Wait & Check Risks ({score} pts)")
+        title = t(f"보수적 접근 / 관망 ({score}점)", f"Conservative / Wait & See ({score} pts)")
         color = "#ff9f43" # Tier 2
-        reason = t("비즈니스 퀄리티 대비 시장의 기대치가 다소 높게 형성되어 있습니다. 밸류에이션 부담이 있으므로 리스크 관리가 필요합니다.", "Market expectations outpace business quality. Valuation burden exists; risk management advised.")
-    else:
-        title = t(f"신규 투자 보류 및 주의 ({score}점)", f"Hold Off Investment ({score} pts)")
+        reason = t("펀더멘털 대비 주가가 다소 비싸게 거래되고 있습니다. 신규 진입보다는 관망하며 가격 조정을 기다리는 것이 유리합니다.", "Trading slightly higher than its fundamentals justify. Better to wait for a price correction than entering now.")
+    elif score >= -90:
+        title = t(f"고평가 주의 / 비중 축소 ({score}점)", f"Overvalued / Reduce ({score} pts)")
+        color = "#ff9f43" # Tier 2
+        reason = t("밸류에이션 부담이 큽니다. 미래 성장에 대한 낙관론이 가격에 선반영되어 있으므로 비중 축소 및 리스크 관리가 필요합니다.", "Significant valuation burden. Optimism is priced in; reducing exposure and managing risk is advised.")
+    elif score >= -140:
+        title = t(f"신규 투자 보류 ({score}점)", f"Hold Off Investment ({score} pts)")
         color = "#ff4757" # Tier 1
-        reason = t("대다수 가치평가 지표가 '위험'을 가리키거나 심각한 펀더멘털 훼손이 있습니다. 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings or severe fundamental damage. New investments are not recommended.")
+        reason = t("대다수 가치평가 지표가 심각한 '위험'을 가리킵니다. 안전마진이 완전히 소멸된 상태이므로 투자를 추천하지 않습니다.", "Most metrics flag severe warnings. No margin of safety exists; investment is strongly discouraged.")
+    else:
+        title = t(f"극심한 버블 / 펀더멘털 훼손 ({score}점)", f"Extreme Bubble / Damage ({score} pts)")
+        color = "#ff4757" # Tier 1
+        reason = t("비정상적인 고평가 상태이거나 기업의 구조적 훼손이 심각합니다. 자본 보호를 위해 매도를 강력히 고려해야 할 위험 구간입니다.", "Abnormally overvalued or suffering severe structural damage. Strongly consider selling to protect capital.")
 
     # 텍스트에 표기되는 숫자도 수정한 값으로 반영
     if is_cyclical:
@@ -1515,6 +1500,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 철저히 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 가치 함정을 방어했습니다.)", " (Financial Mode Active: DCF excluded to prevent cash flow distortion, but cross-verified using PBR, PER, and ROE to avoid value traps.)")
+
     return title, color, reason, score_details
 
 def get_market_op_simple(erp):
