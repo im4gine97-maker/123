@@ -706,7 +706,7 @@ def get_naver_finance(cd):
         pass
     return res
 
-@st.cache_data(ttl=86400)
+@st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
     i = {}
@@ -767,9 +767,11 @@ def get_data(tk):
         stk = yf.Ticker(tk)
         i = fetch_cached_info(tk, kr, cd).copy()
         
+        # --- 실시간 가격 강제 업데이트 (캐시 우회 및 1분봉 추적) ---
         p = 0.0
         if kr:
             try:
+                # 한국 주식은 네이버 크롤링 우선
                 nv_res = get_naver_finance(cd)
                 if 'live_p' in nv_res and nv_res['live_p'] > 0: 
                     p = safe_float(nv_res['live_p'])
@@ -777,13 +779,22 @@ def get_data(tk):
             
         if p == 0:
             try:
-                hist = stk.history(period="1d")
+                # yfinance API 중 캐시를 타지 않는 가장 빠른 실시간/애프터마켓 가격 모듈
+                p = safe_float(stk.fast_info.last_price)
+            except: pass
+
+        if p == 0:
+            try:
+                # 위 방법 실패 시, 1분 단위(1m) 캔들의 가장 마지막 가격 추적 (프리/애프터마켓 포함)
+                hist = stk.history(period="1d", interval="1m", prepost=True)
                 if not hist.empty:
                     p = safe_float(hist['Close'].iloc[-1])
             except: pass
 
         if p == 0:
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
+            
+        # [주식수 Fallback 로직]
             
         # [주식수 Fallback 로직]
         sh = safe_float(i.get('sharesOutstanding'))
