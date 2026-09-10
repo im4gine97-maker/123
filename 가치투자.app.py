@@ -1030,10 +1030,12 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
 
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
     score_details = {}
-    score = 0
-    ceo_score = 0
+    score = 0  # 반드시 0으로 단일 초기화
+
+    # 1. 경영진 및 거버넌스
+    ceo_final = 0
+    ceo_reason = ""
     
-    # 1. 경영진
     if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
         ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
@@ -1079,25 +1081,15 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             scaled_score = ratio * 40.0
 
             if scaled_score >= 38: ceo_final = 40
-            elif scaled_score >= 34: ceo_final = 36
             elif scaled_score >= 30: ceo_final = 32
-            elif scaled_score >= 26: ceo_final = 28
-            elif scaled_score >= 22: ceo_final = 24
-            elif scaled_score >= 18: ceo_final = 20
-            elif scaled_score >= 14: ceo_final = 16
-            elif scaled_score >= 10: ceo_final = 12
-            elif scaled_score >= 6:  ceo_final = 8
-            elif scaled_score >= 2:  ceo_final = 4
+            elif scaled_score >= 20: ceo_final = 24
+            elif scaled_score >= 10: ceo_final = 16
+            elif scaled_score >= 2: ceo_final = 8
             elif scaled_score >= -2: ceo_final = 0
-            elif scaled_score >= -6: ceo_final = -4
             elif scaled_score >= -10: ceo_final = -8
-            elif scaled_score >= -14: ceo_final = -12
-            elif scaled_score >= -18: ceo_final = -16
-            elif scaled_score >= -22: ceo_final = -20
-            elif scaled_score >= -26: ceo_final = -24
-            elif scaled_score >= -30: ceo_final = -28
-            elif scaled_score >= -34: ceo_final = -32
-            elif scaled_score >= -38: ceo_final = -36
+            elif scaled_score >= -20: ceo_final = -16
+            elif scaled_score >= -30: ceo_final = -24
+            elif scaled_score >= -38: ceo_final = -32
             else: ceo_final = -40
             
             if ceo_final >= 20: ceo_reason = t("주주친화, 자본배분 탁월 등 긍정적 팩터 우세", "Highly shareholder-friendly & excellent allocation")
@@ -1486,6 +1478,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score += pen_score
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
+    # 딕셔너리에 들어간 점수의 총합과 score 변수를 완벽히 동기화 (괴리 원천 차단)
+    score = sum(val[0] if isinstance(val, tuple) else val for val in score_details.values())
 
     # 12. 최종 결과 매핑 (5단계 컬러 시스템 적용)
     if score >= 80:
