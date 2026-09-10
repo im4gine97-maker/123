@@ -2141,9 +2141,6 @@ with tab1:
                     else:
                         ey_str = f"<b style='font-size:1.1em;'>{ey:.1f}%</b><br><span class='tier-1'>(국채 <b>{erp:.1f}%p</b> 열위)</span>"
 
-                # ------------------- 색상 일관성(Tier 시스템) 전면 적용 -------------------
-                
-                # 1. 벤치마크(시장 대비 효율) 색상 클래스 적용
                 spy_roe_avg, spy_roic_avg = 15.0, 12.0
                 qqq_roe_avg, qqq_roic_avg = 20.0, 15.0
                 if not is_financial and real_roic is not None and real_roic > 0:
@@ -2153,78 +2150,11 @@ with tab1:
                     spy_gap = roe - spy_roe_avg
                     qqq_gap = roe - qqq_roe_avg
 
-                spy_cls = "tier-4" if spy_gap >= 0 else "tier-1"
-                qqq_cls = "tier-4" if qqq_gap >= 0 else "tier-1"
-                bench_html = f"<div style='margin-bottom:4px;'><span class='{spy_cls}'>S&P <b>{spy_gap:+.1f}%p</b></span></div><div><span class='{qqq_cls}'>NDX <b>{qqq_gap:+.1f}%p</b></span></div>"
+                spy_col = "#2ecc71" if spy_gap >= 0 else "#ff4757"
+                qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff4757"
+                bench_html = f"<div style='margin-bottom:4px; color:{spy_col};'>S&P <b>{spy_gap:+.1f}%p</b></div><div style='color:{qqq_col};'>NDX <b>{qqq_gap:+.1f}%p</b></div>"
 
-                # 2. 성장 추세 (EPS/BPS) 색상 클래스 변환
-                eps_trend_clean = eps_trend.replace("class='good'", "class='tier-4'").replace("class='highlight'", "class='tier-2'")
-                bps_trend_clean = bps_trend.replace("class='good'", "class='tier-4'").replace("class='highlight'", "class='tier-2'")
-                
-                # 3. 배당 추세 색상 변환
-                div_trend_clean = div_trend.replace("class='good'", "class='tier-4'")
-                if div >= 3.0: div_color = "tier-4"
-                elif div >= 1.5: div_color = "tier-3"
-                elif div > 0: div_color = "tier-na"
-                else: div_color = "tier-na"
-
-                # 4. 주가 vs 실적(Consensus) 완벽한 클래스 기반 재생성
-                has_eps_g = False
-                if t_eps > 0 and f_eps > 0:
-                    eps_g_val = ((f_eps - t_eps) / t_eps) * 100
-                    eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
-                    eps_cls = "tier-4" if eps_g_val > 0 else "tier-1"
-                    has_eps_g = True
-                elif t_eps < 0 and f_eps > 0:
-                    eps_g_str = t("흑자전환", "Turnaround"); eps_cls = "tier-5"
-                elif t_eps > 0 and f_eps < 0:
-                    eps_g_str = t("적자전환", "Turn to Loss"); eps_cls = "tier-1"
-                elif t_eps < 0 and f_eps < 0:
-                    eps_g_str = t("적자지속", "Continued Loss"); eps_cls = "tier-1"
-                else:
-                    eps_g_str = t("확인불가", "N/A"); eps_cls = "tier-na"
-                    
-                has_ytd = False
-                ytd_ret = 0.0
-                try:
-                    hist_ytd = stk.history(period="ytd")
-                    if not hist_ytd.empty and len(hist_ytd) >= 2:
-                        ytd_start = hist_ytd['Close'].iloc[0]
-                        ytd_ret = ((p - ytd_start) / ytd_start) * 100
-                        ytd_str = f"+{ytd_ret:.1f}%" if ytd_ret > 0 else f"{ytd_ret:.1f}%"
-                        ytd_cls = "tier-4" if ytd_ret > 0 else "tier-2"
-                        has_ytd = True
-                    else:
-                        ytd_str = "N/A"; ytd_cls = "tier-na"
-                except:
-                    ytd_str = "N/A"; ytd_cls = "tier-na"
-
-                gap_text = ""
-                if has_eps_g and has_ytd:
-                    gap = ytd_ret - eps_g_val
-                    if gap > 0: gap_text = f"<br><span class='tier-2'>{t('[주가 초과 상승 - 과열 유의]', '[Price outpaced - Watch overheating]')}</span>"
-                    elif gap < 0: gap_text = f"<br><span class='tier-4'>{t('[주가 덜 오름 - 기회 가능성]', '[Price lagged - Opportunity]')}</span>"
-                    else: gap_text = f"<br><span class='tier-3'>{t('[기대치와 주가 일치]', '[In line]')}</span>"
-                else:
-                    gap_text = f"<br><span class='tier-na'>{t('[비교 불가]', '[N/A]')}</span>"
-                    
-                eps_vs_ytd_html = f"<span class='{eps_cls}'><b>{eps_g_str}</b></span> vs <span class='{ytd_cls}'><b>{ytd_str}</b></span>{gap_text}"
-
-                # 5. PBR 평가 생성 (PER 블록과 PBR 블록 분리용)
-                if is_financial:
-                    if pbr <= 0.6: pbr_eval_html = f"<b class='tier-5'>[매우 합격]</b><br><span style='font-size:0.85rem;'>(극단적 자산 저평가)</span>"
-                    elif pbr <= 1.0: pbr_eval_html = f"<b class='tier-4'>[합격]</b><br><span style='font-size:0.85rem;'>(청산가치 이하 안전)</span>"
-                    elif pbr <= 1.3: pbr_eval_html = f"<b class='tier-3'>[보통]</b><br><span style='font-size:0.85rem;'>(장부가 수준 적정)</span>"
-                    elif pbr <= 1.8: pbr_eval_html = f"<b class='tier-2'>[주의]</b><br><span style='font-size:0.85rem;'>(고평가 경고)</span>"
-                    else: pbr_eval_html = f"<b class='tier-1'>[매우 주의]</b><br><span style='font-size:0.85rem;'>(극심한 거품)</span>"
-                else:
-                    if pbr <= 1.0: pbr_eval_html = f"<b class='tier-5'>[매우 합격]</b><br><span style='font-size:0.85rem;'>(장부가 이하 저평가)</span>"
-                    elif pbr <= 2.5: pbr_eval_html = f"<b class='tier-4'>[합격]</b><br><span style='font-size:0.85rem;'>(자산 가치 안전 구간)</span>"
-                    elif pbr <= 4.0: pbr_eval_html = f"<b class='tier-3'>[보통]</b><br><span style='font-size:0.85rem;'>(적정 수준 프리미엄)</span>"
-                    elif pbr <= 8.0: pbr_eval_html = f"<b class='tier-2'>[주의]</b><br><span style='font-size:0.85rem;'>(다소 고평가)</span>"
-                    else: pbr_eval_html = f"<b class='tier-1'>[매우 주의]</b><br><span style='font-size:0.85rem;'>(밸류에이션 부담)</span>"
-
-                # 공통 스타일 정의
+                # 공통 스타일 정의 (라이트/다크모드 호환 미니멀 박스)
                 item_style = "background: rgba(128, 128, 128, 0.05); border: 1px solid rgba(128, 128, 128, 0.15); padding: 12px 6px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center;"
                 lbl_style = "font-size: 0.75rem; color: var(--primary-color); font-weight: 700; margin-bottom: 6px; line-height: 1.2;"
                 val_style = "font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 6px; letter-spacing: -0.5px;"
@@ -2233,15 +2163,15 @@ with tab1:
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
                 
-                # 6. R&D 텍스트 정리 및 클래스 일괄 적용
-                rnd_trend_clean = rnd_trend.replace("class='good'", "class='tier-4'").replace("class='highlight'", "class='tier-1'").replace("style='color:#fdcb6e;'", "class='tier-3'")
-                rnd_trend_clean = rnd_trend_clean.replace(" (FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.)", "")
+                # R&D 텍스트에서 불필요한 설명 괄호 부분 일괄 삭제 (깔끔한 UI를 위해)
+                rnd_trend_clean = rnd_trend.replace(" (FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (FCF 대비 R&D 비율이 낮습니다. (단, 필수소비재 등 성숙 산업은 정상입니다))", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (Consuming over half of FCF on R&D. Highly aggressive, watch for cash burn.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (Healthy reinvestment rate into future growth within generated cash.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (Low R&D relative to FCF. (Normal for mature non-tech industries).)", "")
                 
+                # 금융주도 빈 칸이 생기지 않도록 12칸 그리드 비율을 완벽하게 맞춤
                 if not is_financial:
                     rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend_clean}</div></div>"
                 else:
@@ -2252,17 +2182,22 @@ with tab1:
                 # ------------------- 파트 1. 현재 주가 및 핵심 재무 지표 -------------------
                 st.markdown(f"**{t('1. 현재 주가 및 핵심 재무 지표', '1. Current Price & Core Metrics')}**")
                 
+                # 💡 수정된 순서 (가장 보편적이고 논리적인 가치투자 분석 순서)
+                # [1열: 밸류에이션] 현재 주가 -> PER -> PBR
+                # [2열: 수익성 및 해자] ROE/ROIC -> 매출총이익률 -> 영업이익률
+                # [3열: 성장 및 모멘텀] 성장 추세 -> 주가 vs 실적 -> R&D
+                # [4열: 거시 및 안정성] 수익률 vs 국채 -> 시장 대비 효율 -> 유동비율
                 section1_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>배당: <b class='{div_color}'>{div:.1f}%</b><br><span style='font-size:0.9em; color:var(--primary-color); opacity:0.8;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) / 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>{per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR / 자산가치', 'PBR & Assets')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>배당: <b>{div:.1f}%</b><br><span style='font-size:0.9em; color:var(--primary-color); opacity:0.8;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd)', 'Fwd PE')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>현재: <b>{t_pe:.1f}배</b><br>평균: <b>{a_pe:.1f}배</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR/안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'>{per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}</div></div>"
                     
                     f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
                     
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend_clean}<br>자본: {bps_trend_clean}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
                     
