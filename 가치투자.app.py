@@ -2232,58 +2232,6 @@ with tab1:
                 )
                 st.markdown(section2_html, unsafe_allow_html=True)
                 st.divider()
-                
-                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
-                
-                p_txt = ""
-                if is_financial:
-                    if pbr <= 0.6: p_txt += f"<b class='tier-5'>[매우 합격] ({pbr:.2f}배)</b> - 극단적 자산 저평가"
-                    elif pbr <= 1.0: p_txt += f"<b class='tier-4'>[합격] ({pbr:.2f}배)</b> - 청산가치 이하 안전 구간"
-                    elif pbr <= 1.3: p_txt += f"<b class='tier-3'>[보통] ({pbr:.2f}배)</b> - 장부가 수준 적정 가격"
-                    elif pbr <= 1.8: p_txt += f"<b class='tier-2'>[주의] ({pbr:.2f}배)</b> - 자본 대비 고평가 경고"
-                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pbr:.2f}배)</b> - 극심한 밸류에이션 거품"
-                else:
-                    if pmos_val >= 30: p_txt += f"<b class='tier-5'>[매우 합격] (+{pmos_val:.1f}% 할인)</b>\n"
-                    elif pmos_val >= 10: p_txt += f"<b class='tier-4'>[합격] (+{pmos_val:.1f}% 할인)</b>\n"
-                    elif pmos_val >= -5: p_txt += f"<b class='tier-3'>[보통] (+{pmos_val:.1f}% 할인)</b>\n"
-                    elif pmos_val >= -20: p_txt += f"<b class='tier-2'>[주의] ({pmos_val:.1f}% 할증)</b>\n"
-                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pmos_val:.1f}% 할증)</b>\n"
-                    
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Danger]')}</b>\n"
-                    elif is_zigzag: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 현금흐름 변동성 극심. DCF 무의미', '[Danger]')}</b>\n"
-                    elif mos_val >= 30: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-5'>[매우 합격] (+{mos_val:.1f}% 할인)</b>\n"
-                    elif mos_val >= 10: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-4'>[합격] (+{mos_val:.1f}% 할인)</b>\n"
-                    elif mos_val >= -5: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-3'>[보통] (+{mos_val:.1f}% 할인)</b>\n"
-                    elif mos_val >= -20: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-2'>[주의] ({mos_val:.1f}% 할증)</b>\n"
-                    else: p_txt += f"<br><b style='color:#A0C4FF;'>[DCF]</b> <b class='tier-1'>[매우 주의] ({mos_val:.1f}% 할증)</b>\n"
-
-                if is_financial:
-                    math_eval = f"<b class='tier-4'>{t('[해당 없음] 금융주는 PBR/ROE 모델로 평가합니다.', '[N/A]')}</b>"
-                else:
-                    if final_g >= 0.08: math_eval = f"<b class='tier-5'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</b>"
-                    elif final_g > 0.0: math_eval = f"<b class='tier-4'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</b>"
-                    else: math_eval = f"<b class='tier-1'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Danger] Negative FCF.')}</b>"
-
-                clean_p_txt = p_txt.replace('\n', '')
-                if not is_financial:
-                    clean_p_txt = f"<b style='color:#A0C4FF;'>[PER]</b> {clean_p_txt}"
-                else:
-                    clean_p_txt = f"<b style='color:#A0C4FF;'>[PBR]</b> {clean_p_txt}"
-                
-                # 2번 섹션 핵심 문구 강조 (어두운 박스 효과)
-                highlight_box = "background: rgba(0, 0, 0, 0.25); padding: 12px; border-radius: 8px; margin-top: 5px; border-left: 3px solid #A0C4FF;"
-                
-                # 💡 핵심: display: grid 와 repeat(2, 1fr) 로 모바일 2열(2x2) 강제 분할 💡
-                section2_html = (
-                    f"<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;'>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>🛒 {t('안전마진', 'Price MoS')}</div><div style='{desc_style} text-align:left;'><div style='{highlight_box}'>{clean_p_txt}</div></div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>🧮 {t('복리 모형', 'Compounding')}</div><div style='{desc_style} text-align:left;'><div style='{highlight_box}'>{math_eval}</div></div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>🏰 {t('비즈니스 해자', 'Moat')}</div><div style='{desc_style} text-align:left;'><div style='{highlight_box}'>{biz_eval}</div></div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>🧬 {t('생존력(부채)', 'Survivability')}</div><div style='{desc_style} text-align:left;'><div style='{highlight_box}'>{bio_eval}</div></div></div>"
-                    f"</div>"
-                )
-                st.markdown(section2_html, unsafe_allow_html=True)
-                st.divider()
 
                 st.subheader(t("3. 10년 DCF (내재가치 3가지 시나리오)", "3. 10-Year DCF (3 Scenarios)"))
                 
