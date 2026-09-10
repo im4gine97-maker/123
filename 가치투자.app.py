@@ -1149,9 +1149,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
-        # 4. CAP_SCORE (ROE / ROIC)
-    cap_score = 0
-    if is_financial:
         # 금융주 자산가치(PBR) - 완만한 프리미엄 허용 곡선
         if kr:
             if pbr <= 0.3: cap_score += 40
