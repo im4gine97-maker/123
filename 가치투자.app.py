@@ -2101,30 +2101,8 @@ with tab1:
                     )
 
                 st.subheader(t("1. 핵심 밸류에이션 및 재무 지표", "1. Core Valuation & Financials"))
-                st.markdown(f"<div style='background: linear-gradient(to right, rgba(160, 196, 255, 0.1), rgba(255, 198, 255, 0.05)); padding:18px 22px; border-radius:16px; margin-bottom:20px; font-size:1.05rem; color:var(--text-color); line-height:1.6; border-left: 4px solid #A0C4FF;'>{beginner_summary}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:20px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
                 
-                st.markdown(f"""
-                <div style='display: flex; gap: 15px; flex-wrap: wrap;'>
-                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
-                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('매출총이익률 (Gross Margin)', 'Gross Margin')}</div>
-                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{gross_m:.1f}%</div>
-                        <div style='font-size: 0.85rem; margin-top: 5px;'>{gm_eval}</div>
-                    </div>
-                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
-                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('영업이익률 (Operating Margin)', 'Operating Margin')}</div>
-                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{op_m:.1f}%</div>
-                        <div style='font-size: 0.85rem; margin-top: 5px;'>{opm_eval}</div>
-                    </div>
-                    <div style='flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;'>
-                        <div style='font-size: 0.9rem; color: #8892b0; margin-bottom: 5px;'>{t('유동비율 (Current Ratio)', 'Current Ratio')}</div>
-                        <div style='font-size: 1.4rem; font-weight: bold; color: var(--text-color);'>{current_ratio:.2f}</div>
-                        <div style='font-size: 0.85rem; margin-top: 5px;'>{cr_eval}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-
                 # ------------------- 5단계 컬러 시스템 및 모바일 3열/2열 최적화 그리드 -------------------
                 if is_financial:
                     per_mos_str = ""
@@ -2172,36 +2150,88 @@ with tab1:
                 qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff4757"
                 bench_html = f"<div style='margin-bottom:4px; color:{spy_col};'>S&P <b>{spy_gap:+.1f}%p</b></div><div style='color:{qqq_col};'>NDX <b>{qqq_gap:+.1f}%p</b></div>"
 
-                # 미니멀 블록 스타일 (모바일 그리드 3열 환경에 맞춘 최적화)
-                item_style = "background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 1px solid rgba(160,196,255,0.15); padding: 12px 6px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center;"
-                lbl_style = "font-size: 0.75rem; color: #A0C4FF; font-weight: 700; margin-bottom: 6px; line-height: 1.2;"
+                # 미니멀 블록 스타일 (라이트/다크모드 완벽 호환, 이모지 제거)
+                item_style = "background: rgba(128, 128, 128, 0.05); border: 1px solid rgba(128, 128, 128, 0.15); padding: 12px 6px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center;"
+                lbl_style = "font-size: 0.75rem; color: var(--primary-color); font-weight: 700; margin-bottom: 6px; line-height: 1.2;"
                 val_style = "font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 6px; letter-spacing: -0.5px;"
-                desc_style = "font-size: 0.7rem; line-height: 1.4; color: #d1d8e0;"
+                desc_style = "font-size: 0.7rem; line-height: 1.4; color: var(--text-color); opacity: 0.85;"
                 
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
                 
                 rnd_block = ""
                 if not is_financial:
-                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>🧪 {t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend}</div></div>"
 
                 ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
 
-                # 💡 핵심: display: grid 와 repeat(3, 1fr) 로 모바일 3열 강제 분할 💡
+                # 모든 항목을 1번 섹션 그리드 안에 통합 (매출총이익률 등 3개 추가)
                 section1_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>🏷️ {t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>배당: <b>{div:.1f}%</b><br><span style='font-size:0.9em; color:#fdcb6e;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>🔥 {roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>⚖️ {t('PER(Fwd)', 'Fwd PE')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>현재: <b>{t_pe:.1f}배</b><br>평균: <b>{a_pe:.1f}배</b></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>🛡️ {t('PBR/안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'>{per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>💵 {t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span class=\"tier-na\">N/A</span>'}</div>국채: <b style='font-size:1.1em;'>{ty:.2f}%</b></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>🏆 {t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>📈 {t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>🎯 {t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>배당: <b>{div:.1f}%</b><br><span style='font-size:0.9em; color:var(--primary-color); opacity:0.8;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd)', 'Fwd PE')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>현재: <b>{t_pe:.1f}배</b><br>평균: <b>{a_pe:.1f}배</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR/안전마진', 'PBR & MoS')}</div><div style='{val_style}'>PBR {pbr:.2f}배</div><div style='{desc_style}'>{per_mos_str if not is_financial else '<span class=\"tier-na\">해당 없음</span>'}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span class=\"tier-na\">N/A</span>'}</div>국채: <b style='font-size:1.1em;'>{ty:.2f}%</b></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
                     f"</div>"
                 )
                 st.markdown(section1_html, unsafe_allow_html=True)
+                
+                st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
+                
+                p_txt = ""
+                if is_financial:
+                    if pbr <= 0.6: p_txt += f"<b class='tier-5'>[매우 합격] ({pbr:.2f}배)</b> - 극단적 자산 저평가"
+                    elif pbr <= 1.0: p_txt += f"<b class='tier-4'>[합격] ({pbr:.2f}배)</b> - 청산가치 이하 안전 구간"
+                    elif pbr <= 1.3: p_txt += f"<b class='tier-3'>[보통] ({pbr:.2f}배)</b> - 장부가 수준 적정 가격"
+                    elif pbr <= 1.8: p_txt += f"<b class='tier-2'>[주의] ({pbr:.2f}배)</b> - 자본 대비 고평가 경고"
+                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pbr:.2f}배)</b> - 극심한 밸류에이션 거품"
+                else:
+                    if pmos_val >= 30: p_txt += f"<b class='tier-5'>[매우 합격] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= 10: p_txt += f"<b class='tier-4'>[합격] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= -5: p_txt += f"<b class='tier-3'>[보통] (+{pmos_val:.1f}% 할인)</b>\n"
+                    elif pmos_val >= -20: p_txt += f"<b class='tier-2'>[주의] ({pmos_val:.1f}% 할증)</b>\n"
+                    else: p_txt += f"<b class='tier-1'>[매우 주의] ({pmos_val:.1f}% 할증)</b>\n"
+                    
+                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 잉여현금흐름(FCF) 적자로 평가 불가', '[Danger]')}</b>\n"
+                    elif is_zigzag: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>{t('[매우 주의] 현금흐름 변동성 극심. DCF 무의미', '[Danger]')}</b>\n"
+                    elif mos_val >= 30: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-5'>[매우 합격] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= 10: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-4'>[합격] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= -5: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-3'>[보통] (+{mos_val:.1f}% 할인)</b>\n"
+                    elif mos_val >= -20: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-2'>[주의] ({mos_val:.1f}% 할증)</b>\n"
+                    else: p_txt += f"<br><b style='color:var(--primary-color);'>[DCF]</b> <b class='tier-1'>[매우 주의] ({mos_val:.1f}% 할증)</b>\n"
+
+                if is_financial:
+                    math_eval = f"<b class='tier-4'>{t('[해당 없음] 금융주는 PBR/ROE 모델로 평가합니다.', '[N/A]')}</b>"
+                else:
+                    if final_g >= 0.08: math_eval = f"<b class='tier-5'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</b>"
+                    elif final_g > 0.0: math_eval = f"<b class='tier-4'>{t(f'[약간 합격] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</b>"
+                    else: math_eval = f"<b class='tier-1'>{t('[매우 주의] 현금흐름 역성장 (복리 팽창 구간 아님).', '[Danger] Negative FCF.')}</b>"
+
+                clean_p_txt = p_txt.replace('\n', '')
+                if not is_financial:
+                    clean_p_txt = f"<b style='color:var(--primary-color);'>[PER]</b> {clean_p_txt}"
+                else:
+                    clean_p_txt = f"<b style='color:var(--primary-color);'>[PBR]</b> {clean_p_txt}"
+                
+                # 바탕 없애고 글씨만 나오도록 (Section 1과 동일한 item_style 적용 및 내부 박스 제거)
+                section2_html = (
+                    f"<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;'>"
+                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{clean_p_txt}</div></div>"
+                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('수학 (복리 모형)', 'Math (Compounding)')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{math_eval}</div></div>"
+                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('비즈니스 생태계 해자', 'Business Moat')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{biz_eval}</div></div>"
+                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('생물학 (생존력)', 'Survivability')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{bio_eval}</div></div>"
+                    f"</div>"
+                )
+                st.markdown(section2_html, unsafe_allow_html=True)
+                st.divider()
                 
                 st.subheader(t("2. AI 다차원 투자 검증 (6원칙 및 학문적 모델 적용)", "2. AI Multi-dimensional Verification"))
                 
