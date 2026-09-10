@@ -1426,7 +1426,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 11. 시장 페널티 (지정학, 시클리컬)
+    # 11. 시장 페널티 (지정학, 시클리컬) - 합리적으로 수치 조정됨
     pen_score = 0
     tk_upper = str(tk).upper()
 
@@ -1438,20 +1438,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     pen_reasons = []
     if kr: 
-        pen_score -= 30
+        pen_score -= 15 # 기존 -30에서 완화
         pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
     elif is_china_hk: 
-        pen_score -= 40
+        pen_score -= 25 # 기존 -40에서 완화
         pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
     elif is_taiwan: 
-        pen_score -= 40
+        pen_score -= 20 # 기존 -40에서 완화
         pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
 
     explicit_cyclicals = ["TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK", "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL", "AAPL"]
     is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
 
     if is_cyclical:
-        pen_score -= 50
+        pen_score -= 20 # 기존 -50에서 완화
         pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
         
     if pen_score < 0:
@@ -1459,51 +1459,37 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
 
-    # 12. 최종 결과 매핑
-    if score >= 110:
+    # 12. 최종 결과 매핑 (5단계 컬러 시스템 적용)
+    if score >= 80:
         title = t(f"강력 매수 고려 구간 ({score}점)", f"Strong Buy Consideration ({score} pts)")
-        color = "#00b894"
+        color = "#00b894" # Tier 5
         reason = t("거버넌스, 비즈니스 해자, 밸류에이션 모두 탁월하며 매우 넉넉한 안전마진을 제공하는 훌륭한 투자 기회입니다.", "Exceptional business moat, valuation, and governance. Presents a massive margin of safety.")
-    elif score >= 85:
-        title = t(f"적극적 투자 검토 ({score}점)", f"Active Investment Review ({score} pts)")
-        color = "#2ecc71"
-        reason = t("핵심 지표(ROIC, 경영진, 안전마진)에서 흠잡을 데 없는 우량 기업으로, 투자 비중 확대를 긍정적으로 고려할 만한 구간입니다.", "A pristine company meeting stringent ROIC and MoS criteria. Good zone to consider increasing exposure.")
-    elif score >= 60:
-        title = t(f"투자 매력도 높음 ({score}점)", f"High Attractiveness ({score} pts)")
-        color = "#1dd1a1"
-        reason = t("훌륭한 자본 배치 능력과 검증된 수익성을 갖추었으며, 현재 주가 역시 합리적인 수준의 안전마진을 제공하고 있습니다.", "Excellent capital allocation and verified profitability, currently offering a reasonable margin of safety.")
     elif score >= 30:
-        title = t(f"긍정적 관찰 구간 ({score}점)", f"Positive Observation Zone ({score} pts)")
-        color = "#74b9ff"
-        reason = t("안전마진이 넉넉하지는 않으나, 우량한 펀더멘털을 고려할 때 충분히 분할 매수를 검토해볼 수 있는 구간입니다.", "While MoS is not massive, the strong fundamentals make it a reasonable zone for dollar-cost averaging.")
+        title = t(f"투자 매력도 높음 ({score}점)", f"High Attractiveness ({score} pts)")
+        color = "#2ecc71" # Tier 4
+        reason = t("훌륭한 자본 배치 능력과 검증된 수익성을 갖추었으며, 현재 주가 역시 합리적인 수준의 안전마진을 제공하고 있습니다.", "Excellent capital allocation and verified profitability, currently offering a reasonable margin of safety.")
     elif score >= 0:
         title = t(f"적정 가치 / 보유 ({score}점)", f"Fair Value / Hold ({score} pts)")
-        color = "#fdcb6e"
+        color = "#fdcb6e" # Tier 3
         reason = t("기업의 성장성과 퀄리티를 감안할 때 합당하게 평가받고 있는 가격(Fair Price)입니다. 장기 투자자라면 계속 보유할 만합니다.", "Perfectly justifiable fair price given the business quality. A valid hold for long-term investors.")
-    elif score >= -25:
-        title = t(f"보수적 접근 필요 ({score}점)", f"Conservative Approach Needed ({score} pts)")
-        color = "#fab1a0"
-        reason = t("기업의 펀더멘털은 견고하지만, 시장의 긍정적 기대감이 가격에 다소 선반영되어 있습니다. 신규 진입 시 보수적인 관점이 필요합니다.", "Solid fundamentals, but pre-reflected market optimism indicates a need for a cautious entry.")
-    elif score >= -50:
+    elif score >= -40:
         title = t(f"관망 및 리스크 점검 ({score}점)", f"Wait & Check Risks ({score} pts)")
-        color = "#ff7675"
+        color = "#ff9f43" # Tier 2
         reason = t("비즈니스 퀄리티 대비 시장의 기대치가 다소 높게 형성되어 있습니다. 밸류에이션 부담이 있으므로 리스크 관리가 필요합니다.", "Market expectations outpace business quality. Valuation burden exists; risk management advised.")
-    elif score >= -80:
-        title = t(f"신규 투자 보류 ({score}점)", f"Hold Off Investment ({score} pts)")
-        color = "#e17055"
-        reason = t("대다수 가치평가 지표가 '주의'를 가리킵니다. 가격에 지나친 낙관론이 반영되어 있어 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings. Prices reflect excessive optimism; new investments are not recommended.")
     else:
-        title = t(f"비중 축소 고려 / 핵심 리스크 점검 ({score}점)", f"Consider Reducing Exposure / High Risk ({score} pts)")
-        color = "#d63031"
-        reason = t("심각한 펀더멘털 훼손(거버넌스 이슈 등)이 있거나 가치평가 수식을 크게 벗어난 과열 구간입니다. 자본 보호를 위한 비중 축소나 극도의 주의가 필요합니다.", "Indicates either severe fundamental damage or an extreme valuation disconnect. Capital preservation should be the priority.")
+        title = t(f"신규 투자 보류 및 주의 ({score}점)", f"Hold Off Investment ({score} pts)")
+        color = "#ff4757" # Tier 1
+        reason = t("대다수 가치평가 지표가 '위험'을 가리키거나 심각한 펀더멘털 훼손이 있습니다. 현재 시점의 투자는 추천하지 않습니다.", "Multiple valuation metrics flag warnings or severe fundamental damage. New investments are not recommended.")
+
+    # 텍스트에 표기되는 숫자도 수정한 값으로 반영
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -50점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -50 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -20점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -20 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -30점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -30 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -40점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -40 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -25점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -25 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -40점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -40 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: PER, DCF, ERP 등을 완전히 배제하고 오직 자산가치(PBR)와 자본효율성(ROE), 그리고 경영진 점수로만 평가를 도출했습니다.)", " (Financial Mode Active: PER, DCF, ERP excluded. Evaluated solely on PBR, ROE, and Management.)")
