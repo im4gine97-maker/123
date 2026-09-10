@@ -2249,21 +2249,19 @@ with tab1:
                 )
                 
                 if is_financial:
-                    st.markdown(f"<div style='background: rgba(255, 118, 117, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #ff7675; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
                 elif iv:
-                    st.markdown(f"<div style='background: rgba(160, 196, 255, 0.08); padding:18px 22px; border-radius:12px; margin-bottom:15px; border-left: 4px solid #A0C4FF; font-size:1.0rem; color:var(--text-color); line-height:1.7;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
                     
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
                         implied_g_str = f"{implied_g*100:.1f}%"
-                        implied_text = f"<br><span style='color:#fdcb6e;'><b>※ 현재 주가({p_str}) 정당화 조건 (역산 DCF):</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 현재 주가가 합리적이라고 볼 수 있습니다. 이 수치가 해당 기업의 한계치를 넘는다면 비상식적 고평가 상태입니다.</span>"
+                        implied_text = f"<br><span style='color:var(--text-color); opacity:0.8;'><b>※ 현재 주가({p_str}) 정당화 조건:</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 현재 주가가 합리적이라고 볼 수 있습니다. 이 수치가 한계치를 넘는다면 고평가 상태입니다.</span>"
                     else:
                         implied_text = ""
 
-                    st.markdown(f"**[{t('DCF 기본 가정', 'DCF Base Assumptions')}]** {t('할인율', 'Discount Rate')}: {max(ty, 9.0):.1f}% | {dcf_source_txt}{implied_text}", unsafe_allow_html=True)
-                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt}{implied_text}</div>", unsafe_allow_html=True)
                     
-                    c_w, c_b, c_e = st.columns(3)
                     str_g = t("성장률", "Growth")
                     str_fv = t("적정가", "Fair Val")
                     str_mos = t("안전마진", "MoS")
@@ -2272,42 +2270,35 @@ with tab1:
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
-                    worst_mos_color = '#2ecc71' if mos_worst > 0 else '#ff7675'
-                    base_mos_color = '#2ecc71' if mos_val > 0 else '#ff7675'
-                    best_mos_color = '#2ecc71' if mos_best > 0 else '#ff7675'
+                    def get_mos_tier(m):
+                        if m >= 30: return "tier-5"
+                        elif m >= 10: return "tier-4"
+                        elif m >= -5: return "tier-3"
+                        elif m >= -20: return "tier-2"
+                        else: return "tier-1"
 
-                    txt_w_title = t('최악 (Worst)', 'Worst Case')
-                    txt_b_title = t('평균 (Base)', 'Base Case')
-                    txt_e_title = t('최상 (Best)', 'Best Case')
+                    worst_mos_class = get_mos_tier(mos_worst)
+                    base_mos_class = get_mos_tier(mos_val)
+                    best_mos_class = get_mos_tier(mos_best)
 
-                    with c_w:
-                        st.markdown(
-                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #ff7675; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
-                            f"<b>{txt_w_title}</b><br><br>{str_g}: {max(final_g*0.5, 0.0)*100:.1f}%<br>{str_fv}: {val_w}<br>"
-                            f"{str_mos}: <span style='color:{worst_mos_color}'>{mos_worst:.1f}%</span></div>", 
-                            unsafe_allow_html=True
-                        )
-                    with c_b:
-                        st.markdown(
-                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #fdcb6e; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
-                            f"<b>{txt_b_title}</b><br><br>{str_g}: {final_g*100:.1f}%<br>{str_fv}: {val_b}<br>"
-                            f"{str_mos}: <span style='color:{base_mos_color}'>{mos_val:.1f}%</span></div>", 
-                            unsafe_allow_html=True
-                        )
-                    with c_e:
-                        st.markdown(
-                            f"<div style='background: rgba(255,255,255,0.02); padding:20px; border-radius:16px; border-top:4px solid #2ecc71; color:var(--text-color); text-align:center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
-                            f"<b>{txt_e_title}</b><br><br>{str_g}: {min(final_g*1.5, 0.25)*100:.1f}%<br>{str_fv}: {val_e}<br>"
-                            f"{str_mos}: <span style='color:{best_mos_color}'>{mos_best:.1f}%</span></div>", 
-                            unsafe_allow_html=True
-                        )
-                    st.markdown("<br>", unsafe_allow_html=True)
+                    txt_w_title = t('최악 시나리오', 'Worst Case')
+                    txt_b_title = t('평균 시나리오', 'Base Case')
+                    txt_e_title = t('최상 시나리오', 'Best Case')
+
+                    # 1, 2번 섹션과 동일한 레이아웃 강제 적용 (그리드 3열)
+                    section3_html = (
+                        f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <b class='{worst_mos_class}'>{mos_worst:.1f}%</b></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <b class='{base_mos_class}'>{mos_val:.1f}%</b></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <b class='{best_mos_class}'>{mos_best:.1f}%</b></div></div>"
+                        f"</div>"
+                    )
+                    st.markdown(section3_html, unsafe_allow_html=True)
                 else:
                     st.error(f"{err}")
                 
-                # --- 신규 추가된 DCF 시뮬레이터 (막대기 조절) 영역 ---
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("### 내재가치 직접 계산하기 (Custom DCF Simulator)")
+                st.markdown(f"### {t('내재가치 직접 계산하기 (Custom DCF Simulator)', 'Custom DCF Simulator')}")
                 st.caption(t("AI의 기본 가정을 변경하여 나만의 적정 주가를 시뮬레이션 해보세요.", "Adjust assumptions to simulate your own fair value."))
 
                 sim_fcf = safe_float(base_fcf) if base_fcf and base_fcf > 0 else 1000.0
@@ -2344,14 +2335,20 @@ with tab1:
                     custom_iv = (sum(fut) + dtv) / sh
                     custom_mos = ((custom_iv - p) / custom_iv) * 100 if custom_iv > 0 else 0
 
-                    custom_color = "#2ecc71" if custom_mos > 0 else "#ff7675"
+                    if custom_mos >= 30: custom_mos_class = "tier-5"
+                    elif custom_mos >= 10: custom_mos_class = "tier-4"
+                    elif custom_mos >= -5: custom_mos_class = "tier-3"
+                    elif custom_mos >= -20: custom_mos_class = "tier-2"
+                    else: custom_mos_class = "tier-1"
+
                     val_c_str = f"{int(custom_iv):,}원" if kr else f"${custom_iv:,.2f}"
 
+                    # 시뮬레이션 결과 박스도 동일한 디자인 코드 활용
                     st.markdown(
-                        f"<div style='background: rgba(255,255,255,0.03); padding:25px; border-radius:16px; border: 1px solid #A0C4FF; text-align:center; margin-top:15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
-                        f"<div style='font-size:1.1rem; color:#8892b0; font-weight:bold;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
-                        f"<h2 style='margin:10px 0; color:#A0C4FF;'>{val_c_str}</h2>"
-                        f"<div style='font-size:1.1rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <b style='color:{custom_color}'>{custom_mos:.1f}%</b></div>"
+                        f"<div style='{item_style} margin-top: 15px; padding: 25px; max-width: 500px; margin-left: auto; margin-right: auto;'>"
+                        f"<div style='{lbl_style} font-size:0.9rem;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
+                        f"<div style='{val_style} font-size:1.8rem; margin:10px 0;'>{val_c_str}</div>"
+                        f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <b class='{custom_mos_class}' style='font-size:1.0rem;'>{custom_mos:.1f}%</b></div>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
