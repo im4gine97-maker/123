@@ -2265,12 +2265,12 @@ with tab1:
 
                     col_sim1, col_sim2 = st.columns(2)
                     with col_sim1:
-                        user_fcf = st.number_input(t("초기 잉여현금흐름 (FCF)", "Initial FCF"), value=sim_fcf, step=100.0)
-                        user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0)
+                        user_fcf = st.number_input(t("초기 잉여현금흐름 (FCF)", "Initial FCF"), value=sim_fcf, step=100.0, key=f"user_fcf_{tk}")
+                        user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0, key=f"user_g_{tk}")
 
                     with col_sim2:
-                        user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=5.0, max_value=25.0, value=sim_dr_default, step=0.5)
-                        user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5)
+                        user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=5.0, max_value=25.0, value=sim_dr_default, step=0.5, key=f"user_dr_{tk}")
+                        user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5, key=f"user_tg_{tk}")
 
                     if not is_financial and sh > 0:
                         u_dr = user_dr / 100
@@ -2314,7 +2314,6 @@ with tab1:
                     else:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
                 st.markdown("<br>", unsafe_allow_html=True)
-
 
                 # ------------------- 파트 3. AI 다차원 투자 검증 -------------------
                 st.markdown(f"**{t('3. AI 다차원 투자 검증 (6원칙 모델)', '3. AI Multi-dimensional Verification')}**")
