@@ -1131,18 +1131,16 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
-    # 3. PER MoS (금융주 제한 해제됨 - 주가 민감도 극대화)
+    # 3. PER MoS (합리적 조정: 훌륭한 기업의 적당한 프리미엄은 허용)
     p_score = 0
-    if pmos >= 40: p_score = 50
-    elif pmos >= 30: p_score = 40
-    elif pmos >= 20: p_score = 30
-    elif pmos >= 10: p_score = 20
+    if pmos >= 40: p_score = 30
+    elif pmos >= 20: p_score = 20
     elif pmos >= 5: p_score = 10
-    elif pmos >= 0: p_score = 0
-    elif pmos >= -5: p_score = -15  # 할증 진입 시 즉각적인 강한 감점
-    elif pmos >= -10: p_score = -30
-    elif pmos >= -20: p_score = -45
-    else: p_score = -60  # 심각한 고평가 시 -60점 철퇴
+    elif pmos >= -5: p_score = 0   # 적정 수준
+    elif pmos >= -15: p_score = -10 # 살짝 비싸지만 해자가 있다면 방어 가능한 수준
+    elif pmos >= -30: p_score = -20
+    elif pmos >= -50: p_score = -30
+    else: p_score = -40 # 상식을 벗어난 극단적 버블
     
     score += p_score
     p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
@@ -1151,29 +1149,30 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
-        # 금융주 자산가치(PBR) 민감도 극대화
+        # 4. CAP_SCORE (ROE / ROIC)
+    cap_score = 0
+    if is_financial:
+        # 금융주 자산가치(PBR) - 완만한 프리미엄 허용 곡선
         if kr:
-            if pbr <= 0.3: cap_score += 50
-            elif pbr <= 0.4: cap_score += 40
-            elif pbr <= 0.5: cap_score += 30
-            elif pbr <= 0.6: cap_score += 20
-            elif pbr <= 0.7: cap_score += 10
+            if pbr <= 0.3: cap_score += 40
+            elif pbr <= 0.4: cap_score += 30
+            elif pbr <= 0.5: cap_score += 20
+            elif pbr <= 0.6: cap_score += 10
             elif pbr <= 0.8: cap_score += 0
-            elif pbr <= 0.9: cap_score -= 15
-            elif pbr <= 1.0: cap_score -= 30
-            elif pbr <= 1.2: cap_score -= 45
-            else: cap_score -= 60
+            elif pbr <= 1.0: cap_score -= 10
+            elif pbr <= 1.2: cap_score -= 20
+            else: cap_score -= 30
         else:
-            if pbr <= 0.8: cap_score += 50
-            elif pbr <= 1.0: cap_score += 40
-            elif pbr <= 1.2: cap_score += 25
+            if pbr <= 0.8: cap_score += 40
+            elif pbr <= 1.0: cap_score += 30
+            elif pbr <= 1.2: cap_score += 20
             elif pbr <= 1.4: cap_score += 10
             elif pbr <= 1.6: cap_score += 0
-            elif pbr <= 1.8: cap_score -= 20
-            elif pbr <= 2.2: cap_score -= 40
-            else: cap_score -= 60
-
-        # 이 아래부터 있는 if roe >= 20: ... 코드는 그대로 둡니다.
+            elif pbr <= 1.8: cap_score -= 10
+            elif pbr <= 2.2: cap_score -= 20
+            else: cap_score -= 30
+        
+        # (이 아래의 if roe >= 20: ... 코드는 그대로 유지합니다)
 
         if roe >= 20: cap_score += 40
         elif roe >= 18: cap_score += 35
@@ -1326,25 +1325,24 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 8. DCF (주가 변동 민감도 극대화)
+    # 8. DCF (합리적 조정: 일시적 고평가는 버티고, 꼬리 리스크만 강하게 차단)
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -60
+            dcf_score = -40
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -60
+            dcf_score = -40
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            if mos >= 40: dcf_score = 60
-            elif mos >= 30: dcf_score = 45
+            if mos >= 40: dcf_score = 40
             elif mos >= 20: dcf_score = 30
             elif mos >= 10: dcf_score = 15
             elif mos >= 0: dcf_score = 0
-            elif mos >= -10: dcf_score = -20
-            elif mos >= -20: dcf_score = -40
-            elif mos >= -30: dcf_score = -60
-            else: dcf_score = -80  # 고평가 시 치명적인 감점
+            elif mos >= -15: dcf_score = -10 # 위대한 기업의 훌륭한 비즈니스로 상쇄 가능한 프리미엄
+            elif mos >= -30: dcf_score = -20
+            elif mos >= -50: dcf_score = -30
+            else: dcf_score = -40 # 밸류에이션이 지나치게 높아졌을 때의 확실한 매도 제안 라인
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
         score += dcf_score
@@ -1376,17 +1374,16 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
-    # 9. ERP (국채 비교 - 주가 연동 수익률 민감도 강화)
+    # 9. ERP (국채 비교 - 합리적 조정)
     e_score = 0
     if erp >= 4.0: e_score = 20
-    elif erp >= 3.0: e_score = 15
-    elif erp >= 2.0: e_score = 10
-    elif erp >= 1.0: e_score = 5
-    elif erp >= 0.0: e_score = 0
-    elif erp >= -1.0: e_score = -10
-    elif erp >= -2.0: e_score = -20
-    elif erp >= -3.0: e_score = -30
-    else: e_score = -40
+    elif erp >= 2.0: e_score = 15
+    elif erp >= 1.0: e_score = 10
+    elif erp >= 0.0: e_score = 5
+    elif erp >= -1.0: e_score = 0   # 국채와 비슷하거나 살짝 밀려도 홀딩 가능
+    elif erp >= -2.0: e_score = -10
+    elif erp >= -4.0: e_score = -20
+    else: e_score = -30
     
     score += e_score
     e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
