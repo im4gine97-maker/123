@@ -2415,9 +2415,7 @@ with tab1:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.divider()
-        
                 st.divider()
-
                 st.subheader(t("4. 장기 재무 시각화 (최근 연속 지표)", "4. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
