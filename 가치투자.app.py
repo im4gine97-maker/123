@@ -2125,14 +2125,27 @@ with tab1:
                     elif pbr <= 3.0: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 정상 프리미엄</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 높은 프리미엄</span>"
 
+                # [수정됨: biz_eval 누락 복구]
                 if is_financial:
-                    if roe >= 10: rr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 우량 자본수익률</span>"
-                    elif roe >= 7: rr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 안정적 수익</span>"
-                    else: rr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 비효율 자본운용</span>"
+                    if roe >= 10: 
+                        rr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 우량 자본수익률</span>"
+                        biz_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 우량 자본수익률</span>"
+                    elif roe >= 7: 
+                        rr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 안정적 수익</span>"
+                        biz_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 안정적 수익</span>"
+                    else: 
+                        rr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 비효율 자본운용</span>"
+                        biz_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 비효율 자본운용</span>"
                 else:
-                    if roic_val >= 10 and roe >= 10: rr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 완벽한 복리기계</span>"
-                    elif roic_val >= 5: rr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 무난한 비즈니스</span>"
-                    else: rr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 자본비용 훼손</span>"
+                    if roic_val >= 10 and roe >= 10: 
+                        rr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 완벽한 복리기계</span>"
+                        biz_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 완벽한 복리기계 (압도적 해자)</span>"
+                    elif roic_val >= 5: 
+                        rr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 무난한 비즈니스</span>"
+                        biz_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 무난한 비즈니스</span>"
+                    else: 
+                        rr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 자본비용 훼손</span>"
+                        biz_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 장사할수록 손해 (해자 없음)</span>"
                     
                 if is_financial:
                     ey_str = ""
@@ -2255,16 +2268,24 @@ with tab1:
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
                     
-                    def get_mos_tier(m):
-                        if m >= 30: return "tier-5"
-                        elif m >= 10: return "tier-4"
-                        elif m >= -5: return "tier-3"
-                        elif m >= -20: return "tier-2"
-                        else: return "tier-1"
+                    # [수정됨: DCF 시나리오 3번째 줄 직관적인 신호등 컬러 적용]
+                    def get_mos_color(m):
+                        if m >= 10: return "#2ecc71"   # 초록 (저평가/안전)
+                        elif m >= -5: return "#fdcb6e" # 노랑 (적정수준/보통)
+                        else: return "#ff7675"         # 빨강 (고평가/위험)
+                        
+                    def get_mos_label(m):
+                        if m >= 10: return "[안전]"
+                        elif m >= -5: return "[보통]"
+                        else: return "[위험]"
 
-                    worst_mos_class = get_mos_tier(mos_worst)
-                    base_mos_class = get_mos_tier(mos_val)
-                    best_mos_class = get_mos_tier(mos_best)
+                    w_color = get_mos_color(mos_worst)
+                    b_color = get_mos_color(mos_val)
+                    e_color = get_mos_color(mos_best)
+                    
+                    w_lbl = get_mos_label(mos_worst)
+                    b_lbl = get_mos_label(mos_val)
+                    e_lbl = get_mos_label(mos_best)
 
                     txt_w_title = t('최악 시나리오', 'Worst Case')
                     txt_b_title = t('평균 시나리오', 'Base Case')
@@ -2272,9 +2293,9 @@ with tab1:
 
                     section3_html = (
                         f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
-                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <b class='{worst_mos_class}'>{mos_worst:.1f}%</b></div></div>"
-                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <b class='{base_mos_class}'>{mos_val:.1f}%</b></div></div>"
-                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <b class='{best_mos_class}'>{mos_best:.1f}%</b></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <span style='color:{w_color}; font-weight:bold;'>{w_lbl} {mos_worst:.1f}%</span></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <span style='color:{b_color}; font-weight:bold;'>{b_lbl} {mos_val:.1f}%</span></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <span style='color:{e_color}; font-weight:bold;'>{e_lbl} {mos_best:.1f}%</span></div></div>"
                         f"</div>"
                     )
                     st.markdown(section3_html, unsafe_allow_html=True)
