@@ -2483,36 +2483,36 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
+                # [수정됨: 공유하기 익스팬더 적용 및 subheader 제거]
                 st.divider()
-
-                st.subheader(t("6. 분석 결과 공유하기", "6. Share Analysis Results"))
-                st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
-                
-                def strip_html(h_str):
-                    return re.sub(r'<[^>]+>', '', h_str)
-                
-                clean_biz_eval = strip_html(biz_eval)
-                clean_eps_trend = strip_html(eps_trend)
-                clean_bps_trend = strip_html(bps_trend)
-                
-                if is_financial:
-                    share_fv = t('금융주 적용 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
-                    share_mos = t('해당 없음', 'N/A')
-                    biz_summary_str = f"- 자산가치(PBR): {pbr:.2f}배\n- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 효율 (ROE/PBR 기준): {clean_biz_eval}"
-                    clean_p_txt = strip_html(p_txt).strip()
-                    share_val_summary = f"- 가격 매력도 (PBR 기준): {clean_p_txt}"
-                else:
-                    clean_per_mos = strip_html(per_mos_str)
-                    biz_summary_str = f"- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}"
-                    if iv:
-                        share_fv = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
-                        share_mos = f"{mos_val:.1f}% (최상 {mos_best:.1f}%, 최악 {mos_worst:.1f}%)"
+                with st.expander(t("📤 6. 분석 결과 공유하기 (클릭하여 열기)", "📤 6. Share Analysis Results (Click to expand)")):
+                    st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
+                    
+                    def strip_html(h_str):
+                        return re.sub(r'<[^>]+>', '', h_str)
+                    
+                    clean_biz_eval = strip_html(biz_eval)
+                    clean_eps_trend = strip_html(eps_trend)
+                    clean_bps_trend = strip_html(bps_trend)
+                    
+                    if is_financial:
+                        share_fv = t('금융주 적용 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
+                        share_mos = t('해당 없음', 'N/A')
+                        biz_summary_str = f"- 자산가치(PBR): {pbr:.2f}배\n- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 효율 (ROE/PBR 기준): {clean_biz_eval}"
+                        clean_p_txt = strip_html(p_txt).strip()
+                        share_val_summary = f"- 가격 매력도 (PBR 기준): {clean_p_txt}"
                     else:
-                        share_fv = t("계산 불가 (FCF 적자 등)", "N/A (Negative FCF)")
-                        share_mos = t("계산 불가", "N/A")
-                    share_val_summary = f"- 가격 매력도 (PER 기준): {clean_per_mos}"
+                        clean_per_mos = strip_html(per_mos_str)
+                        biz_summary_str = f"- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}"
+                        if iv:
+                            share_fv = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                            share_mos = f"{mos_val:.1f}% (최상 {mos_best:.1f}%, 최악 {mos_worst:.1f}%)"
+                        else:
+                            share_fv = t("계산 불가 (FCF 적자 등)", "N/A (Negative FCF)")
+                            share_mos = t("계산 불가", "N/A")
+                        share_val_summary = f"- 가격 매력도 (PER 기준): {clean_per_mos}"
 
-                share_ko = f"""[AGIE 가치투자 분석 리포트]
+                    share_ko = f"""[AGIE 가치투자 분석 리포트]
 기업명: {i.get('shortName', tk)} ({tk})
 AI 종합 투자의견: {op_title}
 
@@ -2530,7 +2530,7 @@ AI 핵심 요약
 투자 검증 요약
 {share_val_summary}
 """
-                share_en = f"""[AGIE Value Investing Report]
+                    share_en = f"""[AGIE Value Investing Report]
 Company: {i.get('shortName', tk)} ({tk})
 AI Opinion: {op_title}
 
@@ -2548,7 +2548,7 @@ AI Core Summary
 Verification Summary
 {share_val_summary}
 """
-                st.code(t(share_ko, share_en), language="text")
+                    st.code(t(share_ko, share_en), language="text")
 
 # ==========================================
 # 탭 2: 유명 가치투자자 13F 포트폴리오
