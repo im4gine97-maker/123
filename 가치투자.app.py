@@ -2235,7 +2235,7 @@ with tab1:
                 if is_financial:
                     st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #ff7675; padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
                 elif iv:
-                    with st.expander(t("📖 [필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "📖 [Must Read] Understanding DCF (Click to expand)"))):
+                    with st.expander(t("📖 [필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "📖 [Must Read] Understanding DCF (Click to expand)")):
                         st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
                     
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
