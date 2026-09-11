@@ -2103,7 +2103,7 @@ with tab1:
                 # =====================================================================
                 # 통합 섹션: 기업 가치 심층 분석 (재무 -> DCF -> AI 검증)
                 # =====================================================================
-                st.subheader(t("📊 기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "📊 Deep Value Analysis (Financials · DCF · AI)"))
+                st.subheader(t("기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "Deep Value Analysis (Financials · DCF · AI)"))
                 
                 # [도입부] 초보자 가이드
                 st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:25px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
