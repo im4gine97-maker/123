@@ -2511,7 +2511,7 @@ with tab1:
 
                 # [수정됨: 공유하기 익스팬더 적용 및 subheader 제거]
                 st.divider()
-                with st.expander(t("📤 6. 분석 결과 공유하기 (클릭하여 열기)", "📤 6. Share Analysis Results (Click to expand)")):
+                with st.expander(t("6. 분석 결과 공유하기 (클릭하여 열기)", "6. Share Analysis Results (Click to expand)")):
                     st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                     
                     def strip_html(h_str):
