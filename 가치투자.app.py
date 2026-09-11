@@ -2438,22 +2438,23 @@ with tab1:
                         with c_v1:
                             if len(rev) == len(years) and len(ni) == len(years):
                                 div_val, u_str = scale_vals([rev, ni], kr)
-                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div_val for x in rev], t('순이익', 'Net Income'): [x/div_val for x in ni]}, index=years)
                                 st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
+                                
                                 # [수정된 코드: Plotly 매출 및 순이익 차트]
                                 fig_rev = go.Figure()
                                 fig_rev.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
                                 fig_rev.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                                 fig_rev.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                                st.plotly_chart(fig_rev, use_container_width=True)                            else:
+                                st.plotly_chart(fig_rev, use_container_width=True)
+                            else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                         with c_v2:
                             if is_financial:
                                 st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials as operating cash flows include customer deposits and assets, making FCF analysis meaningless."))
                             elif len(fcf_chart) == len(years):
                                 div_val, u_str = scale_vals([fcf_chart], kr)
-                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div_val for x in fcf_chart]}, index=years)
                                 st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
+                                
                                 # [수정된 코드: Plotly FCF 차트]
                                 fig_fcf = go.Figure()
                                 fig_fcf.add_trace(go.Bar(x=years, y=[x/div_val for x in fcf_chart], name=t('잉여현금흐름(FCF)', 'Free Cash Flow'), marker_color='#fdcb6e'))
