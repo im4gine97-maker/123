@@ -8,7 +8,6 @@ import pandas as pd
 from datetime import datetime
 import re
 import concurrent.futures
-import plotly.graph_objects as go  # <--- 이 부분을 추가하세요.
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
@@ -2064,31 +2063,12 @@ with tab1:
                 roic_val = real_roic if real_roic is not None else 0
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div, is_zigzag)
 
-                # [수정된 코드: 게이지 차트 적용]
-                total_score = sum(val[0] if isinstance(val, tuple) else val for val in score_breakdown.values())
-
-                fig = go.Figure(go.Indicator(
-                    mode="gauge+number",
-                    value=total_score,
-                    number={'font': {'size': 45, 'color': op_color}},
-                    title={'text': f"<b>[AI 종합 투자의견]</b><br><span style='font-size:18px; color:{op_color};'>{op_title}</span>", 'font': {'size': 22, 'color': "gray"}},
-                    gauge={
-                        'axis': {'range': [-150, 150], 'tickwidth': 1, 'tickcolor': "gray"},
-                        'bar': {'color': "rgba(255,255,255,0.8)", 'thickness': 0.25},
-                        'bgcolor': "rgba(255,255,255,0.05)",
-                        'borderwidth': 0,
-                        'steps': [
-                            {'range': [-150, -40], 'color': "rgba(255, 71, 87, 0.4)"},  # 극심한 버블/보류
-                            {'range': [-40, 30], 'color': "rgba(255, 159, 67, 0.4)"},  # 고평가/관망
-                            {'range': [30, 70], 'color': "rgba(253, 203, 110, 0.4)"},  # 적정/관찰
-                            {'range': [70, 150], 'color': "rgba(46, 204, 113, 0.4)"}   # 매수 기회
-                        ]
-                    }
-                ))
-                fig.update_layout(height=350, margin=dict(l=20, r=20, t=80, b=20), paper_bgcolor="rgba(0,0,0,0)", font={'color': "white"})
-                st.plotly_chart(fig, use_container_width=True)
-
-                st.markdown(f"<div style='text-align:center; font-size: 1.05rem; margin-bottom: 25px; line-height: 1.6; color: var(--text-color);'>{op_reason}</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
+                    <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 10px; line-height: 1.6;">{op_reason}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
                 with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
                     breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
@@ -2123,7 +2103,7 @@ with tab1:
                 # =====================================================================
                 # 통합 섹션: 기업 가치 심층 분석 (재무 -> DCF -> AI 검증)
                 # =====================================================================
-                st.subheader(t("기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "Deep Value Analysis (Financials · DCF · AI)"))
+                st.subheader(t("📊 기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "📊 Deep Value Analysis (Financials · DCF · AI)"))
                 
                 # [도입부] 초보자 가이드
                 st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid var(--primary-color); padding:18px 22px; border-radius:12px; margin-bottom:25px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
@@ -2438,14 +2418,9 @@ with tab1:
                         with c_v1:
                             if len(rev) == len(years) and len(ni) == len(years):
                                 div_val, u_str = scale_vals([rev, ni], kr)
+                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div_val for x in rev], t('순이익', 'Net Income'): [x/div_val for x in ni]}, index=years)
                                 st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
-                                
-                                # [수정된 코드: Plotly 매출 및 순이익 차트]
-                                fig_rev = go.Figure()
-                                fig_rev.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
-                                fig_rev.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
-                                fig_rev.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                                st.plotly_chart(fig_rev, use_container_width=True)
+                                st.bar_chart(df_rev_ni, color=["#A0C4FF", "#2ecc71"], height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                         with c_v2:
@@ -2453,13 +2428,9 @@ with tab1:
                                 st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials as operating cash flows include customer deposits and assets, making FCF analysis meaningless."))
                             elif len(fcf_chart) == len(years):
                                 div_val, u_str = scale_vals([fcf_chart], kr)
+                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div_val for x in fcf_chart]}, index=years)
                                 st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
-                                
-                                # [수정된 코드: Plotly FCF 차트]
-                                fig_fcf = go.Figure()
-                                fig_fcf.add_trace(go.Bar(x=years, y=[x/div_val for x in fcf_chart], name=t('잉여현금흐름(FCF)', 'Free Cash Flow'), marker_color='#fdcb6e'))
-                                fig_fcf.update_layout(height=300, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                                st.plotly_chart(fig_fcf, use_container_width=True)
+                                st.bar_chart(df_fcf, color="#fdcb6e", height=300, use_container_width=False, width=600)
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                     else:
