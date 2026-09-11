@@ -2415,61 +2415,7 @@ with tab1:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.divider()
-                # ------------------- 파트 3. AI 다차원 투자 검증 -------------------
-                st.markdown(f"**{t('3. AI 다차원 투자 검증 (6원칙 모델)', '3. AI Multi-dimensional Verification')}**")
-                
-                # [수정됨: 2번째 줄(설명 및 평가)에 명시적인 신호등 컬러 일괄 적용]
-                p_txt = ""
-                if is_financial:
-                    if pbr <= 0.6: p_txt += f"<span style='color:#2ecc71; font-weight:bold;'>[매우 합격] ({pbr:.2f}배) - 극단적 자산 저평가</span>"
-                    elif pbr <= 1.0: p_txt += f"<span style='color:#2ecc71; font-weight:bold;'>[합격] ({pbr:.2f}배) - 청산가치 이하 안전 구간</span>"
-                    elif pbr <= 1.3: p_txt += f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] ({pbr:.2f}배) - 장부가 수준 적정 가격</span>"
-                    elif pbr <= 1.8: p_txt += f"<span style='color:#ff7675; font-weight:bold;'>[주의] ({pbr:.2f}배) - 자본 대비 고평가 경고</span>"
-                    else: p_txt += f"<span style='color:#ff7675; font-weight:bold;'>[매우 주의] ({pbr:.2f}배) - 극심한 밸류에이션 거품</span>"
-                else:
-                    if pmos_val >= 30: p_txt += f"<span style='color:#2ecc71; font-weight:bold;'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= 10: p_txt += f"<span style='color:#2ecc71; font-weight:bold;'>[합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= -5: p_txt += f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] ({pmos_val:+.1f}% 적정수준)</span>"
-                    elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:bold;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
-                    else: p_txt += f"<span style='color:#ff7675; font-weight:bold;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
-                    
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#ff7675; font-weight:bold;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
-                    elif is_zigzag: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#ff7675; font-weight:bold;'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</span>"
-                    elif mos_val >= 30: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#2ecc71; font-weight:bold;'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 10: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#2ecc71; font-weight:bold;'>[합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= -5: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#fdcb6e; font-weight:bold;'>[보통] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= -20: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#ff7675; font-weight:bold;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
-                    else: p_txt += f"<br><span style='color:var(--primary-color);'>[DCF]</span> <span style='color:#ff7675; font-weight:bold;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
-
-                if is_financial:
-                    math_eval = f"<span style='color:#8892b0; font-weight:bold;'>{t('[해당 없음] PBR/ROE 모델로 평가', '[N/A]')}</span>"
-                else:
-                    if final_g >= 0.08: math_eval = f"<span style='color:#2ecc71; font-weight:bold;'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    elif final_g > 0.0: math_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>{t(f'[보통] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    else: math_eval = f"<span style='color:#ff7675; font-weight:bold;'>{t('[매우 주의] 현금흐름 역성장', '[Danger] Negative FCF.')}</span>"
-
-                # 생물학(생존력) 평가 텍스트 컬러 강제 교체 (초록/노랑/빨강)
-                bio_eval_styled = bio_eval.replace("class='good'", "style='color:#2ecc71; font-weight:bold;'")
-                bio_eval_styled = bio_eval_styled.replace("class='highlight'", "style='color:#ff7675; font-weight:bold;'")
-                bio_eval_styled = bio_eval_styled.replace("color:#74b9ff", "color:#fdcb6e; font-weight:bold;")
-                bio_eval_styled = bio_eval_styled.replace("color:#fdcb6e", "color:#fdcb6e; font-weight:bold;")
-
-                clean_p_txt = p_txt.replace('\n', '')
-                if not is_financial:
-                    clean_p_txt = f"<b style='color:var(--primary-color);'>[PER]</b> {clean_p_txt}"
-                else:
-                    clean_p_txt = f"<b style='color:var(--primary-color);'>[PBR]</b> {clean_p_txt}"
-                
-                section2_html = (
-                    f"<div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;'>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('가격 평가 (안전마진)', 'Price Valuation')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{clean_p_txt}</div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('수학 (복리 모형)', 'Math (Compounding)')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{math_eval}</div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('비즈니스 생태계 해자', 'Business Moat')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{biz_eval}</div></div>"
-                    f"<div style='{item_style} justify-content: flex-start;'><div style='{lbl_style} font-size:0.85rem;'>{t('생물학 (생존력)', 'Survivability')}</div><div style='{desc_style} text-align:left; opacity: 1; margin-top:5px;'>{bio_eval_styled}</div></div>"
-                    f"</div>"
-                )
-                st.markdown(section2_html, unsafe_allow_html=True)
-                st.divider()
+        
                 st.divider()
 
                 st.subheader(t("4. 장기 재무 시각화 (최근 연속 지표)", "4. Long-term Financial Visualizations"))
