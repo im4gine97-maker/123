@@ -2113,17 +2113,25 @@ with tab1:
                                         bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
                                     else:
                                         if curr_de < 50:
-                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
-                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
+                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text})"
                                             bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
                                         elif curr_de < 120:
-                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
-                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
+                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text})"
                                             bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
                                         else:
-                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
-                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
+                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text})"
                                             bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                            else:
+                                t_ko = "[위험] 자본잠식 상태입니다."
+                                t_en = "[Danger] Capital impairment detected."
+                                bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                            else:
+                                t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
+                                t_en = "[Danger] Capital impairment detected. Fatal survival risk."
+                                bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                                 else:
                                     t_ko = "[위험] 자본잠식 상태입니다. 생존에 치명적인 위협이 존재합니다."
                                     t_en = "[Danger] Capital impairment detected. Fatal survival risk."
@@ -2355,7 +2363,7 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span style=\"color:var(--text-color); opacity:0.6;\">N/A</span>'}</div>국채: <b style='font-size:1.1em; color:var(--text-color);'>{ty:.2f}%</b></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학적 생존 (6원칙)', 'Survivability')}</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학적 생존', 'Survivability')}</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
                     
                     f"</div>"
                 )
