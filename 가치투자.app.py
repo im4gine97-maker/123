@@ -2101,17 +2101,18 @@ with tab1:
                                         if past_e > 0:
                                             past_de = (past_d / past_e) * 100
                                             if curr_de < past_de - 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 감소 추세", f"{len(debts)}Y Declining debt")
+                                                trend_text = t(f"최근 {len(debts)}년 부채 감소", f"{len(debts)}Y Declining debt")
                                             elif curr_de > past_de + 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 증가 추세", f"{len(debts)}Y Increasing debt")
+                                                trend_text = t(f"최근 {len(debts)}년 부채 증가", f"{len(debts)}Y Increasing debt")
                                             else:
                                                 trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
                                     
                                     if is_financial:
-                                        t_ko = f"[특수] 금융/보험주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
+                                        t_ko = f"[특수] 금융주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
                                         t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
                                         bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
-                                    if curr_de < 50:
+                                    else:
+                                        if curr_de < 50:
                                             t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
                                             t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text})"
                                             bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
@@ -2123,12 +2124,11 @@ with tab1:
                                             t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
                                             t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text})"
                                             bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                            else:
-                                t_ko = "[위험] 자본잠식 상태입니다."
-                                t_en = "[Danger] Capital impairment detected."
-                                bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                                else:
+                                    t_ko = "[위험] 자본잠식 상태입니다."
+                                    t_en = "[Danger] Capital impairment detected."
+                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                 except: pass
-
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
