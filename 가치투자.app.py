@@ -2259,11 +2259,11 @@ with tab1:
                 qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff7675"
                 bench_html = f"<div style='margin-bottom:4px; color:{spy_col}; font-weight:bold;'>S&P <b>{spy_gap:+.1f}%p</b></div><div style='color:{qqq_col}; font-weight:bold;'>NDX <b>{qqq_gap:+.1f}%p</b></div>"
 
-                # 구글 Material 카드 스타일
-                item_style = "background: #FFFFFF; border: 1px solid #DADCE0; padding: 16px 12px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: box-shadow 0.2s;"
-                lbl_style = "font-size: 0.8rem; color: #5F6368; font-weight: 600; margin-bottom: 8px; line-height: 1.2;"
-                val_style = "font-size: 1.25rem; font-weight: 700; color: #202124; margin-bottom: 8px; letter-spacing: -0.5px;"
-                desc_style = "font-size: 0.8rem; line-height: 1.5; color: #5F6368;"
+                # 구글 Material 카드 스타일 (다크모드/라이트모드 자동 적응형으로 변경)
+                item_style = "background: rgba(128, 128, 128, 0.05); border: 1px solid rgba(128, 128, 128, 0.2); padding: 16px 12px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: all 0.2s;"
+                lbl_style = "font-size: 0.8rem; color: var(--text-color); opacity: 0.7; font-weight: 600; margin-bottom: 8px; line-height: 1.2;"
+                val_style = "font-size: 1.3rem; font-weight: 700; color: var(--text-color); margin-bottom: 8px; letter-spacing: -0.5px;"
+                desc_style = "font-size: 0.85rem; line-height: 1.5; color: var(--text-color); opacity: 0.9;"
                 
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
@@ -2278,91 +2278,90 @@ with tab1:
                 if not is_financial:
                     rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'>{rnd_trend_clean}</div></div>"
                 else:
-                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'><span style='color:#5F6368;'>{t('금융주 적용 제외', 'N/A')}</span></div></div>"
+                    rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'><span style='color:var(--text-color); opacity:0.6;'>{t('금융주 적용 제외', 'N/A')}</span></div></div>"
 
                 ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
 
-                # 3열 신호등 컬러 적용 (구글 컬러로 변경)
-                div_color = "#188038" if div >= 3.0 else ("#F9AB00" if div > 0 else "#5F6368")
+                div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
                 div_str = f"<span style='color:{div_color}; font-weight:600;'>배당률: {div:.1f}%</span>"
 
-                gm_eval = f"<span style='color:#188038; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#F9AB00; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#D93025; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
-                opm_eval = f"<span style='color:#188038; font-weight:600;'>{t('[합격] 탁월한 비즈니스', 'Excellent')}</span>" if op_m >= 15 else (f"<span style='color:#F9AB00; font-weight:600;'>{t('[보통] 평균 수익', 'Average')}</span>" if op_m >= 8 else f"<span style='color:#D93025; font-weight:600;'>{t('[경고] 수익성 경고', 'Poor')}</span>")
-                cr_eval = f"<span style='color:#188038; font-weight:600;'>{t('[안전] 유동자산 풍부', 'Liquid')}</span>" if current_ratio >= 1.5 else (f"<span style='color:#F9AB00; font-weight:600;'>{t('[보통] 적정 수준', 'Safe')}</span>" if current_ratio >= 1.0 else f"<span style='color:#D93025; font-weight:600;'>{t('[위험] 유동성 부족', 'Risk')}</span>")
+                gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
+                opm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 탁월한 비즈니스', 'Excellent')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 평균 수익', 'Average')}</span>" if op_m >= 8 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 수익성 경고', 'Poor')}</span>")
+                cr_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[안전] 유동자산 풍부', 'Liquid')}</span>" if current_ratio >= 1.5 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 적정 수준', 'Safe')}</span>" if current_ratio >= 1.0 else f"<span style='color:#ff7675; font-weight:600;'>{t('[위험] 유동성 부족', 'Risk')}</span>")
                 
-                if (gross_m == 0.0 and op_m == 0.0): gm_eval, opm_eval = "<span style='color:#5F6368;'>N/A</span>", "<span style='color:#5F6368;'>N/A</span>"
-                if current_ratio == 0.0: cr_eval = "<span style='color:#5F6368;'>N/A</span>"
+                if (gross_m == 0.0 and op_m == 0.0): gm_eval, opm_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>", "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
+                if current_ratio == 0.0: cr_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
                 if is_financial:
-                    cr_eval = f"<span style='color:#5F6368; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
-                    gm_eval = f"<span style='color:#5F6368; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
+                    cr_eval = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
+                    gm_eval = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
 
                 st.markdown(f"**{t('1. 핵심 재무 지표 및 AI 다차원 투자 검증 (6원칙)', '1. Core Financials & AI Multi-dimensional Verification')}**")
                 
-                # --- AI 검증 텍스트 및 컬러 로직 (구글 컬러로 매핑) ---
+                # --- AI 검증 텍스트 및 컬러 로직 ---
                 p_txt = ""
                 if is_financial:
-                    if pbr <= 0.6: p_txt += f"<span style='color:#188038; font-weight:600;'>[매우 합격] ({pbr:.2f}배) - 극단적 자산 저평가</span>"
-                    elif pbr <= 1.0: p_txt += f"<span style='color:#188038; font-weight:600;'>[합격] ({pbr:.2f}배) - 청산가치 이하 안전 구간</span>"
-                    elif pbr <= 1.3: p_txt += f"<span style='color:#F9AB00; font-weight:600;'>[보통] ({pbr:.2f}배) - 장부가 수준 적정 가격</span>"
-                    elif pbr <= 1.8: p_txt += f"<span style='color:#D93025; font-weight:600;'>[주의] ({pbr:.2f}배) - 자본 대비 고평가 경고</span>"
-                    else: p_txt += f"<span style='color:#D93025; font-weight:600;'>[매우 주의] ({pbr:.2f}배) - 극심한 밸류에이션 거품</span>"
+                    if pbr <= 0.6: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[매우 합격] ({pbr:.2f}배) - 극단적 자산 저평가</span>"
+                    elif pbr <= 1.0: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[합격] ({pbr:.2f}배) - 청산가치 이하 안전 구간</span>"
+                    elif pbr <= 1.3: p_txt += f"<span style='color:#fdcb6e; font-weight:600;'>[보통] ({pbr:.2f}배) - 장부가 수준 적정 가격</span>"
+                    elif pbr <= 1.8: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({pbr:.2f}배) - 자본 대비 고평가 경고</span>"
+                    else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({pbr:.2f}배) - 극심한 밸류에이션 거품</span>"
                 else:
-                    if pmos_val >= 30: p_txt += f"<span style='color:#188038; font-weight:600;'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= 10: p_txt += f"<span style='color:#188038; font-weight:600;'>[합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= -5: p_txt += f"<span style='color:#F9AB00; font-weight:600;'>[보통] ({pmos_val:+.1f}% 적정수준)</span>"
-                    elif pmos_val >= -20: p_txt += f"<span style='color:#D93025; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
-                    else: p_txt += f"<span style='color:#D93025; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
+                    if pmos_val >= 30: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>"
+                    elif pmos_val >= 10: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[합격] (+{pmos_val:.1f}% 할인)</span>"
+                    elif pmos_val >= -5: p_txt += f"<span style='color:#fdcb6e; font-weight:600;'>[보통] ({pmos_val:+.1f}% 적정수준)</span>"
+                    elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
+                    else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
                     
-                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#D93025; font-weight:600;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
-                    elif is_zigzag: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#D93025; font-weight:600;'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</span>"
-                    elif mos_val >= 30: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#188038; font-weight:600;'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= 10: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#188038; font-weight:600;'>[합격] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= -5: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#F9AB00; font-weight:600;'>[보통] (+{mos_val:.1f}% 할인)</span>"
-                    elif mos_val >= -20: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#D93025; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
-                    else: p_txt += f"<br><span style='color:#1A73E8;'>[DCF]</span> <span style='color:#D93025; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
+                    if base_fcf is None or base_fcf <= 0: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
+                    elif is_zigzag: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</span>"
+                    elif mos_val >= 30: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= 10: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#2ecc71; font-weight:600;'>[합격] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= -5: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#fdcb6e; font-weight:600;'>[보통] (+{mos_val:.1f}% 할인)</span>"
+                    elif mos_val >= -20: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
+                    else: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
 
                 if is_financial:
-                    math_eval = f"<span style='color:#5F6368; font-weight:600;'>{t('[해당 없음] PBR/ROE 모델로 평가', '[N/A]')}</span>"
+                    math_eval = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('[해당 없음] PBR/ROE 모델로 평가', '[N/A]')}</span>"
                 else:
-                    if final_g >= 0.08: math_eval = f"<span style='color:#188038; font-weight:600;'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    elif final_g > 0.0: math_eval = f"<span style='color:#F9AB00; font-weight:600;'>{t(f'[보통] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</span>"
-                    else: math_eval = f"<span style='color:#D93025; font-weight:600;'>{t('[매우 주의] 현금흐름 역성장', '[Danger] Negative FCF.')}</span>"
+                    if final_g >= 0.08: math_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t(f'[합격] 연평균 {final_g*100:.1f}% 고성장 복리 모형.', f'[Pass] {final_g*100:.1f}% CAGR.')}</span>"
+                    elif final_g > 0.0: math_eval = f"<span style='color:#fdcb6e; font-weight:600;'>{t(f'[보통] 연평균 {final_g*100:.1f}% 저속 성장 구간.', f'[Slight Pass] {final_g*100:.1f}% CAGR.')}</span>"
+                    else: math_eval = f"<span style='color:#ff7675; font-weight:600;'>{t('[매 주의] 현금흐름 역성장', '[Danger] Negative FCF.')}</span>"
 
-                bio_eval_styled = bio_eval.replace("class='good'", "style='color:#188038; font-weight:600;'")
-                bio_eval_styled = bio_eval_styled.replace("class='highlight'", "style='color:#D93025; font-weight:600;'")
-                bio_eval_styled = bio_eval_styled.replace("color:#74b9ff", "color:#1A73E8; font-weight:600;")
-                bio_eval_styled = bio_eval_styled.replace("color:#fdcb6e", "color:#F9AB00; font-weight:600;")
+                bio_eval_styled = bio_eval.replace("class='good'", "style='color:#2ecc71; font-weight:600;'")
+                bio_eval_styled = bio_eval_styled.replace("class='highlight'", "style='color:#ff7675; font-weight:600;'")
+                bio_eval_styled = bio_eval_styled.replace("color:#74b9ff", "color:#74b9ff; font-weight:600;")
+                bio_eval_styled = bio_eval_styled.replace("color:#fdcb6e", "color:#fdcb6e; font-weight:600;")
 
                 clean_p_txt = p_txt.replace('\n', '')
                 if not is_financial:
-                    clean_p_txt = f"<b style='color:#1A73E8;'>[PER]</b> {clean_p_txt}"
+                    clean_p_txt = f"<b style='color:#74b9ff;'>[PER]</b> {clean_p_txt}"
                 else:
-                    clean_p_txt = f"<b style='color:#1A73E8;'>[PBR]</b> {clean_p_txt}"
+                    clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {clean_p_txt}"
 
-                # --- 통합된 HTML 블록 렌더링 (그리드 정렬 및 내부 텍스트 중앙정렬 반영) ---
+                # --- PC 좌측 정렬 방지를 위해 width: 100% 추가 (max-width 제거) ---
                 integrated_html = (
-                    f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0 auto 30px auto; max-width: 1200px; justify-content: center;'>"
+                    f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
                     
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #1A73E8; margin-top: 10px; border-bottom: 2px solid #E8EAED; padding-bottom: 8px;'>가치 평가 (Valuation)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#1A73E8; font-weight:600;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (Valuation)</div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>{per_mos_str}<br>평균: {a_pe:.1f}배</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR (자산가치)', 'PBR')}</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가 (6원칙)', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #1A73E8; margin-top: 20px; border-bottom: 2px solid #E8EAED; padding-bottom: 8px;'>수익성 및 해자 (Profitability & Moat)</div>"
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>수익성 및 해자 (Profitability & Moat)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 해자 (6원칙)', 'Business Moat')}</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #1A73E8; margin-top: 20px; border-bottom: 2px solid #E8EAED; padding-bottom: 8px;'>성장성 및 복리 (Growth & Compounding)</div>"
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>성장성 및 복리 (Growth & Compounding)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학적 복리 (6원칙)', 'Math (Compounding)')}</div><div style='{desc_style} margin-top:5px;'>{math_eval}</div></div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #1A73E8; margin-top: 20px; border-bottom: 2px solid #E8EAED; padding-bottom: 8px;'>거시 및 생존력 (Macro & Survivability)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span style=\"color:#5F6368;\">N/A</span>'}</div>국채: <b style='font-size:1.1em; color:#202124;'>{ty:.2f}%</b></div></div>"
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>거시 및 생존력 (Macro & Survivability)</div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span style=\"color:var(--text-color); opacity:0.6;\">N/A</span>'}</div>국채: <b style='font-size:1.1em; color:var(--text-color);'>{ty:.2f}%</b></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학적 생존 (6원칙)', 'Survivability')}</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
@@ -2436,7 +2435,7 @@ with tab1:
                     txt_e_title = t('최상 시나리오', 'Best Case')
 
                     section3_html = (
-                        f"<div style='display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px;'>"
+                        f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 25px; width: 100%;'>"
                         f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <span style='color:{w_color}; font-weight:bold;'>{w_lbl} {mos_worst:.1f}%</span></div></div>"
                         f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <span style='color:{b_color}; font-weight:bold;'>{b_lbl} {mos_val:.1f}%</span></div></div>"
                         f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <span style='color:{e_color}; font-weight:bold;'>{e_lbl} {mos_best:.1f}%</span></div></div>"
