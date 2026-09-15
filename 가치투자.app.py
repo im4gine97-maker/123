@@ -2113,15 +2113,15 @@ with tab1:
                                         bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
                                     else:
                                         if curr_de < 50:
-                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 외부 충격에 매우 강한 다윈주의적 생존력을 갖췄습니다."
+                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
                                             t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text}). Strong Darwinian survivability."
                                             bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
                                         elif curr_de < 120:
-                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 무난한 생존력을 유지 중입니다."
+                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
                                             t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text}). Adequate survivability."
                                             bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
                                         else:
-                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 과도한 레버리지로 위기 시 치명적 생존 위협이 존재합니다."
+                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text}). 
                                             t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text}). High leverage poses fatal survival risk."
                                             bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                                 else:
