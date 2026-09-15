@@ -1,3 +1,4 @@
+import streamlit as st
 import yfinance as yf
 import requests
 from bs4 import BeautifulSoup
@@ -7,10 +8,9 @@ import pandas as pd
 from datetime import datetime
 import re
 import concurrent.futures
-
 import plotly.graph_objects as go
 
-# 앱 이름 변경 및 레이아웃
+# 앱 이름 변경 및 레이아웃 (여기에 절대 띄어쓰기가 있으면 안 됩니다)
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
 
 # ==========================================
