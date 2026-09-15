@@ -9,6 +9,9 @@ from datetime import datetime
 import re
 import concurrent.futures
 
+# [추가된 부분] Plotly 차트 라이브러리 추가
+import plotly.graph_objects as go
+
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
 
@@ -1031,7 +1034,94 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
 def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
     score_details = {}
     score = 0  # 반드시 0으로 단일 초기화
+    
+def create_radar_chart(score_breakdown, is_financial, color_hex):
+    # 종합 점수 판정에 쓰인 색상 코드를 rgba 형태로 변환 (투명도 조절용)
+    color_hex = color_hex.lstrip('#')
+    r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+    fill_color = f"rgba({r}, {g}, {b}, 0.2)"
+    line_color = f"rgb({r}, {g}, {b})"
 
+    # 항목별 축 이름 설정 (언어 감지)
+    categories = [
+        t('경영진/거버넌스', 'Management'), 
+        t('비즈니스 해자(자본효율)', 'Moat & ROE'), 
+        t('가격 매력도(PER)', 'Valuation (PER)'), 
+        t('미래 성장성(CAGR)', 'Growth (CAGR)'), 
+        t('안전마진(DCF)', 'Margin of Safety (DCF)')
+    ]
+    if is_financial:
+        categories[4] = t('거시 매력도(ERP)', 'Macro Yield (ERP)') # 금융주는 DCF 대신 ERP 사용
+
+    # breakdown 딕셔너리에서 키워드로 점수를 추출하는 헬퍼 함수
+    def get_score(substrings):
+        for k, v in score_breakdown.items():
+            if any(sub in k for sub in substrings):
+                return v[0] if isinstance(v, tuple) else v
+        return 0
+
+    # 1. 경영진
+    mgmt_raw = get_score(["경영진", "Management"])
+    mgmt_norm = max(0, min(100, (mgmt_raw + 40) / 80 * 100))
+
+    # 2. 비즈니스 해자 / 자본효율
+    eff_raw = get_score(["자본 효율성", "비즈니스 수익성", "Efficiency", "Profitability"])
+    eff_norm = max(0, min(100, (eff_raw + 40) / 80 * 100))
+
+    # 3. 가격 매력도 (PER)
+    price_raw = get_score(["가격 매력도", "Price"])
+    price_norm = max(0, min(100, (price_raw + 40) / 80 * 100))
+
+    # 4. 미래 성장성 (CAGR)
+    growth_raw = get_score(["성장성", "Compounding"])
+    growth_norm = max(0, min(100, (growth_raw + 30) / 45 * 100))
+
+    # 5. 안전마진 (DCF) or 거시 매력도 (금융주)
+    if is_financial:
+        safety_raw = get_score(["거시 매력도", "Macro"])
+        safety_norm = max(0, min(100, (safety_raw + 30) / 50 * 100))
+    else:
+        safety_raw = get_score(["안전마진", "Intrinsic Value"])
+        safety_norm = max(0, min(100, (safety_raw + 40) / 80 * 100))
+
+    # 차트 그리기용 값 리스트 (마지막에 첫 번째 값을 추가해 다각형을 닫음)
+    values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
+    values.append(values[0])
+    categories_loop = categories + [categories[0]]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories_loop,
+        fill='toself',
+        fillcolor=fill_color,
+        line=dict(color=line_color, width=2.5),
+        marker=dict(size=8, color=line_color),
+        hoverinfo='text',
+        text=[f"{cat}: {val:.0f}점/100점" for cat, val in zip(categories, values)]
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                showticklabels=False,
+                gridcolor='rgba(128,128,128,0.2)'
+            ),
+            angularaxis=dict(
+                tickfont=dict(size=13, color='#8892b0', family='Pretendard, Noto Sans KR, sans-serif'),
+                gridcolor='rgba(128,128,128,0.2)'
+            ),
+            bgcolor='rgba(0,0,0,0)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        showlegend=False,
+        margin=dict(l=40, r=40, t=20, b=20),
+        height=320
+    )
+    return fig
     # 1. 경영진 및 거버넌스
     ceo_final = 0
     ceo_reason = ""
@@ -2079,12 +2169,40 @@ with tab1:
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div, is_zigzag)
 
                 st.markdown(f"""
-                <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 25px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
-                    <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 10px; line-height: 1.6;">{op_reason}</span>
-                </div>
-                """, unsafe_allow_html=True)
+                # 좌우 컬럼 분리 (1.4 : 1 비율)
+                col_op1, col_op2 = st.columns([1.4, 1])
+                
+                with col_op1:
+                    st.markdown(f"""
+                    <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
+                        <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
+                        <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 10px; line-height: 1.6;">{op_reason}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
+                    with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
+                        breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
+                        total_score = 0
+                        for k, val_data in score_breakdown.items():
+                            if isinstance(val_data, tuple):
+                                v, reason = val_data
+                            else:
+                                v, reason = val_data, ""
+                                
+                            color_sd = "#2ecc71" if v > 0 else ("#ff7675" if v < 0 else "#8892b0")
+                            sign_sd = "+" if v > 0 else ""
+                            breakdown_html += f"<li style='margin-bottom: 8px; font-size: 1.05rem;'><b>{k}:</b> <span style='color: {color_sd}; font-weight: bold;'>{sign_sd}{v:g}점</span> <br><span style='font-size: 0.9em; color: #a29bfe; margin-left: 10px;'>ㄴ {reason}</span></li>"
+                            total_score += v
+                        breakdown_html += f"<hr style='margin: 10px 0; border-color: rgba(255,255,255,0.1);'><li style='font-size: 1.15rem;'><b>{t('총합', 'Total Score')}:</b> <span style='color: {op_color}; font-weight: bold;'>{total_score:g}점</span></li>"
+                        breakdown_html += "</ul>"
+                        st.markdown(breakdown_html, unsafe_allow_html=True)
+
+                with col_op2:
+                    # 레이더 차트 렌더링
+                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color)
+                    st.plotly_chart(fig_radar, use_container_width=True, config={'displayModeBar': False})
+
+                st.divider()
                 with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
                     breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
                     total_score = 0
