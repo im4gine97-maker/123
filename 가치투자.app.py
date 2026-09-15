@@ -832,7 +832,15 @@ def get_base_dcf_data(stk, i):
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
-        fcf = safe_float(fcf_s.iloc[0]) if (fcf_s is not None and not fcf_s.empty) else safe_float(i.get('freeCashflow'))
+        # --- [핵심 추가] 최근 3년 평균 FCF 산출 (이상치 완화) ---
+        avg_fcf = None
+        if fcf_s is not None and not fcf_s.empty:
+            vals = fcf_s.values[:3] # 최근 최대 3개년
+            valid_vals = [safe_float(v) for v in vals if pd.notna(v)]
+            if len(valid_vals) > 0:
+                avg_fcf = sum(valid_vals) / len(valid_vals)
+                
+        fcf = avg_fcf if avg_fcf is not None else safe_float(i.get('freeCashflow'))
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.05, 0
@@ -844,7 +852,6 @@ def get_base_dcf_data(stk, i):
             data_len = len(vals)
             if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
             
-            # [수정됨] 지그재그 감지 기준 현실화: 10% -> 30% 로 대폭 상향
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
@@ -863,7 +870,7 @@ def get_base_dcf_data(stk, i):
         else:
             eg = safe_float(i.get('earningsGrowth'))
             if eg != 0.0: g = eg
-            data_len = 1
+            data_len = 1 if fcf_s is None else len(fcf_s)
             
         g = max(0.02, min(g, 0.15))
         return fcf, sh, g, data_len, is_zigzag
@@ -2389,11 +2396,28 @@ with tab1:
                     implied_g = get_implied_g(base_fcf, sh, p, ty)
                     if implied_g is not None:
                         implied_g_str = f"{implied_g*100:.1f}%"
-                        implied_text = f"<br><span style='color:var(--text-color); opacity:0.8;'><b>※ 현재 주가({p_str}) 정당화 조건:</b> 향후 10년간 매년 <b>{implied_g_str}</b>씩 현금을 더 벌어야 현재 주가가 합리적이라고 볼 수 있습니다. 이 수치가 한계치를 넘는다면 고평가 상태입니다.</span>"
-                    else:
-                        implied_text = ""
+                        if implied_g <= final_g:
+                            rev_dcf_color = "#2ecc71"
+                            rev_dcf_eval = t("[저평가] 시장의 기대성장률이 과거 평균보다 낮아 안전마진이 충분합니다.", "[Undervalued] Market expectation is lower than historical avg.")
+                        elif implied_g > 0.25:
+                            rev_dcf_color = "#ff7675"
+                            rev_dcf_eval = t("[고평가] 시장이 비현실적인 고성장을 기대하고 있습니다.", "[Overvalued] Market is expecting unrealistic high growth.")
+                        else:
+                            rev_dcf_color = "#fdcb6e"
+                            rev_dcf_eval = t("[적정] 시장의 기대치가 합리적인 수준에 형성되어 있습니다.", "[Fair] Market expectation is reasonable.")
 
-                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt}{implied_text}</div>", unsafe_allow_html=True)
+                        reverse_dcf_html = f"""
+                        <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'>🔄 역산 DCF (Reverse DCF)</div>
+                            <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
+                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 3년 평균 FCF)</span></div>
+                        </div>
+                        """
+                    else:
+                        reverse_dcf_html = ""
+
+                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 3년 평균 FCF 적용)</div>", unsafe_allow_html=True)
+                    st.markdown(reverse_dcf_html, unsafe_allow_html=True)
                     
                     str_g = t("성장률", "Growth")
                     str_mos = t("안전마진", "MoS")
