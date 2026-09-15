@@ -2336,19 +2336,19 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>{per_mos_str}<br>평균: {a_pe:.1f}배</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR (자산가치)', 'PBR')}</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가 (6원칙)', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
 
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>수익성 및 해자 (Profitability & Moat)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 해자 (6원칙)', 'Business Moat')}</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 해자', 'Business Moat')}</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
 
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>성장성 및 복리 (Growth & Compounding)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
                     f"{rnd_block}"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학적 복리 (6원칙)', 'Math (Compounding)')}</div><div style='{desc_style} margin-top:5px;'>{math_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학적 복리', 'Math (Compounding)')}</div><div style='{desc_style} margin-top:5px;'>{math_eval}</div></div>"
 
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>거시 및 생존력 (Macro & Survivability)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span style=\"color:var(--text-color); opacity:0.6;\">N/A</span>'}</div>국채: <b style='font-size:1.1em; color:var(--text-color);'>{ty:.2f}%</b></div></div>"
