@@ -2443,7 +2443,7 @@ with tab1:
 
                         reverse_dcf_html = f"""
                         <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'>🔄 역산 DCF (Reverse DCF)</div>
+                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'> 역산 DCF (Reverse DCF)</div>
                             <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
                             <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 3년 평균 FCF)</span></div>
                         </div>
@@ -2555,7 +2555,7 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.divider()
                 st.divider()
-                st.subheader(t("4. 장기 재무 시각화 (최근 연속 지표)", "4. Long-term Financial Visualizations"))
+                st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
                     inc = stk.income_stmt if stk else None
                     cf = stk.cash_flow if stk else None
@@ -2613,7 +2613,7 @@ with tab1:
 
                 st.divider()
 
-                st.subheader(t("5. 질적 분석 및 리스크 스크리닝", "5. Qualitative Analysis & Risk Screening"))
+                st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
                 
                 st.markdown(f"- **CEO:** {ceo_cleaned}")
                 
@@ -2650,7 +2650,7 @@ with tab1:
 
                 # [수정됨: 공유하기 익스팬더 적용 및 subheader 제거]
                 st.divider()
-                with st.expander(t("6. 분석 결과 공유하기 (클릭하여 열기)", "6. Share Analysis Results (Click to expand)")):
+                with st.expander(t("5. 분석 결과 공유하기 (클릭하여 열기)", "5. Share Analysis Results (Click to expand)")):
                     st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                     
                     def strip_html(h_str):
