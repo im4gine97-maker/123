@@ -1634,7 +1634,7 @@ def generate_quick_ai_preview(tk):
 
     # 버그 원인 해결: 과거 평균 PER이 없을 때 0이 아닌 수동 추정치로 Fallback
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
     
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
     
@@ -2046,10 +2046,15 @@ with tab1:
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
                 
+                # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
-                if kr: div = div_yield * 100
-                else: div = (div_rate / p * 100) if div_rate > 0 and p > 0 else 0.0
+                div = 0.0
+                if div_rate > 0 and p > 0:
+                    calc_div = (div_rate / p) * 100
+                    if calc_div < 50.0: div = calc_div
+                if div == 0.0 and div_yield > 0:
+                    div = div_yield if div_yield > 1.0 else div_yield * 100
                 
                 div_trend = t("확인 불가", "N/A")
                 try:
