@@ -1551,6 +1551,13 @@ def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
     
+    # [핵심 수정] 상세 분석(탭1)과 똑같이 프리마켓/애프터마켓 가격을 덮어씌워서 점수 오차를 없앰
+    if not kr:
+        pre_p = safe_float(i.get('preMarketPrice', 0.0))
+        post_p = safe_float(i.get('postMarketPrice', 0.0))
+        if pre_p > 0: p = pre_p
+        elif post_p > 0: p = post_p
+
     ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
     if ty == 0: ty = 4.4
     
@@ -1648,23 +1655,24 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
                 return v[0] if isinstance(v, tuple) else v
         return 0
 
-    mgmt_raw = get_score(["경영진", "Management"])
+    mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
     mgmt_norm = max(0, min(100, (mgmt_raw + 40) / 80 * 100))
 
-    eff_raw = get_score(["자본 효율성", "비즈니스 수익성", "Efficiency", "Profitability"])
+    eff_raw = get_score(["비즈니스 수익성", "자본 효율성", "Efficiency", "Profitability"])
     eff_norm = max(0, min(100, (eff_raw + 40) / 80 * 100))
 
-    price_raw = get_score(["가격 매력도", "Price"])
+    price_raw = get_score(["가격 매력도", "Price Attractiveness"])
     price_norm = max(0, min(100, (price_raw + 40) / 80 * 100))
 
-    growth_raw = get_score(["성장성", "Compounding"])
+    growth_raw = get_score(["장기 복리 성장성", "Compounding"])
     growth_norm = max(0, min(100, (growth_raw + 30) / 45 * 100))
 
     if is_financial:
         safety_raw = get_score(["거시 매력도", "Macro"])
         safety_norm = max(0, min(100, (safety_raw + 30) / 50 * 100))
     else:
-        safety_raw = get_score(["안전마진", "Intrinsic Value"])
+        # [수정됨] "안전마진" 단어를 빼고 "내재가치", "DCF"로 명확히 지정하여 PER 점수와 꼬이는 현상 완벽 차단
+        safety_raw = get_score(["내재가치", "DCF MoS"])
         safety_norm = max(0, min(100, (safety_raw + 40) / 80 * 100))
 
     values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
