@@ -265,6 +265,7 @@ tmap = {
     "TSM": "TSM", "TSMC": "TSM", "티에스엠씨": "TSM", "대만반도체": "TSM", "티에스엠": "TSM",
     "UMC": "UMC", "유엠씨": "UMC",
     "TENCENT": "TCEHY", "텐센트": "TCEHY"
+    
     "NATERA": "NTRA", "나테라": "NTRA", "NTRA": "NTRA",
     "INSMED": "INSM", "인스메드": "INSM", "INSM": "INSM",
     "VERTIV": "VRT", "버티브": "VRT", "VRT": "VRT",
