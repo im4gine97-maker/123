@@ -805,8 +805,14 @@ def fetch_cached_info(tk, kr, cd):
                 i['companyOfficers'] = yh_res['companyOfficers']
         else:
             nv_res = future_naver.result()
-            for k in ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum']:
-                if k in nv_res: i[k] = nv_res[k]
+            # 네이버에서 가져온 모든 핵심 재무 데이터를 yfinance 빈 공간에 덮어씌움
+            keys_to_override = ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
+            for k in keys_to_override:
+                if k in nv_res:
+                    if isinstance(nv_res[k], str):
+                        i[k] = nv_res[k]
+                    elif nv_res[k] > 0: # 0보다 큰 유효한 숫자일 때만 덮어쓰기 (yfinance 누락 방지)
+                        i[k] = nv_res[k]
         
     return i
 
