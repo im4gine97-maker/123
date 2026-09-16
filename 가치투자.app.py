@@ -1551,13 +1551,6 @@ def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
     
-    # [핵심 수정] 상세 분석(탭1)과 똑같이 프리마켓/애프터마켓 가격을 덮어씌워서 점수 오차를 없앰
-    if not kr:
-        pre_p = safe_float(i.get('preMarketPrice', 0.0))
-        post_p = safe_float(i.get('postMarketPrice', 0.0))
-        if pre_p > 0: p = pre_p
-        elif post_p > 0: p = post_p
-
     ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
     if ty == 0: ty = 4.4
     
@@ -1575,40 +1568,75 @@ def generate_quick_ai_preview(tk):
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
     
+    # --- [상세 분석과 로직 100% 동기화: 결측치 수동 계산 및 프리마켓 적용] ---
+    is_ext_active = False
+    if not kr:
+        pre_p = safe_float(i.get('preMarketPrice', 0.0))
+        post_p = safe_float(i.get('postMarketPrice', 0.0))
+        if pre_p > 0:
+            p = pre_p
+            is_ext_active = True
+        elif post_p > 0:
+            p = post_p
+            is_ext_active = True
+    
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
+    
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
     t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
     f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
-    a_pe = safe_float(i.get('fiveYearAvgPE', t_pe * 1.1 if t_pe > 0 else 15.0))
+    # 버그 원인 해결: 과거 평균 PER이 없을 때 0이 아닌 수동 추정치로 Fallback
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+    
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-    if bv > 0: pbr = p / bv
-    elif pbr == 0.0:
-        try:
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                sh = safe_float(i.get('sharesOutstanding'))
-                if eq > 0 and sh > 0: pbr = p / (eq / sh)
-        except: pass
+    if bv > 0:
+        pbr = p / bv
+    else:
+        if pbr > 0 and is_ext_active and reg_p > 0:
+            pbr = pbr * (p / reg_p)
+        elif pbr == 0.0:
+            try:
+                bs = stk.balance_sheet
+                if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                    sh = safe_float(i.get('sharesOutstanding'))
+                    if eq > 0 and sh > 0: pbr = p / (eq / sh)
+            except: pass
 
+    # 버그 원인 해결: ROE가 없을 때 순이익과 자본을 가져와 수동 계산
     roe = safe_float(i.get('returnOnEquity')) * 100
+    if roe == 0.0:
+        try:
+            inc = stk.income_stmt
+            bs = stk.balance_sheet
+            if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
+                    ni = safe_float(inc.loc['Net Income'].iloc[0])
+                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                    if eq > 0: roe = (ni / eq) * 100
+        except: pass
+    
     real_roic = get_real_roic(stk, i)
     roic_val = real_roic if real_roic is not None else 0
-    erp = ((1 / f_pe * 100) if f_pe > 0 else 0) - ty
+    
+    ey = (1 / f_pe * 100) if f_pe > 0 else 0
+    erp = ey - ty
     
     base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
+    
     div = safe_float(i.get('dividendYield')) * 100 if kr else (safe_float(i.get('dividendRate')) / p * 100 if p > 0 else 0.0)
     
     off = i.get('companyOfficers', [])
@@ -1625,11 +1653,10 @@ def generate_quick_ai_preview(tk):
     
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
                 
-    # 누락되었던 f_pe와 spy_pe 인자를 추가하여 완벽하게 동기화합니다.
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-    f_pe=f_pe, spy_pe=spy_pe_val
+        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+        is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+        f_pe=f_pe, spy_pe=spy_pe_val
     )
     
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
