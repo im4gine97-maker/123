@@ -718,8 +718,10 @@ def get_naver_finance(cd):
     res = {}
     try:
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
-        r.encoding = 'euc-kr'  # [핵심] 한글 인코딩 깨짐 방지
+        # [핵심] 실제 브라우저와 동일한 User-Agent로 위장하여 네이버의 봇 차단을 우회합니다.
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+        r = requests.get(url, headers=headers, timeout=5)
+        r.encoding = 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
         
         t_price = s.select_one('.no_today .blind')
@@ -754,7 +756,6 @@ def get_naver_finance(cd):
         t_sum = s.select_one('.summary_info p')
         if t_sum: res['kr_sum'] = t_sum.text.strip()
         
-        # [핵심] yfinance가 못 가져오는 금융주 ROE를 네이버 재무제표 표에서 강제 추출
         try:
             th_roe = s.find('th', string=re.compile('ROE'))
             if th_roe:
@@ -767,7 +768,7 @@ def get_naver_finance(cd):
         
     except:
         pass
-    return ress
+    return res
 
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
@@ -821,16 +822,13 @@ def get_data(tk):
         tk_raw = str(tk).strip()
         tk = tk_raw.upper()
         
-        # [핵심 수정] 코스피/코스닥 판별 로직 강화 (yfinance 빈 데이터 버그 해결)
         if tk_raw.isdigit() and len(tk_raw) == 6:
             test_tk = tk_raw + ".KS"
             stk_test = yf.Ticker(test_tk)
             try:
-                hist = stk_test.history(period="1d")
-                if hist.empty:  # 에러가 안나더라도 데이터가 비어있으면 코스닥으로 전환
-                    tk = tk_raw + ".KQ"
-                else:
-                    tk = test_tk 
+                # 코스피/코스닥 판별을 더 빠르고 에러 없는 방식으로 변경
+                _ = stk_test.fast_info.last_price
+                tk = test_tk 
             except: tk = tk_raw + ".KQ"
 
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
@@ -839,7 +837,6 @@ def get_data(tk):
         stk = yf.Ticker(tk)
         i = fetch_cached_info(tk, kr, cd).copy()
         
-        # --- 실시간 가격 강제 업데이트 (네이버 2중 접속 차단 방지) ---
         p = 0.0
         if kr:
             if 'live_p' in i and i['live_p'] > 0:
@@ -857,14 +854,18 @@ def get_data(tk):
 
         if p == 0:
             try:
-                hist = stk.history(period="1d", interval="1m", prepost=True)
-                if not hist.empty: p = safe_float(hist['Close'].iloc[-1])
+                # [핵심 수정] 한국 주식은 1분봉(1m) 데이터가 없어 에러가 납니다.
+                # 최근 5일(5d) 데이터 중 가장 마지막 종가를 가져오도록 안전망을 구축했습니다.
+                hist = stk.history(period="5d")
+                if not hist.empty:
+                    hist_clean = hist.dropna(subset=['Close'])
+                    if not hist_clean.empty:
+                        p = safe_float(hist_clean['Close'].iloc[-1])
             except: pass
 
         if p == 0:
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
-        # [주식수 Fallback 로직]
         sh = safe_float(i.get('sharesOutstanding'))
         if sh <= 0: sh = safe_float(i.get('impliedSharesOutstanding'))
         if sh <= 0:
