@@ -805,29 +805,32 @@ def fetch_cached_info(tk, kr, cd):
                 i['companyOfficers'] = yh_res['companyOfficers']
         else:
             nv_res = future_naver.result()
-            # 네이버에서 가져온 모든 핵심 재무 데이터를 yfinance 빈 공간에 덮어씌움
-            keys_to_override = ['shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
+            # [핵심 수정] 'live_p'를 추가하여 네이버 서버 2중 접속 차단을 방지합니다.
+            keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
             for k in keys_to_override:
                 if k in nv_res:
                     if isinstance(nv_res[k], str):
                         i[k] = nv_res[k]
-                    elif nv_res[k] > 0: # 0보다 큰 유효한 숫자일 때만 덮어쓰기 (yfinance 누락 방지)
+                    elif nv_res[k] > 0: 
                         i[k] = nv_res[k]
         
     return i
-
 def get_data(tk):
     try:
         if not tk: return None, None, {}, False
         tk_raw = str(tk).strip()
         tk = tk_raw.upper()
         
+        # [핵심 수정] 코스피/코스닥 판별 로직 강화 (yfinance 빈 데이터 버그 해결)
         if tk_raw.isdigit() and len(tk_raw) == 6:
             test_tk = tk_raw + ".KS"
             stk_test = yf.Ticker(test_tk)
             try:
-                _ = stk_test.history(period="1d")
-                tk = test_tk 
+                hist = stk_test.history(period="1d")
+                if hist.empty:  # 에러가 안나더라도 데이터가 비어있으면 코스닥으로 전환
+                    tk = tk_raw + ".KQ"
+                else:
+                    tk = test_tk 
             except: tk = tk_raw + ".KQ"
 
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
@@ -836,51 +839,44 @@ def get_data(tk):
         stk = yf.Ticker(tk)
         i = fetch_cached_info(tk, kr, cd).copy()
         
-        # --- 실시간 가격 강제 업데이트 (캐시 우회 및 1분봉 추적) ---
+        # --- 실시간 가격 강제 업데이트 (네이버 2중 접속 차단 방지) ---
         p = 0.0
         if kr:
-            try:
-                # 한국 주식은 네이버 크롤링 우선
-                nv_res = get_naver_finance(cd)
-                if 'live_p' in nv_res and nv_res['live_p'] > 0: 
-                    p = safe_float(nv_res['live_p'])
-            except: pass
-            
+            if 'live_p' in i and i['live_p'] > 0:
+                p = safe_float(i['live_p'])
+            else:
+                try:
+                    nv_res = get_naver_finance(cd)
+                    if 'live_p' in nv_res and nv_res['live_p'] > 0: 
+                        p = safe_float(nv_res['live_p'])
+                except: pass
+
         if p == 0:
-            try:
-                # yfinance API 중 캐시를 타지 않는 가장 빠른 실시간/애프터마켓 가격 모듈
-                p = safe_float(stk.fast_info.last_price)
+            try: p = safe_float(stk.fast_info.last_price)
             except: pass
 
         if p == 0:
             try:
-                # 위 방법 실패 시, 1분 단위(1m) 캔들의 가장 마지막 가격 추적 (프리/애프터마켓 포함)
                 hist = stk.history(period="1d", interval="1m", prepost=True)
-                if not hist.empty:
-                    p = safe_float(hist['Close'].iloc[-1])
+                if not hist.empty: p = safe_float(hist['Close'].iloc[-1])
             except: pass
 
         if p == 0:
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
         # [주식수 Fallback 로직]
-            
-        # [주식수 Fallback 로직]
         sh = safe_float(i.get('sharesOutstanding'))
-        if sh <= 0:
-            sh = safe_float(i.get('impliedSharesOutstanding'))
+        if sh <= 0: sh = safe_float(i.get('impliedSharesOutstanding'))
         if sh <= 0:
             mcap = safe_float(i.get('marketCap'))
-            if mcap > 0 and p > 0:
-                sh = mcap / p
+            if mcap > 0 and p > 0: sh = mcap / p
         if sh <= 0:
             try:
                 inc = stk.income_stmt
                 if inc is not None and not inc.empty and 'Net Income' in inc.index:
                     ni = safe_float(inc.loc['Net Income'].iloc[0])
                     eps = safe_float(i.get('trailingEps'))
-                    if ni != 0 and eps != 0:
-                        sh = abs(ni / eps)
+                    if ni != 0 and eps != 0: sh = abs(ni / eps)
             except: pass
         
         i['sharesOutstanding'] = sh
@@ -888,7 +884,6 @@ def get_data(tk):
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
-
 def get_base_dcf_data(stk, i):
     try:
         if stk is None: return None, None, 0.05, 0, False
