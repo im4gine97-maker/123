@@ -719,6 +719,7 @@ def get_naver_finance(cd):
     try:
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
+        r.encoding = 'euc-kr'  # [핵심] 한글 인코딩 깨짐 방지
         s = BeautifulSoup(r.text, 'html.parser')
         
         t_price = s.select_one('.no_today .blind')
@@ -730,22 +731,43 @@ def get_naver_finance(cd):
         if t_name: res['shortName'] = t_name.text
         
         t_pe = s.select_one('#_per')
-        if t_pe: res['trailingPE'] = safe_float(t_pe.text.replace(',',''))
+        if t_pe: res['trailingPE'] = safe_float(t_pe.text)
+        
+        t_eps = s.select_one('#_eps')
+        if t_eps: res['trailingEps'] = safe_float(t_eps.text)
         
         t_fpe = s.select_one('#_cns_per')
-        if t_fpe: res['forwardPE'] = safe_float(t_fpe.text.replace(',',''))
+        if t_fpe: res['forwardPE'] = safe_float(t_fpe.text)
+        
+        t_feps = s.select_one('#_cns_eps')
+        if t_feps: res['forwardEps'] = safe_float(t_feps.text)
         
         t_pbr = s.select_one('#_pbr')
-        if t_pbr: res['priceToBook'] = safe_float(t_pbr.text.replace(',',''))
+        if t_pbr: res['priceToBook'] = safe_float(t_pbr.text)
+        
+        t_bps = s.select_one('#_bps')
+        if t_bps: res['bookValue'] = safe_float(t_bps.text)
         
         t_div = s.select_one('#_dvr')
-        if t_div: res['dividendYield'] = safe_float(t_div.text.replace(',',''))/100
+        if t_div: res['dividendYield'] = safe_float(t_div.text) / 100.0
         
         t_sum = s.select_one('.summary_info p')
-        if t_sum: res['kr_sum'] = t_sum.text
+        if t_sum: res['kr_sum'] = t_sum.text.strip()
+        
+        # [핵심] yfinance가 못 가져오는 금융주 ROE를 네이버 재무제표 표에서 강제 추출
+        try:
+            th_roe = s.find('th', string=re.compile('ROE'))
+            if th_roe:
+                tr_roe = th_roe.find_parent('tr')
+                tds = tr_roe.find_all('td')
+                valid_roes = [safe_float(td.text) for td in tds if td.text.strip() and td.text.strip() != '-']
+                if valid_roes:
+                    res['returnOnEquity'] = valid_roes[-1] / 100.0
+        except: pass
+        
     except:
         pass
-    return res
+    return ress
 
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
