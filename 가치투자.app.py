@@ -1677,8 +1677,16 @@ def generate_quick_ai_preview(tk):
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
     
-    div = safe_float(i.get('dividendYield')) * 100 if kr else (safe_float(i.get('dividendRate')) / p * 100 if p > 0 else 0.0)
-    
+    # [수정된 배당률 계산 1]
+    _dy = safe_float(i.get('dividendYield'))
+    _dr = safe_float(i.get('dividendRate'))
+    div = 0.0
+    if _dr > 0 and p > 0:
+        _calc = (_dr / p) * 100
+        if _calc < 50.0: div = _calc
+    if div == 0.0 and _dy > 0:
+        div = _dy if _dy > 1.0 else _dy * 100
+        
     off = i.get('companyOfficers', [])
     ceo_raw = '누락'
     if isinstance(off, list) and len(off) > 0:
