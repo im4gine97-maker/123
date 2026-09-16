@@ -1634,7 +1634,7 @@ def generate_quick_ai_preview(tk):
 
     # 버그 원인 해결: 과거 평균 PER이 없을 때 0이 아닌 수동 추정치로 Fallback
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
     
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
     
