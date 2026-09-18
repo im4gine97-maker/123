@@ -401,6 +401,14 @@ new_tickers_to_add = {
     "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET",
 }
 
+# 기존 tmap 딕셔너리에 사용자가 추가한 관심종목을 일괄 병합합니다.
+tmap.update(user_custom_tickers)
+
+# 이름 역발췌(primary_names)를 다시 한번 최신화하여 검색 로직에 반영합니다.
+for k, v in tmap.items():
+    if v not in primary_names:
+        primary_names[v] = k
+
 # 기존 tmap 딕셔너리에 위에서 정의한 새로운 기업들을 병합(Merge)합니다.
 tmap.update(new_tickers_to_add)
 # =========================================================================
