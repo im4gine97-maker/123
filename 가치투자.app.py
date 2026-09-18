@@ -1897,7 +1897,7 @@ def generate_quick_ai_preview(tk):
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
     
-    # --- [상세 분석과 로직 100% 동기화: 결측치 수동 계산 및 프리마켓 적용] ---
+    ext_str = ""
     is_ext_active = False
     if not kr:
         pre_p = safe_float(i.get('preMarketPrice', 0.0))
@@ -1908,7 +1908,9 @@ def generate_quick_ai_preview(tk):
         elif post_p > 0:
             p = post_p
             is_ext_active = True
-    
+
+    p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
     
@@ -1918,7 +1920,6 @@ def generate_quick_ai_preview(tk):
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
     
-    # 1. EPS 강제 계산 (결측치 방어)
     try:
         _inc = stk.income_stmt
         if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -1931,14 +1932,12 @@ def generate_quick_ai_preview(tk):
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-    # 2. 현재 PER 및 선행 PER 계산
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
     
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
 
-    # --- [복구됨] 실수로 삭제됐던 PBR, ROE, ROIC 블록 ---
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
     if bv > 0:
@@ -1968,35 +1967,31 @@ def generate_quick_ai_preview(tk):
         except: pass
     
     real_roic = get_real_roic(stk, i)
-    # --------------------------------------------------
         
-                # 3. 과거 평균 PER (a_pe) 자체 계산
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe <= 0.0:
-                    # [환율 불일치 방어] 주가 통화(USD)와 재무제표 통화(CNY 등)가 다르면 수동 계산 차단
-                    currency = str(i.get('currency', 'USD')).upper()
-                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
-                    
-                    if currency == fin_currency:
-                        try:
-                            _inc = stk.income_stmt
-                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                                if len(_ni_vals) >= 2:
-                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                                    if _avg_ni > 0 and _sh_out > 0:
-                                        a_pe = p / (_avg_ni / _sh_out)
-                        except: pass
-                
-                # [이상치 방어 로직] 평균 PER이 5배 미만이거나 200배 초과면 회계적 착시이므로 폐기
-                if a_pe < 5.0 or a_pe > 200.0:
-                    if t_pe > 0:
-                        a_pe = t_pe 
-                    elif f_pe > 0:
-                        a_pe = f_pe
-                    else:
-                        a_pe = 0.0
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe <= 0.0:
+        currency = str(i.get('currency', 'USD')).upper()
+        fin_currency = str(i.get('financialCurrency', 'USD')).upper()
+        
+        if currency == fin_currency:
+            try:
+                _inc = stk.income_stmt
+                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                    if len(_ni_vals) >= 2:
+                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                        _sh_out = safe_float(i.get('sharesOutstanding'))
+                        if _avg_ni > 0 and _sh_out > 0:
+                            a_pe = p / (_avg_ni / _sh_out)
+            except: pass
+            
+    if a_pe < 5.0 or a_pe > 200.0:
+        if t_pe > 0:
+            a_pe = t_pe 
+        elif f_pe > 0:
+            a_pe = f_pe
+        else:
+            a_pe = 0.0
 
     
     # [수정된 배당률 계산 1]
@@ -2321,7 +2316,6 @@ with tab1:
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
-                # 1. EPS 강제 계산 (결측치 방어)
                 try:
                     _inc = stk.income_stmt
                     if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -2334,14 +2328,12 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 현재 PER 및 선행 PER 계산
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
                 
                 if f_pe <= 0 and t_pe > 0:
                     f_pe = t_pe
 
-                # --- [복구됨] 실수로 삭제됐던 PBR, ROE, ROIC 블록 ---
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
                 
@@ -2380,27 +2372,31 @@ with tab1:
                 else:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                     else: roic_str = t("데이터 부족", "N/A")
-                # --------------------------------------------------
                 
-                # 3. 과거 평균 PER (a_pe) 자체 계산
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe <= 0.0:
-                    try:
-                        _inc = stk.income_stmt
-                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                            _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                            if len(_ni_vals) >= 2:
-                                _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                _sh_out = safe_float(i.get('sharesOutstanding'))
-                                if _avg_ni > 0 and _sh_out > 0:
-                                    a_pe = p / (_avg_ni / _sh_out)
-                    except: pass
+                    currency = str(i.get('currency', 'USD')).upper()
+                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
                     
-                    if a_pe <= 0.0:
-                        if t_pe > 0:
-                            a_pe = t_pe * 1.1 
-                        else:
-                            a_pe = 0.0
+                    if currency == fin_currency:
+                        try:
+                            _inc = stk.income_stmt
+                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                                if len(_ni_vals) >= 2:
+                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                                    if _avg_ni > 0 and _sh_out > 0:
+                                        a_pe = p / (_avg_ni / _sh_out)
+                        except: pass
+                
+                if a_pe < 5.0 or a_pe > 200.0:
+                    if t_pe > 0:
+                        a_pe = t_pe 
+                    elif f_pe > 0:
+                        a_pe = f_pe
+                    else:
+                        a_pe = 0.0
                 # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
