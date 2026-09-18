@@ -1388,15 +1388,25 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             scaled_score = ratio * 40.0
 
             if scaled_score >= 38: ceo_final = 40
+            elif scaled_score >= 34: ceo_final = 36
             elif scaled_score >= 30: ceo_final = 32
-            elif scaled_score >= 20: ceo_final = 24
-            elif scaled_score >= 10: ceo_final = 16
-            elif scaled_score >= 2: ceo_final = 8
+            elif scaled_score >= 26: ceo_final = 28
+            elif scaled_score >= 22: ceo_final = 24
+            elif scaled_score >= 18: ceo_final = 20
+            elif scaled_score >= 14: ceo_final = 16
+            elif scaled_score >= 10: ceo_final = 12
+            elif scaled_score >= 6: ceo_final = 8
+            elif scaled_score >= 2: ceo_final = 4
             elif scaled_score >= -2: ceo_final = 0
+            elif scaled_score >= -6: ceo_final = -4
             elif scaled_score >= -10: ceo_final = -8
-            elif scaled_score >= -20: ceo_final = -16
-            elif scaled_score >= -30: ceo_final = -24
-            elif scaled_score >= -38: ceo_final = -32
+            elif scaled_score >= -14: ceo_final = -12
+            elif scaled_score >= -18: ceo_final = -16
+            elif scaled_score >= -22: ceo_final = -20
+            elif scaled_score >= -26: ceo_final = -24
+            elif scaled_score >= -30: ceo_final = -28
+            elif scaled_score >= -34: ceo_final = -32
+            elif scaled_score >= -38: ceo_final = -36
             else: ceo_final = -40
             
             if ceo_final >= 20: ceo_reason = t("주주친화, 자본배분 탁월 등 긍정적 팩터 우세", "Highly shareholder-friendly & excellent allocation")
@@ -1469,38 +1479,55 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
-        # 금융주 자산가치(PBR) - 완만한 프리미엄 허용 곡선
+        # [수정] 금융주 자산가치(PBR) 영향력 축소 (최대 20점) 및 세분화
         if kr:
-            if pbr <= 0.3: cap_score += 40
-            elif pbr <= 0.4: cap_score += 30
-            elif pbr <= 0.5: cap_score += 20
-            elif pbr <= 0.6: cap_score += 10
-            elif pbr <= 0.8: cap_score += 0
-            elif pbr <= 1.0: cap_score -= 10
-            elif pbr <= 1.2: cap_score -= 20
-            else: cap_score -= 30
+            if pbr <= 0.25: cap_score += 20
+            elif pbr <= 0.30: cap_score += 18
+            elif pbr <= 0.35: cap_score += 16
+            elif pbr <= 0.40: cap_score += 14
+            elif pbr <= 0.45: cap_score += 12
+            elif pbr <= 0.50: cap_score += 10
+            elif pbr <= 0.55: cap_score += 8
+            elif pbr <= 0.60: cap_score += 6
+            elif pbr <= 0.70: cap_score += 4
+            elif pbr <= 0.80: cap_score += 0
+            elif pbr <= 0.90: cap_score -= 5
+            elif pbr <= 1.00: cap_score -= 10
+            elif pbr <= 1.10: cap_score -= 15
+            else: cap_score -= 20
         else:
-            if pbr <= 0.8: cap_score += 40
-            elif pbr <= 1.0: cap_score += 30
-            elif pbr <= 1.2: cap_score += 20
-            elif pbr <= 1.4: cap_score += 10
+            if pbr <= 0.6: cap_score += 20
+            elif pbr <= 0.8: cap_score += 18
+            elif pbr <= 1.0: cap_score += 15
+            elif pbr <= 1.1: cap_score += 12
+            elif pbr <= 1.2: cap_score += 9
+            elif pbr <= 1.3: cap_score += 6
+            elif pbr <= 1.4: cap_score += 3
             elif pbr <= 1.6: cap_score += 0
-            elif pbr <= 1.8: cap_score -= 10
-            elif pbr <= 2.2: cap_score -= 20
-            else: cap_score -= 30
+            elif pbr <= 1.8: cap_score -= 5
+            elif pbr <= 2.0: cap_score -= 10
+            elif pbr <= 2.2: cap_score -= 15
+            else: cap_score -= 20
         
-        if roe >= 20: cap_score += 40
-        elif roe >= 18: cap_score += 35
-        elif roe >= 16: cap_score += 30
-        elif roe >= 14: cap_score += 25
-        elif roe >= 12: cap_score += 20
-        elif roe >= 10: cap_score += 15
-        elif roe >= 8: cap_score += 10
-        elif roe >= 6: cap_score += 5
-        elif roe >= 4: cap_score += 0
-        elif roe >= 2: cap_score -= 5
-        elif roe >= 0: cap_score -= 15
-        elif roe >= -5: cap_score -= 25
+        # [수정] 금융주 자본수익성(ROE) 영향력 대폭 확대 (최대 60점) 및 세분화
+        if roe >= 22.0: cap_score += 60
+        elif roe >= 20.0: cap_score += 55
+        elif roe >= 18.0: cap_score += 50
+        elif roe >= 16.0: cap_score += 45
+        elif roe >= 15.0: cap_score += 40
+        elif roe >= 14.0: cap_score += 35
+        elif roe >= 13.0: cap_score += 30
+        elif roe >= 12.0: cap_score += 25
+        elif roe >= 11.0: cap_score += 20
+        elif roe >= 10.0: cap_score += 15
+        elif roe >= 9.0:  cap_score += 10
+        elif roe >= 8.0:  cap_score += 5
+        elif roe >= 7.0:  cap_score += 0
+        elif roe >= 6.0:  cap_score -= 5
+        elif roe >= 5.0:  cap_score -= 10
+        elif roe >= 4.0:  cap_score -= 15
+        elif roe >= 2.0:  cap_score -= 25
+        elif roe >= 0.0:  cap_score -= 35
         else: cap_score -= 40
         
         cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
@@ -3455,15 +3482,25 @@ with tab6:
                 scaled_score = ratio * 40.0
 
                 if scaled_score >= 38: ceo_final = 40
+                elif scaled_score >= 34: ceo_final = 36
                 elif scaled_score >= 30: ceo_final = 32
-                elif scaled_score >= 20: ceo_final = 24
-                elif scaled_score >= 10: ceo_final = 16
-                elif scaled_score >= 2: ceo_final = 8
+                elif scaled_score >= 26: ceo_final = 28
+                elif scaled_score >= 22: ceo_final = 24
+                elif scaled_score >= 18: ceo_final = 20
+                elif scaled_score >= 14: ceo_final = 16
+                elif scaled_score >= 10: ceo_final = 12
+                elif scaled_score >= 6: ceo_final = 8
+                elif scaled_score >= 2: ceo_final = 4
                 elif scaled_score >= -2: ceo_final = 0
+                elif scaled_score >= -6: ceo_final = -4
                 elif scaled_score >= -10: ceo_final = -8
-                elif scaled_score >= -20: ceo_final = -16
-                elif scaled_score >= -30: ceo_final = -24
-                elif scaled_score >= -38: ceo_final = -32
+                elif scaled_score >= -14: ceo_final = -12
+                elif scaled_score >= -18: ceo_final = -16
+                elif scaled_score >= -22: ceo_final = -20
+                elif scaled_score >= -26: ceo_final = -24
+                elif scaled_score >= -30: ceo_final = -28
+                elif scaled_score >= -34: ceo_final = -32
+                elif scaled_score >= -38: ceo_final = -36
                 else: ceo_final = -40
             
             if ceo_final >= 32: tier = "S급 (만점)"
