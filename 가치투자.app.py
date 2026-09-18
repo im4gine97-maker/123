@@ -1871,9 +1871,9 @@ def generate_quick_ai_preview(tk):
     
     # f_pe가 0 이하이면 억지 계산을 하지 않고 0으로 설정
     if f_pe > 0 and a_pe > 0:
-    pmos_val = ((a_pe - f_pe) / a_pe) * 100
-else:
-    pmos_val = 0.0
+        pmos_val = ((a_pe - f_pe) / a_pe) * 100
+    else:
+        pmos_val = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
