@@ -2462,8 +2462,7 @@ with tab1:
                 else:
                     gap_text = f" -> <span style='color:#8892b0'>{t('[비교 불가]', '[N/A]')}</span>"
                     
-                eps_vs_ytd_html = f"<span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span> vs <span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span>{gap_text}"
-
+                eps_vs_ytd_html = f"<span style='color:{ytd_col}; font-weight:bold;'>{ytd_str}</span> vs <span style='color:{eps_col}; font-weight:bold;'>{eps_g_str}</span>{gap_text}"
                 eps_trend, bps_trend = analyze_trends(stk)
                 
                 gross_m = safe_float(i.get('grossMargins')) * 100
