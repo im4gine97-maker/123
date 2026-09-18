@@ -2255,7 +2255,7 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
-               t_pe_raw = safe_float(i.get('trailingPE'))
+                t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
                 
                 t_eps = safe_float(i.get('trailingEps'))
