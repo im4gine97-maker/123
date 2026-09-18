@@ -1865,11 +1865,15 @@ def generate_quick_ai_preview(tk):
     t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
     f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
-    # 버그 원인 해결: 과거 평균 PER이 없을 때 0이 아닌 수동 추정치로 Fallback
+    # [수정] a_pe 결측치 보정 유지하되, f_pe가 없으면 pmos_val을 0으로 고정
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 0.0
     
-    pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+    # f_pe가 0 이하이면 억지 계산을 하지 않고 0으로 설정
+    if f_pe > 0 and a_pe > 0:
+        pmos_val = ((a_pe - f_pe) / a_pe) * 100
+    else:
+        pmos_val = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
