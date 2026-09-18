@@ -1862,39 +1862,54 @@ def generate_quick_ai_preview(tk):
             is_ext_active = True
     
     t_pe_raw = safe_float(i.get('trailingPE'))
-    f_pe_raw = safe_float(i.get('forwardPE'))
-    
-    t_eps = safe_float(i.get('trailingEps'))
-    f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-    
-    reg_p = safe_float(i.get('regularMarketPrice', p))
-    if reg_p == 0: reg_p = p
-    
-    if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
-    if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
+                f_pe_raw = safe_float(i.get('forwardPE'))
+                
+                t_eps = safe_float(i.get('trailingEps'))
+                f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+                
+                reg_p = safe_float(i.get('regularMarketPrice', p))
+                if reg_p == 0: reg_p = p
+                
+                # 1. EPS 강제 계산 (결측치 방어)
+                try:
+                    _inc = stk.income_stmt
+                    if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                        _ni = safe_float(_inc.loc['Net Income'].iloc[0])
+                        _sh = safe_float(i.get('sharesOutstanding'))
+                        if t_eps == 0 and _sh > 0 and _ni != 0:
+                            t_eps = _ni / _sh
+                except: pass
 
-    # [핵심 수정] 한국 주식(kr)은 네이버가 제공하는 PER(t_pe_raw, f_pe_raw)이 있으면 무조건 1순위로 가져옵니다! 없을 때만 주가/EPS로 계산합니다.
-    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
-    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
+                if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
+                if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe <= 0.0:
-        try:
-            _inc = stk.income_stmt
-            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                if len(_ni_vals) >= 2:
-                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                    if _avg_ni > 0 and _sh_out > 0:
-                        a_pe = p / (_avg_ni / _sh_out)
-        except: pass
-        
-        if a_pe <= 0.0:
-            if not kr and t_pe > 0:
-                a_pe = t_pe * 1.1
-            else:
-                a_pe = 0.0
+                # 2. 현재 PER(t_pe) 및 선행 PER(f_pe) 촘촘한 계산
+                t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
+                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
+                
+                # 선행 PER이 없으면 현재 PER로 대체 (N/A 방지)
+                if f_pe <= 0 and t_pe > 0:
+                    f_pe = t_pe
+                    
+                # 3. 과거 평균 PER (a_pe) 자체 계산 강화 (네이버/야후 결측 시)
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                if a_pe <= 0.0:
+                    try:
+                        _inc = stk.income_stmt
+                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                            _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                            if len(_ni_vals) >= 2:
+                                _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                _sh_out = safe_float(i.get('sharesOutstanding'))
+                                if _avg_ni > 0 and _sh_out > 0:
+                                    a_pe = p / (_avg_ni / _sh_out)
+                    except: pass
+                    
+                    if a_pe <= 0.0:
+                        if t_pe > 0:
+                            a_pe = t_pe * 1.1 # 과거 평균이 없으면 보수적으로 현재 PER에 10% 할증 부여
+                        else:
+                            a_pe = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
@@ -2356,7 +2371,10 @@ with tab1:
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
                 
                 has_eps_g = False
-                if t_eps > 0 and f_eps > 0:
+                eps_g_val = 0.0
+                
+                # 1순위: 선행 컨센서스가 있는 경우
+                if t_eps > 0 and f_eps > 0 and f_eps != t_eps:
                     eps_g_val = ((f_eps - t_eps) / t_eps) * 100
                     eps_g_str = f"+{eps_g_val:.1f}%" if eps_g_val > 0 else f"{eps_g_val:.1f}%"
                     eps_col = "#2ecc71" if eps_g_val > 0 else "#ff7675"
@@ -2371,8 +2389,37 @@ with tab1:
                     eps_g_str = t("적자지속", "Continued Loss")
                     eps_col = "#ff7675"
                 else:
-                    eps_g_str = t("확인불가", "N/A")
-                    eps_col = "#8892b0"
+                    # 2순위: 컨센서스가 없으면(확인불가) 자체 재무제표로 최근 1년(YoY) 이익 성장률 수동 계산
+                    try:
+                        _inc = stk.income_stmt
+                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                            _ni_vals = _inc.loc['Net Income'].dropna().values[:2]
+                            if len(_ni_vals) >= 2:
+                                _ni_curr = safe_float(_ni_vals[0])
+                                _ni_prev = safe_float(_ni_vals[1])
+                                if _ni_prev > 0 and _ni_curr > 0:
+                                    eps_g_val = ((_ni_curr - _ni_prev) / _ni_prev) * 100
+                                    eps_g_str = f"+{eps_g_val:.1f}% (YoY)" if eps_g_val > 0 else f"{eps_g_val:.1f}% (YoY)"
+                                    eps_col = "#2ecc71" if eps_g_val > 0 else "#ff7675"
+                                    has_eps_g = True
+                                elif _ni_prev < 0 and _ni_curr > 0:
+                                    eps_g_str = t("흑자전환 (YoY)", "Turnaround (YoY)")
+                                    eps_col = "#2ecc71"
+                                elif _ni_prev > 0 and _ni_curr < 0:
+                                    eps_g_str = t("적자전환 (YoY)", "Turn to Loss (YoY)")
+                                    eps_col = "#ff7675"
+                                elif _ni_prev < 0 and _ni_curr < 0:
+                                    eps_g_str = t("적자지속 (YoY)", "Continued Loss (YoY)")
+                                    eps_col = "#ff7675"
+                            else:
+                                eps_g_str = t("확인불가", "N/A")
+                                eps_col = "#8892b0"
+                        else:
+                            eps_g_str = t("확인불가", "N/A")
+                            eps_col = "#8892b0"
+                    except:
+                        eps_g_str = t("확인불가", "N/A")
+                        eps_col = "#8892b0"
                     
                 has_ytd = False
                 ytd_ret = 0.0
@@ -2569,21 +2616,20 @@ with tab1:
                     st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
                 # ------------------- 1. 평가 로직 연산 (문자열 및 점수 준비) -------------------
                 # [수정됨: PER/안전마진 및 PBR 신호등 컬러 완벽 분리 적용]
+                # 금융주/일반주 상관없이 PER 안전마진 텍스트를 무조건 산출하도록 밖으로 뺍니다.
+                if pmos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pmos_val:.1f}% (저평가)</span>"
+                elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
+                else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
+                
                 if is_financial:
-                    per_mos_str = f"<span style='color:#8892b0;'>{t('금융주 평가 제외', 'N/A')}</span>"
                     if pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하</span>"
                     elif pbr <= 1.3: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 적정 가치</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 자본 대비 고평가</span>"
                 else:
-                    if pmos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pmos_val:.1f}% (저평가)</span>"
-                    elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
-                    else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
-                    
                     if pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[안전] 청산가치 이하</span>"
                     elif pbr <= 3.0: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 정상 프리미엄</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 높은 프리미엄</span>"
-
                 # [수정됨: biz_eval 누락 복구]
                 if is_financial:
                     if roe >= 10: 
