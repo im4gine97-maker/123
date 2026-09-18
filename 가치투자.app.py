@@ -2643,13 +2643,21 @@ with tab1:
                 else:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {clean_p_txt}"
 
+                # [핵심 추가] PER 결측치 UI N/A 예외 처리
+                if f_pe > 0 and a_pe > 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    fwd_pe_desc_str = f"{per_mos_str}<br>평균: {a_pe:.1f}배"
+                else:
+                    fwd_pe_val_str = f"{f_pe:.1f}배" if f_pe > 0 else "N/A"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 제외 (N/A)', 'N/A')}</span><br>평균: N/A"
+
                 # --- PC 좌측 정렬 방지를 위해 width: 100% 추가 (max-width 제거) ---
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
                     
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (Valuation)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{f_pe:.1f}배</div><div style='{desc_style}'>{per_mos_str}<br>평균: {a_pe:.1f}배</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR (자산가치)', 'PBR')}</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
 
