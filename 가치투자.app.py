@@ -1476,10 +1476,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
-    # 4. CAP_SCORE (ROE / ROIC)
+        # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
-        # [수정] 금융주 자산가치(PBR) 영향력 축소 (최대 20점) 및 세분화
+        # [금융주 자산가치(PBR)] - 최대 20점
         if kr:
             if pbr <= 0.25: cap_score += 20
             elif pbr <= 0.30: cap_score += 18
@@ -1509,55 +1509,61 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif pbr <= 2.2: cap_score -= 15
             else: cap_score -= 20
         
-        # [수정] 금융주 자본수익성(ROE) 영향력 대폭 확대 (최대 60점) 및 세분화
-        if roe >= 22.0: cap_score += 60
-        elif roe >= 20.0: cap_score += 55
-        elif roe >= 18.0: cap_score += 50
-        elif roe >= 16.0: cap_score += 45
-        elif roe >= 15.0: cap_score += 40
-        elif roe >= 14.0: cap_score += 35
-        elif roe >= 13.0: cap_score += 30
-        elif roe >= 12.0: cap_score += 25
-        elif roe >= 11.0: cap_score += 20
-        elif roe >= 10.0: cap_score += 15
-        elif roe >= 9.0:  cap_score += 10
-        elif roe >= 8.0:  cap_score += 5
-        elif roe >= 7.0:  cap_score += 0
-        elif roe >= 6.0:  cap_score -= 5
-        elif roe >= 5.0:  cap_score -= 10
-        elif roe >= 4.0:  cap_score -= 15
-        elif roe >= 2.0:  cap_score -= 25
-        elif roe >= 0.0:  cap_score -= 35
+        # [금융주 수익성(ROE)] - 1% 단위 촘촘한 세분화 (기준점 10% = 0점)
+        if roe >= 20.0: cap_score += 60
+        elif roe >= 19.0: cap_score += 54
+        elif roe >= 18.0: cap_score += 48
+        elif roe >= 17.0: cap_score += 42
+        elif roe >= 16.0: cap_score += 36
+        elif roe >= 15.0: cap_score += 30
+        elif roe >= 14.0: cap_score += 24
+        elif roe >= 13.0: cap_score += 18
+        elif roe >= 12.0: cap_score += 12
+        elif roe >= 11.0: cap_score += 6
+        elif roe >= 10.0: cap_score += 0   # <-- [기준점] 글로벌 은행 요구수익률
+        elif roe >= 9.0:  cap_score -= 4
+        elif roe >= 8.0:  cap_score -= 8
+        elif roe >= 7.0:  cap_score -= 12
+        elif roe >= 6.0:  cap_score -= 16
+        elif roe >= 5.0:  cap_score -= 20
+        elif roe >= 4.0:  cap_score -= 24
+        elif roe >= 3.0:  cap_score -= 28
+        elif roe >= 2.0:  cap_score -= 32
+        elif roe >= 1.0:  cap_score -= 36
         else: cap_score -= 40
         
         cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
+
     else:
         moat_power = (roic * 2 + roe) / 3
         
-        if moat_power >= 25.0:   cap_score += 30
-        elif moat_power >= 22.0: cap_score += 27
-        elif moat_power >= 19.0: cap_score += 24
-        elif moat_power >= 17.0: cap_score += 21
-        elif moat_power >= 15.0: cap_score += 18
-        elif moat_power >= 13.0: cap_score += 15
-        elif moat_power >= 11.0: cap_score += 12
-        elif moat_power >= 9.0:  cap_score += 9
-        elif moat_power >= 7.0:  cap_score += 6
-        elif moat_power >= 5.0:  cap_score += 3
-        elif moat_power >= 3.0:  cap_score += 0
-        elif moat_power >= 1.0:  cap_score -= 3
-        elif moat_power >= -1.0: cap_score -= 6
-        elif moat_power >= -3.0: cap_score -= 9
-        elif moat_power >= -5.0: cap_score -= 12
-        elif moat_power >= -7.0: cap_score -= 15
-        elif moat_power >= -10.0: cap_score -= 18
-        elif moat_power >= -13.0: cap_score -= 21
-        elif moat_power >= -16.0: cap_score -= 24
-        else:                     cap_score -= 30
+        # [일반 기업 비즈니스 해자] - 1% 단위 촘촘한 세분화 (기준점 12% = 0점)
+        if moat_power >= 22.0: cap_score += 30
+        elif moat_power >= 21.0: cap_score += 27
+        elif moat_power >= 20.0: cap_score += 24
+        elif moat_power >= 19.0: cap_score += 21
+        elif moat_power >= 18.0: cap_score += 18
+        elif moat_power >= 17.0: cap_score += 15
+        elif moat_power >= 16.0: cap_score += 12
+        elif moat_power >= 15.0: cap_score += 9
+        elif moat_power >= 14.0: cap_score += 6
+        elif moat_power >= 13.0: cap_score += 3
+        elif moat_power >= 12.0: cap_score += 0   # <-- [기준점] S&P 500 기업 평균
+        elif moat_power >= 11.0: cap_score -= 3
+        elif moat_power >= 10.0: cap_score -= 6
+        elif moat_power >= 9.0:  cap_score -= 9
+        elif moat_power >= 8.0:  cap_score -= 12
+        elif moat_power >= 7.0:  cap_score -= 15
+        elif moat_power >= 6.0:  cap_score -= 18
+        elif moat_power >= 5.0:  cap_score -= 21
+        elif moat_power >= 4.0:  cap_score -= 24
+        elif moat_power >= 3.0:  cap_score -= 27
+        else:                    cap_score -= 30
 
         cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = (cap_score, cap_reason)
+
 
     # 5. 레버리지 왜곡 방어 (ROE vs ROIC)
     lev_score = 0
