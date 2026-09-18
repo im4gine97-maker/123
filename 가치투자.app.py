@@ -1378,7 +1378,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif ceo_final == 0: ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
             else: ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
 
-    score += ceo_final
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
     # 2. 배당 매력도 (모든 기업 공통 적용, 현실적인 배당률 기준 20단계 세분화)
@@ -1405,26 +1404,40 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif div_yield_pct > 0.0: div_score = 1
     else: div_score = 0  # 무배당 시 감점 없음
 
-    score += div_score
     if div_yield_pct > 0:
         div_reason = t(f"현재 배당수익률 {div_yield_pct:.2f}% 반영 (가점 +{div_score}점)", f"Current dividend yield {div_yield_pct:.2f}% (+{div_score} pts)")
     else:
         div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
-    # 3. PER MoS (합리적 조정: 훌륭한 기업의 적당한 프리미엄은 허용)
+
+    # 3. 가격 매력도 (PER 안전마진) - 적자 및 결측치 0점 예외처리 추가 완료
     p_score = 0
-    if pmos >= 40: p_score = 30
-    elif pmos >= 20: p_score = 20
-    elif pmos >= 5: p_score = 10
-    elif pmos >= -5: p_score = 0   # 적정 수준
-    elif pmos >= -15: p_score = -10 # 살짝 비싸지만 해자가 있다면 방어 가능한 수준
-    elif pmos >= -30: p_score = -20
-    elif pmos >= -50: p_score = -30
-    else: p_score = -40 # 상식을 벗어난 극단적 버블
-    
-    score += p_score
-    p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+    if f_pe <= 0:
+        p_score = 0
+        p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
+    else:
+        if pmos >= 50: p_score = 40
+        elif pmos >= 45: p_score = 37
+        elif pmos >= 40: p_score = 34
+        elif pmos >= 35: p_score = 31
+        elif pmos >= 30: p_score = 28
+        elif pmos >= 25: p_score = 24
+        elif pmos >= 20: p_score = 20
+        elif pmos >= 15: p_score = 16
+        elif pmos >= 10: p_score = 12
+        elif pmos >= 5: p_score = 8
+        elif pmos >= 0: p_score = 4
+        elif pmos >= -5: p_score = 0
+        elif pmos >= -10: p_score = -5
+        elif pmos >= -15: p_score = -10
+        elif pmos >= -20: p_score = -15
+        elif pmos >= -25: p_score = -20
+        elif pmos >= -30: p_score = -26
+        elif pmos >= -40: p_score = -33
+        else: p_score = -40
+        p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+        
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
     # 4. CAP_SCORE (ROE / ROIC)
@@ -1450,8 +1463,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             elif pbr <= 2.2: cap_score -= 20
             else: cap_score -= 30
         
-        # (이 아래의 if roe >= 20: ... 코드는 그대로 유지합니다)
-
         if roe >= 20: cap_score += 40
         elif roe >= 18: cap_score += 35
         elif roe >= 16: cap_score += 30
@@ -1466,7 +1477,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif roe >= -5: cap_score -= 25
         else: cap_score -= 40
         
-        score += cap_score
         cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
         score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
     else:
@@ -1493,7 +1503,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif moat_power >= -16.0: cap_score -= 24
         else:                     cap_score -= 30
 
-        score += cap_score
         cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = (cap_score, cap_reason)
 
@@ -1522,7 +1531,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             lev_reason = t(f"현금성 자산 풍부: ROIC({roic:.1f}%)가 ROE({roe:.1f}%)보다 높음", 
                            f"Cash Rich: ROIC is higher than ROE")
             
-        score += lev_score
         score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
 
     # 6. S&P 500 기대수익률 (ERP) 비교
@@ -1553,7 +1561,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif spy_diff >= -4.5: spy_score = -18
         else:                  spy_score = -20
         
-        score += spy_score
         sign = "+" if spy_diff > 0 else ""
         spy_reason = t(
             f"S&P 500(EY {spy_ey:.1f}%) 대비 기대수익률 {sign}{spy_diff:.2f}%p 격차 반영", 
@@ -1595,7 +1602,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif diff >= -10.0: market_score = -18
         else:               market_score = -20
         
-        score += market_score
         sign = "+" if diff > 0 else ""
         market_reason = t(
             f"시장(S&P 500) 대비 퀄리티 우위: {metric_name} {sign}{diff:.1f}%p 격차 반영", 
@@ -1623,37 +1629,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             else: dcf_score = -40 # 밸류에이션이 지나치게 높아졌을 때의 확실한 매도 제안 라인
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
-        score += dcf_score
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
-    # 3. PER MoS (금융주 제한 해제: 금융주도 이익 대비 싼지 확인해야 함)
-    p_score = 0
-    if pmos >= 50: p_score = 40
-    elif pmos >= 45: p_score = 37
-    elif pmos >= 40: p_score = 34
-    elif pmos >= 35: p_score = 31
-    elif pmos >= 30: p_score = 28
-    elif pmos >= 25: p_score = 24
-    elif pmos >= 20: p_score = 20
-    elif pmos >= 15: p_score = 16
-    elif pmos >= 10: p_score = 12
-    elif pmos >= 5: p_score = 8
-    elif pmos >= 0: p_score = 4
-    elif pmos >= -5: p_score = 0
-    elif pmos >= -10: p_score = -5
-    elif pmos >= -15: p_score = -10
-    elif pmos >= -20: p_score = -15
-    elif pmos >= -25: p_score = -20
-    elif pmos >= -30: p_score = -26
-    elif pmos >= -40: p_score = -33
-    else: p_score = -40
-    
-    score += p_score
-    p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
-    score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
-
-    # 7. 거시 매력도 (ERP - 세분화 구간 적용)
-    # Forward PER이 없거나(<= 0) 적자인 기업은 0점(평가 제외 중립) 처리
+    # 9. 거시 매력도 (ERP - 세분화 구간 적용) - 적자 및 결측치 예외처리 추가 완료
+    erp_score = 0
     if f_pe <= 0:
         erp_score = 0
         erp_reason = t("Forward PER 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts (Neutral / Excluded)")
@@ -1668,7 +1647,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         else: erp_score = -30
         erp_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:+.2f}%p 반영", f"ERP vs 10Y Treasury: {erp:+.2f}%p")
 
-    score_breakdown[t('거시 매력도 (ERP)', 'Macro Yield (ERP)')] = (erp_score, erp_reason)
+    score_details[t('거시 매력도 (ERP)', 'Macro Yield (ERP)')] = (erp_score, erp_reason)
+
     # 10. 복리 성장률 (CAGR)
     g_score = 0
     if not is_financial:
@@ -1693,7 +1673,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif final_g >= -0.25: g_score = -26
         else: g_score = -30
         
-        score += g_score
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
@@ -1726,10 +1705,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
         
     if pen_score < 0:
-        score += pen_score
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
-    # 딕셔너리에 들어간 점수의 총합과 score 변수를 완벽히 동기화 (괴리 원천 차단)
+        
+    # [핵심 방어벽] 딕셔너리에 들어간 점수들을 모아서 총합 1번만 계산 (괴리 원천 차단)
     score = sum(val[0] if isinstance(val, tuple) else val for val in score_details.values())
 
     # 12. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
@@ -1766,7 +1745,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         color = "#ff4757" # Tier 1
         reason = t("비정상적인 고평가 상태이거나 기업의 구조적 훼손이 심각합니다. 자본 보호를 위해 매도를 강력히 고려해야 할 위험 구간입니다.", "Abnormally overvalued or suffering severe structural damage. Strongly consider selling to protect capital.")
 
-    # 텍스트에 표기되는 숫자도 수정한 값으로 반영
+    # 텍스트에 표기되는 부가 설명
     if is_cyclical:
         reason += t(" (시클리컬 기업 감점 -20점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -20 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
@@ -1777,7 +1756,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
-        reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 철저히 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 가치 함정을 방어했습니다.)", " (Financial Mode Active: DCF excluded to prevent cash flow distortion, but cross-verified using PBR, PER, and ROE to avoid value traps.)")
+        reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 방어했습니다.)", " (Financial Mode Active)")
 
     return title, color, reason, score_details
 
