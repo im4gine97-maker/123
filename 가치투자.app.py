@@ -2477,7 +2477,14 @@ with tab1:
                 iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
                 
                 roic_val = real_roic if real_roic is not None else 0
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, is_financial, pbr, kr, tk, base_fcf, div, is_zigzag)
+                
+                # [수정] 누락되었던 f_pe와 spy_pe 데이터를 AI 평가 함수로 정상 전달하여 점수 괴리를 해결합니다.
+                spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+                    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+                    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+                    f_pe=f_pe, spy_pe=spy_pe_val
+                )
 
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
