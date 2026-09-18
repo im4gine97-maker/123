@@ -1652,20 +1652,23 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
-    # 9. ERP (국채 비교 - 합리적 조정)
-    e_score = 0
-    if erp >= 4.0: e_score = 20
-    elif erp >= 2.0: e_score = 15
-    elif erp >= 1.0: e_score = 10
-    elif erp >= 0.0: e_score = 5
-    elif erp >= -1.0: e_score = 0   # 국채와 비슷하거나 살짝 밀려도 홀딩 가능
-    elif erp >= -2.0: e_score = -10
-    elif erp >= -4.0: e_score = -20
-    else: e_score = -30
-    
-    score += e_score
-    e_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:.2f}%p 반영", f"{erp:.2f}%p expected return premium vs 10Y Treasury")
-    score_details[t("거시 매력도 (ERP)", "Macro Attractiveness (ERP)")] = (e_score, e_reason)
+    # 7. 거시 매력도 (ERP - 세분화 구간 적용)
+    # Forward PER이 없거나(<= 0) 적자인 기업은 0점(평가 제외 중립) 처리
+    if f_pe <= 0:
+        erp_score = 0
+        erp_reason = t("Forward PER 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts (Neutral / Excluded)")
+    else:
+        if erp >= 4.0: erp_score = 20
+        elif erp >= 2.0: erp_score = 15
+        elif erp >= 1.0: erp_score = 10
+        elif erp >= 0.0: erp_score = 5
+        elif erp >= -1.0: erp_score = 0    # 국채와 비슷하거나 살짝 밀려도 홀딩 가능
+        elif erp >= -2.0: erp_score = -10
+        elif erp >= -4.0: erp_score = -20
+        else: erp_score = -30
+        erp_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:+.2f}%p 반영", f"ERP vs 10Y Treasury: {erp:+.2f}%p")
+
+    score_breakdown[t('거시 매력도 (ERP)', 'Macro Yield (ERP)')] = (erp_score, erp_reason)
     # 10. 복리 성장률 (CAGR)
     g_score = 0
     if not is_financial:
