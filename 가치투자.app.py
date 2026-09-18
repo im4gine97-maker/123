@@ -2264,7 +2264,8 @@ with tab1:
                     else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 15.0
+                # [수정] 억지로 15.0배를 넣지 않고 0.0으로 비워둡니다.
+                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 0.0
                 
                 # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
@@ -2660,7 +2661,6 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR (자산가치)', 'PBR')}</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
-
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>수익성 및 해자 (Profitability & Moat)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
