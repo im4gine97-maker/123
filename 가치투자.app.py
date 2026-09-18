@@ -2677,10 +2677,13 @@ with tab1:
                 else:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {clean_p_txt}"
 
-                # [핵심 수정] Fwd PER이 1이라도 존재하면 절대 숨기지 않고 무조건 화면에 띄우고 평가합니다!
-                if f_pe > 0:
+                # [완벽 수정 3] UI 박스에서 평균값이 없을 때 억지 점수(+73.8%)를 지우고 N/A로 분리합니다.
+                if f_pe > 0 and a_pe > 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
                     fwd_pe_desc_str = f"{per_mos_str}<br>평균: {a_pe:.1f}배"
+                elif f_pe > 0 and a_pe <= 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    fwd_pe_desc_str = f"<span style='color:#8892b0; font-weight:600;'>[N/A] 과거 평균 없음</span><br>평균: N/A"
                 else:
                     fwd_pe_val_str = "N/A"
                     fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 제외 (N/A)', 'N/A')}</span><br>평균: N/A"
