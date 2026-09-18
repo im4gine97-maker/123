@@ -31,7 +31,8 @@ def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
         if isinstance(val, str):
-            val = val.replace('%', '').replace(',', '').strip()
+            # [수정] '배'나 '원' 같은 한국어 단위가 붙어있어도 숫자로 완벽히 변환하도록 방어합니다.
+            val = val.replace('%', '').replace(',', '').replace('배', '').replace('원', '').strip()
         return float(val)
     except:
         return default
@@ -1872,6 +1873,7 @@ def generate_quick_ai_preview(tk):
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
+    # [현재 PER 복구] 한국 주식은 무조건 네이버 값을 1순위로 가져다 꽂습니다!
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
 
@@ -2258,6 +2260,7 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
+                # [현재 PER 복구] 한국 주식은 무조건 네이버 값을 1순위로 가져다 꽂습니다!
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
 
