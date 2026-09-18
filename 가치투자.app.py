@@ -1862,27 +1862,24 @@ def generate_quick_ai_preview(tk):
     
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
+                
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+                    
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
-    
+                    
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
-    t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
-    f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
-
+    
+    # [완벽 수정 1] 한국 주식은 네이버 추정 PER(f_pe_raw)을 1순위로 그대로 씁니다. (3.9배 오차 원천 차단)
+    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
+    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
+    
+    # [완벽 수정 2] 과거 평균 PER이 제공되지 않으면 절대 15나 t_pe*1.1 같은 가짜 값을 넣지 않고 0으로 비웁니다.
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-    # [핵심 수정] Fwd PER이 있는데 과거 데이터만 비어있다면, 평가를 위해 시장 평균(15배)을 베이스로 깔아줍니다.
     if a_pe <= 0.0:
-        if t_pe > 0: a_pe = t_pe * 1.1
-        elif f_pe > 0: a_pe = 15.0
-        else: a_pe = 0.0
-        
-    if f_pe > 0 and a_pe > 0:
-        pmos_val = ((a_pe - f_pe) / a_pe) * 100
-    else:
-        pmos_val = 0.0
+       a_pe = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
