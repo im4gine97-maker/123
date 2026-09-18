@@ -1970,7 +1970,7 @@ def generate_quick_ai_preview(tk):
     real_roic = get_real_roic(stk, i)
     # --------------------------------------------------
         
-                    # 3. 과거 평균 PER (a_pe) 자체 계산
+                                    # 3. 과거 평균 PER (a_pe) 자체 계산
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe <= 0.0:
                     # [환율 불일치 방어] 주가 통화(USD)와 재무제표 통화(CNY 등)가 다르면 수동 계산 차단
