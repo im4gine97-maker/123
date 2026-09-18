@@ -2090,7 +2090,7 @@ st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
-    t("유명 가치투자자 13F", "Guru 13F Portfolios"),
+    t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 30"),
     t("경영진 평가 순위", "Management Ranking"),
     t("주식 용어 사전", "Stock Glossary"),
@@ -3004,10 +3004,10 @@ Verification Summary
                     st.code(t(share_ko, share_en), language="text")
 
 # ==========================================
-# 탭 2: 유명 가치투자자 13F 포트폴리오
+# 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
 with tab2:
-    st.subheader(t("글로벌 유명 가치투자자 13F 포트폴리오", "Global Value Gurus 13F Portfolio"))
+    st.subheader(t("글로벌 유명 투자자 13F 포트폴리오", "Global Value Gurus 13F Portfolio"))
     st.caption(t("※ 미국의 13F 공시를 추적하여 최신 포트폴리오 비중을 표출합니다.", "※ Tracks US 13F filings to display latest portfolio weights."))
     
     guru_map = {
@@ -3024,7 +3024,7 @@ with tab2:
         "모니시 파브라이 (Dalal Street)": "PI", 
         "가이 스피어 (Aquamarine Capital)": "AQUA"
     }
-    guru_option = st.selectbox(t("포트폴리오를 조회할 유명 가치투자자를 선택하세요:", "Select a Value Guru:"), list(guru_map.keys()))
+    guru_option = st.selectbox(t("포트폴리오를 조회할 유명 투자자를 선택하세요:", "Select a Value Guru:"), list(guru_map.keys()))
 
     st.markdown("### 인물 개요")
     if guru_option == "워런 버핏 (Berkshire Hathaway)":
