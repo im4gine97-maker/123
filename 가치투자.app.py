@@ -3353,14 +3353,20 @@ with tab6:
 
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    c_tk3, c_btn3 = st.columns([3, 1])
-    with c_tk3: 
-        fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), key="gov_fast_tk", label_visibility="collapsed")
-    with c_btn3:
-        matched_ticker_gov = gov_df[gov_df["기업명"] == fast_name_gov]["티커"].values[0]
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="gov_load_btn", on_click=select_ticker, args=(matched_ticker_gov,), use_container_width=True):
-            with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                st.session_state["preview_tab6"] = generate_quick_ai_preview(matched_ticker_gov)
+            c_tk, c_btn = st.columns([3, 1])
+            with c_tk: 
+                # [수정] 빈칸으로 시작(index=None)하게 만들어 1등 기업 강제 선택을 막습니다.
+                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
+            with c_btn:
+                # [수정] 버튼을 누른 즉시 값을 평가하여 엇갈리는 버그를 방지합니다.
+                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", use_container_width=True):
+                    if fast_name:
+                        matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                        select_ticker(matched_ticker)
+                        with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                            st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                    else:
+                        st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
                 
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
