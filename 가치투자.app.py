@@ -2770,33 +2770,44 @@ with tab1:
                     fwd_pe_val_str = "N/A"
                     fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: N/A</span>"
 
-                # --- PC 좌측 정렬 방지를 위해 width: 100% 추가 (max-width 제거) ---
+                # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
+                easy_summary_msg = ""
+                if score >= 70:
+                    easy_summary_msg = "🛍️ [강력 매수] 돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
+                elif score >= 30:
+                    easy_summary_msg = "🌤️ [매수] 튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
+                elif score >= 0:
+                    easy_summary_msg = "⚖️ [보유/관망] 비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
+                elif score >= -90:
+                    easy_summary_msg = "⚠️ [주의] 좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
+                else:
+                    easy_summary_msg = "🚨 [위험] 실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
+                # ------------------------------------------------------------------
+
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
                     
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (Valuation)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('현재 주가', 'Price')}</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PER(Fwd) & 안전마진', 'Fwd PE & MoS')}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('PBR (자산가치)', 'PBR')}</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('가격 평가', 'Price Valuation')}</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>수익성 및 해자 (Profitability & Moat)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{roe_roic_title}</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('매출총이익률', 'Gross Margin')}</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('영업이익률', 'Op Margin')}</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('비즈니스 해자', 'Business Moat')}</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
+                    # 1. 최상단: 직관적 결론
+                    f"<div style='grid-column: 1 / -1; font-weight: 800; font-size: 1.2rem; color: #fff; background: {op_color}; padding: 15px 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>"
+                    f"{easy_summary_msg}</div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>성장성 및 복리 (Growth & Compounding)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('성장 추세', 'Growth')}</div><div style='{desc_style}'>EPS: {eps_trend}<br>자본: {bps_trend}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('주가 vs 실적', 'Consensus')}</div><div style='{desc_style}'>{eps_vs_ytd_html}</div></div>"
-                    f"{rnd_block}"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수학적 복리', 'Math (Compounding)')}</div><div style='{desc_style} margin-top:5px;'>{math_eval}</div></div>"
-
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>거시 및 생존력 (Macro & Survivability)</div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('수익률 vs 국채', 'Yield vs Tsy')}</div><div style='{desc_style}'><div style='margin-bottom:4px;'>{ey_str if not is_financial else '<span style=\"color:var(--text-color); opacity:0.6;\">N/A</span>'}</div>국채: <b style='font-size:1.1em; color:var(--text-color);'>{ty:.2f}%</b></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('시장 대비 효율', 'vs Index')}</div><div style='{desc_style}'>{bench_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('유동비율', 'Current Ratio')}</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{t('생물학적 생존', 'Survivability')}</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (현재 가격은 싼가?)</div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>본전 회수 기간 (예상 PER)</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>장부상 자산가치 (PBR)</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>AI 적정가 대비 (DCF)</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
                     
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>비즈니스 체력 (장사를 얼마나 잘하나?)</div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>기본 마진율 (매출총이익률)</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>실제 장사 이익률 (영업이익)</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>비즈니스 경쟁력 종합</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
+
+                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>안전성 및 미래 대비</div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>이익 성장 추세 (EPS/자본)</div><div style='{desc_style}'>이익: {eps_trend}<br>자본: {bps_trend}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>위기 대처 현금력 (유동비율)</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
+                    f"{rnd_block}"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
