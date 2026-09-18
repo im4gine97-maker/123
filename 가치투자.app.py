@@ -1559,41 +1559,50 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             
         score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
 
+    # --- [가상자산 테마주 공통 판독기 (하이닉스 보호 및 MSTR 저격용)] ---
+    tk_upper = str(tk).upper()
+    crypto_proxies = ["MSTR", "COIN", "MARA", "RIOT", "IBIT", "MSTY"]
+    is_crypto = tk_upper in crypto_proxies or any(k in ceo_text for k in ["비트코인", "가상자산", "암호화폐"])
+    # -----------------------------------------------------
+
     # 6. S&P 500 기대수익률 (ERP) 비교
     spy_score = 0
     if not is_financial and f_pe > 0 and spy_pe > 0:
-        stock_ey = (1 / f_pe) * 100
-        spy_ey = (1 / spy_pe) * 100
-        spy_diff = stock_ey - spy_ey
-        
-        if spy_diff >= 4.5:    spy_score = 20
-        elif spy_diff >= 4.0:  spy_score = 18
-        elif spy_diff >= 3.5:  spy_score = 16
-        elif spy_diff >= 3.0:  spy_score = 14
-        elif spy_diff >= 2.5:  spy_score = 12
-        elif spy_diff >= 2.0:  spy_score = 10
-        elif spy_diff >= 1.5:  spy_score = 8
-        elif spy_diff >= 1.0:  spy_score = 6
-        elif spy_diff >= 0.5:  spy_score = 4
-        elif spy_diff >= 0.0:  spy_score = 2
-        elif spy_diff >= -0.5: spy_score = -2
-        elif spy_diff >= -1.0: spy_score = -4
-        elif spy_diff >= -1.5: spy_score = -6
-        elif spy_diff >= -2.0: spy_score = -8
-        elif spy_diff >= -2.5: spy_score = -10
-        elif spy_diff >= -3.0: spy_score = -12
-        elif spy_diff >= -3.5: spy_score = -14
-        elif spy_diff >= -4.0: spy_score = -16
-        elif spy_diff >= -4.5: spy_score = -18
-        else:                  spy_score = -20
-        
-        sign = "+" if spy_diff > 0 else ""
-        spy_reason = t(
-            f"S&P 500(EY {spy_ey:.1f}%) 대비 기대수익률 {sign}{spy_diff:.2f}%p 격차 반영", 
-            f"{sign}{spy_diff:.2f}%p expected return gap vs S&P 500 (EY {spy_ey:.1f}%)"
-        )
+        if is_crypto:
+            spy_score = -20
+            spy_reason = t("가상자산 연동 기업은 회계상 착시로 인해 기대수익률 평가가 무의미합니다", "Expected return evaluation is meaningless due to crypto accounting illusion")
+        else:
+            stock_ey = (1 / f_pe) * 100
+            spy_ey = (1 / spy_pe) * 100
+            spy_diff = stock_ey - spy_ey
+            
+            if spy_diff >= 4.5:    spy_score = 20
+            elif spy_diff >= 4.0:  spy_score = 18
+            elif spy_diff >= 3.5:  spy_score = 16
+            elif spy_diff >= 3.0:  spy_score = 14
+            elif spy_diff >= 2.5:  spy_score = 12
+            elif spy_diff >= 2.0:  spy_score = 10
+            elif spy_diff >= 1.5:  spy_score = 8
+            elif spy_diff >= 1.0:  spy_score = 6
+            elif spy_diff >= 0.5:  spy_score = 4
+            elif spy_diff >= 0.0:  spy_score = 2
+            elif spy_diff >= -0.5: spy_score = -2
+            elif spy_diff >= -1.0: spy_score = -4
+            elif spy_diff >= -1.5: spy_score = -6
+            elif spy_diff >= -2.0: spy_score = -8
+            elif spy_diff >= -2.5: spy_score = -10
+            elif spy_diff >= -3.0: spy_score = -12
+            elif spy_diff >= -3.5: spy_score = -14
+            elif spy_diff >= -4.0: spy_score = -16
+            elif spy_diff >= -4.5: spy_score = -18
+            else:                  spy_score = -20
+            
+            sign = "+" if spy_diff > 0 else ""
+            spy_reason = t(
+                f"S&P 500(EY {spy_ey:.1f}%) 대비 기대수익률 {sign}{spy_diff:.2f}%p 격차 반영", 
+                f"{sign}{spy_diff:.2f}%p expected return gap vs S&P 500 (EY {spy_ey:.1f}%)"
+            )
         score_details[t("시장 지수(S&P 500) 대비 매력도", "Relative Attractiveness vs S&P 500")] = (spy_score, spy_reason)
-
     # 7. 시장 퀄리티 (ROIC/ROE vs S&P 500)
     market_score = 0
     spy_roe_avg = 15.0
@@ -1657,17 +1666,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
-    # 9. 거시 매력도 (ERP - 세분화 구간 적용) - 적자 및 결측치 예외처리 추가 완료
+    # 9. 거시 매력도 (ERP)
     erp_score = 0
     if f_pe <= 0:
         erp_score = 0
-        erp_reason = t("Forward PER 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts (Neutral / Excluded)")
+        erp_reason = t("Forward PER 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
+    elif is_crypto:
+        erp_score = -30
+        erp_reason = t("장부상 이익만 존재하는 밸류에이션 착시 상태입니다 (가치평가 불가)", "Valuation illusion: Paper profits without actual cash flow")
     else:
         if erp >= 4.0: erp_score = 20
         elif erp >= 2.0: erp_score = 15
         elif erp >= 1.0: erp_score = 10
         elif erp >= 0.0: erp_score = 5
-        elif erp >= -1.0: erp_score = 0    # 국채와 비슷하거나 살짝 밀려도 홀딩 가능
+        elif erp >= -1.0: erp_score = 0
         elif erp >= -2.0: erp_score = -10
         elif erp >= -4.0: erp_score = -20
         else: erp_score = -30
@@ -1704,8 +1716,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 11. 시장 페널티 (지정학, 시클리컬) - 합리적으로 수치 조정됨
     pen_score = 0
-    tk_upper = str(tk).upper()
-
+    
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
 
@@ -1713,7 +1724,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
 
     pen_reasons = []
-    if kr: 
+    
+    if is_crypto:
+        pen_score -= 40
+        pen_reasons.append(t("가상자산 연동 (내재가치 평가 불가 및 극도의 변동성)", "Crypto Proxy (Unpredictable Intrinsic Value & Volatility)"))
+    elif kr: 
         pen_score -= 15 # 기존 -30에서 완화
         pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
     elif is_china_hk: 
