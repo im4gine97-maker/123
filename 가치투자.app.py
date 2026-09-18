@@ -1871,31 +1871,28 @@ def generate_quick_ai_preview(tk):
                     
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
-    
-    # [완벽 수정 1] 한국 주식은 네이버 추정 PER(f_pe_raw)을 1순위로 그대로 씁니다. (3.9배 오차 원천 차단)
-    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
-                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
 
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe <= 0.0:
-                    # 1. 재무제표 기반 과거 4년 '평균 순이익'을 구해 실질적인 과거 평균 PER(CAPE 방식) 계산
-                    try:
-                        _inc = stk.income_stmt
-                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                            _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                            if len(_ni_vals) >= 2:
-                                _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                _sh_out = safe_float(i.get('sharesOutstanding'))
-                                if _avg_ni > 0 and _sh_out > 0:
-                                    a_pe = p / (_avg_ni / _sh_out)
-                    except: pass
-                    
-                    # 2. 재무제표로도 못 구하면 미국 주식은 예전처럼 대체 계산, 한국은 0.0(N/A) 처리
-                    if a_pe <= 0.0:
-                        if not kr and t_pe > 0:
-                            a_pe = t_pe * 1.1
-                        else:
-                            a_pe = 0.0
+    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
+    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
+
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe <= 0.0:
+        try:
+            _inc = stk.income_stmt
+            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                if len(_ni_vals) >= 2:
+                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                    if _avg_ni > 0 and _sh_out > 0:
+                        a_pe = p / (_avg_ni / _sh_out)
+        except: pass
+        
+        if a_pe <= 0.0:
+            if not kr and t_pe > 0:
+                a_pe = t_pe * 1.1
+            else:
+                a_pe = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
@@ -2261,7 +2258,6 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # [완벽 수정 1] 한국 주식은 네이버 추정 PER(f_pe_raw)을 우선 적용합니다.
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if t_eps > 0 else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
 
@@ -2305,9 +2301,23 @@ with tab1:
                     else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
-                # [완벽 수정 2] 과거 평균 PER 데이터가 없으면 가짜 15배를 넣지 않고 0으로 둡니다.
                 if a_pe <= 0.0:
-                    a_pe = 0.0
+                    try:
+                        _inc = stk.income_stmt
+                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                            _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                            if len(_ni_vals) >= 2:
+                                _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                _sh_out = safe_float(i.get('sharesOutstanding'))
+                                if _avg_ni > 0 and _sh_out > 0:
+                                    a_pe = p / (_avg_ni / _sh_out)
+                    except: pass
+                    
+                    if a_pe <= 0.0:
+                        if not kr and t_pe > 0:
+                            a_pe = t_pe * 1.1
+                        else:
+                            a_pe = 0.0
                 
                 # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
