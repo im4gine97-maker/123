@@ -2751,19 +2751,18 @@ with tab1:
                 else:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {clean_p_txt}"
 
-                # [현재 PER 추가] t_pe 값을 이용해 현재 PER 문자열 생성
                 t_pe_str = f"현재: {t_pe:.1f}배" if t_pe > 0 else "현재: N/A"
 
-                # [완벽 수정 3] UI 박스에 현재 PER과 평균 PER을 나란히 표시합니다.
                 if f_pe > 0 and a_pe > 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
                     fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: {a_pe:.1f}배</span>"
                 elif f_pe > 0 and a_pe <= 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"<span style='color:#8892b0; font-weight:600;'>[N/A] 과거 평균 없음</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: N/A</span>"
+                    # 금융주여도 PER이 계산되면 정상 출력하도록 N/A 텍스트를 제거했습니다.
+                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: N/A</span>"
                 else:
                     fwd_pe_val_str = "N/A"
-                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 제외 (N/A)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: N/A</span>"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 평균: N/A</span>"
 
                 # --- PC 좌측 정렬 방지를 위해 width: 100% 추가 (max-width 제거) ---
                 integrated_html = (
