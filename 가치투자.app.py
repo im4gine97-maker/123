@@ -1872,11 +1872,13 @@ def generate_quick_ai_preview(tk):
     t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
     f_pe = (p / f_eps) if f_eps > 0 else f_pe_raw
 
-    # [수정] a_pe 결측치 보정 유지하되, f_pe가 없으면 pmos_val을 0으로 고정
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 0.0
-    
-    # f_pe가 0 이하이면 억지 계산을 하지 않고 0으로 설정
+    # [핵심 수정] Fwd PER이 있는데 과거 데이터만 비어있다면, 평가를 위해 시장 평균(15배)을 베이스로 깔아줍니다.
+    if a_pe <= 0.0:
+        if t_pe > 0: a_pe = t_pe * 1.1
+        elif f_pe > 0: a_pe = 15.0
+        else: a_pe = 0.0
+        
     if f_pe > 0 and a_pe > 0:
         pmos_val = ((a_pe - f_pe) / a_pe) * 100
     else:
@@ -2289,8 +2291,10 @@ with tab1:
                     else: roic_str = t("데이터 부족", "N/A")
                 
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
-                # [수정] 억지로 15.0배를 넣지 않고 0.0으로 비워둡니다.
-                if a_pe == 0.0: a_pe = t_pe * 1.1 if t_pe > 0 else 0.0
+                if a_pe <= 0.0:
+                    if t_pe > 0: a_pe = t_pe * 1.1
+                    elif f_pe > 0: a_pe = 15.0
+                    else: a_pe = 0.0
                 
                 # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
@@ -2676,12 +2680,12 @@ with tab1:
                 else:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {clean_p_txt}"
 
-                # [핵심 추가] PER 결측치 UI N/A 예외 처리
-                if f_pe > 0 and a_pe > 0:
+                # [핵심 수정] Fwd PER이 1이라도 존재하면 절대 숨기지 않고 무조건 화면에 띄우고 평가합니다!
+                if f_pe > 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
                     fwd_pe_desc_str = f"{per_mos_str}<br>평균: {a_pe:.1f}배"
                 else:
-                    fwd_pe_val_str = f"{f_pe:.1f}배" if f_pe > 0 else "N/A"
+                    fwd_pe_val_str = "N/A"
                     fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 제외 (N/A)', 'N/A')}</span><br>평균: N/A"
 
                 # --- PC 좌측 정렬 방지를 위해 width: 100% 추가 (max-width 제거) ---
