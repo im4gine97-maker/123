@@ -351,6 +351,54 @@ new_tickers_to_add = {
     "명창우품": "MNSO", "보스 직핀": "BZ", "후야": "HUYA", "도유": "DOYU", "아이치이": "IQ", 
     "지후": "ZH", "칸준": "BZ", "가오투 테크에듀": "GOTU", "탈 에듀케이션": "TAL", "뉴 오리엔탈 에듀케이션": "EDU", 
     "웨이보": "WB", "오토홈": "ATHM", "치후 360": "QIHU", "루팍스": "LU", "샤오미": "XIACY"
+    # ===== 한국 주식 및 ETF (기존 중복 제외) =====
+    "금호전기": "001210.KS", "가온전선": "000500.KS", "대한광통신": "010170.KQ",
+    "KODEX 레버리지": "122630.KS", "삼화콘덴서": "001820.KS", "성호전자": "043260.KQ",
+    "이수페타시스": "007660.KS", "KODEX 인버스": "114800.KS", "대한전선": "001440.KS",
+    "KODEX 200": "069500.KS", "금호건설": "002990.KS", "KODEX 반도체레버리지": "261250.KS",
+    "지엔씨에너지": "119850.KQ", "LS에코에너지": "229640.KS", "SK이터닉스": "475150.KS",
+    "주성엔지니어링": "036930.KQ", "대우건설": "047040.KS", "우리로": "046970.KQ",
+    "대원전선": "006340.KS", "LG이노텍": "011070.KS", "KODEX 코스닥150레버리지": "233740.KS",
+    "서산": "079650.KQ", "한전기술": "052690.KS", "계양전기": "012200.KS",
+    "TIGER 배당커버드콜액티브": "450330.KS", "TIGER 반도체TOP10레버리지": "412570.KS",
+    "코칩": "126730.KQ", "빛과전자": "069540.KQ", "효성중공업": "298040.KS",
+    "LS ELECTRIC": "010120.KS", "삼성전자우": "005935.KS", "일진전기": "103590.KS",
+    "광전자": "017900.KS", "KODEX 200선물인버스2X": "252670.KS", "한라캐스트": "092460.KS",
+    "빛샘전자": "118800.KQ", "우리기술": "032820.KQ", "RFHIC": "218410.KQ",
+    "로보티즈": "108490.KQ", "산일전기": "062040.KS", "에이피알": "278470.KS",
+    "KODEX SK하이닉스단일종목레버리지": "480460.KS", "한켐": "256840.KQ", 
+    "삼성E&A": "028050.KS", "심텍": "222800.KQ", "KBI메탈": "020890.KQ",
+    "하이젠알앤엠": "160190.KQ", "두산퓨얼셀": "336260.KS", "한화시스템": "272210.KS",
+    "SOL SK하이닉스선물단일종목인버스2X": "481180.KS", "후성": "093370.KS", 
+    "엔에프씨": "286080.KQ", "KODEX 코스닥150": "229200.KS", "두산테스나": "136490.KQ", 
+    "현대무벡스": "319400.KQ", "미투온": "201490.KQ", "원익홀딩스": "030530.KQ",
+    "코미코": "183300.KQ", "아모텍": "052710.KQ", "스피어": "SPHR", "엑스게이트": "356680.KQ",
+    "휴림로봇": "090710.KQ", "TIGER 200": "102110.KS", "삼성중공업": "010140.KS",
+    "제주반도체": "080220.KQ", "에스피지": "058610.KQ", "HLB": "028300.KQ",
+    "페니트리움바이오": "087010.KQ", "KODEX 200타겟위클리커버드콜": "483320.KS", 
+    "KODEX AI전력핵심설비": "486290.KS", "대덕전자": "353200.KS", 
+    "SOL AI반도체TOP2플러스": "481160.KS", "한국콜마": "161890.KS", 
+    "파미셀": "005690.KS", "리노공업": "058470.KQ", "티엠씨": "428660.KQ",
+
+    # ===== 미국 주식 및 글로벌 ETF (기존 중복 제외) =====
+    "SOXS": "SOXS", "SOXL": "SOXL", "KORU": "KORU", "아이온큐": "IONQ", 
+    "GE 버노바": "GEV", "BOXX": "BOXX", "아이렌": "IREN", "네비우스 그룹": "NVVE", 
+    "SGOV": "SGOV", "GDXU": "GDXU", "ETHU": "ETHU", "QQQM": "QQQM", 
+    "로켓 랩": "RKLB", "모더나": "MRNA", "QQQI": "QQQI", "JEPQ": "JEPQ", 
+    "DRAM": "DRAM", "VOO": "VOO", "GPIQ": "GPIQ", "SQQQ": "SQQQ", "블룸 에너지": "BE", 
+    "SCHD": "SCHD", "RAM": "RAM", "QQQ": "QQQ", "TQQQ": "TQQQ", 
+    "스트래티지": "MSTR", "스테이블코인X": "STBX", "QLD": "QLD", "SPYM": "SPYM", 
+    "루멘텀 홀딩스": "LITE", "SNDU": "SNDU", "JEPI": "JEPI", "FXY": "FXY", 
+    "NVDY": "NVDY", "버티브 홀딩스": "VRT", "XXRP": "XXRP", "코어위브": "CORZ", 
+    "LABD": "LABD", "TSLL": "TSLL", "엔페이즈 에너지": "ENPH", "SOLT": "SOLT", 
+    "앱러빈": "APP", "에어로바이런먼트": "AVAV", "휴렛 패커드 엔터프라이즈": "HPE", 
+    "SPY": "SPY", "코히런트": "COHR", "코닝": "GLW", "MSTY": "MSTY", 
+    "템퍼스 AI": "TEM", "하이퍼리퀴드 스트래티지스": "HLIQ", "BITX": "BITX", 
+    "써클 인터넷 그룹": "CRCL", "AGQ": "AGQ", "MLPI": "MLPI", 
+    "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
+    "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
+    "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET",
 }
 
 # 기존 tmap 딕셔너리에 위에서 정의한 새로운 기업들을 병합(Merge)합니다.
@@ -2385,8 +2433,8 @@ with tab1:
 
                 with col_op2:
                     fig_radar = create_radar_chart(score_breakdown, is_financial, op_color)
-                    st.plotly_chart(fig_radar, use_container_width=True, config={'displayModeBar': False})
-
+                    # [수정] staticPlot을 True로 설정하여 확대/이동/드래그를 완전히 차단합니다.
+                    st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
                 st.divider()
 
                 if is_financial:
@@ -2767,19 +2815,26 @@ with tab1:
                         with c_v1:
                             if len(rev) == len(years) and len(ni) == len(years):
                                 div_val, u_str = scale_vals([rev, ni], kr)
-                                df_rev_ni = pd.DataFrame({t('매출액', 'Revenue'): [x/div_val for x in rev], t('순이익', 'Net Income'): [x/div_val for x in ni]}, index=years)
                                 st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
-                                st.bar_chart(df_rev_ni, color=["#A0C4FF", "#2ecc71"], height=300, use_container_width=False, width=600)
+                                
+                                fig1 = go.Figure()
+                                fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
+                                fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
+                                fig1.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                                st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                         with c_v2:
                             if is_financial:
-                                st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials as operating cash flows include customer deposits and assets, making FCF analysis meaningless."))
+                                st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials..."))
                             elif len(fcf_chart) == len(years):
                                 div_val, u_str = scale_vals([fcf_chart], kr)
-                                df_fcf = pd.DataFrame({t('잉여현금흐름(FCF)', 'Free Cash Flow'): [x/div_val for x in fcf_chart]}, index=years)
                                 st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
-                                st.bar_chart(df_fcf, color="#fdcb6e", height=300, use_container_width=False, width=600)
+                                
+                                fig2 = go.Figure()
+                                fig2.add_trace(go.Bar(x=years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
+                                fig2.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), showlegend=False)
+                                st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
                             else:
                                 st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                     else:
