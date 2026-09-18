@@ -2044,10 +2044,11 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 가치투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 30"),
+    t("경영진 평가 순위", "Management Ranking"),
     t("주식 용어 사전", "Stock Glossary"),
     t("AGIE 철학", "About AGIE")
 ])
@@ -3187,7 +3188,131 @@ with tab5:
         f"box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>{phil_decl}</div>", 
         unsafe_allow_html=True
     )
+# ==========================================
+# 탭 6: 경영진 평가 순위
+# ==========================================
+with tab6:
+    st.subheader(t("기업 경영진 및 거버넌스 순위 (AI 평가)", "Management & Governance Ranking"))
+    st.caption(t("※ AGIE의 6원칙(정직성, 자본 배분, 주주환원, 도덕성 등)을 기준으로 심층 평가가 완료된 기업들의 순위입니다.", "※ Ranking based on integrity, capital allocation, and shareholder return."))
+    
+    @st.cache_data(ttl=3600)
+    def get_gov_ranking_data():
+        rank_data = []
+        seen_codes = set()
+        
+        for name, tk in tmap.items():
+            kr = tk.endswith('.KS') or tk.endswith('.KQ')
+            cd = tk.split('.')[0] if kr else tk
+            
+            if cd in seen_codes: continue
+            seen_codes.add(cd)
+            
+            text = fetch_governance_criticism(tk, cd, "CEO")
+            
+            # 평가가 안 된 기본 텍스트는 순위에서 제외
+            if "위키 및 공공 기록 스크리닝 결과" in text: continue
+                
+            kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
+            is_one_strike = False
+            for k in kw_super_neg:
+                if k in text:
+                    is_one_strike = True; break
+            
+            if is_one_strike:
+                ceo_final = -40
+            else:
+                kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장"]
+                kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
+                kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
+                kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+                kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
+                kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
 
+                raw_score = 0
+                temp_text = text
+                for k in kw_super_pos:
+                    if k in temp_text: raw_score += 40; temp_text = temp_text.replace(k, "") 
+                for k in kw_high_pos:
+                    if k in temp_text: raw_score += 30; temp_text = temp_text.replace(k, "")
+                for k in kw_pos:
+                    if k in temp_text: raw_score += 15; temp_text = temp_text.replace(k, "")
+                for k in kw_high_neg:
+                    if k in temp_text: raw_score -= 40; temp_text = temp_text.replace(k, "")
+                for k in kw_neg:
+                    if k in temp_text: raw_score -= 20; temp_text = temp_text.replace(k, "")
+                for k in kw_minor_neg:
+                    if k in temp_text: raw_score -= 5; temp_text = temp_text.replace(k, "")
+
+                max_raw_score = 120.0
+                ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
+                scaled_score = ratio * 40.0
+
+                if scaled_score >= 38: ceo_final = 40
+                elif scaled_score >= 30: ceo_final = 32
+                elif scaled_score >= 20: ceo_final = 24
+                elif scaled_score >= 10: ceo_final = 16
+                elif scaled_score >= 2: ceo_final = 8
+                elif scaled_score >= -2: ceo_final = 0
+                elif scaled_score >= -10: ceo_final = -8
+                elif scaled_score >= -20: ceo_final = -16
+                elif scaled_score >= -30: ceo_final = -24
+                elif scaled_score >= -38: ceo_final = -32
+                else: ceo_final = -40
+            
+            if ceo_final >= 32: tier = "S급 (만점)"
+            elif ceo_final >= 24: tier = "A급 (우수)"
+            elif ceo_final >= 8: tier = "B급 (양호)"
+            elif ceo_final >= 0: tier = "C급 (중립)"
+            elif ceo_final > -40: tier = "D급 (주의)"
+            else: tier = "F급 (치명적 결함)"
+            
+            # F급은 치명적인 단점을 요약해서 보여줌
+            if ceo_final == -40 and "단점:" in text:
+                summary = "[리스크] " + text.split("단점:")[1].strip()
+            elif "장점:" in text and "단점:" in text:
+                summary = text.split("단점:")[0].replace("장점:", "").strip()
+            else:
+                summary = text[:60] + "..."
+            
+            rank_data.append({
+                "티커": tk,
+                "기업명": primary_names.get(tk, name),
+                "점수": ceo_final,
+                "등급": tier,
+                "평가 요약": summary
+            })
+        
+        rank_data.sort(key=lambda x: x["점수"], reverse=True)
+        for i, item in enumerate(rank_data):
+            item["순위"] = i + 1
+        return rank_data
+        
+    with st.spinner("경영진 데이터를 계산 중입니다..."):
+        gov_df = pd.DataFrame(get_gov_ranking_data())
+    
+    st.dataframe(gov_df, height=800, use_container_width=True, hide_index=True, column_config={
+        "순위": st.column_config.NumberColumn(t("순위", "Rank"), width="small"),
+        "티커": st.column_config.TextColumn(t("티커", "Ticker"), width="small"),
+        "기업명": st.column_config.TextColumn(t("기업명", "Company"), width="medium"),
+        "점수": st.column_config.NumberColumn(t("점수", "Score"), format="%d점"),
+        "등급": st.column_config.TextColumn(t("등급", "Tier"), width="small"),
+        "평가 요약": st.column_config.TextColumn(t("핵심 평가 요약", "Summary"), width="large")
+    })
+
+    st.markdown("---")
+    st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
+    c_tk3, c_btn3 = st.columns([3, 1])
+    with c_tk3: 
+        fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), key="gov_fast_tk", label_visibility="collapsed")
+    with c_btn3:
+        matched_ticker_gov = gov_df[gov_df["기업명"] == fast_name_gov]["티커"].values[0]
+        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="gov_load_btn", on_click=select_ticker, args=(matched_ticker_gov,), use_container_width=True):
+            with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                st.session_state["preview_tab6"] = generate_quick_ai_preview(matched_ticker_gov)
+                
+    if "preview_tab6" in st.session_state:
+        st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
+        st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
 # 하단 면책 조항 및 카피라이트 
 st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
