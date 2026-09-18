@@ -426,20 +426,19 @@ for k, v in tmap.items():
 # =========================================================================
 
 fallback_13f_data = {
-    "BRK": [{"티커": "AAPL", "기업명": "Apple", "비중(%)": 22.04}, {"티커": "AXP", "기업명": "American Express", "비중(%)": 17.14}, {"티커": "KO", "기업명": "Coca-Cola", "비중(%)": 10.86}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 9.41}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.20}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 4.67}, {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.30}],
-    "BRK_PER": [{"티커": "UBER", "기업명": "Uber Technologies", "비중(%)": 12.72}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 12.58}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 11.89}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 10.49}, {"티커": "HHH", "기업명": "Howard Hughes", "비중(%)": 10.23}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.62}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 9.25}],
-    "BAU": [{"티커": "AMZN", "기업명": "Amazon", "비중(%)": 16.48}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 9.11}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.04}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 8.95}, {"티커": "FERG", "기업명": "Ferguson", "비중(%)": 6.36}, {"티커": "GPC", "기업명": "Genuine Parts", "비중(%)": 6.13}, {"티커": "UNP", "기업명": "Union Pacific", "비중(%)": 5.95}],
-    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 24.55}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 23.39}, {"티커": "PDD", "기업명": "PDD Holdings", "비중(%)": 22.17}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway A", "비중(%)": 14.98}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.68}, {"티커": "CROX", "기업명": "Crocs", "비중(%)": 2.89}, {"티커": "TME", "기업명": "Tencent Music", "비중(%)": 1.49}, {"티커": "AAPL", "기업명": "Apple", "비중(%)": 0.86}],
-    "AKRE": [{"티커": "MA", "기업명": "Mastercard", "비중(%)": 20.01}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 10.26}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 10.11}, {"티커": "KKR", "기업명": "KKR & Co", "비중(%)": 8.95}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 8.47}, {"티커": "ROP", "기업명": "Roper Technologies", "비중(%)": 7.80}, {"티커": "V", "기업명": "Visa", "비중(%)": 7.46}],
+    "BRK": [{"티커": "AAPL", "기업명": "Apple", "비중(%)": 40.52}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 10.84}, {"티커": "AXP", "기업명": "American Express", "비중(%)": 8.51}, {"티커": "KO", "기업명": "Coca-Cola", "비중(%)": 7.15}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 5.43}, {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.31}, {"티커": "KHC", "기업명": "Kraft Heinz", "비중(%)": 3.25}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 2.55}, {"티커": "CB", "기업명": "Chubb", "비중(%)": 2.12}, {"티커": "DVA", "기업명": "DaVita", "비중(%)": 1.15}, {"티커": "C", "기업명": "Citigroup", "비중(%)": 0.95}, {"티커": "KR", "기업명": "Kroger", "비중(%)": 0.88}, {"티커": "V", "기업명": "Visa", "비중(%)": 0.65}, {"티커": "MA", "기업명": "Mastercard", "비중(%)": 0.55}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 0.45}, {"티커": "COF", "기업명": "Capital One", "비중(%)": 0.35}],
+    "BRK_PER": [{"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 20.15}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 17.52}, {"티커": "HHH", "기업명": "Howard Hughes", "비중(%)": 13.41}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 12.58}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 11.22}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 5.15}, {"티커": "NKE", "기업명": "Nike", "비중(%)": 4.05}],
+    "BAU": [{"티커": "AMZN", "기업명": "Amazon", "비중(%)": 16.48}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 9.11}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.04}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 8.95}, {"티커": "FERG", "기업명": "Ferguson", "비중(%)": 6.36}, {"티커": "GPC", "기업명": "Genuine Parts", "비중(%)": 6.13}, {"티커": "UNP", "기업명": "Union Pacific", "비중(%)": 5.95}, {"티커": "VST", "기업명": "Vistra", "비중(%)": 4.52}, {"티커": "WBD", "기업명": "Warner Bros Discovery", "비중(%)": 3.85}],
+    "HC": [{"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 24.55}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 23.39}, {"티커": "BRK-A", "기업명": "Berkshire Hathaway A", "비중(%)": 14.98}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 12.45}, {"티커": "AAPL", "기업명": "Apple", "비중(%)": 10.86}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.68}, {"티커": "TME", "기업명": "Tencent Music", "비중(%)": 1.49}, {"티커": "CROX", "기업명": "Crocs", "비중(%)": 2.89}],
+    "AKRE": [{"티커": "MA", "기업명": "Mastercard", "비중(%)": 20.01}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 10.26}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 10.11}, {"티커": "KKR", "기업명": "KKR & Co", "비중(%)": 8.95}, {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 8.47}, {"티커": "ROP", "기업명": "Roper Technologies", "비중(%)": 7.80}, {"티커": "V", "기업명": "Visa", "비중(%)": 7.46}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 5.23}, {"티커": "AMT", "기업명": "American Tower", "비중(%)": 4.15}, {"티커": "AXP", "기업명": "American Express", "비중(%)": 3.88}, {"티커": "CB", "기업명": "Chubb", "비중(%)": 3.12}],
     "PI": [{"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 43.32}, {"티커": "RIG", "기업명": "Transocean", "비중(%)": 30.53}, {"티커": "AMR", "기업명": "Alpha Metallurgical", "비중(%)": 26.11}, {"티커": "KSPI", "기업명": "Kaspi.kz ADR", "비중(%)": 0.04}],
-    "AQUA": [{"티커": "BRK-A", "기업명": "Berkshire Hathaway A", "비중(%)": 33.89}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway B", "비중(%)": 15.59}, {"티커": "AXP", "기업명": "American Express", "비중(%)": 15.26}, {"티커": "MA", "기업명": "Mastercard", "비중(%)": 14.26}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 8.49}, {"티커": "RACE", "기업명": "Ferrari", "비중(%)": 7.71}, {"티커": "DJCO", "기업명": "Daily Journal", "비중(%)": 4.80}],
-    "DALIO": [{"티커": "SPY", "기업명": "SPDR S&P 500 ETF", "비중(%)": 16.32}, {"티커": "IVV", "기업명": "iShares Core S&P 500 ETF", "비중(%)": 9.21}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 3.24}, {"티커": "AVGO", "기업명": "Broadcom", "비중(%)": 1.93}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 1.82}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 1.54}, {"티커": "JNJ", "기업명": "Johnson & Johnson", "비중(%)": 1.31}],
-    "DRUCK": [{"티커": "NTRA", "기업명": "Natera", "비중(%)": 16.64}, {"티커": "INSM", "기업명": "Insmed", "비중(%)": 5.72}, {"티커": "TSM", "기업명": "TSMC", "비중(%)": 5.41}, {"티커": "IBIT", "기업명": "iShares Bitcoin Trust", "비중(%)": 5.10}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 4.63}, {"티커": "SE", "기업명": "Sea Ltd", "비중(%)": 4.12}, {"티커": "VRT", "기업명": "Vertiv", "비중(%)": 3.85}],
-    "TEPPER": [{"티커": "BABA", "기업명": "Alibaba Group", "비중(%)": 12.54}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 10.21}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 9.53}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 8.84}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 7.22}, {"티커": "PDD", "기업명": "PDD Holdings", "비중(%)": 5.51}, {"티커": "BIDU", "기업명": "Baidu", "비중(%)": 4.19}],
-    "MARKS": [{"티커": "TRMD", "기업명": "Torm plc", "비중(%)": 21.84}, {"티커": "VST", "기업명": "Vistra", "비중(%)": 14.32}, {"티커": "PBR", "기업명": "Petrobras", "비중(%)": 7.55}, {"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 4.82}, {"티커": "RIG", "기업명": "Transocean", "비중(%)": 4.11}],
-    "TSMITH": [{"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 11.23}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 9.45}, {"티커": "PM", "기업명": "Philip Morris", "비중(%)": 8.12}, {"티커": "SYK", "기업명": "Stryker", "비중(%)": 7.84}, {"티커": "ADP", "기업명": "Automatic Data Processing", "비중(%)": 7.15}, {"티커": "V", "기업명": "Visa", "비중(%)": 6.94}]
+    "AQUA": [{"티커": "BRK-A", "기업명": "Berkshire Hathaway A", "비중(%)": 33.89}, {"티커": "BRK-B", "기업명": "Berkshire Hathaway B", "비중(%)": 15.59}, {"티커": "AXP", "기업명": "American Express", "비중(%)": 15.26}, {"티커": "MA", "기업명": "Mastercard", "비중(%)": 14.26}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 8.49}, {"티커": "RACE", "기업명": "Ferrari", "비중(%)": 7.71}, {"티커": "DJCO", "기업명": "Daily Journal", "비중(%)": 4.80}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 3.25}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 2.15}, {"티커": "JPM", "기업명": "JPMorgan Chase", "비중(%)": 1.85}],
+    "DALIO": [{"티커": "IVV", "기업명": "iShares Core S&P 500 ETF", "비중(%)": 18.25}, {"티커": "SPY", "기업명": "SPDR S&P 500 ETF", "비중(%)": 16.32}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 6.85}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 5.45}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 4.88}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 3.24}, {"티커": "AAPL", "기업명": "Apple", "비중(%)": 2.85}, {"티커": "JNJ", "기업명": "Johnson & Johnson", "비중(%)": 1.95}, {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 1.88}, {"티커": "MCD", "기업명": "McDonald's", "비중(%)": 1.75}, {"티커": "WMT", "기업명": "Walmart", "비중(%)": 1.65}, {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 1.55}, {"티커": "COST", "기업명": "Costco", "비중(%)": 1.45}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 1.25}, {"티커": "ABT", "기업명": "Abbott Laboratories", "비중(%)": 1.15}],
+    "DRUCK": [{"티커": "NTRA", "기업명": "Natera", "비중(%)": 16.64}, {"티커": "INSM", "기업명": "Insmed", "비중(%)": 8.72}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 7.85}, {"티커": "VRT", "기업명": "Vertiv", "비중(%)": 6.85}, {"티커": "SE", "기업명": "Sea Ltd", "비중(%)": 5.52}, {"티커": "TSM", "기업명": "TSMC", "비중(%)": 5.41}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 4.63}, {"티커": "LLY", "기업명": "Eli Lilly", "비중(%)": 4.15}, {"티커": "CRWD", "기업명": "CrowdStrike", "비중(%)": 3.85}, {"티커": "GE", "기업명": "General Electric", "비중(%)": 3.25}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 2.85}, {"티커": "PLTR", "기업명": "Palantir", "비중(%)": 2.55}, {"티커": "MRVL", "기업명": "Marvell", "비중(%)": 2.15}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 1.85}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 1.55}],
+    "TEPPER": [{"티커": "BABA", "기업명": "Alibaba Group", "비중(%)": 12.54}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 10.21}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 9.53}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 8.84}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 7.22}, {"티커": "PDD", "기업명": "PDD Holdings", "비중(%)": 5.51}, {"티커": "BIDU", "기업명": "Baidu", "비중(%)": 4.19}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 3.85}, {"티커": "JD", "기업명": "JD.com", "비중(%)": 3.15}, {"티커": "CRM", "기업명": "Salesforce", "비중(%)": 2.85}, {"티커": "ORCL", "기업명": "Oracle", "비중(%)": 2.55}, {"티커": "UBER", "기업명": "Uber", "비중(%)": 2.15}, {"티커": "AMD", "기업명": "AMD", "비중(%)": 1.95}, {"티커": "ASML", "기업명": "ASML", "비중(%)": 1.85}, {"티커": "INTC", "기업명": "Intel", "비중(%)": 1.55}, {"티커": "TSM", "기업명": "TSMC", "비중(%)": 1.25}, {"티커": "QCOM", "기업명": "Qualcomm", "비중(%)": 1.15}, {"티커": "BA", "기업명": "Boeing", "비중(%)": 0.95}, {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 0.85}],
+    "MARKS": [{"티커": "TRMD", "기업명": "Torm plc", "비중(%)": 21.84}, {"티커": "VST", "기업명": "Vistra", "비중(%)": 14.32}, {"티커": "PBR", "기업명": "Petrobras", "비중(%)": 7.55}, {"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 4.82}, {"티커": "RIG", "기업명": "Transocean", "비중(%)": 4.11}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 3.85}, {"티커": "XOM", "기업명": "Exxon Mobil", "비중(%)": 3.15}, {"티커": "EOG", "기업명": "EOG Resources", "비중(%)": 2.55}, {"티커": "MRO", "기업명": "Marathon Oil", "비중(%)": 2.15}],
+    "TSMITH": [{"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 11.23}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 9.45}, {"티커": "PM", "기업명": "Philip Morris", "비중(%)": 8.12}, {"티커": "SYK", "기업명": "Stryker", "비중(%)": 7.84}, {"티커": "ADP", "기업명": "Automatic Data Processing", "비중(%)": 7.15}, {"티커": "V", "기업명": "Visa", "비중(%)": 6.94}, {"티커": "MA", "기업명": "Mastercard", "비중(%)": 6.15}, {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 5.85}, {"티커": "INTU", "기업명": "Intuit", "비중(%)": 4.55}, {"티커": "NVO", "기업명": "Novo Nordisk", "비중(%)": 4.15}, {"티커": "MAR", "기업명": "Marriott", "비중(%)": 3.85}]
 }
-
 us_top30 = [
     {"순위": 1, "티커": "NVDA", "기업명": "NVIDIA", "시가총액": "$3.52T"},
     {"순위": 2, "티커": "AAPL", "기업명": "Apple", "시가총액": "$3.45T"},
@@ -3011,8 +3010,8 @@ Verification Summary
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
 with tab2:
-    st.subheader(t("글로벌 유명 투자자 13F 포트폴리오", "Global Value Gurus 13F Portfolio"))
-    st.caption(t("※ 미국의 13F 공시를 추적하여 최신 포트폴리오 비중을 표출합니다.", "※ Tracks US 13F filings to display latest portfolio weights."))
+    st.subheader(t("글로벌 유명 투자자 13F 포트폴리오", "Global Gurus 13F Portfolio"))
+    st.caption(t("※ 미국의 13F 공시를 추적하여 상위 20개 종목의 포트폴리오 비중을 표출합니다.", "※ Tracks US 13F filings to display top 20 portfolio weights."))
     
     guru_map = {
         "워런 버핏 (Berkshire Hathaway)": "BRK", 
@@ -3028,33 +3027,33 @@ with tab2:
         "모니시 파브라이 (Dalal Street)": "PI", 
         "가이 스피어 (Aquamarine Capital)": "AQUA"
     }
-    guru_option = st.selectbox(t("포트폴리오를 조회할 유명 투자자를 선택하세요:", "Select a Value Guru:"), list(guru_map.keys()))
+    guru_option = st.selectbox(t("포트폴리오를 조회할 유명 투자자를 선택하세요:", "Select an Investor:"), list(guru_map.keys()))
 
     st.markdown("### 인물 개요")
     if guru_option == "워런 버핏 (Berkshire Hathaway)":
-        st.write("**워런 버핏(Warren Buffett):** 역사상 가장 위대한 가치투자자입니다. '경제적 해자'와 정직한 경영진을 갖춘 위대한 기업을 적당한 가격에 매수하여 영구 보유하는 소유권 관점의 투자를 실천합니다.")
+        st.write("**워런 버핏(Warren Buffett):** 역사상 가장 위대한 투자자입니다. '경제적 해자'와 정직한 경영진을 갖춘 위대한 기업을 적당한 가격에 매수하여 영구 보유하는 소유권 관점의 투자를 실천합니다.")
     elif guru_option == "레이 달리오 (Bridgewater)":
         st.write("**레이 달리오(Ray Dalio):** 세계 최대 헤지펀드 브리지워터의 창립자로, 경제 기계의 거시적 메커니즘을 꿰뚫어 보는 거장입니다. 리스크 패리티 기반의 S&P 500 ETF와 우량 메가테크를 조화시켜 포트폴리오의 안정성과 복리 성장을 추구합니다.")
     elif guru_option == "스탠리 드러켄밀러 (Duquesne)":
-        st.write("**스탠리 드러켄밀러(Stanley Druckenmiller):** 30년 넘게 무손실을 기록한 전설적인 매크로 투자자입니다. 트렌드를 남들보다 빠르게 읽어 집중 투자하며, 최근에는 AI 인프라(버티브, TSMC)와 바이오 헬스케어(나테라, 인스메드)의 폭발적 성장에 베팅하고 있습니다.")
+        st.write("**스탠리 드러켄밀러(Stanley Druckenmiller):** 30년 넘게 무손실을 기록한 전설적인 매크로 투자자입니다. 트렌드를 남들보다 빠르게 읽어 집중 투자하며, 최근에는 AI 인프라와 헬스케어의 폭발적 성장에 베팅하고 있습니다.")
     elif guru_option == "하워드 막스 (Oaktree Capital)":
-        st.write("**하워드 막스(Howard Marks):** '투자에 대한 생각'의 저자이자 역발상 가치투자의 대가입니다. 사이클의 주기와 미스터 마켓의 심리를 역이용하여 극단적인 공포와 침체에 빠진 저평가 기업(에너지, 탱커 등)에서 탁월한 안전마진을 확보합니다.")
+        st.write("**하워드 막스(Howard Marks):** '투자에 대한 생각'의 저자이자 역발상 투자의 대가입니다. 사이클의 주기와 미스터 마켓의 심리를 역이용하여 극단적인 공포와 침체에 빠진 저평가 기업에서 탁월한 안전마진을 확보합니다.")
     elif guru_option == "데이비드 테퍼 (Appaloosa)":
-        st.write("**데이비드 테퍼(David Tepper):** 위기 국면에서 과감하게 헐값의 우량 자산을 매집하는 가치투자 매니저입니다. 최근에는 밸류에이션 부담이 적은 중국 핵심 빅테크(알리바바, PDD, 바이두)와 미국의 AI 독점 기업을 바벨 전략으로 양분하여 담고 있습니다.")
+        st.write("**데이비드 테퍼(David Tepper):** 위기 국면에서 과감하게 헐값의 우량 자산을 매집하는 매니저입니다. 최근에는 밸류에이션 부담이 적은 중국 핵심 빅테크와 미국의 AI 독점 기업을 바벨 전략으로 양분하여 담고 있습니다.")
     elif guru_option == "빌 애크먼 (Pershing Square)":
-        st.write("**빌 애크먼(Bill Ackman):** 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 행동주의 투자자로도 유명하며, 단순한 주가 변동을 넘어 강력한 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오를 구성합니다.")
+        st.write("**빌 애크먼(Bill Ackman):** 소수의 고확신 우량주에 자본을 몰아넣는 초집중 투자의 대가입니다. 강력한 독점력과 예측 가능한 현금흐름을 창출하는 플랫폼 및 글로벌 브랜드 기업 위주로 포트폴리오를 구성합니다.")
     elif guru_option == "세스 클라만 (Baupost Group)":
-        st.write("**세스 클라만(Seth Klarman):** '보스턴의 오라클'로 불리며 벤자민 그레이엄의 철학을 철저히 계승한 정통 가치투자자입니다. 리스크 관리를 최우선으로 삼아 현금 비중을 유연하게 조절하며, 훌륭한 비즈니스 모델을 가진 산업재, 헬스케어, 그리고 매력적인 가격대의 테크 기업에 집중투자합니다.")
+        st.write("**세스 클라만(Seth Klarman):** '보스턴의 오라클'로 불리며 벤자민 그레이엄의 철학을 철저히 계승한 정통 투자자입니다. 리스크 관리를 최우선으로 삼아 현금 비중을 조절하며 매력적인 가격대의 테크 기업에 집중투자합니다.")
     elif guru_option == "리 루 (Himalaya Capital)":
-        st.write("**리 루(Li Lu):** 찰리 멍거가 전적으로 자산을 위탁한 유일한 펀드매니저로, 철저한 리서치와 장기 복리의 힘을 믿는 정통 가치투자 가치관을 관철하는 아시아계 거장입니다.")
+        st.write("**리 루(Li Lu):** 찰리 멍거가 전적으로 자산을 위탁한 유일한 펀드매니저로, 철저한 리서치와 장기 복리의 힘을 믿는 철학을 관철하는 아시아계 거장입니다.")
     elif guru_option == "테리 스미스 (Fundsmith)":
-        st.write("**테리 스미스(Terry Smith):** '좋은 기업을 사고, 과도한 가격을 치르지 말고, 아무것도 하지 마라'는 철학으로 유명한 영국의 워런 버핏입니다. 높은 ROCE(자본수익률)와 강력한 무형자산을 지닌 독점적 소비재 및 소프트웨어 기업에 집중합니다.")
+        st.write("**테리 스미스(Terry Smith):** '좋은 기업을 사고, 과도한 가격을 치르지 말고, 아무것도 하지 마라'는 철학으로 유명한 영국의 워런 버핏입니다. 높은 ROCE와 강력한 무형자산을 지닌 독점적 소비재 및 소프트웨어 기업에 집중합니다.")
     elif guru_option == "척 아크레 (Akre Capital)":
         st.write("**척 아크레(Chuck Akre):** 뛰어난 비즈니스 모델, 정직한 경영진, 재투자 기회라는 세 가지 요소를 완벽히 결합한 '컴파운더(장기 복리 성장 기업)' 중심의 복리 극대화 투자를 진행합니다.")
     elif guru_option == "모니시 파브라이 (Dalal Street)":
-        st.write("**모니시 파브라이(Mohnish Pabrai):** 워런 버핏의 투자 방식을 복제해 큰 부를 일군 인물로, 하방 리스크가 없으면서 상방 잠재력이 극대화된 '단도 투자' 전략을 구사합니다.")
+        st.write("**모니시 파브라이(Mohnish Pabrai):** 하방 리스크가 없으면서 상방 잠재력이 극대화된 '단도 투자' 전략을 구사하며 소수의 종목에만 초집중 투자합니다.")
     elif guru_option == "가이 스피어 (Aquamarine Capital)":
-        st.write("**가이 스피어(Guy Spier):** 워런 버핏의 체크리스트 철학을 기반으로 내면의 판단 기준을 중시하며, 미스터 마켓의 소음을 철저히 배제하고 장기적이고 안전한 가치 기회를 매입합니다.")
+        st.write("**가이 스피어(Guy Spier):** 내면의 판단 기준을 중시하며, 미스터 마켓의 소음을 철저히 배제하고 장기적이고 안전한 기회를 매입합니다.")
 
     with st.spinner(t("최신 포트폴리오 데이터 연동 중...", "Fetching latest portfolio data...")):
         code = guru_map[guru_option]
@@ -3062,6 +3061,8 @@ with tab2:
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
+            # [핵심] 상위 20개까지만 강제 커팅 (집중 투자자들은 있는 개수만큼만 나옴)
+            df = df.head(20)
             df.index = df.index + 1
             
             st.dataframe(df, height=600, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
@@ -3073,12 +3074,17 @@ with tab2:
             st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
             c_tk, c_btn = st.columns([3, 1])
             with c_tk: 
-                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), label_visibility="collapsed")
+                # [유지] 빠른 검색 버그 수정 로직
+                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
             with c_btn:
-                matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
-                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", on_click=select_ticker, args=(matched_ticker,), use_container_width=True):
-                    with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                        st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", use_container_width=True):
+                    if fast_name:
+                        matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                        select_ticker(matched_ticker)
+                        with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                            st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                    else:
+                        st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
             
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
