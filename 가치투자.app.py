@@ -1863,19 +1863,19 @@ def generate_quick_ai_preview(tk):
     
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
-                
+    
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-                    
+    
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
-                    
+    
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-    # [현재 PER 자체 계산 적용] 외부 크롤링 오류를 막기 위해 주가와 EPS로 직접 계산합니다.
-    t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
-    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
+    # [핵심 수정] 한국 주식(kr)은 네이버가 제공하는 PER(t_pe_raw, f_pe_raw)이 있으면 무조건 1순위로 가져옵니다! 없을 때만 주가/EPS로 계산합니다.
+    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
+    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
 
     a_pe = safe_float(i.get('fiveYearAvgPE'))
     if a_pe <= 0.0:
@@ -2259,11 +2259,10 @@ with tab1:
                 
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
-
-                # [현재 PER 자체 계산 적용] 외부 크롤링 오류를 막기 위해 주가와 EPS로 직접 계산합니다.
-                t_pe = (p / t_eps) if t_eps > 0 else t_pe_raw
-                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if f_eps > 0 else f_pe_raw)
-
+            
+                # [핵심 수정] 한국 주식(kr)은 네이버가 제공하는 PER(t_pe_raw, f_pe_raw)이 있으면 무조건 1순위로 가져옵니다! 없을 때만 주가/EPS로 계산합니다.
+                t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
+                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
                 
