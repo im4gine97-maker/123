@@ -1863,7 +1863,6 @@ def generate_quick_ai_preview(tk):
     
     t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
-                
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
                 
