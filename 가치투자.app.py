@@ -44,8 +44,12 @@ def fmt_f(val, decimals=1):
 
 def select_ticker(tk):
     st.session_state.search_tk = tk
-    st.session_state.main_input = tk
     st.session_state.suggestions = []
+    try:
+        # 이미 렌더링된 탭 1의 검색창 값을 강제로 바꾸려다 나는 에러를 방어합니다.
+        st.session_state.main_input = tk
+    except Exception:
+        pass
     
 def trigger_scan():
     if st.session_state.get("main_input"):
