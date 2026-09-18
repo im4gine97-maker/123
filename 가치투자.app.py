@@ -897,7 +897,6 @@ def get_naver_finance(cd):
     res = {}
     try:
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
-        # [핵심] 실제 브라우저와 동일한 User-Agent로 위장하여 네이버의 봇 차단을 우회합니다.
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
         r = requests.get(url, headers=headers, timeout=5)
         r.encoding = 'euc-kr'
@@ -912,25 +911,34 @@ def get_naver_finance(cd):
         if t_name: res['shortName'] = t_name.text
         
         t_pe = s.select_one('#_per')
-        if t_pe: res['trailingPE'] = safe_float(t_pe.text)
+        if t_pe and t_pe.text.strip() != '-': res['trailingPE'] = safe_float(t_pe.text)
         
         t_eps = s.select_one('#_eps')
-        if t_eps: res['trailingEps'] = safe_float(t_eps.text)
+        if t_eps and t_eps.text.strip() != '-': res['trailingEps'] = safe_float(t_eps.text)
         
         t_fpe = s.select_one('#_cns_per')
-        if t_fpe: res['forwardPE'] = safe_float(t_fpe.text)
+        if t_fpe and t_fpe.text.strip() != '-': res['forwardPE'] = safe_float(t_fpe.text)
         
         t_feps = s.select_one('#_cns_eps')
-        if t_feps: res['forwardEps'] = safe_float(t_feps.text)
+        if t_feps and t_feps.text.strip() != '-': res['forwardEps'] = safe_float(t_feps.text)
         
         t_pbr = s.select_one('#_pbr')
-        if t_pbr: res['priceToBook'] = safe_float(t_pbr.text)
+        if t_pbr and t_pbr.text.strip() != '-': res['priceToBook'] = safe_float(t_pbr.text)
         
         t_bps = s.select_one('#_bps')
-        if t_bps: res['bookValue'] = safe_float(t_bps.text)
+        if t_bps and t_bps.text.strip() != '-': res['bookValue'] = safe_float(t_bps.text)
         
         t_div = s.select_one('#_dvr')
-        if t_div: res['dividendYield'] = safe_float(t_div.text) / 100.0
+        if t_div and t_div.text.strip() and t_div.text.strip() != '-': 
+            res['dividendYield'] = safe_float(t_div.text) / 100.0
+            
+        # [핵심] 배당수익률(%)이 네이버에 비어있어도, 1주당 배당금(원)이 있으면 수동 강제 계산
+        if 'dividendYield' not in res or res['dividendYield'] == 0:
+            t_dvd = s.select_one('#_dvd')
+            if t_dvd and t_dvd.text.strip() and t_dvd.text.strip() != '-':
+                dvd_val = safe_float(t_dvd.text)
+                if dvd_val > 0 and res.get('live_p', 0) > 0:
+                    res['dividendYield'] = dvd_val / res['live_p']
         
         t_sum = s.select_one('.summary_info p')
         if t_sum: res['kr_sum'] = t_sum.text.strip()
@@ -985,15 +993,37 @@ def fetch_cached_info(tk, kr, cd):
                 i['companyOfficers'] = yh_res['companyOfficers']
         else:
             nv_res = future_naver.result()
-            # [핵심 수정] 'live_p'를 추가하여 네이버 서버 2중 접속 차단을 방지합니다.
             keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
             for k in keys_to_override:
-                if k in nv_res:
+                if k in nv_res and nv_res[k] is not None:
                     if isinstance(nv_res[k], str):
                         i[k] = nv_res[k]
-                    elif nv_res[k] > 0: 
+                    elif isinstance(nv_res[k], (int, float)): 
+                        # [핵심 수정] > 0 제한을 풀어 적자기업(음수 EPS) 데이터도 완벽하게 받아오도록 수정
                         i[k] = nv_res[k]
+                        
+    # --- [강력한 안전장치] PER 및 배당률 누락 시 수동 강제 계산 ---
+    p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
+    if p == 0 and 'live_p' in i: p = i['live_p']
+    
+    # 1. PER이 누락되었으나 EPS가 존재하면 직접 나누어 계산 (적자 기업 포함)
+    t_pe = safe_float(i.get('trailingPE'))
+    t_eps = safe_float(i.get('trailingEps'))
+    if t_pe == 0 and t_eps != 0 and p > 0:
+        i['trailingPE'] = p / t_eps
         
+    # 2. 배당률(%)이 누락되었으나 주당 배당금(원/달러)이 있으면 직접 나누어 계산
+    div_y = safe_float(i.get('dividendYield'))
+    if div_y == 0:
+        div_r = safe_float(i.get('dividendRate'))
+        if div_r > 0 and p > 0:
+            i['dividendYield'] = div_r / p
+    
+    # 3. ETF의 경우 'yield'라는 다른 상자에 배당이 들어있는 것 연동
+    if safe_float(i.get('dividendYield')) == 0 and 'yield' in i:
+        y_val = safe_float(i.get('yield'))
+        if y_val > 0: i['dividendYield'] = y_val
+
     return i
 def get_data(tk):
     try:
