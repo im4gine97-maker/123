@@ -3291,9 +3291,9 @@ with tab6:
     st.caption(t("※ AGIE의 6원칙(정직성, 자본 배분, 주주환원, 도덕성 등)을 기준으로 심층 평가가 완료된 기업들의 순위입니다.", "※ Ranking based on integrity, capital allocation, and shareholder return."))
     
     @st.cache_data(ttl=3600)
-    @st.cache_data(ttl=3600)
-    def get_gov_ranking_data(tmap_size):  # [수정] 등록된 기업 총개수를 센서로 받습니다.
+    def get_gov_ranking_data():
         rank_data = []
+        seen_codes = set()
         
         for name, tk in tmap.items():
             kr = tk.endswith('.KS') or tk.endswith('.KQ')
