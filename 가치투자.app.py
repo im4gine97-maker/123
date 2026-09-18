@@ -1970,25 +1970,34 @@ def generate_quick_ai_preview(tk):
     real_roic = get_real_roic(stk, i)
     # --------------------------------------------------
         
-    # 3. 과거 평균 PER (a_pe) 자체 계산
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe <= 0.0:
-        try:
-            _inc = stk.income_stmt
-            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                if len(_ni_vals) >= 2:
-                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                    if _avg_ni > 0 and _sh_out > 0:
-                        a_pe = p / (_avg_ni / _sh_out)
-        except: pass
-        
-        if a_pe <= 0.0:
-            if not kr and t_pe > 0:
-                a_pe = t_pe * 1.1 
-            else:
-                a_pe = 0.0
+                    # 3. 과거 평균 PER (a_pe) 자체 계산
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                if a_pe <= 0.0:
+                    # [환율 불일치 방어] 주가 통화(USD)와 재무제표 통화(CNY 등)가 다르면 수동 계산 차단
+                    currency = str(i.get('currency', 'USD')).upper()
+                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
+                    
+                    if currency == fin_currency:
+                        try:
+                            _inc = stk.income_stmt
+                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                                if len(_ni_vals) >= 2:
+                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                                    if _avg_ni > 0 and _sh_out > 0:
+                                        a_pe = p / (_avg_ni / _sh_out)
+                        except: pass
+                
+                # [이상치 방어 로직] 평균 PER이 5배 미만이거나 200배 초과면 회계적 착시이므로 폐기
+                if a_pe < 5.0 or a_pe > 200.0:
+                    if t_pe > 0:
+                        a_pe = t_pe 
+                    elif f_pe > 0:
+                        a_pe = f_pe
+                    else:
+                        a_pe = 0.0
+
     
     # [수정된 배당률 계산 1]
     _dy = safe_float(i.get('dividendYield'))
