@@ -1862,53 +1862,50 @@ def generate_quick_ai_preview(tk):
             is_ext_active = True
     
     t_pe_raw = safe_float(i.get('trailingPE'))
-                f_pe_raw = safe_float(i.get('forwardPE'))
-                t_eps = safe_float(i.get('trailingEps'))
-                f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-                
-                reg_p = safe_float(i.get('regularMarketPrice', p))
-                if reg_p == 0: reg_p = p
-                
-                # 1. EPS 강제 계산 (결측치 방어)
-                try:
-                    _inc = stk.income_stmt
-                    if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                        _ni = safe_float(_inc.loc['Net Income'].iloc[0])
-                        _sh = safe_float(i.get('sharesOutstanding'))
-                        if t_eps == 0 and _sh > 0 and _ni != 0:
-                            t_eps = _ni / _sh
-                except: pass
+    f_pe_raw = safe_float(i.get('forwardPE'))
+    
+    t_eps = safe_float(i.get('trailingEps'))
+    f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+    
+    reg_p = safe_float(i.get('regularMarketPrice', p))
+    if reg_p == 0: reg_p = p
+    
+    try:
+        _inc = stk.income_stmt
+        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+            _ni = safe_float(_inc.loc['Net Income'].iloc[0])
+            _sh = safe_float(i.get('sharesOutstanding'))
+            if t_eps == 0 and _sh > 0 and _ni != 0:
+                t_eps = _ni / _sh
+    except: pass
 
-                if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
-                if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
+    if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
+    if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 현재 PER(t_pe) 및 선행 PER(f_pe) 촘촘한 계산
-                t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
-                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-                
-                # 선행 PER이 없으면 현재 PER로 대체 (N/A 방지)
-                if f_pe <= 0 and t_pe > 0:
-                    f_pe = t_pe
-                    
-                # 3. 과거 평균 PER (a_pe) 자체 계산 강화 (네이버/야후 결측 시)
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe <= 0.0:
-                    try:
-                        _inc = stk.income_stmt
-                        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                            _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                            if len(_ni_vals) >= 2:
-                                _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                _sh_out = safe_float(i.get('sharesOutstanding'))
-                                if _avg_ni > 0 and _sh_out > 0:
-                                    a_pe = p / (_avg_ni / _sh_out)
-                    except: pass
-                    
-                    if a_pe <= 0.0:
-                        if t_pe > 0:
-                            a_pe = t_pe * 1.1 # 과거 평균이 없으면 보수적으로 현재 PER에 10% 할증 부여
-                        else:
-                            a_pe = 0.0
+    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
+    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
+    
+    if f_pe <= 0 and t_pe > 0:
+        f_pe = t_pe
+        
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe <= 0.0:
+        try:
+            _inc = stk.income_stmt
+            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                if len(_ni_vals) >= 2:
+                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                    if _avg_ni > 0 and _sh_out > 0:
+                        a_pe = p / (_avg_ni / _sh_out)
+        except: pass
+        
+        if a_pe <= 0.0:
+            if t_pe > 0:
+                a_pe = t_pe * 1.1 
+            else:
+                a_pe = 0.0
     
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
@@ -2262,6 +2259,7 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
+                # ↓ 여기서부터 복사해서 덮어씌우세요 (들여쓰기 정확히 16칸)
                 t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
                 
@@ -2271,51 +2269,24 @@ with tab1:
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
+                try:
+                    _inc = stk.income_stmt
+                    if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                        _ni = safe_float(_inc.loc['Net Income'].iloc[0])
+                        _sh = safe_float(i.get('sharesOutstanding'))
+                        if t_eps == 0 and _sh > 0 and _ni != 0:
+                            t_eps = _ni / _sh
+                except: pass
+
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
-            
-                # [핵심 수정] 한국 주식(kr)은 네이버가 제공하는 PER(t_pe_raw, f_pe_raw)이 있으면 무조건 1순위로 가져옵니다! 없을 때만 주가/EPS로 계산합니다.
+
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-                pbr = safe_float(i.get('priceToBook'))
-                bv = safe_float(i.get('bookValue'))
                 
-                if bv > 0:
-                    pbr = p / bv
-                else:
-                    if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)
-                    elif pbr == 0.0:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh = safe_float(i.get('sharesOutstanding'))
-                                if eq > 0 and sh > 0:
-                                    pbr = p / (eq / sh)
-                        except: pass
-                
-                roe = safe_float(i.get('returnOnEquity')) * 100
-                if roe == 0.0:
-                    try:
-                        inc = stk.income_stmt
-                        bs = stk.balance_sheet
-                        if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                            if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
-                                ni = safe_float(inc.loc['Net Income'].iloc[0])
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                if eq > 0:
-                                    roe = (ni / eq) * 100
-                    except: pass
-                
-                real_roic = get_real_roic(stk, i)
-                
-                if is_financial:
-                    roic_str = t("금융주 제외", "N/A (Financial)")
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족", "N/A")
-                
+                if f_pe <= 0 and t_pe > 0:
+                    f_pe = t_pe
+                    
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe <= 0.0:
                     try:
@@ -2330,8 +2301,8 @@ with tab1:
                     except: pass
                     
                     if a_pe <= 0.0:
-                        if not kr and t_pe > 0:
-                            a_pe = t_pe * 1.1
+                        if t_pe > 0:
+                            a_pe = t_pe * 1.1 
                         else:
                             a_pe = 0.0
                 
