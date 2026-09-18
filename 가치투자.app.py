@@ -1870,6 +1870,7 @@ def generate_quick_ai_preview(tk):
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
     
+    # 1. EPS 강제 계산 (결측치 방어)
     try:
         _inc = stk.income_stmt
         if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -1882,31 +1883,14 @@ def generate_quick_ai_preview(tk):
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
+    # 2. 현재 PER 및 선행 PER 계산
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
     
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
-        
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe <= 0.0:
-        try:
-            _inc = stk.income_stmt
-            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                if len(_ni_vals) >= 2:
-                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                    if _avg_ni > 0 and _sh_out > 0:
-                        a_pe = p / (_avg_ni / _sh_out)
-        except: pass
-        
-        if a_pe <= 0.0:
-            if t_pe > 0:
-                a_pe = t_pe * 1.1 
-            else:
-                a_pe = 0.0
-    
+
+    # --- [복구됨] 실수로 삭제됐던 PBR, ROE, ROIC 블록 ---
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
     if bv > 0:
@@ -1923,7 +1907,6 @@ def generate_quick_ai_preview(tk):
                     if eq > 0 and sh > 0: pbr = p / (eq / sh)
             except: pass
 
-    # 버그 원인 해결: ROE가 없을 때 순이익과 자본을 가져와 수동 계산
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe == 0.0:
         try:
@@ -1937,14 +1920,27 @@ def generate_quick_ai_preview(tk):
         except: pass
     
     real_roic = get_real_roic(stk, i)
-    roic_val = real_roic if real_roic is not None else 0
-    
-    ey = (1 / f_pe * 100) if f_pe > 0 else 0
-    erp = ey - ty
-    
-    base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
-    iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
-    mos_val = safe_float(mos_val)
+    # --------------------------------------------------
+        
+    # 3. 과거 평균 PER (a_pe) 자체 계산
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe <= 0.0:
+        try:
+            _inc = stk.income_stmt
+            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                if len(_ni_vals) >= 2:
+                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                    if _avg_ni > 0 and _sh_out > 0:
+                        a_pe = p / (_avg_ni / _sh_out)
+        except: pass
+        
+        if a_pe <= 0.0:
+            if not kr and t_pe > 0:
+                a_pe = t_pe * 1.1 
+            else:
+                a_pe = 0.0
     
     # [수정된 배당률 계산 1]
     _dy = safe_float(i.get('dividendYield'))
@@ -2259,8 +2255,7 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
-                # ↓ 여기서부터 복사해서 덮어씌우세요 (들여쓰기 정확히 16칸)
-                t_pe_raw = safe_float(i.get('trailingPE'))
+               t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
                 
                 t_eps = safe_float(i.get('trailingEps'))
@@ -2269,6 +2264,7 @@ with tab1:
                 reg_p = safe_float(i.get('regularMarketPrice', p))
                 if reg_p == 0: reg_p = p
                 
+                # 1. EPS 강제 계산 (결측치 방어)
                 try:
                     _inc = stk.income_stmt
                     if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -2281,12 +2277,55 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
+                # 2. 현재 PER 및 선행 PER 계산
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
                 
                 if f_pe <= 0 and t_pe > 0:
                     f_pe = t_pe
-                    
+
+                # --- [복구됨] 실수로 삭제됐던 PBR, ROE, ROIC 블록 ---
+                pbr = safe_float(i.get('priceToBook'))
+                bv = safe_float(i.get('bookValue'))
+                
+                if bv > 0:
+                    pbr = p / bv
+                else:
+                    if pbr > 0 and is_ext_active and reg_p > 0:
+                        pbr = pbr * (p / reg_p)
+                    elif pbr == 0.0:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh = safe_float(i.get('sharesOutstanding'))
+                                if eq > 0 and sh > 0:
+                                    pbr = p / (eq / sh)
+                        except: pass
+                
+                roe = safe_float(i.get('returnOnEquity')) * 100
+                if roe == 0.0:
+                    try:
+                        inc = stk.income_stmt
+                        bs = stk.balance_sheet
+                        if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                            if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
+                                ni = safe_float(inc.loc['Net Income'].iloc[0])
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                if eq > 0:
+                                    roe = (ni / eq) * 100
+                    except: pass
+                
+                real_roic = get_real_roic(stk, i)
+                
+                if is_financial:
+                    roic_str = t("금융주 제외", "N/A (Financial)")
+                else:
+                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
+                    else: roic_str = t("데이터 부족", "N/A")
+                # --------------------------------------------------
+                
+                # 3. 과거 평균 PER (a_pe) 자체 계산
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe <= 0.0:
                     try:
@@ -2305,7 +2344,6 @@ with tab1:
                             a_pe = t_pe * 1.1 
                         else:
                             a_pe = 0.0
-                
                 # [수정된 배당률 계산 2]
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
