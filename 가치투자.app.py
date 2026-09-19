@@ -3043,55 +3043,27 @@ with tab1:
                 
                 # --- 내재가치 직접 계산하기 (시뮬레이터) ---
                 with st.expander(t("내재가치 직접 계산하기 (Custom DCF Simulator)", "Custom DCF Simulator")):
-                    st.caption(t("AI의 기본 가정을 변경하여 나만의 적정 주가를 시뮬레이션 해보세요. (초기 잉여현금흐름은 AI의 기본값을 자동으로 사용합니다.)", "Adjust assumptions to simulate your own fair value."))
-
-                    sim_fcf = safe_float(base_fcf) if base_fcf and base_fcf > 0 else 1000.0
-                    sim_g_default = float(final_g * 100) if not is_financial else 10.0
-                    sim_dr_default = max(float(ty), 9.0)
+                    st.caption(t("🔥 **수치를 변경하면 즉시 맨 위쪽의 'AI 종합 점수'와 '가치 평가' 패널이 나의 기준에 맞춰 실시간으로 다시 계산됩니다.**", "Adjust assumptions to seamlessly update the AI Score and Valuation panels in real-time."))
 
                     col_sim1, col_sim2 = st.columns(2)
                     with col_sim1:
+                        # 위에서 세팅해둔 ai 기본값(sim_g_default 등)을 이용해 슬라이더를 그림
                         user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0, key=f"user_g_{tk}")
                         user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5, key=f"user_tg_{tk}")
 
                     with col_sim2:
-                        user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=5.0, max_value=25.0, value=sim_dr_default, step=0.5, key=f"user_dr_{tk}")
+                        user_dr = st.slider(t("할인율 (요구수익률, 최소 9%)", "Discount Rate (Min 9%)"), min_value=9.0, max_value=25.0, value=sim_dr_default, step=0.5, key=f"user_dr_{tk}")
 
                     if not is_financial and sh > 0:
-                        u_dr = user_dr / 100
-                        u_g = user_g / 100
-                        u_tg = user_tg / 100
-
-                        cv = sim_fcf
-                        fut = []
-                        for y in range(1, 11):
-                            cv *= (1 + u_g)
-                            fut.append(cv / ((1 + u_dr) ** y))
-
-                        if u_dr > u_tg:
-                            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
-                        else:
-                            tv = 0
-                            st.warning(t("할인율은 영구 성장률보다 커야 계산이 가능합니다.", "Discount rate must be greater than terminal growth."))
-
-                        dtv = tv / ((1 + u_dr) ** 10)
-                        custom_iv = (sum(fut) + dtv) / sh
-                        custom_mos = ((custom_iv - p) / custom_iv) * 100 if custom_iv > 0 else 0
-
-                        if custom_mos >= 10: 
-                            c_mos_col, c_mos_lbl = "#2ecc71", "[안전]"
-                        elif custom_mos >= -5: 
-                            c_mos_col, c_mos_lbl = "#fdcb6e", "[보통]"
-                        else: 
-                            c_mos_col, c_mos_lbl = "#ff7675", "[위험]"
-
-                        val_c_str = f"{int(custom_iv):,}원" if kr else f"${custom_iv:,.2f}"
+                        # 위에서 이미 완벽하게 연동되어 계산된 mos_val 과 iv 를 그대로 표출만 함
+                        c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
+                        val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
 
                         st.markdown(
                             f"<div style='{item_style} margin-top: 15px; padding: 25px; max-width: 500px; margin-left: auto; margin-right: auto;'>"
                             f"<div style='{lbl_style} font-size:0.9rem;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
-                            f"<div style='{val_style} font-size:1.8rem; margin:10px 0;'>{val_c_str}</div>"
-                            f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <span style='color:{c_mos_col}; font-weight:bold; font-size:1.0rem;'>{c_mos_lbl} {custom_mos:.1f}%</span></div>"
+                            f"<div style='{val_style} font-size:1.8rem; margin:10px 0; color:#A0C4FF;'>{val_c_str}</div>"
+                            f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <span style='color:{c_mos_col}; font-weight:bold; font-size:1.0rem;'>{c_mos_lbl} {mos_val:.1f}%</span></div>"
                             f"</div>",
                             unsafe_allow_html=True
                         )
