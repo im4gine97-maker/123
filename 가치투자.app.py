@@ -1691,7 +1691,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 10. 시장 페널티 (지정학, 시클리컬) - 합리적으로 수치 조정됨
+    # 10. 시장 페널티 (지정학, 시클리컬) - 100점 만점 체계에 맞춰 현실적으로 재조정
     pen_score = 0
     
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
@@ -1706,20 +1706,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_score -= 40
         pen_reasons.append(t("가상자산 연동 (내재가치 평가 불가 및 극도의 변동성)", "Crypto Proxy (Unpredictable Intrinsic Value & Volatility)"))
     elif kr: 
-        pen_score -= 25 # [강화] 기존 -15 -> -25 (만성적인 주주환원 미흡 및 쪼개기 상장 억제)
+        pen_score -= 15 # 코리아 디스카운트 -15점 적용
         pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
     elif is_china_hk: 
-        pen_score -= 35 # [강화] 기존 -25 -> -35 (공산당 규제 및 재무 투명성 리스크)
+        pen_score -= 20 # 차이나/홍콩 디스카운트 -20점 적용
         pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
     elif is_taiwan: 
-        pen_score -= 25 # [강화] 기존 -20 -> -25 (양안 갈등 지정학적 리스크)
+        pen_score -= 10 # 대만 지정학적 리스크 -10점 적용
         pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
 
     explicit_cyclicals = ["TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK", "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL", "AAPL"]
     is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
 
     if is_cyclical:
-        pen_score -= 30 # [강화] 기존 -20 -> -30 (경기 민감도 및 거시 경제 의존성)
+        pen_score -= 15 # 시클리컬(경기민감주) 감점 -15점 적용
         pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
         
     if pen_score < 0:
@@ -1800,19 +1800,19 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 텍스트에 표기되는 부가 설명
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -30점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -30 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -15점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -15 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -25점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -25 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -35점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -35 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -20점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -20 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -25점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -25 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -10점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -10 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 방어했습니다.)", " (Financial Mode Active)")
 
     return title, color, reason, score_details
-
+    
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#2ecc71"
     elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#74b9ff"
