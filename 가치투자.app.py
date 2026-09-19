@@ -1969,17 +1969,11 @@ def generate_quick_ai_preview(tk):
         if real_roic is not None: roic_str = f"{real_roic:.2f}%"
         else: roic_str = t("데이터 부족", "N/A")
                 
-    # 3. 과거 평균 PER (a_pe) 닻 내리기 (시뮬레이션 거품 완벽 제거)
+    # 3. 과거 평균 PER (a_pe) 원본 닻 내리기
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-                
-     # 상단에서 조작된 주가 비율(mult)을 가져옵니다.
-    sim_pct = st.session_state.get('price_adj_pct', 0)
-    mult = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
-
     if a_pe <= 0.0:
         currency = str(i.get('currency', 'USD')).upper()
         fin_currency = str(i.get('financialCurrency', 'USD')).upper()
-                    
         if currency == fin_currency:
             try:
                 _inc = stk.income_stmt
@@ -1989,22 +1983,31 @@ def generate_quick_ai_preview(tk):
                         _avg_ni = sum(_ni_vals) / len(_ni_vals)
                         _sh_out = safe_float(i.get('sharesOutstanding'))
                         if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = (p / mult) / (_avg_ni / _sh_out)
+                            a_pe = p / (_avg_ni / _sh_out)
             except: pass
-                
-    # PDD 등 1.5배 오류로 현재 PER을 대타로 쓸 때, 조작된 거품(mult)을 빼고 무거운 닻을 내립니다.
+    
+    # 원본 기준 비정상 데이터 방어 (여기까지는 순수 원본 주가로만 계산됨)
     if a_pe < 5.0 or a_pe > 200.0:
         if t_pe > 0:
-            a_pe = t_pe / mult
+            a_pe = t_pe 
         elif f_pe > 0:
-            a_pe = f_pe / mult
+            a_pe = f_pe
         else:
             a_pe = 0.0
 
-    # 시뮬레이션에 맞춰 배당률(div_yield) 연동 (주가가 오르면 배당수익률은 감소)
-    if mult != 1.0 and 'div_yield' in locals() and div_yield > 0:
-        div_yield = div_yield / mult
-        div_str = f"배당률: {div_yield:.1f}%"
+    # --- [가상 주가(시뮬레이터) 지표 완벽 연동] ---
+    sim_pct = st.session_state.get('price_adj_pct', 0)
+    if sim_pct != 0:
+        mult = 1 + (sim_pct / 100.0)
+        
+        # a_pe는 위에서 '원본 주가'로 안전하게 닻을 내렸으니 절대 건드리지 않습니다.
+        # 그 대신 나머지 지표들만 사용자가 조작한 비율(mult)만큼 확실하게 갱신해 줍니다!
+        p = p * mult
+        if 'pbr' in locals() and pbr > 0: pbr = pbr * mult
+        if 'div_yield' in locals() and div_yield > 0: div_yield = div_yield / mult
+        if t_pe > 0: t_pe = t_pe * mult
+        if f_pe > 0: f_pe = f_pe * mult
+    # -----------------------------------------------
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
