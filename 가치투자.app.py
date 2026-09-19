@@ -1969,7 +1969,7 @@ def generate_quick_ai_preview(tk):
         if real_roic is not None: roic_str = f"{real_roic:.2f}%"
         else: roic_str = t("데이터 부족", "N/A")
                 
-    # 3. 과거 평균 PER (a_pe) 원본 닻 내리기
+    # 3. 과거 평균 PER (a_pe) 절대 닻 내리기 (시뮬레이션 영향 원천 차단)
     a_pe = safe_float(i.get('fiveYearAvgPE'))
     if a_pe <= 0.0:
         currency = str(i.get('currency', 'USD')).upper()
@@ -1983,31 +1983,31 @@ def generate_quick_ai_preview(tk):
                         _avg_ni = sum(_ni_vals) / len(_ni_vals)
                         _sh_out = safe_float(i.get('sharesOutstanding'))
                         if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = p / (_avg_ni / _sh_out)
+                            # 조작된 p 대신 원본 reg_p 사용
+                            a_pe = reg_p / (_avg_ni / _sh_out) 
             except: pass
     
-    # 원본 기준 비정상 데이터 방어 (여기까지는 순수 원본 주가로만 계산됨)
+    # 원본 기준 비정상 데이터 방어 (PDD 1.5배 등)
     if a_pe < 5.0 or a_pe > 200.0:
-        if t_pe > 0:
-            a_pe = t_pe 
-        elif f_pe > 0:
-            a_pe = f_pe
+        # t_pe나 f_pe는 위쪽 시뮬레이터에서 뻥튀기되었을 수 있으므로 절대 안 씀!
+        # 오염되지 않은 순수 원본 주가(reg_p)와 EPS로 직접 계산해서 닻을 내림
+        if 't_eps' in locals() and t_eps > 0:
+            a_pe = reg_p / t_eps
+        elif 'f_eps' in locals() and f_eps > 0:
+            a_pe = reg_p / f_eps
         else:
             a_pe = 0.0
 
-    # --- [가상 주가(시뮬레이터) 지표 완벽 연동] ---
-    sim_pct = st.session_state.get('price_adj_pct', 0)
-    if sim_pct != 0:
-        mult = 1 + (sim_pct / 100.0)
-        
-        # a_pe는 위에서 '원본 주가'로 안전하게 닻을 내렸으니 절대 건드리지 않습니다.
-        # 그 대신 나머지 지표들만 사용자가 조작한 비율(mult)만큼 확실하게 갱신해 줍니다!
-        p = p * mult
-        if 'pbr' in locals() and pbr > 0: pbr = pbr * mult
-        if 'div_yield' in locals() and div_yield > 0: div_yield = div_yield / mult
-        if t_pe > 0: t_pe = t_pe * mult
-        if f_pe > 0: f_pe = f_pe * mult
-    # -----------------------------------------------
+    # --- [화면 글씨(UI) 강제 새로고침] ---
+    # f_pe는 변했고 a_pe는 고정되었으니, 바뀐 격차(disc)로 UI 텍스트를 덮어씌움
+    if f_pe > 0 and a_pe > 0:
+        fwd_pe_val_str = f"{f_pe:.1f}배"
+        disc = ((a_pe - f_pe) / a_pe) * 100
+        c_col = "#ff7675" if disc < -10 else "#2ecc71" if disc >= 10 else "#fdcb6e"
+        lbl = "[위험]" if disc <= -30 else "[주의]" if disc < -10 else "[강력 매수]" if disc >= 30 else "[매수]" if disc >= 10 else "[보통]"
+        suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
+        fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
+    # ------------------------------------
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
