@@ -1969,55 +1969,58 @@ def generate_quick_ai_preview(tk):
         if real_roic is not None: roic_str = f"{real_roic:.2f}%"
         else: roic_str = t("데이터 부족", "N/A")
                 
-    # 3. 과거 평균 PER (a_pe) 콘크리트 고정 (시뮬레이션 영향 0%)
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    
-    if a_pe <= 0.0:
-        currency = str(i.get('currency', 'USD')).upper()
-        fin_currency = str(i.get('financialCurrency', 'USD')).upper()
-        if currency == fin_currency:
-            try:
-                _inc = stk.income_stmt
-                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                    if len(_ni_vals) >= 2:
-                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                        _sh_out = safe_float(i.get('sharesOutstanding'))
-                        if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = reg_p / (_avg_ni / _sh_out)
-            except: pass
-            
-    # 비정상 데이터 방어 (PDD 1.5배 오류 등)
-    if a_pe < 5.0 or a_pe > 200.0:
-        # [핵심] 다른 오염된 변수를 일절 쓰지 않고, 야후 원본(i)에서 날것의 데이터를 꺼내와 닻을 내립니다!
-        _raw_t_eps = safe_float(i.get('trailingEps'))
-        _raw_f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-        
-        if _raw_t_eps > 0:
-            a_pe = reg_p / _raw_t_eps
-        elif _raw_f_eps > 0:
-            a_pe = reg_p / _raw_f_eps
-        else:
-            _raw_t_pe = safe_float(i.get('trailingPE'))
-            _raw_f_pe = safe_float(i.get('forwardPE'))
-            if _raw_t_pe > 0:
-                a_pe = _raw_t_pe
-            elif _raw_f_pe > 0:
-                a_pe = _raw_f_pe
-            else:
-                a_pe = 0.0
+    # 3. 과거 평균 PER (a_pe) 콘크리트 고정 (시뮬레이션 조작 0%)
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                
+                if a_pe <= 0.0:
+                    currency = str(i.get('currency', 'USD')).upper()
+                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
+                    if currency == fin_currency:
+                        try:
+                            _inc = stk.income_stmt
+                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                                if len(_ni_vals) >= 2:
+                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                                    if _avg_ni > 0 and _sh_out > 0:
+                                        a_pe = reg_p / (_avg_ni / _sh_out)  # 오직 원본(reg_p)만 사용
+                        except: pass
+                
+                # 비정상 데이터 방어 (PDD 1.5배 등)
+                if a_pe < 5.0 or a_pe > 200.0:
+                    _raw_t_eps = safe_float(i.get('trailingEps'))
+                    _raw_f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+                    
+                    if _raw_t_eps > 0: a_pe = reg_p / _raw_t_eps
+                    elif _raw_f_eps > 0: a_pe = reg_p / _raw_f_eps
+                    else:
+                        _raw_t_pe = safe_float(i.get('trailingPE'))
+                        _raw_f_pe = safe_float(i.get('forwardPE'))
+                        if _raw_t_pe > 0: a_pe = _raw_t_pe
+                        elif _raw_f_pe > 0: a_pe = _raw_f_pe
+                        else: a_pe = 0.0
 
-    # --- [화면 글씨(UI) 강제 새로고침] ---
-    # f_pe는 시뮬레이터로 조작되어 변동하고, a_pe는 방금 '원본'으로 고정되었습니다.
-    if f_pe > 0 and a_pe > 0:
-        fwd_pe_val_str = f"{f_pe:.1f}배"
-        disc = ((a_pe - f_pe) / a_pe) * 100
-        c_col = "#ff7675" if disc < -10 else "#2ecc71" if disc >= 10 else "#fdcb6e"
-        lbl = "[위험]" if disc <= -30 else "[주의]" if disc < -10 else "[강력 매수]" if disc >= 30 else "[매수]" if disc >= 10 else "[보통]"
-        suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
-        fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
-    # ------------------------------------
+                # --- [2단계: 가상 주가(시뮬레이터) 배수(mult) 적용] ---
+                # a_pe는 위에서 원본으로 완전히 고정되었으니 절대 건드리지 않음!
+                # 대신 p, f_pe, t_pe, div 등 주가 연동 지표만 갱신
+                if mult != 1.0:
+                    if t_pe > 0: t_pe = t_pe * mult
+                    if f_pe > 0: f_pe = f_pe * mult
+                    if div_rate > 0 and p > 0: 
+                        calc_div = (div_rate / p) * 100
+                        if calc_div < 50.0: div = calc_div
+                # ----------------------------------------------------
 
+                # --- [3단계: 바뀐 격차(disc)로 UI 텍스트 강제 갱신] ---
+                if f_pe > 0 and a_pe > 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    disc = ((a_pe - f_pe) / a_pe) * 100
+                    c_col = "#ff7675" if disc < -10 else "#2ecc71" if disc >= 10 else "#fdcb6e"
+                    lbl = "[위험]" if disc <= -30 else "[주의]" if disc < -10 else "[강력 매수]" if disc >= 30 else "[매수]" if disc >= 10 else "[보통]"
+                    suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
+                    fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
+                # ----------------------------------------------------
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
@@ -2333,21 +2336,18 @@ with tab1:
                 t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
 
-                # --- [핵심: 원본 주가 가로채기 및 시뮬레이션 적용] ---
+                # --- [1단계: 원본 주가 가로채기 및 UI 표시] ---
                 sim_pct = st.session_state.get('price_adj_pct', 0)
+                mult = 1.0
                 if sim_pct != 0:
-                    multiplier = 1 + (sim_pct / 100.0)
-                    p = p * multiplier  # 주가 강제 조작!
-                    if t_pe_raw > 0: t_pe_raw *= multiplier  # PER도 같은 비율로 조작!
-                    if f_pe_raw > 0: f_pe_raw *= multiplier
+                    mult = 1 + (sim_pct / 100.0)
+                    p = p * mult  # 주가 강제 조작!
                     
                     c_color = "#ff7675" if sim_pct < 0 else "#74b9ff"
                     ext_str += f"<br><span style='font-size:0.9em; color:{c_color}; font-weight:bold;'>🛠️ 가상 주가 적용 중 (현재가 대비 {sim_pct:+}%)</span>"
                 # ----------------------------------------------------
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
-                t_pe_raw = safe_float(i.get('trailingPE'))
-                f_pe_raw = safe_float(i.get('forwardPE'))
                 
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
