@@ -3570,17 +3570,23 @@ with tab6:
             item["순위"] = i + 1
         return rank_data
         
-    with st.spinner("경영진 데이터를 계산 중입니다..."):
+    wwith st.spinner("경영진 데이터를 계산 중입니다..."):
         gov_df = pd.DataFrame(get_gov_ranking_data(len(tmap)))
-        # [화면 표출용] 점수와 요약을 버리고, 요청하신 4가지 항목만 순서대로 뽑아냅니다.
-        gov_df_display = gov_df[["순위", "등급", "티커", "기업명"]]
     
-    st.dataframe(gov_df_display, height=800, use_container_width=True, hide_index=True, column_config={
-        "순위": st.column_config.NumberColumn(t("순위", "Rank"), width="small"),
-        "등급": st.column_config.TextColumn(t("등급", "Tier"), width="small"),
-        "티커": st.column_config.TextColumn(t("티커", "Ticker"), width="small"),
-        "기업명": st.column_config.TextColumn(t("기업명", "Company"), width="large")
-    })
+    # [수정] 데이터를 직접 자르지 않고, column_order 옵션을 사용해 원하는 항목만 쏙 뽑아서 보여줍니다.
+    st.dataframe(
+        gov_df, 
+        height=800, 
+        use_container_width=True, 
+        hide_index=True, 
+        column_order=["순위", "등급", "티커", "기업명"], 
+        column_config={
+            "순위": st.column_config.NumberColumn(t("순위", "Rank"), width="small"),
+            "등급": st.column_config.TextColumn(t("등급", "Tier"), width="small"),
+            "티커": st.column_config.TextColumn(t("티커", "Ticker"), width="small"),
+            "기업명": st.column_config.TextColumn(t("기업명", "Company"), width="large")
+        }
+    )
     
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
