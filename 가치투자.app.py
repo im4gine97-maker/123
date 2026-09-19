@@ -2659,11 +2659,45 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
-                iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, ty, min(final_g * 1.5, 0.25), is_financial)
-                iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
+                # --- [사용자 커스텀 DCF 시뮬레이터 연동 로직] ---
+                # 1. AI의 원본 기본값 백업
+                ai_final_g = final_g
+                sim_g_default = float(ai_final_g * 100) if not is_financial else 10.0
+                sim_dr_default = max(float(ty), 9.0)
                 
+                # 2. 사용자가 하단 슬라이더를 움직였다면 그 값을 가져옴 (안 움직였다면 AI 기본값)
+                user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
+                user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
+                user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
+                
+                # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기
+                if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                    u_dr = max(user_dr_val / 100, 0.09)
+                    u_g = user_g_val / 100
+                    u_tg = user_tg_val / 100
+                    
+                    cv = base_fcf
+                    fut = []
+                    for y in range(1, 11):
+                        cv *= (1 + u_g)
+                        fut.append(cv / ((1 + u_dr) ** y))
+                        
+                    if u_dr > u_tg:
+                        tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+                        dtv = tv / ((1 + u_dr) ** 10)
+                        iv = (sum(fut) + dtv) / sh
+                        mos_val = ((iv - p) / iv) * 100 if iv > 0 else 0
+                        
+                        # [핵심] 사용자의 성장률을 AI의 최종 성장률(final_g)로 둔갑시킴 -> 점수에 실시간 반영됨!
+                        final_g = u_g  
+                        
+                # 4. 베스트/워스트 시나리오도 사용자의 할인율과 성장률 기준으로 재계산
+                iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, user_dr_val, min(final_g * 1.5, 0.25), is_financial)
+                iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, user_dr_val, max(final_g * 0.5, 0.0), is_financial)
+                # -----------------------------------------------
+
                 roic_val = real_roic if real_roic is not None else 0
-                # [수정] 누락되었던 f_pe와 spy_pe 데이터를 AI 평가 함수로 정상 전달하여 점수 괴리를 해결합니다.
+                
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
