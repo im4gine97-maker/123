@@ -1912,7 +1912,7 @@ def generate_quick_ai_preview(tk):
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
-                bv = safe_float(i.get('bookValue'))
+    bv = safe_float(i.get('bookValue'))
                 
                 if bv > 0:
                     # p에 이미 시뮬레이터 배수(mult)가 반영되었으므로 PBR도 자동 연동됩니다.
