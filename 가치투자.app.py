@@ -1969,8 +1969,9 @@ def generate_quick_ai_preview(tk):
         if real_roic is not None: roic_str = f"{real_roic:.2f}%"
         else: roic_str = t("데이터 부족", "N/A")
                 
-    # 3. 과거 평균 PER (a_pe) 절대 닻 내리기 (시뮬레이션 영향 원천 차단)
+    # 3. 과거 평균 PER (a_pe) 콘크리트 고정 (시뮬레이션 영향 0%)
     a_pe = safe_float(i.get('fiveYearAvgPE'))
+    
     if a_pe <= 0.0:
         currency = str(i.get('currency', 'USD')).upper()
         fin_currency = str(i.get('financialCurrency', 'USD')).upper()
@@ -1983,23 +1984,31 @@ def generate_quick_ai_preview(tk):
                         _avg_ni = sum(_ni_vals) / len(_ni_vals)
                         _sh_out = safe_float(i.get('sharesOutstanding'))
                         if _avg_ni > 0 and _sh_out > 0:
-                            # 조작된 p 대신 원본 reg_p 사용
-                            a_pe = reg_p / (_avg_ni / _sh_out) 
+                            a_pe = reg_p / (_avg_ni / _sh_out)
             except: pass
-    
-    # 원본 기준 비정상 데이터 방어 (PDD 1.5배 등)
+            
+    # 비정상 데이터 방어 (PDD 1.5배 오류 등)
     if a_pe < 5.0 or a_pe > 200.0:
-        # t_pe나 f_pe는 위쪽 시뮬레이터에서 뻥튀기되었을 수 있으므로 절대 안 씀!
-        # 오염되지 않은 순수 원본 주가(reg_p)와 EPS로 직접 계산해서 닻을 내림
-        if 't_eps' in locals() and t_eps > 0:
-            a_pe = reg_p / t_eps
-        elif 'f_eps' in locals() and f_eps > 0:
-            a_pe = reg_p / f_eps
+        # [핵심] 다른 오염된 변수를 일절 쓰지 않고, 야후 원본(i)에서 날것의 데이터를 꺼내와 닻을 내립니다!
+        _raw_t_eps = safe_float(i.get('trailingEps'))
+        _raw_f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+        
+        if _raw_t_eps > 0:
+            a_pe = reg_p / _raw_t_eps
+        elif _raw_f_eps > 0:
+            a_pe = reg_p / _raw_f_eps
         else:
-            a_pe = 0.0
+            _raw_t_pe = safe_float(i.get('trailingPE'))
+            _raw_f_pe = safe_float(i.get('forwardPE'))
+            if _raw_t_pe > 0:
+                a_pe = _raw_t_pe
+            elif _raw_f_pe > 0:
+                a_pe = _raw_f_pe
+            else:
+                a_pe = 0.0
 
     # --- [화면 글씨(UI) 강제 새로고침] ---
-    # f_pe는 변했고 a_pe는 고정되었으니, 바뀐 격차(disc)로 UI 텍스트를 덮어씌움
+    # f_pe는 시뮬레이터로 조작되어 변동하고, a_pe는 방금 '원본'으로 고정되었습니다.
     if f_pe > 0 and a_pe > 0:
         fwd_pe_val_str = f"{f_pe:.1f}배"
         disc = ((a_pe - f_pe) / a_pe) * 100
