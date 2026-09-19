@@ -1962,46 +1962,52 @@ def generate_quick_ai_preview(tk):
         except: pass
     
     real_roic = get_real_roic(stk, i)
-        
+                
+    if is_financial:
+        roic_str = t("금융주 제외", "N/A (Financial)")
+    else:
+        if real_roic is not None: roic_str = f"{real_roic:.2f}%"
+        else: roic_str = t("데이터 부족", "N/A")
+                
     # 3. 과거 평균 PER (a_pe) 닻 내리기 (시뮬레이션 거품 완벽 제거)
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
                 
-                # 상단에서 조작된 주가 비율(mult)을 가져옵니다.
-                sim_pct = st.session_state.get('price_adj_pct', 0)
-                mult = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
+     # 상단에서 조작된 주가 비율(mult)을 가져옵니다.
+    sim_pct = st.session_state.get('price_adj_pct', 0)
+    mult = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
 
-                if a_pe <= 0.0:
-                    currency = str(i.get('currency', 'USD')).upper()
-                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
+    if a_pe <= 0.0:
+        currency = str(i.get('currency', 'USD')).upper()
+        fin_currency = str(i.get('financialCurrency', 'USD')).upper()
                     
-                    if currency == fin_currency:
-                        try:
-                            _inc = stk.income_stmt
-                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                                if len(_ni_vals) >= 2:
-                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                                    if _avg_ni > 0 and _sh_out > 0:
-                                        a_pe = (p / mult) / (_avg_ni / _sh_out)
-                        except: pass
+        if currency == fin_currency:
+            try:
+                    inc = stk.income_stmt
+                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                    if len(_ni_vals) >= 2:
+                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                        _sh_out = safe_float(i.get('sharesOutstanding'))
+                        if _avg_ni > 0 and _sh_out > 0:
+                            a_pe = (p / mult) / (_avg_ni / _sh_out)
+            except: pass
                 
-                # PDD 등 1.5배 오류로 현재 PER을 대타로 쓸 때, 조작된 거품(mult)을 빼고 무거운 닻을 내립니다.
-                if a_pe < 5.0 or a_pe > 200.0:
-                    if t_pe > 0:
-                        a_pe = t_pe / mult
-                    elif f_pe > 0:
-                        a_pe = f_pe / mult
-                    else:
-                        a_pe = 0.0
+    # PDD 등 1.5배 오류로 현재 PER을 대타로 쓸 때, 조작된 거품(mult)을 빼고 무거운 닻을 내립니다.
+    if a_pe < 5.0 or a_pe > 200.0:
+        if t_pe > 0:
+            a_pe = t_pe / mult
+        elif f_pe > 0:
+            a_pe = f_pe / mult
+        else:
+            a_pe = 0.0
 
-                # 시뮬레이션에 맞춰 배당률(div_yield) 연동 (주가가 오르면 배당수익률은 감소)
-                if mult != 1.0 and 'div_yield' in locals() and div_yield > 0:
-                    div_yield = div_yield / mult
-                    div_str = f"배당률: {div_yield:.1f}%"
+    # 시뮬레이션에 맞춰 배당률(div_yield) 연동 (주가가 오르면 배당수익률은 감소)
+    if mult != 1.0 and 'div_yield' in locals() and div_yield > 0:
+        div_yield = div_yield / mult
+        div_str = f"배당률: {div_yield:.1f}%"
 
-                spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+    op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
     f_pe=f_pe, spy_pe=spy_pe_val
