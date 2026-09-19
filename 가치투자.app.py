@@ -1441,7 +1441,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     else: div_score = 0  # 무배당 시 감점 없음
 
     if div_yield_pct > 0:
-        div_reason = t(f"현재 배당수익률 {div_yield_pct:.2f}% 반영 (가점 +{div_score}점)", f"Current dividend yield {div_yield_pct:.2f}% (+{div_score} pts)")
+        div_reason = t(f"현재 배당수익률 {div_yield_pct:.2f}% 반영 ", f"Current dividend yield {div_yield_pct:.2f}% (+{div_score} pts)")
     else:
         div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
         
