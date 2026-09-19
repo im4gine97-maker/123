@@ -1598,45 +1598,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     is_crypto = tk_upper in crypto_proxies or any(k in ceo_text for k in ["비트코인", "가상자산", "암호화폐"])
     # -----------------------------------------------------
 
-    # 6. S&P 500 기대수익률 (ERP) 비교
-    spy_score = 0
-    if not is_financial and f_pe > 0 and spy_pe > 0:
-        if is_crypto:
-            spy_score = -20
-            spy_reason = t("가상자산 연동 기업은 회계상 착시로 인해 기대수익률 평가가 무의미합니다", "Expected return evaluation is meaningless due to crypto accounting illusion")
-        else:
-            stock_ey = (1 / f_pe) * 100
-            spy_ey = (1 / spy_pe) * 100
-            spy_diff = stock_ey - spy_ey
-            
-            if spy_diff >= 4.5:    spy_score = 20
-            elif spy_diff >= 4.0:  spy_score = 18
-            elif spy_diff >= 3.5:  spy_score = 16
-            elif spy_diff >= 3.0:  spy_score = 14
-            elif spy_diff >= 2.5:  spy_score = 12
-            elif spy_diff >= 2.0:  spy_score = 10
-            elif spy_diff >= 1.5:  spy_score = 8
-            elif spy_diff >= 1.0:  spy_score = 6
-            elif spy_diff >= 0.5:  spy_score = 4
-            elif spy_diff >= 0.0:  spy_score = 2
-            elif spy_diff >= -0.5: spy_score = -2
-            elif spy_diff >= -1.0: spy_score = -4
-            elif spy_diff >= -1.5: spy_score = -6
-            elif spy_diff >= -2.0: spy_score = -8
-            elif spy_diff >= -2.5: spy_score = -10
-            elif spy_diff >= -3.0: spy_score = -12
-            elif spy_diff >= -3.5: spy_score = -14
-            elif spy_diff >= -4.0: spy_score = -16
-            elif spy_diff >= -4.5: spy_score = -18
-            else:                  spy_score = -20
-            
-            sign = "+" if spy_diff > 0 else ""
-            spy_reason = t(
-                f"S&P 500(EY {spy_ey:.1f}%) 대비 기대수익률 {sign}{spy_diff:.2f}%p 격차 반영", 
-                f"{sign}{spy_diff:.2f}%p expected return gap vs S&P 500 (EY {spy_ey:.1f}%)"
-            )
-        score_details[t("시장 지수(S&P 500) 대비 매력도", "Relative Attractiveness vs S&P 500")] = (spy_score, spy_reason)
-    # 7. 시장 퀄리티 (ROIC/ROE vs S&P 500)
+    # 6. 시장 퀄리티 (ROIC/ROE vs S&P 500)
     market_score = 0
     spy_roe_avg = 15.0
     spy_roic_avg = 12.0
@@ -1677,7 +1639,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 8. DCF (합리적 조정: 일시적 고평가는 버티고, 꼬리 리스크만 강하게 차단)
+    # 7. DCF (합리적 조정: 일시적 고평가는 버티고, 꼬리 리스크만 강하게 차단)
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
@@ -1699,7 +1661,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
 
-    # 9. 거시 매력도 (ERP)
+    # 8. 거시 매력도 (ERP)
     erp_score = 0
     if f_pe <= 0:
         erp_score = 0
@@ -1720,7 +1682,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     score_details[t('거시 매력도 (ERP)', 'Macro Yield (ERP)')] = (erp_score, erp_reason)
 
-    # 10. 복리 성장률 (CAGR)
+    # 9. 복리 성장률 (CAGR)
     g_score = 0
     if not is_financial:
         if final_g >= 0.20: g_score = 15
@@ -1747,7 +1709,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 11. 시장 페널티 (지정학, 시클리컬) - 합리적으로 수치 조정됨
+    # 10. 시장 페널티 (지정학, 시클리컬) - 합리적으로 수치 조정됨
     pen_score = 0
     
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
@@ -1818,7 +1780,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     score = round(score)
     # --------------------------------------------------
     
-    # 12. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
+    # 11. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
     if score >= 120:
         title = t(f"압도적 매수 기회 ({score}점)", f"Strong Buy Opportunity ({score} pts)")
         color = "#00b894" # Tier 5
