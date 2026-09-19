@@ -2684,6 +2684,32 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 
+                # --- [가상 주가(시뮬레이터) 연동 완벽 보정 (스트레스 테스트)] ---
+                sim_pct = st.session_state.get('price_adj_pct', 0)
+                if sim_pct != 0:
+                    multiplier = 1 + (sim_pct / 100.0)
+                    
+                    # 1. 배당률 보정 (주가 하락 시 배당수익률은 수학적으로 뻥튀기됨)
+                    if div_yield > 0:
+                        div_yield = div_yield / multiplier
+                        div_str = f"배당률: {div_yield:.1f}%"
+                        
+                    # 2. 거시 매력도(ERP) 재계산 (f_pe가 변했으므로 국채와의 갭 다시 계산)
+                    if f_pe > 0:
+                        erp = ((1 / f_pe) * 100) - safe_float(ty, 4.0)
+                        
+                    # 3. 과거 평균 PER(a_pe) 오염 복구 
+                    # (과거 데이터는 고정되어야 하므로 조작된 주가로 수동 계산된 경우 원상복구)
+                    a_pe_raw = safe_float(i.get('fiveYearAvgPE'))
+                    if a_pe_raw <= 0.0 and a_pe > 0:
+                        a_pe = a_pe / multiplier
+                        
+                    # 4. PBR 보정 (장부가가 없어 야후 원본 PBR을 그대로 가져온 경우 비율만큼 조작)
+                    bv_val = safe_float(i.get('bookValue'))
+                    if bv_val <= 0 and pbr > 0:
+                        pbr = pbr * multiplier
+                # ---------------------------------------------------------------
+
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
