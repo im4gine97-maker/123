@@ -1985,17 +1985,6 @@ def generate_quick_ai_preview(tk):
             elif _raw_f_pe > 0: a_pe = _raw_f_pe
             else: a_pe = 0.0
 
-    # --- [2단계: 가상 주가(시뮬레이터) 배수(mult) 적용] ---
-    # a_pe는 위에서 원본으로 완전히 고정되었으니 절대 건드리지 않음!
-    # 대신 p, f_pe, t_pe, div 등 주가 연동 지표만 갱신
-    if mult != 1.0:
-        if t_pe > 0: t_pe = t_pe * mult
-        if f_pe > 0: f_pe = f_pe * mult
-        if div_rate > 0 and p > 0: 
-            calc_div = (div_rate / p) * 100
-            if calc_div < 50.0: div = calc_div
-    # ----------------------------------------------------
-
     # --- [3단계: 바뀐 격차(disc)로 UI 텍스트 강제 갱신] ---
     if f_pe > 0 and a_pe > 0:
         fwd_pe_val_str = f"{f_pe:.1f}배"
