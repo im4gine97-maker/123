@@ -1912,10 +1912,9 @@ def generate_quick_ai_preview(tk):
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
-    bv = safe_float(i.get('bookValue'))
+                bv = safe_float(i.get('bookValue'))
                 
                 if bv > 0:
-                    # p에 이미 시뮬레이터 배수(mult)가 반영되었으므로 PBR도 자동 연동됩니다.
                     pbr = p / bv  
                 else:
                     if pbr == 0.0:
@@ -1928,12 +1927,9 @@ def generate_quick_ai_preview(tk):
                                     pbr = reg_p / (eq / sh)
                         except: pass
                         
-                    # 버크셔 B주 고질적인 야후 API 장부데이터 누락 방어망 (최후의 보루)
                     if tk == "BRK-B" and pbr == 0.0:
-                        pbr = reg_p / 285.0  # 2026년 기준 B주 1주당 장부가(BPS) 강제 세팅
+                        pbr = reg_p / 285.0
                         
-                    # API나 재무제표로 억지로 구한 PBR은 '원본 주가(reg_p)' 기준이므로,
-                    # 시뮬레이터로 주가(p)를 폭락/폭등시켰다면 그 비율만큼 PBR도 비례해서 움직이도록 동기화!
                     if pbr > 0 and reg_p > 0:
                         pbr = pbr * (p / reg_p)
 
