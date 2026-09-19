@@ -1762,20 +1762,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_score -= 40
         pen_reasons.append(t("가상자산 연동 (내재가치 평가 불가 및 극도의 변동성)", "Crypto Proxy (Unpredictable Intrinsic Value & Volatility)"))
     elif kr: 
-        pen_score -= 15 # 기존 -30에서 완화
+        pen_score -= 25 # [강화] 기존 -15 -> -25 (만성적인 주주환원 미흡 및 쪼개기 상장 억제)
         pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
     elif is_china_hk: 
-        pen_score -= 25 # 기존 -40에서 완화
+        pen_score -= 35 # [강화] 기존 -25 -> -35 (공산당 규제 및 재무 투명성 리스크)
         pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
     elif is_taiwan: 
-        pen_score -= 20 # 기존 -40에서 완화
+        pen_score -= 25 # [강화] 기존 -20 -> -25 (양안 갈등 지정학적 리스크)
         pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
 
     explicit_cyclicals = ["TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK", "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL", "AAPL"]
     is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
 
     if is_cyclical:
-        pen_score -= 20 # 기존 -50에서 완화
+        pen_score -= 30 # [강화] 기존 -20 -> -30 (경기 민감도 및 거시 경제 의존성)
         pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
         
     if pen_score < 0:
