@@ -2333,27 +2333,30 @@ with tab1:
                         is_ext_active = True
                         ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: ${post_p:,.2f})</span>"
 
-                t_pe_raw = safe_float(i.get('trailingPE'))
-                f_pe_raw = safe_float(i.get('forwardPE'))
-
-                # --- [1단계: 원본 주가 가로채기 및 UI 표시] ---
-                sim_pct = st.session_state.get('price_adj_pct', 0)
-                mult = 1.0
-                if sim_pct != 0:
-                    mult = 1 + (sim_pct / 100.0)
-                    p = p * mult  # 주가 강제 조작!
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                if a_pe <= 0.0:
+                    currency = str(i.get('currency', 'USD')).upper()
+                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
                     
-                    c_color = "#ff7675" if sim_pct < 0 else "#74b9ff"
-                    ext_str += f"<br><span style='font-size:0.9em; color:{c_color}; font-weight:bold;'>🛠️ 가상 주가 적용 중 (현재가 대비 {sim_pct:+}%)</span>"
-                # ----------------------------------------------------
-
-                p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+                    if currency == fin_currency:
+                        try:
+                            _inc = stk.income_stmt
+                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                                if len(_ni_vals) >= 2:
+                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                                    _sh_out = safe_float(i.get('sharesOutstanding'))
+                                    if _avg_ni > 0 and _sh_out > 0:
+                                        a_pe = p / (_avg_ni / _sh_out)
+                        except: pass
                 
-                t_eps = safe_float(i.get('trailingEps'))
-                f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-                
-                reg_p = safe_float(i.get('regularMarketPrice', p))
-                if reg_p == 0: reg_p = p
+                if a_pe < 5.0 or a_pe > 200.0:
+                    if t_pe > 0:
+                        a_pe = t_pe 
+                    elif f_pe > 0:
+                        a_pe = f_pe
+                    else:
+                        a_pe = 0.0
                 
                 try:
                     _inc = stk.income_stmt
