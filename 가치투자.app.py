@@ -1744,7 +1744,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
         
-    # [핵심 방어벽] 딕셔너리에 들어간 점수들을 모아서 총합 1번만 계산 (괴리 원천 차단)
     # --- [나만의 투자 성향 가중치 적용 로직] ---
     # 사이드바에서 설정한 배수(0.0 ~ 3.0)를 불러옵니다.
     weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
@@ -1761,68 +1760,67 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k: w = weights['val']
         elif "자본" in k or "비즈니스" in k or "레버리지" in k or "Moat" in k or "Efficiency" in k: w = weights['biz']
         elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
-        elif "페널티" in k or "Penalty" in k: w = 1.0 # 꼼수 방지: 페널티는 가중치 조작 불가(무조건 1.0 고정)
+        elif "페널티" in k or "Penalty" in k: w = 1.0 # 페널티는 가중치 조작 불가
         
-        w_score = s_val * w
+        # [핵심] 세부 내역 점수를 여기서 모두 절반(50%)으로 축소시켜 저장합니다.
+        w_score = (s_val / 2.0) * w
         w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
         weighted_details[k] = (w_score, w_reason)
 
     score_details = weighted_details
     
-    # 가중치가 곱해진 진짜 총점을 계산합니다.
+    # 세부 내역이 이미 절반으로 줄었으므로, 총합(raw_total)도 자연스럽게 절반이 됩니다.
     raw_total = sum(val[0] for val in score_details.values())
     
     # [총점 정규화 보호막] 
-    # 배수를 마음대로 올려서 점수가 뻥튀기되더라도 기존의 S~F 등급 판정 기준표가 망가지지 않도록,
-    # 사용자가 설정한 가중치 평균값으로 총점을 나누어 '영점 조준'을 해줍니다.
     avg_w = sum(weights.values()) / 5.0
     score = raw_total / avg_w if avg_w > 0 else 0
     score = round(score)
     # --------------------------------------------------
     
-    # 11. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
-    if score >= 120:
+    # 11. 최종 결과 매핑 (절반으로 축소된 100점 만점 체계 반영)
+    if score >= 60:
         title = t(f"압도적 매수 기회 ({score}점)", f"Strong Buy Opportunity ({score} pts)")
         color = "#00b894" # Tier 5
-        reason = t("모든 가치평가 지표가 완벽하며, 극단적으로 저평가된 상태입니다. 넉넉한 안전마진을 제공하는 강력한 매수 기회일 확률이 높습니다.", "All valuation metrics are perfect, indicating an extreme undervaluation. High probability of a strong buy opportunity.")
-    elif score >= 70:
+        reason = t("모든 가치평가 지표가 완벽하며, 극단적으로 저평가된 상태입니다. 넉넉한 안전마진을 제공하는 강력한 매수 기회일 확률이 높습니다.", "All valuation metrics are perfect, indicating an extreme undervaluation.")
+    elif score >= 35:
         title = t(f"투자 매력도 높음 ({score}점)", f"High Attractiveness ({score} pts)")
         color = "#00b894" # Tier 5
-        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있습니다. 적극적인 투자를 긍정적으로 고려할 만한 훌륭한 구간입니다.", "Excellent fundamentals with a generous margin of safety. A great zone to consider active investment.")
-    elif score >= 30:
+        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있습니다. 적극적인 투자를 긍정적으로 고려할 만한 훌륭한 구간입니다.", "Excellent fundamentals with a generous margin of safety.")
+    elif score >= 15:
         title = t(f"긍정적 관찰 구간 ({score}점)", f"Positive Observation ({score} pts)")
         color = "#2ecc71" # Tier 4
-        reason = t("기업의 퀄리티는 훌륭하며 가격도 합리적입니다. 분할 매수로 접근하기에 적절한 수준의 안전마진을 제공합니다.", "Great business quality at a reasonable price. Offers an adequate margin of safety for dollar-cost averaging.")
+        reason = t("기업의 퀄리티는 훌륭하며 가격도 합리적입니다. 분할 매수로 접근하기에 적절한 수준의 안전마진을 제공합니다.", "Great business quality at a reasonable price.")
     elif score >= 0:
         title = t(f"적정 가치 / 보유 ({score}점)", f"Fair Value / Hold ({score} pts)")
         color = "#fdcb6e" # Tier 3
-        reason = t("시장 기대치와 내재가치가 일치하는 적정 가격(Fair Price)입니다. 장기 투자자라면 흔들림 없이 계속 보유할 만합니다.", "Fair price where market expectations meet intrinsic value. A solid hold for long-term investors.")
-    elif score >= -40:
+        reason = t("시장 기대치와 내재가치가 일치하는 적정 가격(Fair Price)입니다. 장기 투자자라면 흔들림 없이 계속 보유할 만합니다.", "Fair price where market expectations meet intrinsic value.")
+    elif score >= -20:
         title = t(f"보수적 접근 / 관망 ({score}점)", f"Conservative / Wait & See ({score} pts)")
         color = "#ff9f43" # Tier 2
-        reason = t("펀더멘털 대비 주가가 다소 비싸게 거래되고 있습니다. 신규 진입보다는 관망하며 가격 조정을 기다리는 것이 유리합니다.", "Trading slightly higher than its fundamentals justify. Better to wait for a price correction than entering now.")
-    elif score >= -90:
+        reason = t("펀더멘털 대비 주가가 다소 비싸게 거래되고 있습니다. 신규 진입보다는 관망하며 가격 조정을 기다리는 것이 유리합니다.", "Trading slightly higher than its fundamentals justify.")
+    elif score >= -45:
         title = t(f"고평가 주의 / 비중 축소 ({score}점)", f"Overvalued / Reduce ({score} pts)")
         color = "#ff9f43" # Tier 2
-        reason = t("밸류에이션 부담이 큽니다. 미래 성장에 대한 낙관론이 가격에 선반영되어 있으므로 비중 축소 및 리스크 관리가 필요합니다.", "Significant valuation burden. Optimism is priced in; reducing exposure and managing risk is advised.")
-    elif score >= -140:
+        reason = t("밸류에이션 부담이 큽니다. 미래 성장에 대한 낙관론이 가격에 선반영되어 있으므로 비중 축소 및 리스크 관리가 필요합니다.", "Significant valuation burden. Optimism is priced in.")
+    elif score >= -70:
         title = t(f"신규 투자 보류 ({score}점)", f"Hold Off Investment ({score} pts)")
         color = "#ff4757" # Tier 1
-        reason = t("대다수 가치평가 지표가 심각한 '위험'을 가리킵니다. 안전마진이 완전히 소멸된 상태이므로 투자를 추천하지 않습니다.", "Most metrics flag severe warnings. No margin of safety exists; investment is strongly discouraged.")
+        reason = t("대다수 가치평가 지표가 심각한 '위험'을 가리킵니다. 안전마진이 완전히 소멸된 상태이므로 투자를 추천하지 않습니다.", "No margin of safety exists; investment is strongly discouraged.")
     else:
         title = t(f"극심한 버블 / 펀더멘털 훼손 ({score}점)", f"Extreme Bubble / Damage ({score} pts)")
         color = "#ff4757" # Tier 1
-        reason = t("비정상적인 고평가 상태이거나 기업의 구조적 훼손이 심각합니다. 자본 보호를 위해 매도를 강력히 고려해야 할 위험 구간입니다.", "Abnormally overvalued or suffering severe structural damage. Strongly consider selling to protect capital.")
+        reason = t("비정상적인 고평가 상태이거나 기업의 구조적 훼손이 심각합니다. 자본 보호를 위해 매도를 강력히 고려해야 할 위험 구간입니다.", "Abnormally overvalued or suffering severe structural damage.")
 
     # 텍스트에 표기되는 부가 설명
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -20점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -20 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -10점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -10 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -12.5점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -12.5 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -25점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -25 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -17.5점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -17.5 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -20점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -20 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -12.5점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -12.5 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 방어했습니다.)", " (Financial Mode Active)")
@@ -2051,25 +2049,25 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
                 return v[0] if isinstance(v, tuple) else v
         return 0
 
+    # [수정] 세부 점수가 절반으로 줄었으므로 정규화(Normalization) 최소/최대치도 절반으로 축소
     mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
-    mgmt_norm = max(0, min(100, (mgmt_raw + 40) / 80 * 100))
+    mgmt_norm = max(0, min(100, (mgmt_raw + 20) / 40 * 100))
 
     eff_raw = get_score(["비즈니스 수익성", "자본 효율성", "Efficiency", "Profitability"])
-    eff_norm = max(0, min(100, (eff_raw + 40) / 80 * 100))
+    eff_norm = max(0, min(100, (eff_raw + 20) / 40 * 100))
 
     price_raw = get_score(["가격 매력도", "Price Attractiveness"])
-    price_norm = max(0, min(100, (price_raw + 40) / 80 * 100))
+    price_norm = max(0, min(100, (price_raw + 20) / 40 * 100))
 
     growth_raw = get_score(["장기 복리 성장성", "Compounding"])
-    growth_norm = max(0, min(100, (growth_raw + 30) / 45 * 100))
+    growth_norm = max(0, min(100, (growth_raw + 15) / 22.5 * 100))
 
     if is_financial:
         safety_raw = get_score(["거시 매력도", "Macro"])
-        safety_norm = max(0, min(100, (safety_raw + 30) / 50 * 100))
+        safety_norm = max(0, min(100, (safety_raw + 15) / 25 * 100))
     else:
-        # [수정됨] "안전마진" 단어를 빼고 "내재가치", "DCF"로 명확히 지정하여 PER 점수와 꼬이는 현상 완벽 차단
         safety_raw = get_score(["내재가치", "DCF MoS"])
-        safety_norm = max(0, min(100, (safety_raw + 40) / 80 * 100))
+        safety_norm = max(0, min(100, (safety_raw + 20) / 40 * 100))
 
     values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
     values.append(values[0])
