@@ -1966,7 +1966,7 @@ def generate_quick_ai_preview(tk):
     # 3. 과거 평균 PER (a_pe) 닻 내리기 (시뮬레이션 거품 완벽 제거)
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 
-                # 상단에서 조작된 주가 비율(mult)을 미리 구해옵니다.
+                # 상단에서 조작된 주가 비율(mult)을 가져옵니다.
                 sim_pct = st.session_state.get('price_adj_pct', 0)
                 mult = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
 
@@ -1983,11 +1983,10 @@ def generate_quick_ai_preview(tk):
                                     _avg_ni = sum(_ni_vals) / len(_ni_vals)
                                     _sh_out = safe_float(i.get('sharesOutstanding'))
                                     if _avg_ni > 0 and _sh_out > 0:
-                                        # [핵심 1] a_pe를 수동 계산할 때, 조작된 p에서 거품(mult)을 제거한 순수 원본 주가를 사용합니다!
                                         a_pe = (p / mult) / (_avg_ni / _sh_out)
                         except: pass
                 
-                # [핵심 2] PDD(1.5배) 오류 등으로 인해 현재 PER을 과거 닻으로 빌려올 때도, 조작 거품(mult)을 쫙 빼고 빌려옵니다!
+                # PDD 등 1.5배 오류로 현재 PER을 대타로 쓸 때, 조작된 거품(mult)을 빼고 무거운 닻을 내립니다.
                 if a_pe < 5.0 or a_pe > 200.0:
                     if t_pe > 0:
                         a_pe = t_pe / mult
@@ -1996,32 +1995,13 @@ def generate_quick_ai_preview(tk):
                     else:
                         a_pe = 0.0
 
-    
-    # [수정된 배당률 계산 1]
-    _dy = safe_float(i.get('dividendYield'))
-    _dr = safe_float(i.get('dividendRate'))
-    div = 0.0
-    if _dr > 0 and p > 0:
-        _calc = (_dr / p) * 100
-        if _calc < 50.0: div = _calc
-    if div == 0.0 and _dy > 0:
-        div = _dy if _dy > 1.0 else _dy * 100
-        
-    off = i.get('companyOfficers', [])
-    ceo_raw = '누락'
-    if isinstance(off, list) and len(off) > 0:
-        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-        else: ceo_raw = str(off[0])
-    elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-    elif isinstance(off, str): ceo_raw = off
-    ceo_cleaned = clean_ceo_name(ceo_raw)
-    
-    cd = tk.split('.')[0] if kr else tk
-    criticism_text = fetch_governance_criticism(tk, cd, ceo_cleaned)
-    
-    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                
-    op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+                # 시뮬레이션에 맞춰 배당률(div_yield) 연동 (주가가 오르면 배당수익률은 감소)
+                if mult != 1.0 and 'div_yield' in locals() and div_yield > 0:
+                    div_yield = div_yield / mult
+                    div_str = f"배당률: {div_yield:.1f}%"
+
+                spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
     f_pe=f_pe, spy_pe=spy_pe_val
