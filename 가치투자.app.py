@@ -135,7 +135,7 @@ tmap = {
     "TESLA": "TSLA", "테슬라": "TSLA", "테슬": "TSLA", "텔라": "TSLA",
     "META": "META", "메타": "META", "페이스북": "META", "페북": "META",
     "MICRON": "MU", "마이크론": "MU", "마이크론테크놀로지": "MU", "마이크론 테크놀로지": "MU",
-    "BERKSHIREHATHAWAY": "BRK-A", "버크셔해서웨이": "BRK-A", "버크셔": "BRK-A", "버크셔A": "BRK-A", "버크셔B": "BRK-B", "BRK-A": "BRK-A", "BRK-B": "BRK-B",
+    "BERKSHIREHATHAWAY": "BRK-B", "버크셔해서웨이": "BRK-B", "버크셔": "BRK-B", "버크셔A": "BRK-A", "버크셔B": "BRK-B", "BRK-A": "BRK-A", "BRK-B": "BRK-B",
     "ELILILLY": "LLY", "일라이릴리": "LLY", "릴리": "LLY", "일릴": "LLY",
     "WALMART": "WMT", "월마트": "WMT",
     "AMD": "AMD", "에이엠디": "AMD",
@@ -1912,20 +1912,30 @@ def generate_quick_ai_preview(tk):
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
-    bv = safe_float(i.get('bookValue'))
-    if bv > 0:
-        pbr = p / bv
-    else:
-        if pbr > 0 and is_ext_active and reg_p > 0:
-            pbr = pbr * (p / reg_p)
-        elif pbr == 0.0:
-            try:
-                bs = stk.balance_sheet
-                if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    sh = safe_float(i.get('sharesOutstanding'))
-                    if eq > 0 and sh > 0: pbr = p / (eq / sh)
-            except: pass
+                bv = safe_float(i.get('bookValue'))
+                
+                if bv > 0:
+                    # p에 이미 시뮬레이터 배수(mult)가 반영되었으므로 PBR도 자동 연동됩니다.
+                    pbr = p / bv  
+                else:
+                    if pbr == 0.0:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh = safe_float(i.get('sharesOutstanding'))
+                                if eq > 0 and sh > 0:
+                                    pbr = reg_p / (eq / sh)
+                        except: pass
+                        
+                    # 버크셔 B주 고질적인 야후 API 장부데이터 누락 방어망 (최후의 보루)
+                    if tk == "BRK-B" and pbr == 0.0:
+                        pbr = reg_p / 285.0  # 2026년 기준 B주 1주당 장부가(BPS) 강제 세팅
+                        
+                    # API나 재무제표로 억지로 구한 PBR은 '원본 주가(reg_p)' 기준이므로,
+                    # 시뮬레이터로 주가(p)를 폭락/폭등시켰다면 그 비율만큼 PBR도 비례해서 움직이도록 동기화!
+                    if pbr > 0 and reg_p > 0:
+                        pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe == 0.0:
