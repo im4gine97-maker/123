@@ -1447,31 +1447,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # 3. 가격 매력도 (PER 안전마진) - 적자 및 결측치 0점 예외처리 추가 완료
+    # 3. 가격 매력도 (PER 안전마진) - 비중 대폭 강화 (Raw 최대 60 -> 절반 30점)
     p_score = 0
     if f_pe <= 0:
         p_score = 0
         p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
     else:
-        if pmos >= 50: p_score = 40
-        elif pmos >= 45: p_score = 37
-        elif pmos >= 40: p_score = 34
-        elif pmos >= 35: p_score = 31
-        elif pmos >= 30: p_score = 28
-        elif pmos >= 25: p_score = 24
-        elif pmos >= 20: p_score = 20
-        elif pmos >= 15: p_score = 16
+        if pmos >= 50: p_score = 60
+        elif pmos >= 45: p_score = 54
+        elif pmos >= 40: p_score = 48
+        elif pmos >= 35: p_score = 42
+        elif pmos >= 30: p_score = 36
+        elif pmos >= 25: p_score = 30
+        elif pmos >= 20: p_score = 24
+        elif pmos >= 15: p_score = 18
         elif pmos >= 10: p_score = 12
-        elif pmos >= 5: p_score = 8
-        elif pmos >= 0: p_score = 4
-        elif pmos >= -5: p_score = 0
-        elif pmos >= -10: p_score = -5
-        elif pmos >= -15: p_score = -10
-        elif pmos >= -20: p_score = -15
-        elif pmos >= -25: p_score = -20
-        elif pmos >= -30: p_score = -26
-        elif pmos >= -40: p_score = -33
-        else: p_score = -40
+        elif pmos >= 5: p_score = 6
+        elif pmos >= 0: p_score = 0
+        elif pmos >= -5: p_score = -6
+        elif pmos >= -10: p_score = -12
+        elif pmos >= -15: p_score = -18
+        elif pmos >= -20: p_score = -24
+        elif pmos >= -25: p_score = -30
+        elif pmos >= -30: p_score = -40
+        elif pmos >= -40: p_score = -50
+        else: p_score = -60
         p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
@@ -1639,28 +1639,27 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 7. DCF (합리적 조정: 일시적 고평가는 버티고, 꼬리 리스크만 강하게 차단)
+    # 7. DCF (내재가치) - 비중 축소 (보조 지표화, Raw 최대 20 -> 절반 10점)
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -40
+            dcf_score = -20
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -40
+            dcf_score = -20
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            if mos >= 40: dcf_score = 40
-            elif mos >= 20: dcf_score = 30
-            elif mos >= 10: dcf_score = 15
+            if mos >= 40: dcf_score = 20
+            elif mos >= 20: dcf_score = 15
+            elif mos >= 10: dcf_score = 10
             elif mos >= 0: dcf_score = 0
-            elif mos >= -15: dcf_score = -10 # 위대한 기업의 훌륭한 비즈니스로 상쇄 가능한 프리미엄
-            elif mos >= -30: dcf_score = -20
-            elif mos >= -50: dcf_score = -30
-            else: dcf_score = -40 # 밸류에이션이 지나치게 높아졌을 때의 확실한 매도 제안 라인
+            elif mos >= -15: dcf_score = -5
+            elif mos >= -30: dcf_score = -10
+            elif mos >= -50: dcf_score = -15
+            else: dcf_score = -20 
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
-
     # 8. 거시 매력도 (ERP)
     erp_score = 0
     if f_pe <= 0:
@@ -2057,7 +2056,7 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
     eff_norm = max(0, min(100, (eff_raw + 20) / 40 * 100))
 
     price_raw = get_score(["가격 매력도", "Price Attractiveness"])
-    price_norm = max(0, min(100, (price_raw + 20) / 40 * 100))
+    price_norm = max(0, min(100, (price_raw + 30) / 60 * 100))
 
     growth_raw = get_score(["장기 복리 성장성", "Compounding"])
     growth_norm = max(0, min(100, (growth_raw + 15) / 22.5 * 100))
@@ -2067,7 +2066,7 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
         safety_norm = max(0, min(100, (safety_raw + 15) / 25 * 100))
     else:
         safety_raw = get_score(["내재가치", "DCF MoS"])
-        safety_norm = max(0, min(100, (safety_raw + 20) / 40 * 100))
+        safety_norm = max(0, min(100, (safety_raw + 10) / 20 * 100))
 
     values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
     values.append(values[0])
