@@ -1914,28 +1914,27 @@ def generate_quick_ai_preview(tk):
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
     
-    # 1. API 데이터가 누락되었거나 버크셔인 경우 대차대조표(재무제표) 직접 해부
+    # 1. 말씀하신 대로 API 안 믿고 대차대조표에서 '자본총계'를 직접 긁어와서 실시간 계산
     if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
         try:
             bs = stk.balance_sheet
             if bs is not None and not bs.empty:
-                # 야후 파이낸스가 변덕스럽게 바꾸는 자본 계정과목 이름들 모두 추적
                 for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                     if eq_key in bs.index:
-                        eq = safe_float(bs.loc[eq_key].iloc[0])
-                        sh = safe_float(i.get('sharesOutstanding'))
+                        eq = safe_float(bs.loc[eq_key].iloc[0]) # 실시간 자본총계
+                        sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                        
+                        # [핵심] 자본은 전체(A+B)인데 주식수는 B주만 던지는 API 버그 수술 (전체 환산 주식수 21.6억 주로 강제 고정)
+                        if tk == "BRK-B":
+                            sh = 2160000000.0
+                            
                         if eq > 0 and sh > 0:
-                            pbr = reg_p / (eq / sh)
-                            bv = eq / sh
+                            bv = eq / sh              # 실시간 장부가 계산 완료
+                            pbr = reg_p / bv          # 실시간 주가 반영 PBR 계산 완료
                             break
         except: pass
-        
-        # 재무제표 통신마저 실패할 경우를 대비한 버크셔 B주 고정 안전망
-        if pbr <= 0.0 and tk == "BRK-B":
-            pbr = reg_p / 285.0
-            bv = 285.0
 
-    # 2. 시뮬레이터 주가(p) 변동에 따른 PBR 실시간 연동
+    # 2. 시뮬레이터 막대기를 움직일 때 PBR도 실시간으로 연동되도록 동기화
     if pbr > 0:
         if bv > 0:
             pbr = p / bv
@@ -2400,16 +2399,16 @@ with tab1:
                             for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                                 if eq_key in bs.index:
                                     eq = safe_float(bs.loc[eq_key].iloc[0])
-                                    sh = safe_float(i.get('sharesOutstanding'))
+                                    sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                                    
+                                    if tk == "BRK-B":
+                                        sh = 2160000000.0
+                                        
                                     if eq > 0 and sh > 0:
-                                        pbr = reg_p / (eq / sh)
                                         bv = eq / sh
+                                        pbr = reg_p / bv
                                         break
                     except: pass
-                    
-                    if pbr <= 0.0 and tk == "BRK-B":
-                        pbr = reg_p / 285.0
-                        bv = 285.0
 
                 if pbr > 0:
                     if bv > 0:
