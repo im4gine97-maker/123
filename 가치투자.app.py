@@ -2112,6 +2112,13 @@ with st.sidebar:
     
     st.divider()
     st.info("💡 슬라이더를 움직이면 분석 점수가 실시간으로 내 성향에 맞게 재계산됩니다.")
+
+    # --- [가상 주가 시뮬레이터 UI 추가] ---
+    st.divider()
+    st.markdown("### 📉 가상 주가 시뮬레이션")
+    st.caption("주가가 폭락/폭등했을 때 가치평가 점수가 어떻게 변하는지 미리 테스트해 보세요.")
+    st.slider("현재 주가 대비 증감 (%)", min_value=-90, max_value=200, value=0, step=5, key="price_adj_pct")
+    # ------------------------------------
 # ---------------------------------------------------
 st.markdown("""
 <style>
@@ -2317,8 +2324,22 @@ with tab1:
                         is_ext_active = True
                         ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: ${post_p:,.2f})</span>"
 
-                p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+                t_pe_raw = safe_float(i.get('trailingPE'))
+                f_pe_raw = safe_float(i.get('forwardPE'))
 
+                # --- [핵심: 원본 주가 가로채기 및 시뮬레이션 적용] ---
+                sim_pct = st.session_state.get('price_adj_pct', 0)
+                if sim_pct != 0:
+                    multiplier = 1 + (sim_pct / 100.0)
+                    p = p * multiplier  # 주가 강제 조작!
+                    if t_pe_raw > 0: t_pe_raw *= multiplier  # PER도 같은 비율로 조작!
+                    if f_pe_raw > 0: f_pe_raw *= multiplier
+                    
+                    c_color = "#ff7675" if sim_pct < 0 else "#74b9ff"
+                    ext_str += f"<br><span style='font-size:0.9em; color:{c_color}; font-weight:bold;'>🛠️ 가상 주가 적용 중 (현재가 대비 {sim_pct:+}%)</span>"
+                # ----------------------------------------------------
+
+                p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
                 t_pe_raw = safe_float(i.get('trailingPE'))
                 f_pe_raw = safe_float(i.get('forwardPE'))
                 
