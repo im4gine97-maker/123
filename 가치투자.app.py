@@ -1783,8 +1783,41 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
         
     # [핵심 방어벽] 딕셔너리에 들어간 점수들을 모아서 총합 1번만 계산 (괴리 원천 차단)
-    score = sum(val[0] if isinstance(val, tuple) else val for val in score_details.values())
+    # --- [나만의 투자 성향 가중치 적용 로직] ---
+    # 사이드바에서 설정한 배수(0.0 ~ 3.0)를 불러옵니다.
+    weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
+    
+    weighted_details = {}
+    for k, v in score_details.items():
+        s_val = v[0] if isinstance(v, tuple) else v
+        s_reason = v[1] if isinstance(v, tuple) else ""
+        
+        # 키워드를 보고 어떤 항목인지 분류하여 가중치 배수를 매칭합니다.
+        w = 1.0
+        if "경영진" in k or "Management" in k: w = weights['mgmt']
+        elif "배당" in k or "Dividend" in k: w = weights['div']
+        elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k: w = weights['val']
+        elif "자본" in k or "비즈니스" in k or "레버리지" in k or "Moat" in k or "Efficiency" in k: w = weights['biz']
+        elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
+        elif "페널티" in k or "Penalty" in k: w = 1.0 # 꼼수 방지: 페널티는 가중치 조작 불가(무조건 1.0 고정)
+        
+        w_score = s_val * w
+        w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
+        weighted_details[k] = (w_score, w_reason)
 
+    score_details = weighted_details
+    
+    # 가중치가 곱해진 진짜 총점을 계산합니다.
+    raw_total = sum(val[0] for val in score_details.values())
+    
+    # [총점 정규화 보호막] 
+    # 배수를 마음대로 올려서 점수가 뻥튀기되더라도 기존의 S~F 등급 판정 기준표가 망가지지 않도록,
+    # 사용자가 설정한 가중치 평균값으로 총점을 나누어 '영점 조준'을 해줍니다.
+    avg_w = sum(weights.values()) / 5.0
+    score = raw_total / avg_w if avg_w > 0 else 0
+    score = round(score)
+    # --------------------------------------------------
+    
     # 12. 최종 결과 매핑 (8단계 세분화, UI 컬러는 5단계 유지)
     if score >= 120:
         title = t(f"압도적 매수 기회 ({score}점)", f"Strong Buy Opportunity ({score} pts)")
@@ -2100,7 +2133,24 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
 # [4] 메인 UI 렌더링
 # ==========================================
 macro_data = fetch_macro_realtime_v6()
-
+# --- [나만의 투자 성향 사이드바 (가중치 설정)] ---
+with st.sidebar:
+    st.markdown("### 🎛️ 내 투자 성향 설정")
+    st.caption("항목별 점수 비중(배수)을 내 취향대로 조절하세요. (1.0배 = 기본값, 0배 = 점수 반영 안함)")
+    
+    w_mgmt = st.slider("👔 경영진/거버넌스 비중", 0.0, 3.0, 1.0, 0.1)
+    w_div = st.slider("💰 배당 (주주환원) 비중", 0.0, 3.0, 1.0, 0.1)
+    w_val = st.slider("🏷️ 가격 매력도 (PER/DCF) 비중", 0.0, 3.0, 1.0, 0.1)
+    w_biz = st.slider("🏢 비즈니스 해자 (ROE/ROIC) 비중", 0.0, 3.0, 1.0, 0.1)
+    w_macro = st.slider("🌍 거시경제 및 성장성 비중", 0.0, 3.0, 1.0, 0.1)
+    
+    st.session_state.weights = {
+        'mgmt': w_mgmt, 'div': w_div, 'val': w_val, 'biz': w_biz, 'macro': w_macro
+    }
+    
+    st.divider()
+    st.info("💡 슬라이더를 움직이면 분석 점수가 실시간으로 내 성향에 맞게 재계산됩니다.")
+# ---------------------------------------------------
 st.markdown("""
 <style>
 /* Google Material Design Style Variables */
