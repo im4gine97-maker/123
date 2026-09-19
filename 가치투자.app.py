@@ -1622,7 +1622,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 7. DCF (내재가치) - 상하방 무한 개방 (할인율 1%당 0.5점씩 무한 비례)
+    # 7. DCF (내재가치) - 비율 연동하되 상하방 캡(Cap) 적용 (최대 +10점, 최하 -15점)
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
@@ -1632,9 +1632,15 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             dcf_score = -20
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            # DCF 역시 상하한가를 없애고 mos(할인율) 수치에 따라 무한대로 널뛰도록 뚫어줍니다.
-            dcf_score = mos * 0.5
-            dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증)", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
+            # 비율(0.5배)로 실시간 연동하되, 위로는 +10점, 아래로는 -15점으로 막아줍니다.
+            raw_dcf = mos * 0.5
+            dcf_score = max(-15.0, min(10.0, raw_dcf))
+            
+            limit_txt = ""
+            if raw_dcf > 10.0: limit_txt = " (상한선 도달)"
+            elif raw_dcf < -15.0: limit_txt = " (하한선 도달)"
+                
+            dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
     # 8. 거시 매력도 (ERP)
