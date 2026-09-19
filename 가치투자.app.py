@@ -1622,23 +1622,24 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         )
         score_details[t("시장 지수(S&P 500) 대비 비즈니스 해자 검증", "Business Moat vs S&P 500")] = (market_score, market_reason)
 
-    # 7. DCF (내재가치) - 비율 연동하되 상하방 캡(Cap) 적용 (최대 +10점, 최하 -15점)
+    # 7. DCF (내재가치) - 최종 화면에서 절반(50%)으로 축소되므로 여기선 2배수로 캡(Cap) 적용
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -20
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -20
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            # 비율(0.5배)로 실시간 연동하되, 위로는 +10점, 아래로는 -15점으로 막아줍니다.
-            raw_dcf = mos * 0.5
-            dcf_score = max(-15.0, min(10.0, raw_dcf))
+            # 최종 화면에서 0.5배 비례식이 되도록, 여기서는 1.0배로 적용합니다.
+            raw_dcf = mos * 1.0
+            # 최종 +10점, -15점이 나오도록 상/하방을 +20, -30으로 막아줍니다.
+            dcf_score = max(-30.0, min(20.0, raw_dcf))
             
             limit_txt = ""
-            if raw_dcf > 10.0: limit_txt = " (상한선 도달)"
-            elif raw_dcf < -15.0: limit_txt = " (하한선 도달)"
+            if raw_dcf > 20.0: limit_txt = " (상한선 도달)"
+            elif raw_dcf < -30.0: limit_txt = " (하한선 도달)"
                 
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
             
