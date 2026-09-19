@@ -1744,8 +1744,16 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
         elif "페널티" in k or "Penalty" in k: w = 1.0 # 페널티는 가중치 조작 불가
         
-        # [핵심] 세부 내역 점수를 여기서 모두 절반(50%)으로 축소시켜 저장합니다.
-        w_score = (s_val / 2.0) * w
+        # [핵심 수술] 일반 항목은 50%로 축소하지만, '페널티'는 무거운 감점을 100% 그대로 꽂아 넣습니다!
+        if "페널티" in k or "Penalty" in k:
+            w_score = s_val * w
+        else:
+            w_score = (s_val / 2.0) * w
+
+        w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
+        weighted_details[k] = (w_score, w_reason)
+
+    score_details = weighted_details
         w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
         weighted_details[k] = (w_score, w_reason)
 
@@ -1796,13 +1804,13 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 텍스트에 표기되는 부가 설명
     if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -10점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -10 Applied: Lower valuation reliability due to earnings volatility)")
+        reason += t(" (시클리컬 기업 감점 -30점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -30 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
-        reason += t(" (코리아 디스카운트 -12.5점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -12.5 Applied: Poor shareholder returns and geopolitical risks)")
+        reason += t(" (코리아 디스카운트 -25점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -25 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
-        reason += t(" (차이나/홍콩 디스카운트 -17.5점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -17.5 Applied: Regulatory and financial transparency risks)")
+        reason += t(" (차이나/홍콩 디스카운트 -35점 적용: 공산당 규제 및 재무 투명성 리스크)", " (China/HK Discount -35 Applied: Regulatory and financial transparency risks)")
     elif is_taiwan:
-        reason += t(" (대만 지정학적 디스카운트 -12.5점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -12.5 Applied: Geopolitical conflict and invasion risks)")
+        reason += t(" (대만 지정학적 디스카운트 -25점 적용: 양안 갈등 및 지정학적 침공 리스크)", " (Taiwan Discount -25 Applied: Geopolitical conflict and invasion risks)")
         
     if is_financial:
         reason += t(" (금융/보험주 로직 적용됨: 현금흐름 왜곡을 방지하기 위해 DCF(현금흐름할인법)는 배제하되, PBR(자산), PER(이익), ROE(자본효율)를 교차 검증하여 방어했습니다.)", " (Financial Mode Active)")
