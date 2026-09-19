@@ -2684,10 +2684,16 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 
-                                # --- [가상 주가(시뮬레이터) 연동 완벽 보정 (스트레스 테스트)] ---
+                # --- [가상 주가(시뮬레이터) 연동 완벽 보정 (스트레스 테스트)] ---
                 sim_pct = st.session_state.get('price_adj_pct', 0)
                 if sim_pct != 0:
                     multiplier = 1 + (sim_pct / 100.0)
+                    
+                    # 0. 주가 변동에 맞춰 예상 PER(F PER) 직접 연동 (요청하신 핵심 추가!)
+                    if f_pe > 0:
+                        f_pe = f_pe * multiplier
+                    if t_pe > 0:
+                        t_pe = t_pe * multiplier
                     
                     # 1. 배당률 보정 (주가 하락 시 배당수익률은 수학적으로 폭등)
                     if div_yield > 0:
@@ -2698,15 +2704,13 @@ with tab1:
                     if f_pe > 0:
                         erp = ((1 / f_pe) * 100) - safe_float(ty, 4.0)
                         
-                    # 3. 과거 평균 PER(a_pe) 오염 복구 (가장 핵심!)
-                    # 징동(1.5배 버그) 등으로 인해 a_pe가 현재 주가 기반으로 강제 대체되었는지 확인
+                    # 3. 과거 평균 PER(a_pe) 오염 복구
                     is_a_pe_scaled = False
                     a_pe_raw = safe_float(i.get('fiveYearAvgPE'))
                     
                     if a_pe_raw <= 0.0 or a_pe_raw < 5.0 or a_pe_raw > 200.0:
                         is_a_pe_scaled = True
                         
-                    # 대체된 값이라면, 주가 시뮬레이션 비율을 다시 나눠서 '원래 상태'로 닻을 내림
                     if is_a_pe_scaled and a_pe > 0:
                         a_pe = a_pe / multiplier
                         
@@ -2714,11 +2718,20 @@ with tab1:
                     bv_val = safe_float(i.get('bookValue'))
                     if bv_val <= 0 and pbr > 0:
                         pbr = pbr * multiplier
+                        
+                    # 5. [추가] 화면에 표시되는 F PER UI 글씨 강제 새로고침!
+                    if f_pe > 0:
+                        fwd_pe_val_str = f"{f_pe:.1f}배"
+                        if a_pe > 0:
+                            disc = ((a_pe - f_pe) / a_pe) * 100
+                            c_col = "#ff7675" if disc < -10 else "#2ecc71" if disc >= 10 else "#fdcb6e"
+                            lbl = "[위험]" if disc <= -30 else "[주의]" if disc < -10 else "[강력 매수]" if disc >= 30 else "[매수]" if disc >= 10 else "[보통]"
+                            suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
+                            fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
                 # ---------------------------------------------------------------
 
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
                     f_pe=f_pe, spy_pe=spy_pe_val
