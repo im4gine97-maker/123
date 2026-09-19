@@ -3050,11 +3050,11 @@ with tab1:
 
                     col_sim1, col_sim2 = st.columns(2)
                     with col_sim1:
-                        user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0, key=f"user_g_{tk}")
+                        # [수정] 예상 성장률도 step=0.1로 변경하여 소수점 기입 지원!
+                        user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=0.1, key=f"user_g_{tk}")
                         user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.1, key=f"user_tg_{tk}")
 
                     with col_sim2:
-                        # 최소 1.0%부터 시작하며 0.1% 단위(소수점)로 조작 및 타이핑 가능
                         user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=1.0, max_value=25.0, value=sim_dr_default, step=0.1, key=f"user_dr_{tk}")
 
                     if not is_financial and sh > 0:
@@ -3073,7 +3073,6 @@ with tab1:
                         st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
                     else:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
-                st.divider()
                 st.divider()
                 st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
