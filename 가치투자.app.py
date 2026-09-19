@@ -2663,37 +2663,40 @@ with tab1:
                 # 1. AI의 원본 기본값 백업
                 ai_final_g = final_g
                 sim_g_default = float(ai_final_g * 100) if not is_financial else 10.0
-                sim_dr_default = max(float(ty), 9.0)
+                sim_dr_default = 9.0  # 할인율 9%를 최소값이 아닌 '중간 기본값'으로 설정
                 
-                # 2. 사용자가 하단 슬라이더를 움직였다면 그 값을 가져옴 (안 움직였다면 AI 기본값)
+                # 2. 사용자가 하단 슬라이더를 움직였다면 그 값을 가져옴
                 user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
                 user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
                 user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
                 
-                # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기
+                # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
                 if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
-                    u_dr = max(user_dr_val / 100, 0.09)
+                    u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                     u_g = user_g_val / 100
                     u_tg = user_tg_val / 100
                     
-                    cv = base_fcf
-                    fut = []
-                    for y in range(1, 11):
-                        cv *= (1 + u_g)
-                        fut.append(cv / ((1 + u_dr) ** y))
-                        
+                    # 시뮬레이터 전용 계산 함수 (AI 기본 제한 회피)
+                    def sim_dcf(g_rate):
+                        cv = base_fcf
+                        fut = []
+                        for y in range(1, 11):
+                            cv *= (1 + g_rate)
+                            fut.append(cv / ((1 + u_dr) ** y))
+                        if u_dr > u_tg:
+                            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+                            dtv = tv / ((1 + u_dr) ** 10)
+                            calc_iv = (sum(fut) + dtv) / sh
+                            calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
+                            return calc_iv, calc_mos
+                        return 0, 0
+
                     if u_dr > u_tg:
-                        tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
-                        dtv = tv / ((1 + u_dr) ** 10)
-                        iv = (sum(fut) + dtv) / sh
-                        mos_val = ((iv - p) / iv) * 100 if iv > 0 else 0
+                        iv, mos_val = sim_dcf(u_g)
+                        final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
                         
-                        # [핵심] 사용자의 성장률을 AI의 최종 성장률(final_g)로 둔갑시킴 -> 점수에 실시간 반영됨!
-                        final_g = u_g  
-                        
-                # 4. 베스트/워스트 시나리오도 사용자의 할인율과 성장률 기준으로 재계산
-                iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, user_dr_val, min(final_g * 1.5, 0.25), is_financial)
-                iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, user_dr_val, max(final_g * 0.5, 0.0), is_financial)
+                        iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
+                        iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
                 # -----------------------------------------------
 
                 roic_val = real_roic if real_roic is not None else 0
@@ -3043,19 +3046,18 @@ with tab1:
                 
                 # --- 내재가치 직접 계산하기 (시뮬레이터) ---
                 with st.expander(t("내재가치 직접 계산하기 (Custom DCF Simulator)", "Custom DCF Simulator")):
-                    st.caption(t("🔥 **수치를 변경하면 즉시 맨 위쪽의 'AI 종합 점수'와 '가치 평가' 패널이 나의 기준에 맞춰 실시간으로 다시 계산됩니다.**", "Adjust assumptions to seamlessly update the AI Score and Valuation panels in real-time."))
+                    st.caption(t("🔥 **수치를 변경하면 즉시 맨 위쪽의 'AI 종합 점수'와 '가치 평가' 패널이 나의 기준에 맞춰 실시간으로 다시 계산됩니다.**<br>💡 **팁:** 막대기 위에 있는 숫자를 클릭하면 키보드로 소수점까지 정확하게 기입할 수 있습니다.", "Adjust assumptions to seamlessly update the AI Score and Valuation panels in real-time."))
 
                     col_sim1, col_sim2 = st.columns(2)
                     with col_sim1:
-                        # 위에서 세팅해둔 ai 기본값(sim_g_default 등)을 이용해 슬라이더를 그림
                         user_g = st.slider(t("향후 1~10년 예상 성장률 (%)", "Expected Growth Rate (%)"), min_value=-20.0, max_value=50.0, value=sim_g_default, step=1.0, key=f"user_g_{tk}")
-                        user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.5, key=f"user_tg_{tk}")
+                        user_tg = st.slider(t("10년 이후 영구 성장률 (%)", "Terminal Growth Rate (%)"), min_value=0.0, max_value=5.0, value=2.0, step=0.1, key=f"user_tg_{tk}")
 
                     with col_sim2:
-                        user_dr = st.slider(t("할인율 (요구수익률, 최소 9%)", "Discount Rate (Min 9%)"), min_value=9.0, max_value=25.0, value=sim_dr_default, step=0.5, key=f"user_dr_{tk}")
+                        # 최소 1.0%부터 시작하며 0.1% 단위(소수점)로 조작 및 타이핑 가능
+                        user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=1.0, max_value=25.0, value=sim_dr_default, step=0.1, key=f"user_dr_{tk}")
 
                     if not is_financial and sh > 0:
-                        # 위에서 이미 완벽하게 연동되어 계산된 mos_val 과 iv 를 그대로 표출만 함
                         c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
                         val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
 
@@ -3071,7 +3073,6 @@ with tab1:
                         st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
                     else:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
-                st.markdown("<br>", unsafe_allow_html=True)
                 st.divider()
                 st.divider()
                 st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
