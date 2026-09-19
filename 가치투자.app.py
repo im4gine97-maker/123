@@ -1912,6 +1912,35 @@ def generate_quick_ai_preview(tk):
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
+    bv = safe_float(i.get('bookValue'))
+    
+    # 1. API 데이터가 누락되었거나 버크셔인 경우 대차대조표(재무제표) 직접 해부
+    if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
+        try:
+            bs = stk.balance_sheet
+            if bs is not None and not bs.empty:
+                # 야후 파이낸스가 변덕스럽게 바꾸는 자본 계정과목 이름들 모두 추적
+                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
+                    if eq_key in bs.index:
+                        eq = safe_float(bs.loc[eq_key].iloc[0])
+                        sh = safe_float(i.get('sharesOutstanding'))
+                        if eq > 0 and sh > 0:
+                            pbr = reg_p / (eq / sh)
+                            bv = eq / sh
+                            break
+        except: pass
+        
+        # 재무제표 통신마저 실패할 경우를 대비한 버크셔 B주 고정 안전망
+        if pbr <= 0.0 and tk == "BRK-B":
+            pbr = reg_p / 285.0
+            bv = 285.0
+
+    # 2. 시뮬레이터 주가(p) 변동에 따른 PBR 실시간 연동
+    if pbr > 0:
+        if bv > 0:
+            pbr = p / bv
+        elif reg_p > 0:
+            pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe == 0.0:
@@ -2363,6 +2392,30 @@ with tab1:
 
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
+                
+                if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
+                    try:
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty:
+                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
+                                if eq_key in bs.index:
+                                    eq = safe_float(bs.loc[eq_key].iloc[0])
+                                    sh = safe_float(i.get('sharesOutstanding'))
+                                    if eq > 0 and sh > 0:
+                                        pbr = reg_p / (eq / sh)
+                                        bv = eq / sh
+                                        break
+                    except: pass
+                    
+                    if pbr <= 0.0 and tk == "BRK-B":
+                        pbr = reg_p / 285.0
+                        bv = 285.0
+
+                if pbr > 0:
+                    if bv > 0:
+                        pbr = p / bv
+                    elif reg_p > 0:
+                        pbr = pbr * (p / reg_p)
                 
                 if bv > 0:
                     pbr = p / bv
