@@ -2387,10 +2387,14 @@ with tab1:
                 sim_pct = st.session_state.get('price_adj_pct', 0)
                 multiplier = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
 
+                # [완벽 방어망] 한국 주식 등에서 변수가 유실되었을 경우 강제로 빈칸 생성
+                if 'ext_str' not in locals(): ext_str = ""
+                if 'is_ext_active' not in locals(): is_ext_active = False
+
                 if sim_pct != 0:
                     p = p * multiplier
                     c_color = "#ff7675" if sim_pct < 0 else "#74b9ff"
-                    ext_str += f"<br><span style='font-size:0.9em; color:{c_color}; font-weight:bold;'>🛠️ 가상 주가 적용 중 (현재가 대비 {sim_pct:+}%)</span>"
+                    ext_str = ext_str + f"<br><span style='font-size:0.9em; color:{c_color}; font-weight:bold;'>🛠️ 가상 주가 적용 중 (현재가 대비 {sim_pct:+}%)</span>"
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
