@@ -1912,26 +1912,6 @@ def generate_quick_ai_preview(tk):
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
-    bv = safe_float(i.get('bookValue'))
-    
-    if bv > 0:
-        pbr = p / bv  
-    else:
-        if pbr == 0.0:
-            try:
-                bs = stk.balance_sheet
-                if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    sh = safe_float(i.get('sharesOutstanding'))
-                    if eq > 0 and sh > 0:
-                        pbr = reg_p / (eq / sh)
-            except: pass
-            
-        if tk == "BRK-B" and pbr == 0.0:
-            pbr = reg_p / 285.0
-            
-        if pbr > 0 and reg_p > 0:
-            pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe == 0.0:
