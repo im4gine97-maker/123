@@ -3570,7 +3570,7 @@ with tab6:
             item["순위"] = i + 1
         return rank_data
         
-    wwith st.spinner("경영진 데이터를 계산 중입니다..."):
+    with st.spinner("경영진 데이터를 계산 중입니다..."):
         gov_df = pd.DataFrame(get_gov_ranking_data(len(tmap)))
     
     # [수정] 데이터를 직접 자르지 않고, column_order 옵션을 사용해 원하는 항목만 쏙 뽑아서 보여줍니다.
