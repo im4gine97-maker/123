@@ -2299,7 +2299,7 @@ with tab1:
                         if len(prefix) < 40 and "위키 및 공공" not in prefix:
                             ceo_cleaned = prefix
 
-                eext_str = ""
+                ext_str = ""
                 is_ext_active = False
                 if not kr:
                     pre_p = safe_float(i.get('preMarketPrice', 0.0))
@@ -2308,11 +2308,15 @@ with tab1:
                     if pre_p > 0:
                         p = pre_p
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#fdcb6e;'>({t('프리마켓 시세 반영됨', 'Pre-Market Applied')}: ${pre_p:,.2f})</span>"
                     elif post_p > 0:
                         p = post_p
                         is_ext_active = True
-                        ext_str = f" <span style='font-size:0.85em; color:#a29bfe;'>({t('애프터마켓 시세 반영됨', 'After-Hours Applied')}: ${post_p:,.2f})</span>"
+                        
+                    # 글씨는 화면에 안 띄우되, 주가(p)는 가장 최신 실시간(fast_info) 데이터로 한 번 더 덮어쓰기
+                    try:
+                        fast_p = safe_float(stk.fast_info.last_price)
+                        if fast_p > 0: p = fast_p
+                    except: pass
 
                 # 1. 조작되지 않은 순수 정규장 기준 가격(reg_p) 먼저 확정
                 reg_p = safe_float(i.get('regularMarketPrice', p))
@@ -2843,8 +2847,8 @@ with tab1:
                 else:
                     rnd_block = f"<div style='{item_style}'><div style='{lbl_style}'>{t('R&D 지출', 'R&D')}</div><div style='{desc_style}'><span style='color:var(--text-color); opacity:0.6;'>{t('금융주 적용 제외', 'N/A')}</span></div></div>"
 
-                ext_str_clean = ext_str.replace("프리마켓 시세 반영됨:", "프리:").replace("애프터마켓 시세 반영됨:", "애프터:").replace("(", "").replace(")", "").replace(" ", "")
-
+                ext_str_clean = ext_str
+                
                 div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
                 div_str = f"<span style='color:{div_color}; font-weight:600;'>배당률: {div:.1f}%</span>"
 
