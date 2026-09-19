@@ -1754,10 +1754,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         weighted_details[k] = (w_score, w_reason)
 
     score_details = weighted_details
-        w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
-        weighted_details[k] = (w_score, w_reason)
-
-    score_details = weighted_details
     
     # 세부 내역이 이미 절반으로 줄었으므로, 총합(raw_total)도 자연스럽게 절반이 됩니다.
     raw_total = sum(val[0] for val in score_details.values())
