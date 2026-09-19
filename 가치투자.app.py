@@ -1447,31 +1447,14 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # 3. 가격 매력도 (PER 안전마진) - 비중 대폭 강화 (Raw 최대 60 -> 절반 30점)
+    # 3. 가격 매력도 (PER 안전마진) - 상하방 무한 개방 (할인율 1%당 1.2점씩 무한 비례)
     p_score = 0
     if f_pe <= 0:
         p_score = 0
         p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
     else:
-        if pmos >= 50: p_score = 60
-        elif pmos >= 45: p_score = 54
-        elif pmos >= 40: p_score = 48
-        elif pmos >= 35: p_score = 42
-        elif pmos >= 30: p_score = 36
-        elif pmos >= 25: p_score = 30
-        elif pmos >= 20: p_score = 24
-        elif pmos >= 15: p_score = 18
-        elif pmos >= 10: p_score = 12
-        elif pmos >= 5: p_score = 6
-        elif pmos >= 0: p_score = 0
-        elif pmos >= -5: p_score = -6
-        elif pmos >= -10: p_score = -12
-        elif pmos >= -15: p_score = -18
-        elif pmos >= -20: p_score = -24
-        elif pmos >= -25: p_score = -30
-        elif pmos >= -30: p_score = -40
-        elif pmos >= -40: p_score = -50
-        else: p_score = -60
+        # 기존의 막혀있던 계단식(if/elif) 캡을 부수고, pmos(할인율)에 비례하여 무한대로 점수가 움직입니다.
+        p_score = pmos * 1.2
         p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         
     score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
