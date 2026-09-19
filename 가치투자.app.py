@@ -1982,7 +1982,7 @@ def generate_quick_ai_preview(tk):
                     
         if currency == fin_currency:
             try:
-                    inc = stk.income_stmt
+                _inc = stk.income_stmt
                 if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
                     _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
                     if len(_ni_vals) >= 2:
