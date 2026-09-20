@@ -3449,12 +3449,15 @@ with tab2:
             
             st.markdown("---")
             st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-            c_tk, c_btn = st.columns([3, 1])
-            with c_tk: 
-                # [유지] 빠른 검색 버그 수정 로직
-                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
-            with c_btn:
-                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", use_container_width=True):
+            # [수정] Form으로 묶어서 버튼을 누르기 전까지는 절대 화면이 새로고침되지 않게 억제합니다!
+            with st.form(key="form_tab2"):
+                c_tk, c_btn = st.columns([3, 1])
+                with c_tk: 
+                    fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
+                with c_btn:
+                    submitted = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+                
+                if submitted:
                     if fast_name:
                         matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
                         select_ticker(matched_ticker)
@@ -3468,8 +3471,9 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                    if st.button(t(f"📊 [{st.session_state['preview_tk_tab2']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab2']}]"), key="btn_fix_tab2", use_container_width=True, type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                        st.session_state.switch_to_tab1 = True
                         st.rerun()
 # ==========================================
 # 탭 3: 시가총액 랭킹 TOP 30
@@ -3489,28 +3493,33 @@ with tab3:
     })
     
     st.markdown("---")
-    st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    c_tk2, c_btn2 = st.columns([3, 1])
-    with c_tk2: 
-        fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="mkt_fast_tk", label_visibility="collapsed")
-    with c_btn2:
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", use_container_width=True):
-            if fast_name_mkt:
-                matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
-                select_ticker(matched_ticker_mkt)
-                with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                    st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
-                    st.session_state["preview_tk_tab3"] = matched_ticker_mkt
-                st.rerun()
-            else:
-                st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
+            st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
+            # [수정] Form으로 묶어서 버튼을 누르기 전까지는 절대 화면이 새로고침되지 않게 억제합니다!
+            with st.form(key="form_tab2"):
+                c_tk, c_btn = st.columns([3, 1])
+                with c_tk: 
+                    fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
+                with c_btn:
+                    submitted = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
                 
-    if "preview_tab3" in st.session_state:
-        st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
-        if "preview_tk_tab3" in st.session_state:
-            if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
-                st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
-                st.rerun()
+                if submitted:
+                    if fast_name:
+                        matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                        select_ticker(matched_ticker)
+                        with st.spinner("AI가 데이터를 스캔 중입니다..."):
+                            st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                            st.session_state["preview_tk_tab2"] = matched_ticker
+                        st.rerun()
+                    else:
+                        st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
+            
+            if "preview_tab2" in st.session_state:
+                st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
+                if "preview_tk_tab2" in st.session_state:
+                    if st.button(t(f"📊 [{st.session_state['preview_tk_tab2']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab2']}]"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                        st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                        st.session_state.switch_to_tab1 = True
+                        st.rerun()
 
 # ==========================================
 # 탭 4: 주식 용어 사전 
@@ -3768,11 +3777,14 @@ with tab6:
     
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    c_tk3, c_btn3 = st.columns([3, 1])
-    with c_tk3: 
-        fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="gov_fast_tk", label_visibility="collapsed")
-    with c_btn3:
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="gov_load_btn", use_container_width=True):
+    with st.form(key="form_tab6"):
+        c_tk3, c_btn3 = st.columns([3, 1])
+        with c_tk3: 
+            fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="gov_fast_tk", label_visibility="collapsed")
+        with c_btn3:
+            submitted_gov = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+        
+        if submitted_gov:
             if fast_name_gov:
                 matched_ticker_gov = gov_df[gov_df["기업명"] == fast_name_gov]["티커"].values[0]
                 select_ticker(matched_ticker_gov)
@@ -3786,8 +3798,9 @@ with tab6:
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
-            if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+            if st.button(t(f"📊 [{st.session_state['preview_tk_tab6']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab6']}]"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
+                st.session_state.switch_to_tab1 = True
                 st.rerun()
 # 하단 면책 조항 및 카피라이트 
 st.divider()
