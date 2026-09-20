@@ -3460,14 +3460,19 @@ with tab2:
                         select_ticker(matched_ticker)
                         with st.spinner("AI가 데이터를 스캔 중입니다..."):
                             st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                            st.session_state["preview_tk_tab2"] = matched_ticker
+                        st.rerun()
                     else:
                         st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
             
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
-                st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
-        else:
-            st.warning(t("데이터를 불러오는 데 실패했습니다.", "Failed to load data."))
+                if "preview_tk_tab2" in st.session_state:
+                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                        st.session_state.search_tk = st.session_state["preview_tk_tab2"]
+                        st.session_state.main_input = st.session_state["preview_tk_tab2"]
+                        st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                        st.rerun()
 # ==========================================
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
@@ -3497,12 +3502,19 @@ with tab3:
                 select_ticker(matched_ticker_mkt)
                 with st.spinner("AI가 데이터를 스캔 중입니다..."):
                     st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
+                    st.session_state["preview_tk_tab3"] = matched_ticker_mkt
+                st.rerun()
             else:
                 st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
                 
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
-        st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
+        if "preview_tk_tab3" in st.session_state:
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
+                st.session_state.search_tk = st.session_state["preview_tk_tab3"]
+                st.session_state.main_input = st.session_state["preview_tk_tab3"]
+                st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
+                st.rerun()
 
 # ==========================================
 # 탭 4: 주식 용어 사전 
@@ -3770,12 +3782,19 @@ with tab6:
                 select_ticker(matched_ticker_gov)
                 with st.spinner("AI가 데이터를 스캔 중입니다..."):
                     st.session_state["preview_tab6"] = generate_quick_ai_preview(matched_ticker_gov)
+                    st.session_state["preview_tk_tab6"] = matched_ticker_gov
+                st.rerun()
             else:
                 st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
                 
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
-        st.info("💡 스크롤을 올려 상단의 **'개별 기업 가치분석' 탭**을 누르시면 상세 리포트를 볼 수 있습니다.")
+        if "preview_tk_tab6" in st.session_state:
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+                st.session_state.search_tk = st.session_state["preview_tk_tab6"]
+                st.session_state.main_input = st.session_state["preview_tk_tab6"]
+                st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
+                st.rerun()
 # 하단 면책 조항 및 카피라이트 
 st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
