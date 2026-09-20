@@ -3468,11 +3468,10 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
-                        st.session_state.search_tk = st.session_state["preview_tk_tab2"]
-                        st.session_state.main_input = st.session_state["preview_tk_tab2"]
-                        st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
-                        st.rerun()
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                # 에러 나는 두 줄 삭제하고 sync_tk에만 값 전달!
+                st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                st.rerun()
 # ==========================================
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
@@ -3511,8 +3510,6 @@ with tab3:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
         if "preview_tk_tab3" in st.session_state:
             if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
-                st.session_state.search_tk = st.session_state["preview_tk_tab3"]
-                st.session_state.main_input = st.session_state["preview_tk_tab3"]
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
                 st.rerun()
 
@@ -3791,8 +3788,6 @@ with tab6:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
             if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
-                st.session_state.search_tk = st.session_state["preview_tk_tab6"]
-                st.session_state.main_input = st.session_state["preview_tk_tab6"]
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
 # 하단 면책 조항 및 카피라이트 
