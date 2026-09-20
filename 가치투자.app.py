@@ -1997,17 +1997,19 @@ def generate_quick_ai_preview(tk):
             p = post_p
             is_ext_active = True
 
-    p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+        try:
+            fast_p = safe_float(stk.fast_info.last_price)
+            if fast_p > 0: p = fast_p
+        except: pass
+
+    reg_p = safe_float(i.get('regularMarketPrice', p))
+    if reg_p == 0: reg_p = p
 
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
-    
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-    
-    reg_p = safe_float(i.get('regularMarketPrice', p))
-    if reg_p == 0: reg_p = p
-    
+
     try:
         _inc = stk.income_stmt
         if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -2022,39 +2024,29 @@ def generate_quick_ai_preview(tk):
 
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-    
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
 
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-    
-    # 1. 말씀하신 대로 API 안 믿고 대차대조표에서 '자본총계'를 직접 긁어와서 실시간 계산
     if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
         try:
             bs = stk.balance_sheet
             if bs is not None and not bs.empty:
                 for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                     if eq_key in bs.index:
-                        eq = safe_float(bs.loc[eq_key].iloc[0]) # 실시간 자본총계
+                        eq = safe_float(bs.loc[eq_key].iloc[0])
                         sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                        
-                        # [핵심] 자본은 전체(A+B)인데 주식수는 B주만 던지는 API 버그 수술 (전체 환산 주식수 21.6억 주로 강제 고정)
-                        if tk == "BRK-B":
-                            sh = 2160000000.0
-                            
+                        if tk == "BRK-B": sh = 2160000000.0
                         if eq > 0 and sh > 0:
-                            bv = eq / sh              # 실시간 장부가 계산 완료
-                            pbr = reg_p / bv          # 실시간 주가 반영 PBR 계산 완료
+                            bv = eq / sh
+                            pbr = reg_p / bv
                             break
         except: pass
 
-    # 2. 시뮬레이터 막대기를 움직일 때 PBR도 실시간으로 연동되도록 동기화
     if pbr > 0:
-        if bv > 0:
-            pbr = p / bv
-        elif reg_p > 0:
-            pbr = pbr * (p / reg_p)
+        if bv > 0: pbr = p / bv
+        elif reg_p > 0: pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe == 0.0:
@@ -2069,16 +2061,7 @@ def generate_quick_ai_preview(tk):
         except: pass
     
     real_roic = get_real_roic(stk, i)
-                
-    if is_financial:
-        roic_str = t("금융주 제외", "N/A (Financial)")
-    else:
-        if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-        else: roic_str = t("데이터 부족", "N/A")
-                
-    # 3. 과거 평균 PER (a_pe) 콘크리트 고정 (시뮬레이션 조작 0%)
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-    
     if a_pe <= 0.0:
         currency = str(i.get('currency', 'USD')).upper()
         fin_currency = str(i.get('financialCurrency', 'USD')).upper()
@@ -2091,14 +2074,12 @@ def generate_quick_ai_preview(tk):
                         _avg_ni = sum(_ni_vals) / len(_ni_vals)
                         _sh_out = safe_float(i.get('sharesOutstanding'))
                         if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = reg_p / (_avg_ni / _sh_out)  # 오직 원본(reg_p)만 사용
+                            a_pe = reg_p / (_avg_ni / _sh_out) 
             except: pass
-    
-    # 비정상 데이터 방어 (PDD 1.5배 등)
+
     if a_pe < 5.0 or a_pe > 200.0:
         _raw_t_eps = safe_float(i.get('trailingEps'))
         _raw_f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-        
         if _raw_t_eps > 0: a_pe = reg_p / _raw_t_eps
         elif _raw_f_eps > 0: a_pe = reg_p / _raw_f_eps
         else:
@@ -2108,24 +2089,34 @@ def generate_quick_ai_preview(tk):
             elif _raw_f_pe > 0: a_pe = _raw_f_pe
             else: a_pe = 0.0
 
-    # --- [3단계: 바뀐 격차(disc)로 UI 텍스트 강제 갱신] ---
-    if f_pe > 0 and a_pe > 0:
-        fwd_pe_val_str = f"{f_pe:.1f}배"
-        disc = ((a_pe - f_pe) / a_pe) * 100
-        c_col = "#ff7675" if disc < -10 else "#2ecc71" if disc >= 10 else "#fdcb6e"
-        lbl = "[위험]" if disc <= -30 else "[주의]" if disc < -10 else "[강력 매수]" if disc >= 30 else "[매수]" if disc >= 10 else "[보통]"
-        suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
-        fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
-    # ----------------------------------------------------
-    # ----------------------------------------------------
-    
-    # [수정] 다른 기업의 유령 변수를 끌어다 쓰지 않도록 로컬에서 완벽하게 자체 계산합니다.
+    off = i.get('companyOfficers', [])
+    ceo_raw = '누락'
+    if isinstance(off, list) and len(off) > 0:
+        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
+        else: ceo_raw = str(off[0])
+    elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
+    elif isinstance(off, str): ceo_raw = off
+    ceo_cleaned = clean_ceo_name(ceo_raw)
+    criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
+
+    if ceo_cleaned == '누락' or ceo_cleaned == 'N/A':
+        if ":" in criticism_text:
+            prefix = criticism_text.split(":")[0].strip()
+            if len(prefix) < 40 and "위키 및 공공" not in prefix:
+                ceo_cleaned = prefix
+
+    # =================================================================
+    # [핵심 수술] "유령 변수(Global Variable Leak)"를 차단하기 위해
+    # 미리보기 패널 안에서 모든 변수를 완벽히 독립적으로 계산합니다!
+    # =================================================================
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
     ey = (1 / f_pe * 100) if f_pe > 0 else 0
     erp = ey - ty
+    
     base_fcf, sh_dcf, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
+    
     roic_val = real_roic if real_roic is not None else 0
     
     div_yield = safe_float(i.get('dividendYield'))
@@ -2138,12 +2129,14 @@ def generate_quick_ai_preview(tk):
         div = div_yield if div_yield > 1.0 else div_yield * 100
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+    
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
         f_pe=f_pe, spy_pe=spy_pe_val
     )
-    
+    # =================================================================
+
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
 def create_radar_chart(score_breakdown, is_financial, color_hex):
     color_hex = color_hex.lstrip('#')
