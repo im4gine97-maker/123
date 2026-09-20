@@ -2675,6 +2675,9 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
+                # [강력 방어망] 시뮬레이터가 안 도는 상황을 대비해 미리 0.0으로 깔아둡니다.
+                iv_best, mos_best, iv_worst, mos_worst = 0.0, 0.0, 0.0, 0.0
+                
                 # --- [사용자 커스텀 DCF 시뮬레이터 연동 로직] ---
                 # 1. AI의 원본 기본값 백업
                 ai_final_g = final_g
