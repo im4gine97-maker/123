@@ -2335,6 +2335,22 @@ tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("AGIE 철학", "About AGIE")
 ])
 
+# =========================================================
+# [핵심 수술] 버튼을 누르면 1번 탭으로 자동 화면 전환하는 자바스크립트
+# =========================================================
+if st.session_state.get("switch_to_tab1", False):
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+        window.parent.document.querySelectorAll('button[data-baseweb="tab"]')[0].click();
+        </script>
+        """,
+        height=0
+    )
+    st.session_state.switch_to_tab1 = False
+# =========================================================
+
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
@@ -3468,8 +3484,9 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                    if st.button(t(f"📊 [{st.session_state['preview_tk_tab2']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab2']}]"), key="btn_fix_tab2", use_container_width=True, type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                        st.session_state.switch_to_tab1 = True  # 화면 자동 전환 스위치 ON!
                         st.rerun()
 # ==========================================
 # 탭 3: 시가총액 랭킹 TOP 30
@@ -3508,8 +3525,9 @@ with tab3:
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
         if "preview_tk_tab3" in st.session_state:
-            if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
+            if st.button(t(f"📊 [{st.session_state['preview_tk_tab3']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab3']}]"), key="btn_fix_tab3", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
+                st.session_state.switch_to_tab1 = True
                 st.rerun()
 
 # ==========================================
@@ -3786,8 +3804,9 @@ with tab6:
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
-            if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+            if st.button(t(f"📊 [{st.session_state['preview_tk_tab6']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab6']}]"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
+                st.session_state.switch_to_tab1 = True
                 st.rerun()
 # 하단 면책 조항 및 카피라이트 
 st.divider()
