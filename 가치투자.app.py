@@ -2117,12 +2117,32 @@ def generate_quick_ai_preview(tk):
         suf = "(고평가)" if disc < -10 else "(저평가)" if disc >= 10 else "(적정수준)"
         fwd_pe_desc_str = f"<span style='color:{c_col}; font-weight:bold;'>{lbl} {disc:+.1f}% {suf}</span><br><span style='font-size:0.85em; color:rgba(255,255,255,0.6);'>현재: {f_pe:.1f}배 | 평균: {a_pe:.1f}배</span>"
     # ----------------------------------------------------
+    # ----------------------------------------------------
+    
+    # [수정] 다른 기업의 유령 변수를 끌어다 쓰지 않도록 로컬에서 완벽하게 자체 계산합니다.
+    pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+    ey = (1 / f_pe * 100) if f_pe > 0 else 0
+    erp = ey - ty
+    base_fcf, sh_dcf, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+    iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
+    mos_val = safe_float(mos_val)
+    roic_val = real_roic if real_roic is not None else 0
+    
+    div_yield = safe_float(i.get('dividendYield'))
+    div_rate = safe_float(i.get('dividendRate'))
+    div = 0.0
+    if div_rate > 0 and p > 0:
+        calc_div = (div_rate / p) * 100
+        if calc_div < 50.0: div = calc_div
+    if div == 0.0 and div_yield > 0:
+        div = div_yield if div_yield > 1.0 else div_yield * 100
+
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-    f_pe=f_pe, spy_pe=spy_pe_val
-)
+        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+        is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+        f_pe=f_pe, spy_pe=spy_pe_val
+    )
     
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
 def create_radar_chart(score_breakdown, is_financial, color_hex):
