@@ -22,10 +22,11 @@ if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
 if "suggestions" not in st.session_state: st.session_state.suggestions = []
 
-# [핵심 수술] 탭 이동 시 이전 기업이 남아있는 버그를 막는 강제 업데이트 장치
-if "force_update_input" in st.session_state and st.session_state.force_update_input:
-    st.session_state.main_input = st.session_state.force_update_input
-    st.session_state.force_update_input = None
+# [핵심 수술] 다른 탭에서 종목을 클릭했을 때, 1번 탭의 검색창과 데이터를 강제로 동기화하는 로직
+if "sync_tk" in st.session_state and st.session_state.sync_tk:
+    st.session_state.main_input = st.session_state.sync_tk
+    st.session_state.search_tk = st.session_state.sync_tk
+    st.session_state.sync_tk = None
 
 is_ko = st.session_state.lang == "ko"
 
@@ -50,8 +51,7 @@ def fmt_f(val, decimals=1):
 def select_ticker(tk):
     st.session_state.search_tk = tk
     st.session_state.suggestions = []
-    # 다음 렌더링 때 탭 1의 검색창 텍스트를 무조건 새 기업으로 덮어쓰도록 강제합니다.
-    st.session_state.force_update_input = tk
+    st.session_state.sync_tk = tk  # 다음 새로고침 때 1번 탭 검색창에 무조건 덮어쓰기 예약!
     try:
         st.session_state.main_input = tk
     except Exception:
