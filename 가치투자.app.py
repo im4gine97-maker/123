@@ -22,6 +22,11 @@ if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
 if "suggestions" not in st.session_state: st.session_state.suggestions = []
 
+# [핵심 수술] 탭 이동 시 이전 기업이 남아있는 버그를 막는 강제 업데이트 장치
+if "force_update_input" in st.session_state and st.session_state.force_update_input:
+    st.session_state.main_input = st.session_state.force_update_input
+    st.session_state.force_update_input = None
+
 is_ko = st.session_state.lang == "ko"
 
 def t(ko, en):
@@ -31,7 +36,6 @@ def safe_float(val, default=0.0):
     try:
         if val is None or pd.isna(val): return default
         if isinstance(val, str):
-            # [수정] '배'나 '원' 같은 한국어 단위가 붙어있어도 숫자로 완벽히 변환하도록 방어합니다.
             val = val.replace('%', '').replace(',', '').replace('배', '').replace('원', '').strip()
         return float(val)
     except:
@@ -46,8 +50,9 @@ def fmt_f(val, decimals=1):
 def select_ticker(tk):
     st.session_state.search_tk = tk
     st.session_state.suggestions = []
+    # 다음 렌더링 때 탭 1의 검색창 텍스트를 무조건 새 기업으로 덮어쓰도록 강제합니다.
+    st.session_state.force_update_input = tk
     try:
-        # 이미 렌더링된 탭 1의 검색창 값을 강제로 바꾸려다 나는 에러를 방어합니다.
         st.session_state.main_input = tk
     except Exception:
         pass
@@ -2106,9 +2111,7 @@ def generate_quick_ai_preview(tk):
                 ceo_cleaned = prefix
 
     # =================================================================
-    # [핵심 수술] "유령 변수(Global Variable Leak)"를 차단하기 위해
-    # 미리보기 패널 안에서 모든 변수를 완벽히 독립적으로 계산합니다!
-    # =================================================================
+    # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
     ey = (1 / f_pe * 100) if f_pe > 0 else 0
     erp = ey - ty
