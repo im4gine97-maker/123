@@ -2106,6 +2106,76 @@ def generate_quick_ai_preview(tk):
     )
     return fig
 # ==========================================
+def create_radar_chart(score_breakdown, is_financial, color_hex):
+    color_hex = color_hex.lstrip('#')
+    r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+    fill_color = f"rgba({r}, {g}, {b}, 0.2)"
+    line_color = f"rgb({r}, {g}, {b})"
+
+    categories = [
+        t('경영진/거버넌스', 'Management'), 
+        t('비즈니스 해자(자본효율)', 'Moat & ROE'), 
+        t('가격 매력도(PER)', 'Valuation (PER)'), 
+        t('미래 성장성(CAGR)', 'Growth (CAGR)'), 
+        t('안전마진(DCF)', 'Margin of Safety (DCF)')
+    ]
+    if is_financial:
+        categories[4] = t('거시 매력도(ERP)', 'Macro Yield (ERP)')
+
+    def get_score(substrings):
+        for k, v in score_breakdown.items():
+            if any(sub in k for sub in substrings):
+                return v[0] if isinstance(v, tuple) else v
+        return 0
+
+    mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
+    mgmt_norm = max(0, min(100, (mgmt_raw + 20) / 40 * 100))
+
+    eff_raw = get_score(["비즈니스 수익성", "자본 효율성", "Efficiency", "Profitability"])
+    eff_norm = max(0, min(100, (eff_raw + 20) / 40 * 100))
+
+    price_raw = get_score(["가격 매력도", "Price Attractiveness"])
+    price_norm = max(0, min(100, (price_raw + 30) / 60 * 100))
+
+    growth_raw = get_score(["장기 복리 성장성", "Compounding"])
+    growth_norm = max(0, min(100, (growth_raw + 15) / 22.5 * 100))
+
+    if is_financial:
+        safety_raw = get_score(["거시 매력도", "Macro"])
+        safety_norm = max(0, min(100, (safety_raw + 15) / 25 * 100))
+    else:
+        safety_raw = get_score(["내재가치", "DCF MoS"])
+        safety_norm = max(0, min(100, (safety_raw + 10) / 20 * 100))
+
+    values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
+    values.append(values[0])
+    categories_loop = categories + [categories[0]]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories_loop,
+        fill='toself',
+        fillcolor=fill_color,
+        line=dict(color=line_color, width=2.5),
+        marker=dict(size=8, color=line_color),
+        hoverinfo='text',
+        text=[f"{cat}: {val:.0f}점/100점" for cat, val in zip(categories, values)]
+    ))
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, 100], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
+            angularaxis=dict(tickfont=dict(size=13, color='#8892b0', family='Pretendard, Noto Sans KR, sans-serif'), gridcolor='rgba(128,128,128,0.2)'),
+            bgcolor='rgba(0,0,0,0)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        showlegend=False,
+        margin=dict(l=40, r=40, t=20, b=20),
+        height=320
+    )
+    return fig
 # [4] 메인 UI 렌더링
 # ==========================================
 macro_data = fetch_macro_realtime_v6()
