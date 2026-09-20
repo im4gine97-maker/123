@@ -2762,6 +2762,12 @@ with tab1:
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
+                # [추가] 시뮬레이터가 돌지 않는 상황(적자, 금융주 등)을 대비해 변수를 0.0으로 미리 초기화합니다.
+                iv_best, mos_best, iv_worst, mos_worst = 0.0, 0.0, 0.0, 0.0
+                if not is_financial and iv and iv > 0:
+                    iv_best, mos_best, _ = calc_custom_dcf(base_fcf, sh, p, ty, min(final_g * 1.5, 0.25), is_financial)
+                    iv_worst, mos_worst, _ = calc_custom_dcf(base_fcf, sh, p, ty, max(final_g * 0.5, 0.0), is_financial)
+                
                 # --- [사용자 커스텀 DCF 시뮬레이터 연동 로직] ---
                 # 1. AI의 원본 기본값 백업
                 ai_final_g = final_g
