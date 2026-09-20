@@ -3468,10 +3468,9 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-            if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
-                # 에러 나는 두 줄 삭제하고 sync_tk에만 값 전달!
-                st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
-                st.rerun()
+                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                        st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
+                        st.rerun()
 # ==========================================
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
