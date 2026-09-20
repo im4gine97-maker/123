@@ -3495,28 +3495,28 @@ with tab3:
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
     with st.form(key="form_tab2"):
-        c_tk2, c_btn2 = st.columns([3, 1])
-        with c_tk2: 
-            fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="mkt_fast_tk", label_visibility="collapsed")
-        with c_btn2:
-            submitted_mkt = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+        c_tk, c_btn = st.columns([3, 1])
+        with c_tk: 
+            fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
+        with c_btn:
+            submitted = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
         
-        if submitted_mkt:
-            if fast_name_mkt:
-                matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
-                select_ticker(matched_ticker_mkt)
+        if submitted:
+            if fast_name:
+                matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
+                select_ticker(matched_ticker)
                 with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                    st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
-                    st.session_state["preview_tk_tab3"] = matched_ticker_mkt
+                    st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                    st.session_state["preview_tk_tab2"] = matched_ticker
                 st.rerun()
             else:
                 st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
-                
-    if "preview_tab3" in st.session_state:
-        st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
+    
+    if "preview_tab2" in st.session_state:
+        st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
         if "preview_tk_tab2" in st.session_state:
-            if st.button(t(f"📊 [{st.session_state['preview_tk_tab3']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab3']}]"), key="btn_fix_tab3", use_container_width=True, type="primary"):
-                st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
+            if st.button(t(f"📊 [{st.session_state['preview_tk_tab2']}] 상세 기업가치 심층 분석하기", f"📊 View Detailed Valuation for [{st.session_state['preview_tk_tab2']}]"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                 st.session_state.switch_to_tab1 = True
                 st.rerun()
 # ==========================================
