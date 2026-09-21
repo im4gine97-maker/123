@@ -1562,7 +1562,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 3. 가격 매력도 (PER/PBR 안전마진) - 상하방 무한 개방 (할인율 1%당 1.2점씩 무한 비례)
     p_score = 0
-    if is_financial:
+    if is_financial or kr:  # [핵심] 한국 주식도 PBR 할인율 적용!
         p_score = pmos * 1.2
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
@@ -1575,35 +1575,33 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
-        # 4. CAP_SCORE (ROE / ROIC)
+    # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
-    if is_financial:
-        # [수정] PBR을 제외하고 오직 ROE만 평가. 금융사 평균 자본비용(COE) 8~10%를 기준으로 촘촘하게 세분화 (최대 30점 ~ 최소 -30점)
-        if roe >= 20.0: cap_score = 30; r_desc = "압도적인 자본 증식력 (월가 최상위 0.1%)"
+    if is_financial or kr:  # [핵심] 한국 주식도 ROIC 대신 ROE 20단계 정밀 평가 적용!
+        if roe >= 20.0: cap_score = 30; r_desc = "압도적인 자본 증식력 (최상위 0.1%)"
         elif roe >= 19.0: cap_score = 27; r_desc = "경이로운 자본 수익률 (프리미엄 부여 타당)"
-        elif roe >= 18.0: cap_score = 24; r_desc = "매우 훌륭한 자본 효율성 (신용카드/대체투자사 급)"
+        elif roe >= 18.0: cap_score = 24; r_desc = "매우 훌륭한 자본 효율성"
         elif roe >= 17.0: cap_score = 21; r_desc = "업계를 선도하는 탁월한 우량주"
-        elif roe >= 16.0: cap_score = 18; r_desc = "가치 복리 증식의 표본 (JPM 등 최우량 은행 급)"
+        elif roe >= 16.0: cap_score = 18; r_desc = "가치 복리 증식의 표본"
         elif roe >= 15.0: cap_score = 15; r_desc = "훌륭한 자본 통제 및 수익성"
         elif roe >= 14.0: cap_score = 12; r_desc = "우수한 자본 이익률 (확고한 경쟁 우위)"
-        elif roe >= 13.0: cap_score = 9; r_desc = "견고한 수익 창출력 (시장 평균 훌쩍 상회)"
-        elif roe >= 12.0: cap_score = 6; r_desc = "금융주 기준선 안전 통과 (안정적 배당 여력)"
+        elif roe >= 13.0: cap_score = 9; r_desc = "견고한 수익 창출력 (시장 평균 상회)"
+        elif roe >= 12.0: cap_score = 6; r_desc = "안전 통과 (안정적 배당 여력)"
         elif roe >= 11.0: cap_score = 3; r_desc = "평균 이상의 적절한 배분 효율성"
-        elif roe >= 10.0: cap_score = 0; r_desc = "금융주 평균적 기대 수익 (COE 기준선 달성)"
+        elif roe >= 10.0: cap_score = 0; r_desc = "평균적 기대 수익 (기준선 달성)"
         elif roe >= 9.0: cap_score = -3; r_desc = "평균에 약간 못 미치나 무난한 방어력"
-        elif roe >= 8.0: cap_score = -6; r_desc = "자산 대비 이익률이 다소 아쉬움 (COE 턱걸이)"
-        elif roe >= 7.0: cap_score = -9; r_desc = "운용수익률 혹은 예대마진 개선 필요"
-        elif roe >= 6.0: cap_score = -12; r_desc = "자본비용(COE) 미달 (가치 파괴 구간 진입)"
+        elif roe >= 8.0: cap_score = -6; r_desc = "자산 대비 이익률이 다소 아쉬움"
+        elif roe >= 7.0: cap_score = -9; r_desc = "운용수익률 혹은 마진 개선 필요"
+        elif roe >= 6.0: cap_score = -12; r_desc = "자본비용 미달 (가치 파괴 구간 진입)"
         elif roe >= 5.0: cap_score = -15; r_desc = "비효율적 자본 배치 (전형적인 밸류 트랩)"
         elif roe >= 4.0: cap_score = -18; r_desc = "낮은 자본 수익성 (주주가치 훼손 심화)"
         elif roe >= 3.0: cap_score = -21; r_desc = "물가상승률을 하회하는 심각한 저수익성"
         elif roe >= 2.0: cap_score = -24; r_desc = "수익 모델 붕괴 위험"
-        elif roe > 0.0: cap_score = -27; r_desc = "간신히 적자를 면한 수준 (강력한 구조조정 필요)"
+        elif roe > 0.0: cap_score = -27; r_desc = "간신히 적자를 면한 수준 (구조조정 필요)"
         else: cap_score = -30; r_desc = "순자산이 깎여나가는 치명적 적자 상태"
             
         cap_reason = t(f"ROE {roe:.1f}%: {r_desc}", f"ROE {roe:.1f}%: {r_desc}")
         score_details[t("자본 효율성 (ROE)", "Capital Efficiency (ROE)")] = (cap_score, cap_reason)
-
     else:
         moat_power = (roic * 2 + roe) / 3
         
@@ -2088,7 +2086,7 @@ def generate_quick_ai_preview(tk):
     # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
-    if is_financial:
+    if is_financial or kr:  # [핵심] 한국 주식도 자체 PBR 엔진 가동
         try:
             hist_5y = stk.history(period="5y")
             avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2114,8 +2112,8 @@ def generate_quick_ai_preview(tk):
                 f_bps = bv + f_eps - div_r_val
                 if f_bps > 0: f_pbr = reg_p / f_bps
 
-    # 금융주면 PBR 할인율을, 일반주면 PER 할인율을 계산하여 평가 점수에 완벽 연동합니다.
-    if is_financial:
+    # 금융주 및 한국주식은 PBR 할인율을, 일반 미국주식은 PER 할인율을 연동합니다.
+    if is_financial or kr:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
         pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
@@ -2617,10 +2615,10 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except: pass
                 
-                # --- [금융주 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
+                # --- [금융주 및 한국주식 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = safe_float(i.get('priceToBook'))
-                if is_financial:
+                if is_financial or kr:
                     try:
                         hist_5y = stk.history(period="5y")
                         avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2663,7 +2661,7 @@ with tab1:
                     if 'multiplier' in locals() and multiplier != 1.0:
                         f_pbr = f_pbr * multiplier
 
-                if is_financial:
+                if is_financial or kr:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
                     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
