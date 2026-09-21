@@ -1109,8 +1109,16 @@ def get_yahoo_profile(cd):
 def get_naver_finance(cd):
     res = {}
     try:
+        import random
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+        # [핵심] 여러 대의 최신 컴퓨터와 스마트폰인 것처럼 네이버를 속여 차단을 완벽 우회합니다.
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+        headers = {'User-Agent': random.choice(user_agents)}
         r = requests.get(url, headers=headers, timeout=5)
         r.encoding = 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
@@ -1145,7 +1153,6 @@ def get_naver_finance(cd):
         if t_div and t_div.text.strip() and t_div.text.strip() != '-': 
             res['dividendYield'] = safe_float(t_div.text) / 100.0
             
-        # [핵심] 배당수익률(%)이 네이버에 비어있어도, 1주당 배당금(원)이 있으면 수동 강제 계산
         if 'dividendYield' not in res or res['dividendYield'] == 0:
             t_dvd = s.select_one('#_dvd')
             if t_dvd and t_dvd.text.strip() and t_dvd.text.strip() != '-':
@@ -1169,7 +1176,6 @@ def get_naver_finance(cd):
     except:
         pass
     return res
-
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
@@ -3036,13 +3042,15 @@ with tab1:
                 elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
                 else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
                 
-                if is_financial:
-                    if pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
+                if is_financial or kr:
+                    if pbr <= 0.0: pbr_eval = f"<span style='color:#8892b0; font-weight:bold;'>[평가 불가] 데이터 없음</span>"
+                    elif pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하</span>"
                     elif pbr <= 1.3: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 적정 가치</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 자본 대비 고평가</span>"
                 else:
-                    if pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[안전] 청산가치 이하</span>"
+                    if pbr <= 0.0: pbr_eval = f"<span style='color:#8892b0; font-weight:bold;'>[평가 불가] 데이터 없음</span>"
+                    elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[안전] 청산가치 이하</span>"
                     elif pbr <= 3.0: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 정상 프리미엄</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 높은 프리미엄</span>"
                 # [수정됨: biz_eval 누락 복구]
