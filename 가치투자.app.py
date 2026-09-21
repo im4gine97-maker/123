@@ -2998,10 +2998,48 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
+                    # [핵심] 점수 위치를 백분율(%)로 변환하여 마커 위치 계산 (최소 -100, 최대 100 기준)
+                    gauge_score = max(-100, min(100, score))
+                    marker_pos = ((gauge_score + 100) / 200) * 100
+                    
+                    # 마커가 양쪽 끝을 넘어가지 않도록 안전망 설정
+                    if marker_pos < 2: marker_pos = 2
+                    if marker_pos > 98: marker_pos = 98
+
                     st.markdown(f"""
                     <div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
                         <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
-                        <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 10px; line-height: 1.6;">{op_reason}</span>
+                        
+                        <!-- 10단계 컬러 게이지 바 (막대기) -->
+                        <div style="position: relative; width: 100%; height: 16px; margin: 35px 0 15px 0; background: linear-gradient(to right, 
+                            #c23616 0%, #c23616 10%, 
+                            #ff4757 10%, #ff4757 20%, 
+                            #e15f41 20%, #e15f41 30%, 
+                            #fa8231 30%, #fa8231 40%, 
+                            #fdcb6e 40%, #fdcb6e 50%, 
+                            #f1c40f 50%, #f1c40f 60%, 
+                            #2ecc71 60%, #2ecc71 70%, 
+                            #10ac84 70%, #10ac84 80%, 
+                            #00b894 80%, #00b894 90%, 
+                            #0984e3 90%, #0984e3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+                            
+                            <!-- 현재 점수 표시 마커 (▼) -->
+                            <div style="position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center;">
+                                <div style="background-color: {op_color}; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                    {score}점
+                                </div>
+                                <div style="color: {op_color}; font-size: 14px; margin-top: -4px;">▼</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 게이지 바 양끝 라벨 -->
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #8892b0; font-weight: 600; padding: 0 5px;">
+                            <span>극단적 고평가 (-100)</span>
+                            <span>적정 가치 (10)</span>
+                            <span>압도적 저평가 (+100)</span>
+                        </div>
+
+                        <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 20px; line-height: 1.6;">{op_reason}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
