@@ -2037,7 +2037,7 @@ def generate_quick_ai_preview(tk):
 
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-    if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
+    if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
         try:
             bs = stk.balance_sheet
             if bs is not None and not bs.empty:
@@ -2046,6 +2046,7 @@ def generate_quick_ai_preview(tk):
                         eq = safe_float(bs.loc[eq_key].iloc[0])
                         sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
                         if tk == "BRK-B": sh = 2160000000.0
+                        elif tk == "BRK-A": sh = 1440000.0
                         if eq > 0 and sh > 0:
                             bv = eq / sh
                             pbr = reg_p / bv
@@ -2127,7 +2128,8 @@ def generate_quick_ai_preview(tk):
                 if len(eq_vals) > 0:
                     avg_eq = sum(eq_vals) / len(eq_vals)
                     sh_proxy = safe_float(i.get('sharesOutstanding'))
-                    if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
+                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                    elif tk == "BRK-A": sh_proxy = 1440000.0
                     if avg_eq > 0 and sh_proxy > 0:
                         a_pbr = avg_price / (avg_eq / sh_proxy)
         except: pass
@@ -2562,7 +2564,7 @@ with tab1:
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
                 
-                if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B":
+                if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
                     try:
                         bs = stk.balance_sheet
                         if bs is not None and not bs.empty:
@@ -2570,10 +2572,8 @@ with tab1:
                                 if eq_key in bs.index:
                                     eq = safe_float(bs.loc[eq_key].iloc[0])
                                     sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                                    
-                                    if tk == "BRK-B":
-                                        sh = 2160000000.0
-                                        
+                                    if tk == "BRK-B": sh = 2160000000.0
+                                    elif tk == "BRK-A": sh = 1440000.0
                                     if eq > 0 and sh > 0:
                                         bv = eq / sh
                                         pbr = reg_p / bv
@@ -2660,7 +2660,8 @@ with tab1:
                             if len(eq_vals) > 0:
                                 avg_eq = sum(eq_vals) / len(eq_vals)
                                 sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
+                                if tk == "BRK-B": sh_proxy = 2160000000.0
+                                elif tk == "BRK-A": sh_proxy = 1440000.0
                                 if avg_eq > 0 and sh_proxy > 0:
                                     a_pbr = avg_price / (avg_eq / sh_proxy)
                     except: pass
@@ -2674,7 +2675,8 @@ with tab1:
                             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
                                 eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
                                 sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
+                                if tk == "BRK-B": sh_proxy = 2160000000.0
+                                elif tk == "BRK-A": sh_proxy = 1440000.0
                                 if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
                         except: pass
                     
