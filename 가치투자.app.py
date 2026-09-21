@@ -1657,31 +1657,33 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
-    if is_financial or kr:  # [핵심] 한국 주식도 ROIC 대신 ROE 20단계 정밀 평가 적용!
-        if roe >= 20.0: cap_score = 30; r_desc = "압도적인 자본 증식력 (최상위 0.1%)"
+    if is_financial:  # [핵심 수술] 'or kr' 조건을 완전히 삭제하여 한국 일반 기업은 ROIC 평가를 제대로 받게 합니다!
+        # [금융주 수익성(ROE)] - 1% 단위 촘촘한 세분화 (기준점 10% = 0점)
+        if roe >= 20.0: cap_score = 30; r_desc = "압도적인 자본 증식력 (월가 최상위 0.1%)"
         elif roe >= 19.0: cap_score = 27; r_desc = "경이로운 자본 수익률 (프리미엄 부여 타당)"
-        elif roe >= 18.0: cap_score = 24; r_desc = "매우 훌륭한 자본 효율성"
+        elif roe >= 18.0: cap_score = 24; r_desc = "매우 훌륭한 자본 효율성 (신용카드/대체투자사 급)"
         elif roe >= 17.0: cap_score = 21; r_desc = "업계를 선도하는 탁월한 우량주"
-        elif roe >= 16.0: cap_score = 18; r_desc = "가치 복리 증식의 표본"
+        elif roe >= 16.0: cap_score = 18; r_desc = "가치 복리 증식의 표본 (JPM 등 최우량 은행 급)"
         elif roe >= 15.0: cap_score = 15; r_desc = "훌륭한 자본 통제 및 수익성"
         elif roe >= 14.0: cap_score = 12; r_desc = "우수한 자본 이익률 (확고한 경쟁 우위)"
-        elif roe >= 13.0: cap_score = 9; r_desc = "견고한 수익 창출력 (시장 평균 상회)"
-        elif roe >= 12.0: cap_score = 6; r_desc = "안전 통과 (안정적 배당 여력)"
+        elif roe >= 13.0: cap_score = 9; r_desc = "견고한 수익 창출력 (시장 평균 훌쩍 상회)"
+        elif roe >= 12.0: cap_score = 6; r_desc = "금융주 기준선 안전 통과 (안정적 배당 여력)"
         elif roe >= 11.0: cap_score = 3; r_desc = "평균 이상의 적절한 배분 효율성"
-        elif roe >= 10.0: cap_score = 0; r_desc = "평균적 기대 수익 (기준선 달성)"
+        elif roe >= 10.0: cap_score = 0; r_desc = "금융주 평균적 기대 수익 (COE 기준선 달성)"
         elif roe >= 9.0: cap_score = -3; r_desc = "평균에 약간 못 미치나 무난한 방어력"
-        elif roe >= 8.0: cap_score = -6; r_desc = "자산 대비 이익률이 다소 아쉬움"
-        elif roe >= 7.0: cap_score = -9; r_desc = "운용수익률 혹은 마진 개선 필요"
-        elif roe >= 6.0: cap_score = -12; r_desc = "자본비용 미달 (가치 파괴 구간 진입)"
+        elif roe >= 8.0: cap_score = -6; r_desc = "자산 대비 이익률이 다소 아쉬움 (COE 턱걸이)"
+        elif roe >= 7.0: cap_score = -9; r_desc = "운용수익률 혹은 예대마진 개선 필요"
+        elif roe >= 6.0: cap_score = -12; r_desc = "자본비용(COE) 미달 (가치 파괴 구간 진입)"
         elif roe >= 5.0: cap_score = -15; r_desc = "비효율적 자본 배치 (전형적인 밸류 트랩)"
         elif roe >= 4.0: cap_score = -18; r_desc = "낮은 자본 수익성 (주주가치 훼손 심화)"
         elif roe >= 3.0: cap_score = -21; r_desc = "물가상승률을 하회하는 심각한 저수익성"
         elif roe >= 2.0: cap_score = -24; r_desc = "수익 모델 붕괴 위험"
-        elif roe > 0.0: cap_score = -27; r_desc = "간신히 적자를 면한 수준 (구조조정 필요)"
+        elif roe > 0.0: cap_score = -27; r_desc = "간신히 적자를 면한 수준 (강력한 구조조정 필요)"
         else: cap_score = -30; r_desc = "순자산이 깎여나가는 치명적 적자 상태"
             
         cap_reason = t(f"ROE {roe:.1f}%: {r_desc}", f"ROE {roe:.1f}%: {r_desc}")
         score_details[t("자본 효율성 (ROE)", "Capital Efficiency (ROE)")] = (cap_score, cap_reason)
+
     else:
         moat_power = (roic * 2 + roe) / 3
         
@@ -1710,7 +1712,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
         cap_reason = t(f"비즈니스 해자(ROIC {roic:.1f}%) 및 자본수익성(ROE {roe:.1f}%) 반영", f"ROIC {roic:.1f}% & ROE {roe:.1f}%")
         score_details[t("비즈니스 수익성 및 해자 (ROIC, ROE)", "Business Profitability & Moat (ROIC, ROE)")] = (cap_score, cap_reason)
-
 
     # 5. 레버리지 왜곡 방어 (ROE vs ROIC)
     lev_score = 0
@@ -1856,7 +1857,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 10. 시장 페널티 (지정학, 시클리컬) - 100점 만점 체계에 맞춰 현실적으로 재조정
+    # 10. 시장 페널티 (지정학, 시클리컬) - 시클리컬 무조건 감점 삭제
     pen_score = 0
     
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
@@ -1884,12 +1885,12 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
 
     if is_cyclical:
-        pen_score -= 15 # 시클리컬(경기민감주) 감점 -15점 적용
-        pen_reasons.append(t("시클리컬(경기민감주) 변동성", "Cyclical Volatility"))
+        # [핵심 수술] 점수 강제 감점(-15점)을 완전히 삭제하고 투자자 주의 코멘트만 남깁니다.
+        pen_reasons.append(t("시클리컬(경기민감주) 특성 내포", "Cyclical Characteristics"))
         
-    if pen_score < 0:
-        pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Penalty Applied")
-        score_details[t("시장 및 산업 페널티", "Market & Industry Penalty")] = (pen_score, pen_reason)
+    if len(pen_reasons) > 0:
+        pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Noted")
+        score_details[t("시장 및 산업 특성", "Market & Industry Traits")] = (pen_score, pen_reason)
         
     # --- [나만의 투자 성향 가중치 적용 로직] ---
     # 사이드바에서 설정한 배수(0.0 ~ 3.0)를 불러옵니다.
