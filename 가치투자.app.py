@@ -1266,19 +1266,24 @@ def get_data(tk):
         i = fetch_cached_info(tk, kr, cd).copy()
         
         p = 0.0
-        if kr:
-            if 'live_p' in i and i['live_p'] > 0:
-                p = safe_float(i['live_p'])
-            else:
-                try:
-                    nv_res = get_naver_finance(cd)
-                    if 'live_p' in nv_res and nv_res['live_p'] > 0: 
-                        p = safe_float(nv_res['live_p'])
-                except: pass
+        
+        # [실시간 1순위] 야후 파이낸스 웹소켓 기반의 초실시간(밀리초) 가격 데이터 먼저 시도!
+        try:
+            fast_p = safe_float(stk.fast_info.last_price)
+            if fast_p > 0: p = fast_p
+        except: pass
 
-        if p == 0:
-            try: p = safe_float(stk.fast_info.last_price)
+        # [실시간 2순위] 한국 주식인데 야후 실시간이 멈췄을 경우 네이버 금융 실시간 크롤링 덮어쓰기!
+        if kr:
+            try:
+                nv_res = get_naver_finance(cd)
+                if 'live_p' in nv_res and nv_res['live_p'] > 0: 
+                    p = safe_float(nv_res['live_p'])
             except: pass
+
+        # [실시간 3순위] 그래도 안 나오면 캐시된 네이버 데이터 사용
+        if p == 0 and kr and 'live_p' in i and i['live_p'] > 0:
+            p = safe_float(i['live_p'])
 
         if p == 0:
             try:
@@ -2532,22 +2537,29 @@ with tab1:
 
                 ext_str = ""
                 is_ext_active = False
+                
+                # [강력 보강] 현재 화면에 뿌릴 주가(p)를 마지막으로 한번 더 실시간(fast_info)으로 강제 멱살 잡기!
+                try:
+                    fast_p = safe_float(stk.fast_info.last_price)
+                    if fast_p > 0: p = fast_p
+                except: pass
+
+                # 네이버 실시간 주가가 있으면 한국 주식은 그걸 최우선으로!
+                if kr and 'live_p' in i and i['live_p'] > 0:
+                    p = safe_float(i['live_p'])
+
                 if not kr:
                     pre_p = safe_float(i.get('preMarketPrice', 0.0))
                     post_p = safe_float(i.get('postMarketPrice', 0.0))
                     
-                    if pre_p > 0:
+                    if pre_p > 0 and pre_p != p:
                         p = pre_p
                         is_ext_active = True
-                    elif post_p > 0:
+                        ext_str = f" <span style='font-size:0.9em; color:#fdcb6e;'>[프리마켓 적용]</span>"
+                    elif post_p > 0 and post_p != p:
                         p = post_p
                         is_ext_active = True
-                        
-                    # 글씨는 화면에 안 띄우되, 주가(p)는 가장 최신 실시간(fast_info) 데이터로 한 번 더 덮어쓰기
-                    try:
-                        fast_p = safe_float(stk.fast_info.last_price)
-                        if fast_p > 0: p = fast_p
-                    except: pass
+                        ext_str = f" <span style='font-size:0.9em; color:#fdcb6e;'>[애프터마켓 적용]</span>"
 
                 # 1. 조작되지 않은 순수 정규장 기준 가격(reg_p) 먼저 확정
                 reg_p = safe_float(i.get('regularMarketPrice', p))
