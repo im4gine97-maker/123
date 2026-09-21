@@ -2238,16 +2238,19 @@ def generate_quick_ai_preview(tk):
     # =================================================================
 
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
-def create_radar_chart(score_breakdown, is_financial, color_hex):
+def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
+    # [핵심 수술] 한국주식/금융주면 PBR로, 일반 미국주식은 PER로 라벨 자동 변경!
+    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr) else t("가격 매력도(PER)", "Value(PER)")
+
     categories = [
         t('경영진/거버넌스', 'Management'), 
         t('비즈니스 해자(자본효율)', 'Moat & ROE'), 
-        t('가격 매력도(PER)', 'Valuation (PER)'), 
+        radar_p_label, 
         t('미래 성장성(CAGR)', 'Growth (CAGR)'), 
         t('안전마진(DCF)', 'Margin of Safety (DCF)')
     ]
@@ -2260,7 +2263,6 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
                 return v[0] if isinstance(v, tuple) else v
         return 0
 
-    # [수정] 세부 점수가 절반으로 줄었으므로 정규화(Normalization) 최소/최대치도 절반으로 축소
     mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
     mgmt_norm = max(0, min(100, (mgmt_raw + 20) / 40 * 100))
 
@@ -2296,6 +2298,7 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
         text=[f"{cat}: {val:.0f}점/100점" for cat, val in zip(categories, values)]
     ))
 
+    # [핵심 수술] margin(l=90, r=90) 여백을 대폭 늘려 글씨 잘림을 완벽 차단!
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, 100], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
@@ -2305,7 +2308,7 @@ def create_radar_chart(score_breakdown, is_financial, color_hex):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         showlegend=False,
-        margin=dict(l=40, r=40, t=20, b=20),
+        margin=dict(l=90, r=90, t=30, b=30),
         height=320
     )
     return fig
@@ -3296,10 +3299,35 @@ with tab1:
                     f"{easy_summary_msg}</div>"
 
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (현재 가격은 싼가?)</div>"
+                    
+                    # 카드 1: 현재 주가
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>장부상 자산가치 (PBR)</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
+                    
+                    # 카드 2: Fwd PBR / PER (할인율 미니 게이지 바 포함)
+                    f"<div style='{item_style}'>"
+                    f"<div style='{lbl_style}'>{lbl_fwd_title}</div>"
+                    f"<div style='{val_style}'>{fwd_pe_val_str}</div>"
+                    f"<div style='{desc_style}; margin-bottom:12px;'>{fwd_pe_desc_str}</div>"
+                    f"<div style='width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; margin-top: auto;'>"
+                    f"<div style='position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: rgba(255,255,255,0.5);'></div>"
+                    f"<div style='width: {max(0, min(100, 50 + pmos_val))}%; height: 100%; background: linear-gradient(90deg, #0984e3, #2ecc71); border-radius: 3px;'></div>"
+                    f"</div>"
+                    f"<div style='width: 100%; display: flex; justify-content: space-between; font-size: 0.65rem; color: #8892b0; margin-top: 5px; font-weight: bold;'><span>할인 (저평가)</span><span>할증 (고평가)</span></div>"
+                    f"</div>"
+                    
+                    # 카드 3: 자산가치 PBR (PBR 레벨 미니 게이지 바 포함)
+                    f"<div style='{item_style}'>"
+                    f"<div style='{lbl_style}'>장부상 자산가치 (PBR)</div>"
+                    f"<div style='{val_style}'>{pbr:.2f}배</div>"
+                    f"<div style='{desc_style}; margin-bottom:12px;'>{pbr_eval}</div>"
+                    f"<div style='width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; margin-top: auto;'>"
+                    f"<div style='width: {max(0, min(100, (pbr / 3.0) * 100)) if pbr > 0 else 0}%; height: 100%; background: {'#e15f41' if pbr > 2.0 else '#f1c40f' if pbr > 1.2 else '#2ecc71'}; border-radius: 3px;'></div>"
+                    f"</div>"
+                    f"<div style='width: 100%; display: flex; justify-content: space-between; font-size: 0.65rem; color: #8892b0; margin-top: 5px; font-weight: bold;'><span>저평가 (0배)</span><span>고평가 (3배~)</span></div>"
+                    f"</div>"
+                    
+                    # 카드 4: 종합 검증
+                    f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px; line-height: 1.6;'>{clean_p_txt}</div></div>"
                     
                     f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>비즈니스 체력 (장사를 얼마나 잘하나?)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
