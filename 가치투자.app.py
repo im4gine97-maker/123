@@ -3075,11 +3075,63 @@ with tab1:
                 
                 if (gross_m == 0.0 and op_m == 0.0): gm_eval, opm_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>", "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
                 if current_ratio == 0.0: cr_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
-                if is_financial:
-                    cr_eval = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
-                    gm_eval = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 적용 제외', 'N/A')}</span>"
+                bio_eval = f"<span style='color:#8892b0'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
+                try:
+                    bs = stk.balance_sheet
+                    if bs is not None and not bs.empty:
+                        debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
+                        eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
+                        
+                        if debt_col and eq_col:
+                            debts = bs.loc[debt_col].dropna().values[:4][::-1]
+                            equities = bs.loc[eq_col].dropna().values[:4][::-1]
+                            
+                            if len(debts) > 0 and len(equities) > 0:
+                                curr_d = debts[-1]
+                                curr_e = equities[-1]
+                                
+                                if curr_e > 0:
+                                    curr_de = (curr_d / curr_e) * 100
+                                    trend_text = ""
+                                    if len(debts) >= 2 and len(equities) >= 2:
+                                        past_e = equities[0]
+                                        past_d = debts[0]
+                                        if past_e > 0:
+                                            past_de = (past_d / past_e) * 100
+                                            if curr_de < past_de - 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 감소", f"{len(debts)}Y Declining debt")
+                                            elif curr_de > past_de + 5:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 증가", f"{len(debts)}Y Increasing debt")
+                                            else:
+                                                trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
+                                    
+                                    if is_financial:
+                                        t_ko = f"[특수] 금융주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
+                                        t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
+                                        bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
+                                    else:
+                                        if curr_de < 50:
+                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text})"
+                                            bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
+                                        elif curr_de < 120:
+                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text})"
+                                            bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
+                                        else:
+                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
+                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text})"
+                                            bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                                else:
+                                    t_ko = "[위험] 자본잠식 상태입니다."
+                                    t_en = "[Danger] Capital impairment detected."
+                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
+                except: pass
 
-                st.markdown(f"**{t('1. 핵심 재무 지표 및 AI 다차원 투자 검증', '1. Core Financials & AI Multi-dimensional Verification')}**")
+                bio_eval_styled = bio_eval.replace("class='good'", "style='color:#2ecc71; font-weight:600;'")
+                bio_eval_styled = bio_eval_styled.replace("class='highlight'", "style='color:#ff7675; font-weight:600;'")
+                bio_eval_styled = bio_eval_styled.replace("color:#74b9ff", "color:#74b9ff; font-weight:600;")
+                bio_eval_styled = bio_eval_styled.replace("color:#fdcb6e", "color:#fdcb6e; font-weight:600;")
                 
                 # --- AI 검증 텍스트 및 컬러 로직 (PBR/PER 동적 분리) ---
                 p_txt = ""
