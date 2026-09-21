@@ -3052,7 +3052,8 @@ with tab1:
                         st.markdown(breakdown_html, unsafe_allow_html=True)
 
                 with col_op2:
-                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color)
+                    # [핵심] kr=kr 을 추가하여 한국 주식이라는 신호를 쏴줍니다!
+                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr)
                     # [수정] staticPlot을 True로 설정하여 확대/이동/드래그를 완전히 차단합니다.
                     st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
                 st.divider()
