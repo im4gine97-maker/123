@@ -1551,6 +1551,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             ceo_final = -40
             ceo_reason = t("치명적 결함(사기/배임 등) 감지됨", "Fatal flaws detected (fraud/embezzlement)")
         else:
+            # [수정] 조사를 뗀 핵심 키워드로 거장의 극찬 적용
             kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
             kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
             kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
@@ -1578,31 +1579,43 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
             max_raw_score = 120.0
             ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
-            scaled_score = ratio * 40.0
-
-            if scaled_score >= 38: ceo_final = 40
-            elif scaled_score >= 34: ceo_final = 36
-            elif scaled_score >= 30: ceo_final = 32
-            elif scaled_score >= 26: ceo_final = 28
-            elif scaled_score >= 22: ceo_final = 24
-            elif scaled_score >= 18: ceo_final = 20
-            elif scaled_score >= 14: ceo_final = 16
-            elif scaled_score >= 10: ceo_final = 12
-            elif scaled_score >= 6: ceo_final = 8
-            elif scaled_score >= 2: ceo_final = 4
-            elif scaled_score >= -2: ceo_final = 0
-            elif scaled_score >= -6: ceo_final = -4
-            elif scaled_score >= -10: ceo_final = -8
-            elif scaled_score >= -14: ceo_final = -12
-            elif scaled_score >= -18: ceo_final = -16
-            elif scaled_score >= -22: ceo_final = -20
-            elif scaled_score >= -26: ceo_final = -24
-            elif scaled_score >= -30: ceo_final = -28
-            elif scaled_score >= -34: ceo_final = -32
-            elif scaled_score >= -38: ceo_final = -36
-            else: ceo_final = -40
             
-            if ceo_final >= 20: ceo_reason = t("주주친화, 자본배분 탁월 등 긍정적 팩터 우세", "Highly shareholder-friendly & excellent allocation")
+            # [핵심 수술 1] 기준점 40점을 30점으로 축소 (최종 15점 반영)
+            scaled_score = ratio * 30.0
+
+            # [핵심 수술 2] 4점 간격이던 것을 2점 간격으로 15단계 이상 정밀 세분화!
+            if scaled_score >= 28: ceo_final = 30
+            elif scaled_score >= 26: ceo_final = 28
+            elif scaled_score >= 24: ceo_final = 26
+            elif scaled_score >= 22: ceo_final = 24
+            elif scaled_score >= 20: ceo_final = 22
+            elif scaled_score >= 18: ceo_final = 20
+            elif scaled_score >= 16: ceo_final = 18
+            elif scaled_score >= 14: ceo_final = 16
+            elif scaled_score >= 12: ceo_final = 14
+            elif scaled_score >= 10: ceo_final = 12
+            elif scaled_score >= 8: ceo_final = 10
+            elif scaled_score >= 6: ceo_final = 8
+            elif scaled_score >= 4: ceo_final = 6
+            elif scaled_score >= 2: ceo_final = 4
+            elif scaled_score >= 0: ceo_final = 2
+            elif scaled_score >= -2: ceo_final = 0
+            elif scaled_score >= -4: ceo_final = -2
+            elif scaled_score >= -6: ceo_final = -4
+            elif scaled_score >= -8: ceo_final = -6
+            elif scaled_score >= -10: ceo_final = -8
+            elif scaled_score >= -12: ceo_final = -10
+            elif scaled_score >= -14: ceo_final = -12
+            elif scaled_score >= -16: ceo_final = -14
+            elif scaled_score >= -18: ceo_final = -16
+            elif scaled_score >= -20: ceo_final = -18
+            elif scaled_score >= -22: ceo_final = -20
+            elif scaled_score >= -24: ceo_final = -22
+            elif scaled_score >= -26: ceo_final = -24
+            elif scaled_score >= -28: ceo_final = -26
+            else: ceo_final = -30
+            
+            if ceo_final >= 15: ceo_reason = t("거장의 극찬 혹은 훌륭한 자본배분 등 긍정 요소 우세", "Highly shareholder-friendly & excellent allocation")
             elif ceo_final > 0: ceo_reason = t("우수한 경영진 팩터 감지", "Good management factors dominate")
             elif ceo_final == 0: ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
             else: ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
@@ -1857,7 +1870,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 10. 시장 페널티 (지정학, 시클리컬) - 시클리컬 무조건 감점 삭제
+    # 10. 시장 페널티 (지정학) - 시클리컬 관련 감점 및 텍스트 코멘트 전면 삭제
     pen_score = 0
     
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
@@ -1880,17 +1893,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     elif is_taiwan: 
         pen_score -= 10 # 대만 지정학적 리스크 -10점 적용
         pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
-
-    explicit_cyclicals = ["TSM", "AVGO", "NVDA", "AMD", "MU", "INTC", "AMAT", "LRCX", "MRVL", "TXN", "QCOM", "WDC", "SNDK", "CAT", "BA", "GM", "F", "DOW", "FCX", "NUE", "DAL", "UAL", "UNP", "DE", "AA", "LEN", "DHI", "WHR", "RCL", "CCL", "AAPL"]
-    is_cyclical = (tk_upper in explicit_cyclicals) or any(k in ceo_text for k in ["사이클", "유가", "경기 민감", "철강", "석유화학", "화학", "화석 연료", "조선", "해운", "운임", "원자재", "비철금속", "건설", "기계", "건설장비", "항공", "여행", "메모리", "반도체", "디스플레이", "파운드리", "엔비디아", "AMD", "마이크론", "인텔", "어플라이드", "램리서치", "브로드컴", "TSMC", "자동차", "현대차", "기아", "테슬라", "부품 납품", "내연기관", "전기차"])
-
-    if is_cyclical:
-        # [핵심 수술] 점수 강제 감점(-15점)을 완전히 삭제하고 투자자 주의 코멘트만 남깁니다.
-        pen_reasons.append(t("시클리컬(경기민감주) 특성 내포", "Cyclical Characteristics"))
         
     if len(pen_reasons) > 0:
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Noted")
-        score_details[t("시장 및 산업 특성", "Market & Industry Traits")] = (pen_score, pen_reason)
+        score_details[t("시장 및 국가별 페널티", "Market & Country Penalty")] = (pen_score, pen_reason)
         
     # --- [나만의 투자 성향 가중치 적용 로직] ---
     # 사이드바에서 설정한 배수(0.0 ~ 3.0)를 불러옵니다.
@@ -1964,9 +1970,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         color = "#ff4757" # Tier 1
         reason = t("비정상적인 고평가 상태이거나 기업의 구조적 훼손이 심각합니다. 자본 보호를 위해 매도를 강력히 고려해야 할 위험 구간입니다.", "Abnormally overvalued or suffering severe structural damage.")
 
-    # 텍스트에 표기되는 부가 설명
-    if is_cyclical:
-        reason += t(" (시클리컬 기업 감점 -15점 적용: 실적 변동성으로 인한 가치평가 신뢰도 하락)", " (Cyclical Penalty -15 Applied: Lower valuation reliability due to earnings volatility)")
     if kr:
         reason += t(" (코리아 디스카운트 -15점 적용: 주주환원율 미흡 및 지정학적 리스크)", " (Korea Discount -15 Applied: Poor shareholder returns and geopolitical risks)")
     elif is_china_hk:
