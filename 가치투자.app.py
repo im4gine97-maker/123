@@ -1578,61 +1578,31 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
     if is_financial:
-        # [금융주 자산가치(PBR)] - 최대 20점
-        if kr:
-            if pbr <= 0.25: cap_score += 20
-            elif pbr <= 0.30: cap_score += 18
-            elif pbr <= 0.35: cap_score += 16
-            elif pbr <= 0.40: cap_score += 14
-            elif pbr <= 0.45: cap_score += 12
-            elif pbr <= 0.50: cap_score += 10
-            elif pbr <= 0.55: cap_score += 8
-            elif pbr <= 0.60: cap_score += 6
-            elif pbr <= 0.70: cap_score += 4
-            elif pbr <= 0.80: cap_score += 0
-            elif pbr <= 0.90: cap_score -= 5
-            elif pbr <= 1.00: cap_score -= 10
-            elif pbr <= 1.10: cap_score -= 15
-            else: cap_score -= 20
-        else:
-            if pbr <= 0.6: cap_score += 20
-            elif pbr <= 0.8: cap_score += 18
-            elif pbr <= 1.0: cap_score += 15
-            elif pbr <= 1.1: cap_score += 12
-            elif pbr <= 1.2: cap_score += 9
-            elif pbr <= 1.3: cap_score += 6
-            elif pbr <= 1.4: cap_score += 3
-            elif pbr <= 1.6: cap_score += 0
-            elif pbr <= 1.8: cap_score -= 5
-            elif pbr <= 2.0: cap_score -= 10
-            elif pbr <= 2.2: cap_score -= 15
-            else: cap_score -= 20
-        
-        # [금융주 수익성(ROE)] - 1% 단위 촘촘한 세분화 (기준점 10% = 0점)
-        if roe >= 20.0: cap_score += 60
-        elif roe >= 19.0: cap_score += 54
-        elif roe >= 18.0: cap_score += 48
-        elif roe >= 17.0: cap_score += 42
-        elif roe >= 16.0: cap_score += 36
-        elif roe >= 15.0: cap_score += 30
-        elif roe >= 14.0: cap_score += 24
-        elif roe >= 13.0: cap_score += 18
-        elif roe >= 12.0: cap_score += 12
-        elif roe >= 11.0: cap_score += 6
-        elif roe >= 10.0: cap_score += 0   # <-- [기준점] 글로벌 은행 요구수익률
-        elif roe >= 9.0:  cap_score -= 4
-        elif roe >= 8.0:  cap_score -= 8
-        elif roe >= 7.0:  cap_score -= 12
-        elif roe >= 6.0:  cap_score -= 16
-        elif roe >= 5.0:  cap_score -= 20
-        elif roe >= 4.0:  cap_score -= 24
-        elif roe >= 3.0:  cap_score -= 28
-        elif roe >= 2.0:  cap_score -= 32
-        elif roe >= 1.0:  cap_score -= 36
-        else: cap_score -= 40
-        
-        cap_reason = t(f"자산가치(PBR {pbr:.2f}배) 및 자본수익성(ROE {roe:.1f}%) 반영", f"PBR {pbr:.2f}x & ROE {roe:.1f}%")
-        score_details[t("자본 효율성 (ROE 및 PBR)", "Capital Efficiency (ROE & PBR)")] = (cap_score, cap_reason)
+        # [수정] PBR을 제외하고 오직 ROE만 평가. 금융사 평균 자본비용(COE) 8~10%를 기준으로 촘촘하게 세분화 (최대 30점 ~ 최소 -30점)
+        if roe >= 20.0: cap_score = 30; r_desc = "압도적인 자본 증식력 (월가 최상위 0.1%)"
+        elif roe >= 19.0: cap_score = 27; r_desc = "경이로운 자본 수익률 (프리미엄 부여 타당)"
+        elif roe >= 18.0: cap_score = 24; r_desc = "매우 훌륭한 자본 효율성 (신용카드/대체투자사 급)"
+        elif roe >= 17.0: cap_score = 21; r_desc = "업계를 선도하는 탁월한 우량주"
+        elif roe >= 16.0: cap_score = 18; r_desc = "가치 복리 증식의 표본 (JPM 등 최우량 은행 급)"
+        elif roe >= 15.0: cap_score = 15; r_desc = "훌륭한 자본 통제 및 수익성"
+        elif roe >= 14.0: cap_score = 12; r_desc = "우수한 자본 이익률 (확고한 경쟁 우위)"
+        elif roe >= 13.0: cap_score = 9; r_desc = "견고한 수익 창출력 (시장 평균 훌쩍 상회)"
+        elif roe >= 12.0: cap_score = 6; r_desc = "금융주 기준선 안전 통과 (안정적 배당 여력)"
+        elif roe >= 11.0: cap_score = 3; r_desc = "평균 이상의 적절한 배분 효율성"
+        elif roe >= 10.0: cap_score = 0; r_desc = "금융주 평균적 기대 수익 (COE 기준선 달성)"
+        elif roe >= 9.0: cap_score = -3; r_desc = "평균에 약간 못 미치나 무난한 방어력"
+        elif roe >= 8.0: cap_score = -6; r_desc = "자산 대비 이익률이 다소 아쉬움 (COE 턱걸이)"
+        elif roe >= 7.0: cap_score = -9; r_desc = "운용수익률 혹은 예대마진 개선 필요"
+        elif roe >= 6.0: cap_score = -12; r_desc = "자본비용(COE) 미달 (가치 파괴 구간 진입)"
+        elif roe >= 5.0: cap_score = -15; r_desc = "비효율적 자본 배치 (전형적인 밸류 트랩)"
+        elif roe >= 4.0: cap_score = -18; r_desc = "낮은 자본 수익성 (주주가치 훼손 심화)"
+        elif roe >= 3.0: cap_score = -21; r_desc = "물가상승률을 하회하는 심각한 저수익성"
+        elif roe >= 2.0: cap_score = -24; r_desc = "수익 모델 붕괴 위험"
+        elif roe > 0.0: cap_score = -27; r_desc = "간신히 적자를 면한 수준 (강력한 구조조정 필요)"
+        else: cap_score = -30; r_desc = "순자산이 깎여나가는 치명적 적자 상태"
+            
+        cap_reason = t(f"ROE {roe:.1f}%: {r_desc}", f"ROE {roe:.1f}%: {r_desc}")
+        score_details[t("자본 효율성 (ROE)", "Capital Efficiency (ROE)")] = (cap_score, cap_reason)
 
     else:
         moat_power = (roic * 2 + roe) / 3
