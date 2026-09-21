@@ -2998,8 +2998,12 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
-                    # [핵심] 점수 위치를 백분율(%)로 변환하여 마커 위치 계산 (최소 -100, 최대 100 기준)
-                    gauge_score = max(-100, min(100, score))
+                    # [핵심 수술] 내부 변수 대신 화면에 표출된 세부 점수들을 직접 합산하여 총점 추출
+                    total_score_val = sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values())
+                    total_score_val = round(total_score_val)
+                    
+                    # 점수 위치를 백분율(%)로 변환하여 마커 위치 계산 (최소 -100, 최대 100 기준)
+                    gauge_score = max(-100, min(100, total_score_val))
                     marker_pos = ((gauge_score + 100) / 200) * 100
                     
                     # 마커가 양쪽 끝을 넘어가지 않도록 안전망 설정
@@ -3026,7 +3030,7 @@ with tab1:
                             <!-- 현재 점수 표시 마커 (▼) -->
                             <div style="position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center;">
                                 <div style="background-color: {op_color}; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                                    {score}점
+                                    {total_score_val}점
                                 </div>
                                 <div style="color: {op_color}; font-size: 14px; margin-top: -4px;">▼</div>
                             </div>
