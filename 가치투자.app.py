@@ -3111,9 +3111,18 @@ with tab1:
                 elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
                 else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
 
-                if is_financial:
+                if is_financial or kr:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {p_txt}"
-                    clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
+                    if is_financial:
+                        clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
+                    else:
+                        if base_fcf is None or base_fcf <= 0: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
+                        elif is_zigzag: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</span>"
+                        elif mos_val >= 30: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
+                        elif mos_val >= 10: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#2ecc71; font-weight:600;'>[합격] (+{mos_val:.1f}% 할인)</span>"
+                        elif mos_val >= -5: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#fdcb6e; font-weight:600;'>[보통] (+{mos_val:.1f}% 할인)</span>"
+                        elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
+                        else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
                 else:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PER]</b> {p_txt}"
                     if base_fcf is None or base_fcf <= 0: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
@@ -3124,7 +3133,7 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                if is_financial:
+                if is_financial or kr:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
@@ -3145,7 +3154,6 @@ with tab1:
                         fwd_pe_val_str = "N/A"
                         fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
                     lbl_fwd_title = "본전 회수 기간 (예상 PER)"
-
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
                 if total_score >= 70:
