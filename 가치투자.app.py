@@ -2660,53 +2660,6 @@ with tab1:
                             if len(eq_vals) > 0:
                                 avg_eq = sum(eq_vals) / len(eq_vals)
                                 sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B": sh_proxy = 2160000000.0
-                                if avg_eq > 0 and sh_proxy > 0:
-                                    a_pbr = avg_price / (avg_eq / sh_proxy)
-                    except: pass
-                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-                    if a_pbr <= 0: a_pbr = 1.0
-                    
-                    base_bv = safe_float(i.get('bookValue'))
-                    if base_bv <= 0:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B": sh_proxy = 2160000000.0
-                                if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
-                        except: pass
-                    
-                    if base_bv > 0 and f_eps != 0:
-                        div_r_val = safe_float(i.get('dividendRate', 0))
-                        f_bps = base_bv + f_eps - div_r_val
-                        if f_bps > 0: f_pbr = reg_p / f_bps
-                        else: f_pbr = reg_p / base_bv
-                    elif base_bv > 0:
-                        f_pbr = reg_p / base_bv
-                        
-                    if 'multiplier' in locals() and multiplier != 1.0:
-                        f_pbr = f_pbr * multiplier
-
-                if is_financial:
-                    pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
-                else:
-                    except: pass
-                
-                # --- [금융주 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
-                a_pbr = 0.0
-                f_pbr = safe_float(i.get('priceToBook'))
-                if is_financial:
-                    try:
-                        hist_5y = stk.history(period="5y")
-                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                            if len(eq_vals) > 0:
-                                avg_eq = sum(eq_vals) / len(eq_vals)
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
                                 if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
                                 if avg_eq > 0 and sh_proxy > 0:
                                     a_pbr = avg_price / (avg_eq / sh_proxy)
