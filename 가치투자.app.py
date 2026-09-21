@@ -1548,7 +1548,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
                 break
                 
         if is_one_strike:
-            ceo_final = -40
+            ceo_final = -30  # [핵심 수술] 치명적 결함 감점도 상한선 대칭에 맞춰 -30점(최종 -15점)으로 수정
             ceo_reason = t("치명적 결함(사기/배임 등) 감지됨", "Fatal flaws detected (fraud/embezzlement)")
         else:
             # [수정] 조사를 뗀 핵심 키워드로 거장의 극찬 적용
@@ -3865,7 +3865,7 @@ with tab6:
                     is_one_strike = True; break
             
             if is_one_strike:
-                ceo_final = -40
+                ceo_final = -30  # [핵심 수술] 탭 6의 랭킹용 채점표 하한선도 -30점으로 수정
             else:
                 kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
                 kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
