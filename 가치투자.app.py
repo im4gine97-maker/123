@@ -1560,17 +1560,20 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # 3. 가격 매력도 (PER 안전마진) - 상하방 무한 개방 (할인율 1%당 1.2점씩 무한 비례)
+    # 3. 가격 매력도 (PER/PBR 안전마진) - 상하방 무한 개방 (할인율 1%당 1.2점씩 무한 비례)
     p_score = 0
-    if f_pe <= 0:
-        p_score = 0
-        p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
-    else:
-        # 기존의 막혀있던 계단식(if/elif) 캡을 부수고, pmos(할인율)에 비례하여 무한대로 점수가 움직입니다.
+    if is_financial:
         p_score = pmos * 1.2
-        p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
-        
-    score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
+        p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
+        score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
+    else:
+        if f_pe <= 0:
+            p_score = 0
+            p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
+        else:
+            p_score = pmos * 1.2
+            p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
         # 4. CAP_SCORE (ROE / ROIC)
     cap_score = 0
@@ -2111,7 +2114,7 @@ def generate_quick_ai_preview(tk):
                 ceo_cleaned = prefix
 
     # =================================================================
-    # 변수 계산 로직 (금융주 전용 자체 PBR 계산 엔진 포함)
+    # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
     if is_financial:
@@ -2124,16 +2127,20 @@ def generate_quick_ai_preview(tk):
                 if len(eq_vals) > 0:
                     avg_eq = sum(eq_vals) / len(eq_vals)
                     sh_proxy = safe_float(i.get('sharesOutstanding'))
-                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                    if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
                     if avg_eq > 0 and sh_proxy > 0:
                         a_pbr = avg_price / (avg_eq / sh_proxy)
         except: pass
         if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-        if a_pbr <= 0: a_pbr = 1.0  # 최후의 보루
-        if bv > 0 and f_eps != 0:
-            div_r_val = safe_float(i.get('dividendRate', 0))
-            f_bps = bv + f_eps - div_r_val
-            if f_bps > 0: f_pbr = reg_p / f_bps
+        if a_pbr <= 0: a_pbr = 1.0
+
+        if tk == "BRK-B" or tk == "BRK-A":
+            f_pbr = pbr
+        else:
+            if bv > 0 and f_eps != 0:
+                div_r_val = safe_float(i.get('dividendRate', 0))
+                f_bps = bv + f_eps - div_r_val
+                if f_bps > 0: f_pbr = reg_p / f_bps
 
     # 금융주면 PBR 할인율을, 일반주면 PER 할인율을 계산하여 평가 점수에 완벽 연동합니다.
     if is_financial:
@@ -2685,6 +2692,55 @@ with tab1:
                 if is_financial:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
+                    except: pass
+                
+                # --- [금융주 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
+                a_pbr = 0.0
+                f_pbr = safe_float(i.get('priceToBook'))
+                if is_financial:
+                    try:
+                        hist_5y = stk.history(period="5y")
+                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                            if len(eq_vals) > 0:
+                                avg_eq = sum(eq_vals) / len(eq_vals)
+                                sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
+                                if avg_eq > 0 and sh_proxy > 0:
+                                    a_pbr = avg_price / (avg_eq / sh_proxy)
+                    except: pass
+                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
+                    if a_pbr <= 0: a_pbr = 1.0
+                    
+                    base_bv = safe_float(i.get('bookValue'))
+                    if base_bv <= 0:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                if tk == "BRK-B" or tk == "BRK-A": sh_proxy = 2160000000.0
+                                if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
+                        except: pass
+                    
+                    if tk == "BRK-B" or tk == "BRK-A":
+                        f_pbr = pbr
+                    elif base_bv > 0 and f_eps != 0:
+                        div_r_val = safe_float(i.get('dividendRate', 0))
+                        f_bps = base_bv + f_eps - div_r_val
+                        if f_bps > 0: f_pbr = reg_p / f_bps
+                        else: f_pbr = reg_p / base_bv
+                    elif base_bv > 0:
+                        f_pbr = reg_p / base_bv
+                        
+                    if 'multiplier' in locals() and multiplier != 1.0:
+                        f_pbr = f_pbr * multiplier
+
+                if is_financial:
+                    pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+                else:
                     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
                     
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
@@ -3074,19 +3130,16 @@ with tab1:
                 
                 # --- AI 검증 텍스트 및 컬러 로직 ---
                 p_txt = ""
+                # 금융주든 일반주든 pmos_val 에 담긴 할인율 기준으로 공통 평가!
+                if pmos_val >= 30: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>"
+                elif pmos_val >= 10: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[합격] (+{pmos_val:.1f}% 할인)</span>"
+                elif pmos_val >= -5: p_txt += f"<span style='color:#fdcb6e; font-weight:600;'>[보통] ({pmos_val:+.1f}% 적정수준)</span>"
+                elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
+                else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
+                
                 if is_financial:
-                    if pbr <= 0.6: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[매우 합격] ({pbr:.2f}배) - 극단적 자산 저평가</span>"
-                    elif pbr <= 1.0: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[합격] ({pbr:.2f}배) - 청산가치 이하 안전 구간</span>"
-                    elif pbr <= 1.3: p_txt += f"<span style='color:#fdcb6e; font-weight:600;'>[보통] ({pbr:.2f}배) - 장부가 수준 적정 가격</span>"
-                    elif pbr <= 1.8: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({pbr:.2f}배) - 자본 대비 고평가 경고</span>"
-                    else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({pbr:.2f}배) - 극심한 밸류에이션 거품</span>"
+                    p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
                 else:
-                    if pmos_val >= 30: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= 10: p_txt += f"<span style='color:#2ecc71; font-weight:600;'>[합격] (+{pmos_val:.1f}% 할인)</span>"
-                    elif pmos_val >= -5: p_txt += f"<span style='color:#fdcb6e; font-weight:600;'>[보통] ({pmos_val:+.1f}% 적정수준)</span>"
-                    elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
-                    else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
-                    
                     if base_fcf is None or base_fcf <= 0: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] FCF 적자. 평가 불가', '[Danger]')}</span>"
                     elif is_zigzag: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>{t('[매우 주의] 현금 변동 극심. 무의미', '[Danger]')}</span>"
                     elif mos_val >= 30: p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#2ecc71; font-weight:600;'>[매우 합격] (+{mos_val:.1f}% 할인)</span>"
