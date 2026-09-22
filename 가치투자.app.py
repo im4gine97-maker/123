@@ -152,7 +152,7 @@ tmap = {
     "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "존슨앤드존슨": "JNJ",
     "CISCO": "CSCO", "시스코": "CSCO",
     "MASTERCARD": "MA", "마스터카드": "MA",
-    "COSTCO": "COST", "코스트코": "COST",
+    "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
     "LAMRESEARCH": "LRCX", "램리서치": "LRCX", "램 리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
