@@ -1745,10 +1745,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -40  # (최종 화면에선 -20점 표출)
+            dcf_score = -30  # (최종 화면에선 -15점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -40  # (최종 화면에선 -20점 표출)
+            dcf_score = -30  # (최종 화면에선 -15점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             raw_dcf = mos * 1.0
