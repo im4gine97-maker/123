@@ -152,7 +152,7 @@ tmap = {
     "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "존슨앤드존슨": "JNJ",
     "CISCO": "CSCO", "시스코": "CSCO",
     "MASTERCARD": "MA", "마스터카드": "MA",
-    "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
+    "COSTCO": "COST", "코스트코": "COST",
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
     "LAMRESEARCH": "LRCX", "램리서치": "LRCX", "램 리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
@@ -199,7 +199,7 @@ tmap = {
     "익스피디아": "EXPE", "EXPE": "EXPE",
     
     "알리바바 그룹": "BABA", "알리바바": "BABA", "BABA": "BABA",
-    "PDD 홀딩스": "PDD", "핀둬둬": "PDD", "PDD": "PDD", "PINDUODUO": "PDD", "테무": "PDD",
+    "PDD 홀딩스": "PDD", "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
     "징동닷컴": "JD", "징동": "JD", "JD": "JD",
     "넷이즈": "NTES", "NTES": "NTES",
     "바이두": "BIDU", "BIDU": "BIDU",
@@ -1745,10 +1745,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -30  # (최종 화면에선 -15점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -30  # (최종 화면에선 -15점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             raw_dcf = mos * 1.0
@@ -3215,15 +3215,15 @@ with tab1:
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
                 if total_score >= 70:
-                    easy_summary_msg = "  돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
+                    easy_summary_msg = "🛍️  돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
                 elif total_score >= 30:
-                    easy_summary_msg = "  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
+                    easy_summary_msg = "🌤️  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
                 elif total_score >= 0:
-                    easy_summary_msg = "  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
+                    easy_summary_msg = "⚖️  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
                 elif total_score >= -90:
-                    easy_summary_msg = "  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
+                    easy_summary_msg = "⚠️  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
                 else:
-                    easy_summary_msg = "  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
+                    easy_summary_msg = "🚨  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
                 # ------------------------------------------------------------------
 
                 integrated_html = (
@@ -3626,7 +3626,7 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f" [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                         st.rerun()
 # ==========================================
@@ -3673,7 +3673,7 @@ with tab3:
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
         if "preview_tk_tab3" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
                 st.rerun()
 
@@ -3951,7 +3951,7 @@ with tab6:
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
 # 하단 면책 조항 및 카피라이트 
