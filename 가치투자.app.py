@@ -1223,18 +1223,7 @@ def fetch_cached_info(tk, kr, cd):
                         
     # --- [강력한 안전장치] PER 및 배당률 누락 시 수동 강제 계산 ---
     p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
-    if p == 0 and 'live_p' in i: p = p = i['live_p']
-
-    # [핵심 수술] ADR(미국상장 외국기업) 통화 불일치 및 BPS 왜곡 원천 차단
-    # 예: TSMC(TSM), ASML 등은 주가는 USD이나 장부는 로컬 통화라 PBR이 수십 배로 폭증하는 버그를 방어합니다.
-    ex_exch = str(i.get('exchange', '')).upper()
-    fin_curr = str(i.get('financialCurrency', 'USD')).upper()
-    curr = str(i.get('currency', 'USD')).upper()
-    
-    if curr != fin_curr or 'ADR' in str(i.get('quoteType', '')).upper():
-        # ADR 또는 통화가 안 맞으면 왜곡된 야후 PBR/BPS를 무효화(0 처리)하여 헛소리 데이터 방어
-        i['priceToBook'] = 0.0
-        i['bookValue'] = 0.0
+    if p == 0 and 'live_p' in i: p = i['live_p']
     
     # 1. PER이 누락되었으나 EPS가 존재하면 직접 나누어 계산 (적자 기업 포함)
     t_pe = safe_float(i.get('trailingPE'))
@@ -1756,10 +1745,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -30  # (최종 화면에선 -20점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -30  # (최종 화면에선 -20점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             raw_dcf = mos * 1.0
@@ -3061,13 +3050,6 @@ with tab1:
                 val_style = "font-size: 1.3rem; font-weight: 700; color: var(--text-color); margin-bottom: 8px; letter-spacing: -0.5px;"
                 desc_style = "font-size: 0.85rem; line-height: 1.5; color: var(--text-color); opacity: 0.9;"
                 
-                # [오류 해결] 누락되었던 roic_str 변수를 다시 선언합니다.
-                if is_financial:
-                    roic_str = t("금융주 제외", "N/A (Financial)")
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족", "N/A")
-
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
                 rnd_trend_clean = rnd_trend.replace(" (FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.)", "")
