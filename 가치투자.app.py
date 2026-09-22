@@ -2939,8 +2939,9 @@ with tab1:
                         fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
                     lbl_fwd_title = "본전 회수 기간 (예상 PER)"
 
-                # [필수 누락 방지] total_score 변수에 현재 총점 값을 안전하게 연결합니다.
-                total_score = total_score_val
+                # [에러 원천 차단] 변수 참조 에러를 막기 위해 여기서 score_breakdown을 이용해 직접 총점을 구합니다!
+                total_score = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
+
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
                 if total_score >= 70:
@@ -2949,12 +2950,11 @@ with tab1:
                     easy_summary_msg = "🌤️  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
                 elif total_score >= 0:
                     easy_summary_msg = "⚖️  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
-                elif total_score >= -90:
+                elif total_score >= -30:
                     easy_summary_msg = "⚠️  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
                 else:
                     easy_summary_msg = "🚨  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
                 # ------------------------------------------------------------------
-
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
                     
