@@ -199,7 +199,7 @@ tmap = {
     "익스피디아": "EXPE", "EXPE": "EXPE",
     
     "알리바바 그룹": "BABA", "알리바바": "BABA", "BABA": "BABA",
-    "PDD 홀딩스": "PDD", "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
+    "PDD 홀딩스": "PDD", "핀둬둬": "PDD", "PDD": "PDD", "PINDUODUO": "PDD", "테무": "PDD",
     "징동닷컴": "JD", "징동": "JD", "JD": "JD",
     "넷이즈": "NTES", "NTES": "NTES",
     "바이두": "BIDU", "BIDU": "BIDU",
