@@ -1970,6 +1970,13 @@ def generate_quick_ai_preview(tk):
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
     
+    # [추가] 시클리컬(경기민감주) 판독기
+    cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
+    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                  any(kw in summary_str for kw in cyclical_kor_kw) or \
+                  (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
+    
     ext_str = ""
     is_ext_active = False
     if not kr:
@@ -2147,10 +2154,13 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
+    # [수정] 금융주 또는 시클리컬 기업이면 PBR 강제 적용
+    use_pbr = True if (is_financial or is_cyclical) else False
+    
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val
+        f_pe=f_pe, spy_pe=spy_pe_val, use_pbr=use_pbr
     )
     # =================================================================
 
@@ -2426,6 +2436,13 @@ with tab1:
 
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+                
+                # [추가] 시클리컬(경기민감주) 판독기
+                cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
+                cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+                is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                              any(kw in summary_str for kw in cyclical_kor_kw) or \
+                              (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
@@ -3185,7 +3202,7 @@ with tab1:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pbr:.2f}배</span>"
                     else:
                         fwd_pe_val_str = "N/A"
                         fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
@@ -3194,7 +3211,7 @@ with tab1:
                     t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
                     if f_pe > 0 and a_pe > 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pe:.1f}배</span>"
                     elif f_pe > 0 and a_pe <= 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
                         fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
@@ -3961,3 +3978,4 @@ st.markdown(f"""
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
+        
