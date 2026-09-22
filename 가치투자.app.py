@@ -3052,7 +3052,6 @@ with tab1:
                 
                 roe_roic_title = t('ROE/ROIC', 'ROE/ROIC') if not is_financial else t('ROE(수익률)', 'ROE')
                 roe_roic_val = f"{roe:.1f}% / {roic_str}" if not is_financial else f"{roe:.1f}%"
-                
                 rnd_trend_clean = rnd_trend.replace(" (FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.)", "")
                 rnd_trend_clean = rnd_trend_clean.replace(" (FCF 대비 R&D 비율이 낮습니다. (단, 필수소비재 등 성숙 산업은 정상입니다))", "")
