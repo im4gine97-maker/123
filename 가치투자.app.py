@@ -1533,7 +1533,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False):
     score_details = {}
     score = 0  # 반드시 0으로 단일 초기화
 
@@ -1659,7 +1659,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 3. 가격 매력도 (PER/PBR 안전마진) - 상하방 무한 개방
     p_score = 0
-    if is_financial or kr:
+    if is_financial or kr or is_cyclical:
         p_score = pmos * 1.2
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
@@ -1671,7 +1671,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             p_score = pmos * 1.2
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
-
     # 4. CAP_SCORE (ROE / ROIC) [1점 단위 선형 비례식 적용]
     cap_score = 0
     if is_financial:
@@ -2147,23 +2146,23 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
+    # [수정] TypeError를 유발하던 use_pbr 변수를 삭제하고, is_cyclical을 파라미터로 넘깁니다.
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val
+        f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
     )
     # =================================================================
 
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
-def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False):
+def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    # [핵심 수술] 한국주식/금융주면 PBR로, 일반 미국주식은 PER로 라벨 자동 변경!
-    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr) else t("가격 매력도(PER)", "Value(PER)")
-
+    # [핵심 수술] 한국주식/금융주/시클리컬이면 PBR로 라벨 자동 변경!
+    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr or is_cyclical) else t("가격 매력도(PER)", "Value(PER)")
     categories = [
         t('경영진/거버넌스', 'Management'), 
         t('비즈니스 해자(자본효율)', 'Moat & ROE'), 
@@ -2634,10 +2633,10 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except: pass
                 
-                # --- [금융주 및 한국주식 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
+                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = safe_float(i.get('priceToBook'))
-                if is_financial or kr:
+                if is_financial or kr or is_cyclical:
                     try:
                         hist_5y = stk.history(period="5y")
                         avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2680,7 +2679,8 @@ with tab1:
                     if 'multiplier' in locals() and multiplier != 1.0:
                         f_pbr = f_pbr * multiplier
 
-                if is_financial or kr:
+                # 할인율 수식 결정
+                if is_financial or kr or is_cyclical:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
                     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
@@ -2916,10 +2916,11 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+                # [수정] 탭1에서도 투자의견 함수와 차트 함수에 is_cyclical 신호를 넘겨줍니다.
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=f_pe, spy_pe=spy_pe_val
+                    f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
                 )
 
                 col_op1, col_op2 = st.columns([1.4, 1])
@@ -2976,9 +2977,8 @@ with tab1:
                         st.markdown(breakdown_html, unsafe_allow_html=True)
 
                 with col_op2:
-                    # [핵심] kr=kr 을 추가하여 한국 주식이라는 신호를 쏴줍니다!
-                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr)
-                    # [수정] staticPlot을 True로 설정하여 확대/이동/드래그를 완전히 차단합니다.
+                    # [핵심] 차트 함수에도 is_cyclical=is_cyclical 전달
+                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr, is_cyclical=is_cyclical)
                     st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
                 st.divider()
 
@@ -3008,7 +3008,8 @@ with tab1:
                 elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
                 else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
                 
-                if is_financial or kr:
+                # PBR 모드 조건에 is_cyclical 추가
+                if is_financial or kr or is_cyclical:
                     if pbr <= 0.0: pbr_eval = f"<span style='color:#8892b0; font-weight:bold;'>[평가 불가] 데이터 없음</span>"
                     elif pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하</span>"
@@ -3159,7 +3160,8 @@ with tab1:
                 elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
                 else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
 
-                if is_financial or kr:
+                # PBR 모드 조건에 is_cyclical 추가 (총 2곳)
+                if is_financial or kr or is_cyclical:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {p_txt}"
                     if is_financial:
                         clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
@@ -3181,11 +3183,12 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                if is_financial or kr:
+                # PBR 모드 조건에 is_cyclical 추가
+                if is_financial or kr or is_cyclical:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pbr:.2f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
                     else:
                         fwd_pe_val_str = "N/A"
                         fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
@@ -3194,7 +3197,7 @@ with tab1:
                     t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
                     if f_pe > 0 and a_pe > 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pe:.1f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
                     elif f_pe > 0 and a_pe <= 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
                         fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
@@ -3961,4 +3964,3 @@ st.markdown(f"""
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
-        
