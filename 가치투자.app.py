@@ -1223,7 +1223,18 @@ def fetch_cached_info(tk, kr, cd):
                         
     # --- [강력한 안전장치] PER 및 배당률 누락 시 수동 강제 계산 ---
     p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
-    if p == 0 and 'live_p' in i: p = i['live_p']
+    if p == 0 and 'live_p' in i: p = p = i['live_p']
+
+    # [핵심 수술] ADR(미국상장 외국기업) 통화 불일치 및 BPS 왜곡 원천 차단
+    # 예: TSMC(TSM), ASML 등은 주가는 USD이나 장부는 로컬 통화라 PBR이 수십 배로 폭증하는 버그를 방어합니다.
+    ex_exch = str(i.get('exchange', '')).upper()
+    fin_curr = str(i.get('financialCurrency', 'USD')).upper()
+    curr = str(i.get('currency', 'USD')).upper()
+    
+    if curr != fin_curr or 'ADR' in str(i.get('quoteType', '')).upper():
+        # ADR 또는 통화가 안 맞으면 왜곡된 야후 PBR/BPS를 무효화(0 처리)하여 헛소리 데이터 방어
+        i['priceToBook'] = 0.0
+        i['bookValue'] = 0.0
     
     # 1. PER이 누락되었으나 EPS가 존재하면 직접 나누어 계산 (적자 기업 포함)
     t_pe = safe_float(i.get('trailingPE'))
@@ -1745,10 +1756,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -40  # (최종 화면에선 -20점 표출)
+            dcf_score = -30  # (최종 화면에선 -20점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -40  # (최종 화면에선 -20점 표출)
+            dcf_score = -30  # (최종 화면에선 -20점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             raw_dcf = mos * 1.0
