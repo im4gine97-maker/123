@@ -2917,9 +2917,31 @@ with tab1:
                         elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                         else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # [핵심 수술] 에러가 났던 per_mos_str 변수를 p_txt로 완벽하게 교체했습니다!
+                # [핵심 수술] 사용자가 선택한 PBR 스위치에 맞춰 Fwd PER 카드 혹은 Fwd PBR 카드를 보여줍니다.
                 if use_pbr:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
+                    if f_pbr > 0 and a_pbr > 0:
+                        fwd_pe_val_str = f"{f_pbr:.2f}배"
+                        fwd_pe_desc_str = f"{p_txt}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                    else:
+                        fwd_pe_val_str = "N/A"
+                        fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    lbl_fwd_title = "장부가치 회수 (Fwd PBR)"
+                else:
+                    t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
+                    if f_pe > 0 and a_pe > 0:
+                        fwd_pe_val_str = f"{f_pe:.1f}배"
+                        fwd_pe_desc_str = f"{p_txt}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                    elif f_pe > 0 and a_pe <= 0:
+                        fwd_pe_val_str = f"{f_pe:.1f}배"
+                        fwd_pe_desc_str = f"{p_txt} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    else:
+                        fwd_pe_val_str = "N/A"
+                        fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    lbl_fwd_title = "본전 회수 기간 (예상 PER)"
+
+                # [필수 누락 방지] total_score 변수에 현재 총점 값을 안전하게 연결합니다.
+                total_score = total_score_val
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
                         fwd_pe_desc_str = f"{p_txt}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
