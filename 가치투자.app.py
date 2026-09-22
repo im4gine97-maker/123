@@ -2601,7 +2601,7 @@ with tab1:
                     f_pe = t_pe
 
                 # =====================================================================
-                # [복사 시작] 여기서부터 복사해서 기존 코드를 덮어쓰세요.
+                # [복사 시작] 여기서부터 복사해서 덮어쓰세요.
                 # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
@@ -2611,11 +2611,9 @@ with tab1:
                 is_adr = (currency_trade != currency_fin) and not kr
 
                 # -------------------------------------------------------------
-                # [오류 수정] 통화(환율) 및 ADR 배수 우회용 BPS 역산 알고리즘
-                # ※ ADR 기업(TSM, ASML 등)에만 엄격하게 가동되도록 잠금장치 설정 (is_adr == True)
-                # 마이크론 등 일반 시클리컬 기업은 이 로직을 피해가므로 과거 평균 PBR 왜곡이 발생하지 않습니다.
+                # [ADR 보정 계수] TSM, ASML 등 환율/배수 왜곡 보정용
                 # -------------------------------------------------------------
-                calc_ratio = 0.0
+                adr_fx_ratio = 1.0
                 if is_adr:
                     try:
                         inc_temp = stk.income_stmt
@@ -2623,29 +2621,40 @@ with tab1:
                             ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
                             eps_curr = safe_float(i.get('trailingEps'))
                             if ni_curr != 0 and eps_curr != 0:
-                                calc_ratio = abs(eps_curr / ni_curr) # 비율은 무조건 양수
+                                adr_fx_ratio = abs(eps_curr / ni_curr)
                     except: pass
 
-                # 현재 PBR 및 BV 재계산 (ADR 비정상 값 100% 덮어쓰기)
-                if is_adr and calc_ratio > 0:
+                # 야후 파이낸스 자체 버그(1400배 등) 필터링
+                if pbr > 100.0: pbr = 0.0
+
+                # -------------------------------------------------------------
+                # [핵심 복구] 한국 기업 및 결측치 발생 기업 자산(BV) 강제 추출 로직
+                # (이전 코드에서 ADR만 살리려다 누락된 한국 주식 대차대조표 계산식 복원)
+                # -------------------------------------------------------------
+                if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
                     try:
-                        bs_temp = stk.balance_sheet
-                        if bs_temp is not None and not bs_temp.empty:
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty:
                             for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                                if eq_key in bs_temp.index:
-                                    eq_curr = safe_float(bs_temp.loc[eq_key].iloc[0])
-                                    if eq_curr > 0:
-                                        bv = eq_curr * calc_ratio
-                                        pbr = reg_p / bv
-                                        break
+                                if eq_key in bs.index:
+                                    eq = safe_float(bs.loc[eq_key].iloc[0])
+                                    sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                                    elif tk == "BRK-A": sh_proxy = 1440000.0
+                                    
+                                    if eq > 0 and sh_proxy > 0:
+                                        if is_adr and adr_fx_ratio != 1.0:
+                                            bv = eq * adr_fx_ratio
+                                        else:
+                                            bv = eq / sh_proxy
+                                            
+                                        if bv > 0: pbr = reg_p / bv
+                                    break
                     except: pass
-                
-                # 위 알고리즘이 실패할 경우를 대비한 최후의 안전망
-                if pbr <= 0.0 or pbr > 100.0 or bv <= 0.0:
-                    if p > 0 and bv > 0:
-                        pbr = p / bv
-                    elif pbr > 100.0: # 여전히 쓰레기값이면 강제 캡핑
-                        pbr = 5.0
+
+                # 2차 방어선 (주가와 BPS만 존재할 경우 PBR 역산)
+                if pbr <= 0.0 and bv > 0 and p > 0:
+                    pbr = p / bv
 
                 # 시뮬레이터(가상 주가) 연동 보정
                 if pbr > 0:
@@ -2713,17 +2722,16 @@ with tab1:
                             if len(eq_vals) > 0:
                                 avg_eq = sum(eq_vals) / len(eq_vals)
                                 
-                                if is_adr and calc_ratio > 0:
-                                    # ADR 한정: 만능 계수를 통해 5년 평균 BPS 추출
-                                    past_bvps = avg_eq * calc_ratio
+                                if tk == "BRK-B":
+                                    a_pbr = avg_price / (avg_eq / 2160000000.0)
+                                elif tk == "BRK-A":
+                                    a_pbr = avg_price / (avg_eq / 1440000.0)
+                                elif is_adr and adr_fx_ratio != 1.0:
+                                    past_bvps = avg_eq * adr_fx_ratio
                                     if past_bvps > 0:
                                         a_pbr = avg_price / past_bvps
                                 else:
-                                    # 일반 미국주식(마이크론 등) 및 한국기업은 정상 주식수 나누기 로직 사용
                                     sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                    if tk == "BRK-B": sh_proxy = 2160000000.0
-                                    elif tk == "BRK-A": sh_proxy = 1440000.0
-                                    
                                     if avg_eq > 0 and sh_proxy > 0:
                                         a_pbr = avg_price / (avg_eq / sh_proxy)
                     except: pass
