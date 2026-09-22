@@ -2941,7 +2941,7 @@ with tab1:
                     lbl_fwd_title = "본전 회수 기간 (예상 PER)"
 
                 # [필수 누락 방지] total_score 변수에 현재 총점 값을 안전하게 연결합니다.
-                total_score = total_score_val
+                    total_score = total_score_val
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
                         fwd_pe_desc_str = f"{p_txt}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
