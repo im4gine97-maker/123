@@ -2217,13 +2217,13 @@ def generate_quick_ai_preview(tk):
     )
     # -----------------------------------------------------------
 
-    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
+    def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    # [핵심 수술] 한국주식/금융주/시클리컬이면 PBR로 라벨 자동 변경!
+    # [핵심] 한국주식/금융주/시클리컬이면 레이더 차트 3시 방향 라벨을 PBR로 자동 변경!
     radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr or is_cyclical) else t("가격 매력도(PER)", "Value(PER)")
     categories = [
         t('경영진/거버넌스', 'Management'), 
@@ -2276,7 +2276,7 @@ def generate_quick_ai_preview(tk):
         text=[f"{cat}: {val:.0f}점/100점" for cat, val in zip(categories, values)]
     ))
 
-    # [핵심 수술] margin(l=90, r=90) 여백을 대폭 늘려 글씨 잘림을 완벽 차단!
+    # margin 여백을 늘려 모바일에서도 글씨 잘림을 차단
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, 100], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
