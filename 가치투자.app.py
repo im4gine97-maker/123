@@ -152,7 +152,7 @@ tmap = {
     "JOHNSON&JOHNSON": "JNJ", "존슨앤존슨": "JNJ", "존슨앤드존슨": "JNJ",
     "CISCO": "CSCO", "시스코": "CSCO",
     "MASTERCARD": "MA", "마스터카드": "MA",
-    "COSTCO": "COST", "코스트코": "COST", "코코": "COST",
+    "COSTCO": "COST", "코스트코": "COST",
     "CATERPILLAR": "CAT", "캐터필러": "CAT",
     "LAMRESEARCH": "LRCX", "램리서치": "LRCX", "램 리서치": "LRCX",
     "ABBVIE": "ABBV", "애브비": "ABBV",
@@ -199,7 +199,7 @@ tmap = {
     "익스피디아": "EXPE", "EXPE": "EXPE",
     
     "알리바바 그룹": "BABA", "알리바바": "BABA", "BABA": "BABA",
-    "PDD 홀딩스": "PDD", "핀둬둬": "PDD", "PDD": "PDD", "PINDUODUO": "PDD", "테무": "PDD",
+    "PDD 홀딩스": "PDD", "핀듀오듀오": "PDD", "PDD": "PDD", "PINDUODUO": "PDD",
     "징동닷컴": "JD", "징동": "JD", "JD": "JD",
     "넷이즈": "NTES", "NTES": "NTES",
     "바이두": "BIDU", "BIDU": "BIDU",
@@ -1533,7 +1533,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
     score_details = {}
     score = 0  # 반드시 0으로 단일 초기화
 
@@ -1659,7 +1659,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
 
     # 3. 가격 매력도 (PER/PBR 안전마진) - 상하방 무한 개방
     p_score = 0
-    if is_financial or kr or is_cyclical:
+    if is_financial or kr:
         p_score = pmos * 1.2
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
@@ -1671,6 +1671,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             p_score = pmos * 1.2
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
+
     # 4. CAP_SCORE (ROE / ROIC) [1점 단위 선형 비례식 적용]
     cap_score = 0
     if is_financial:
@@ -1745,10 +1746,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -30  # (최종 화면에선 -15점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -30  # (최종 화면에선 -15점 표출)
+            dcf_score = -40  # (최종 화면에선 -20점 표출)
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
             raw_dcf = mos * 1.0
@@ -2146,23 +2147,23 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
-    # [수정] TypeError를 유발하던 use_pbr 변수를 삭제하고, is_cyclical을 파라미터로 넘깁니다.
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
+        f_pe=f_pe, spy_pe=spy_pe_val
     )
     # =================================================================
 
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
-def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
+def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    # [핵심 수술] 한국주식/금융주/시클리컬이면 PBR로 라벨 자동 변경!
-    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr or is_cyclical) else t("가격 매력도(PER)", "Value(PER)")
+    # [핵심 수술] 한국주식/금융주면 PBR로, 일반 미국주식은 PER로 라벨 자동 변경!
+    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr) else t("가격 매력도(PER)", "Value(PER)")
+
     categories = [
         t('경영진/거버넌스', 'Management'), 
         t('비즈니스 해자(자본효율)', 'Moat & ROE'), 
@@ -2425,13 +2426,6 @@ with tab1:
 
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
-                
-                # [추가] 탭 1 메인 로직에 시클리컬(경기민감주) 판독 변수 선언 보장!
-                cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
-                cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
-                is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
-                              any(kw in summary_str for kw in cyclical_kor_kw) or \
-                              (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
@@ -2640,10 +2634,10 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except: pass
                 
-                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기] ---
+                # --- [금융주 및 한국주식 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = safe_float(i.get('priceToBook'))
-                if is_financial or kr or is_cyclical:
+                if is_financial or kr:
                     try:
                         hist_5y = stk.history(period="5y")
                         avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2686,8 +2680,7 @@ with tab1:
                     if 'multiplier' in locals() and multiplier != 1.0:
                         f_pbr = f_pbr * multiplier
 
-                # 할인율 수식 결정
-                if is_financial or kr or is_cyclical:
+                if is_financial or kr:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
                     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
@@ -2923,11 +2916,10 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                # [수정] 탭1에서도 투자의견 함수와 차트 함수에 is_cyclical 신호를 넘겨줍니다.
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
+                    f_pe=f_pe, spy_pe=spy_pe_val
                 )
 
                 col_op1, col_op2 = st.columns([1.4, 1])
@@ -2984,8 +2976,9 @@ with tab1:
                         st.markdown(breakdown_html, unsafe_allow_html=True)
 
                 with col_op2:
-                    # [핵심] 차트 함수에도 is_cyclical=is_cyclical 전달
-                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr, is_cyclical=is_cyclical)
+                    # [핵심] kr=kr 을 추가하여 한국 주식이라는 신호를 쏴줍니다!
+                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr)
+                    # [수정] staticPlot을 True로 설정하여 확대/이동/드래그를 완전히 차단합니다.
                     st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
                 st.divider()
 
@@ -3015,8 +3008,7 @@ with tab1:
                 elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
                 else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
                 
-                # PBR 모드 조건에 is_cyclical 추가
-                if is_financial or kr or is_cyclical:
+                if is_financial or kr:
                     if pbr <= 0.0: pbr_eval = f"<span style='color:#8892b0; font-weight:bold;'>[평가 불가] 데이터 없음</span>"
                     elif pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하</span>"
@@ -3167,8 +3159,7 @@ with tab1:
                 elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
                 else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
 
-                # PBR 모드 조건에 is_cyclical 추가 (총 2곳)
-                if is_financial or kr or is_cyclical:
+                if is_financial or kr:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {p_txt}"
                     if is_financial:
                         clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
@@ -3190,8 +3181,7 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # PBR 모드 조건에 is_cyclical 추가
-                if is_financial or kr or is_cyclical:
+                if is_financial or kr:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
@@ -3215,15 +3205,15 @@ with tab1:
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
                 if total_score >= 70:
-                    easy_summary_msg = "  돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
+                    easy_summary_msg = "🛍️  돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
                 elif total_score >= 30:
-                    easy_summary_msg = "  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
+                    easy_summary_msg = "🌤️  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
                 elif total_score >= 0:
-                    easy_summary_msg = "  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
+                    easy_summary_msg = "⚖️  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
                 elif total_score >= -90:
-                    easy_summary_msg = "  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
+                    easy_summary_msg = "⚠️  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
                 else:
-                    easy_summary_msg = "  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
+                    easy_summary_msg = "🚨  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
                 # ------------------------------------------------------------------
 
                 integrated_html = (
@@ -3626,7 +3616,7 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f" [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                    if st.button(t(f"👉 [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                         st.rerun()
 # ==========================================
@@ -3673,7 +3663,7 @@ with tab3:
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
         if "preview_tk_tab3" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
                 st.rerun()
 
@@ -3951,7 +3941,7 @@ with tab6:
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+            if st.button(t(f"👉 [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"👉 Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
 # 하단 면책 조항 및 카피라이트 
