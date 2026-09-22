@@ -1970,6 +1970,13 @@ def generate_quick_ai_preview(tk):
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
     
+    # [추가] 시클리컬(경기민감주) 판독기
+    cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
+    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                  any(kw in summary_str for kw in cyclical_kor_kw) or \
+                  (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
+    
     ext_str = ""
     is_ext_active = False
     if not kr:
@@ -2147,10 +2154,13 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
+    # [수정] 금융주 또는 시클리컬 기업이면 PBR 강제 적용
+    use_pbr = True if (is_financial or is_cyclical) else False
+    
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val
+        f_pe=f_pe, spy_pe=spy_pe_val, use_pbr=use_pbr
     )
     # =================================================================
 
@@ -2426,6 +2436,13 @@ with tab1:
 
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+                
+                # [추가] 시클리컬(경기민감주) 판독기
+                cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
+                cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+                is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                              any(kw in summary_str for kw in cyclical_kor_kw) or \
+                              (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
