@@ -2572,45 +2572,22 @@ with tab1:
                     if t_pe > 0: t_pe = t_pe * multiplier
                     if f_pe > 0: f_pe = f_pe * multiplier
 
+                # ---------------- [통합 PBR / ROE / 배당 계산 블록] ----------------
                 pbr = safe_float(i.get('priceToBook'))
-                bv = safe_float(i.get('bookValue'))
+                currency = str(i.get('currency', 'USD')).upper()
+                fin_currency = str(i.get('financialCurrency', 'USD')).upper()
                 
-                if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
-                    try:
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty:
-                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                                if eq_key in bs.index:
-                                    eq = safe_float(bs.loc[eq_key].iloc[0])
-                                    sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                                    if tk == "BRK-B": sh = 2160000000.0
-                                    elif tk == "BRK-A": sh = 1440000.0
-                                    if eq > 0 and sh > 0:
-                                        bv = eq / sh
-                                        pbr = reg_p / bv
-                                        break
-                    except: pass
-
-                if pbr > 0:
-                    if bv > 0:
-                        pbr = p / bv
-                    elif reg_p > 0:
-                        pbr = pbr * (p / reg_p)
-                
-                if bv > 0:
-                    pbr = p / bv
+                # [ADR 방어] yfinance의 bookValue는 통화 불일치 시 쓰레기값이므로, 정상적인 pbr이 있다면 역산해서 씁니다.
+                if pbr > 0 and reg_p > 0:
+                    safe_bv = reg_p / pbr 
                 else:
-                    if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)
-                    elif pbr == 0.0:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh = safe_float(i.get('sharesOutstanding'))
-                                if eq > 0 and sh > 0:
-                                    pbr = p / (eq / sh)
-                        except: pass
+                    safe_bv = safe_float(i.get('bookValue'))
+                    
+                # 현재 주가(p)가 시뮬레이터나 실시간 장으로 변했다면 PBR도 맞춰서 비례 조정
+                if pbr > 0 and reg_p > 0:
+                    pbr = pbr * (p / reg_p)
+                elif safe_bv > 0:
+                    pbr = p / safe_bv
 
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 if roe == 0.0:
@@ -2621,17 +2598,10 @@ with tab1:
                             if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
                                 ni = safe_float(inc.loc['Net Income'].iloc[0])
                                 eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                if eq > 0:
-                                    roe = (ni / eq) * 100
+                                if eq > 0: roe = (ni / eq) * 100
                     except: pass
                 
                 real_roic = get_real_roic(stk, i)
-                
-                if is_financial:
-                    roic_str = t("금융주 제외", "N/A (Financial)")
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족", "N/A")
 
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
@@ -2641,7 +2611,7 @@ with tab1:
                     if calc_div < 50.0: div = calc_div
                 if div == 0.0 and div_yield > 0:
                     div = div_yield if div_yield > 1.0 else div_yield * 100
-                    if sim_pct != 0: div = div / multiplier  # 주가가 변한 만큼 배당수익률도 수학적으로 보정
+                    if sim_pct != 0: div = div / multiplier  # 주가가 올랐으면 배당률은 떨어짐
 
                 div_trend = t("확인 불가", "N/A")
                 try:
@@ -2658,52 +2628,39 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except: pass
                 
-                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기] ---
+                # --- [금융주, 한국주식, 시클리컬 전용 PBR 분석기 (통화 불일치 방어)] ---
                 a_pbr = 0.0
-                f_pbr = safe_float(i.get('priceToBook'))
+                f_pbr = pbr
                 if is_financial or kr or is_cyclical:
-                    try:
-                        hist_5y = stk.history(period="5y")
-                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                            if len(eq_vals) > 0:
-                                avg_eq = sum(eq_vals) / len(eq_vals)
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B": sh_proxy = 2160000000.0
-                                elif tk == "BRK-A": sh_proxy = 1440000.0
-                                if avg_eq > 0 and sh_proxy > 0:
-                                    a_pbr = avg_price / (avg_eq / sh_proxy)
-                    except: pass
-                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-                    if a_pbr <= 0: a_pbr = 1.0
-                    
-                    base_bv = safe_float(i.get('bookValue'))
-                    if base_bv <= 0:
+                    if currency == fin_currency: # 통화가 일치할 때만 재무제표 5년치 접근 허용
                         try:
+                            hist_5y = stk.history(period="5y")
+                            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
                             bs = stk.balance_sheet
                             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B": sh_proxy = 2160000000.0
-                                elif tk == "BRK-A": sh_proxy = 1440000.0
-                                if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
+                                eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                                if len(eq_vals) > 0:
+                                    avg_eq = sum(eq_vals) / len(eq_vals)
+                                    sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                                    elif tk == "BRK-A": sh_proxy = 1440000.0
+                                    if avg_eq > 0 and sh_proxy > 0:
+                                        a_pbr = avg_price / (avg_eq / sh_proxy)
                         except: pass
+                    
+                    # 5년 평균을 못 구했거나 ADR(통화 불일치)인 경우, 최신 PBR로 대체하여 0% (중립) 처리
+                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
+                    if a_pbr <= 0: a_pbr = pbr
                     
                     if tk == "BRK-B" or tk == "BRK-A":
                         f_pbr = pbr
-                    elif base_bv > 0 and f_eps != 0:
+                    elif safe_bv > 0 and f_eps != 0:
                         div_r_val = safe_float(i.get('dividendRate', 0))
-                        f_bps = base_bv + f_eps - div_r_val
-                        if f_bps > 0: f_pbr = reg_p / f_bps
-                        else: f_pbr = reg_p / base_bv
-                    elif base_bv > 0:
-                        f_pbr = reg_p / base_bv
-                        
-                    if 'multiplier' in locals() and multiplier != 1.0:
-                        f_pbr = f_pbr * multiplier
-
+                        f_bps = safe_bv + f_eps - div_r_val
+                        if f_bps > 0: f_pbr = p / f_bps
+                        else: f_pbr = p / safe_bv
+                    elif safe_bv > 0:
+                        f_pbr = p / safe_bv
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
