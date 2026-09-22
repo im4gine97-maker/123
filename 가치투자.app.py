@@ -1110,55 +1110,65 @@ def get_naver_finance(cd):
     res = {}
     try:
         import random
+        import re
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
-        # [핵심] 여러 대의 최신 컴퓨터와 스마트폰인 것처럼 네이버를 속여 차단을 완벽 우회합니다.
+        
+        # [핵심 수술 1] 네이버의 강력한 크롤링 차단을 뚫기 위한 진짜 브라우저 위장 헤더
         user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0',
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15'
         ]
-        headers = {'User-Agent': random.choice(user_agents)}
+        headers = {
+            'User-Agent': random.choice(user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': 'https://finance.naver.com/'
+        }
         r = requests.get(url, headers=headers, timeout=5)
         r.encoding = 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
         
+        # [핵심 수술 2] 문자가 섞여 있어도 숫자와 소수점, 부호만 완벽하게 뜯어내는 강력한 정규식 추출기
+        def extract_val(selector):
+            el = s.select_one(selector)
+            if el and el.text.strip() not in ['-', '', 'N/A']:
+                clean_str = re.sub(r'[^\d\.\-]', '', el.text)
+                if clean_str: return safe_float(clean_str)
+            return None
+
         t_price = s.select_one('.no_today .blind')
         if t_price:
-            live_p = safe_float(t_price.text.replace(',', ''))
+            live_p = safe_float(re.sub(r'[^\d\.\-]', '', t_price.text))
             if live_p > 0: res['live_p'] = live_p
             
         t_name = s.select_one('.wrap_company h2 a')
         if t_name: res['shortName'] = t_name.text
         
-        t_pe = s.select_one('#_per')
-        if t_pe and t_pe.text.strip() != '-': res['trailingPE'] = safe_float(t_pe.text)
+        pe = extract_val('#_per')
+        if pe: res['trailingPE'] = pe
         
-        t_eps = s.select_one('#_eps')
-        if t_eps and t_eps.text.strip() != '-': res['trailingEps'] = safe_float(t_eps.text)
+        eps = extract_val('#_eps')
+        if eps: res['trailingEps'] = eps
         
-        t_fpe = s.select_one('#_cns_per')
-        if t_fpe and t_fpe.text.strip() != '-': res['forwardPE'] = safe_float(t_fpe.text)
+        fpe = extract_val('#_cns_per')
+        if fpe: res['forwardPE'] = fpe
         
-        t_feps = s.select_one('#_cns_eps')
-        if t_feps and t_feps.text.strip() != '-': res['forwardEps'] = safe_float(t_feps.text)
+        feps = extract_val('#_cns_eps')
+        if feps: res['forwardEps'] = feps
         
-        t_pbr = s.select_one('#_pbr')
-        if t_pbr and t_pbr.text.strip() != '-': res['priceToBook'] = safe_float(t_pbr.text)
+        pbr = extract_val('#_pbr')
+        if pbr: res['priceToBook'] = pbr
         
-        t_bps = s.select_one('#_bps')
-        if t_bps and t_bps.text.strip() != '-': res['bookValue'] = safe_float(t_bps.text)
+        bps = extract_val('#_bps')
+        if bps: res['bookValue'] = bps
         
-        t_div = s.select_one('#_dvr')
-        if t_div and t_div.text.strip() and t_div.text.strip() != '-': 
-            res['dividendYield'] = safe_float(t_div.text) / 100.0
+        dvr = extract_val('#_dvr')
+        if dvr: res['dividendYield'] = dvr / 100.0
             
         if 'dividendYield' not in res or res['dividendYield'] == 0:
-            t_dvd = s.select_one('#_dvd')
-            if t_dvd and t_dvd.text.strip() and t_dvd.text.strip() != '-':
-                dvd_val = safe_float(t_dvd.text)
-                if dvd_val > 0 and res.get('live_p', 0) > 0:
-                    res['dividendYield'] = dvd_val / res['live_p']
+            dvd = extract_val('#_dvd')
+            if dvd and res.get('live_p', 0) > 0:
+                res['dividendYield'] = dvd / res['live_p']
         
         t_sum = s.select_one('.summary_info p')
         if t_sum: res['kr_sum'] = t_sum.text.strip()
@@ -1168,12 +1178,15 @@ def get_naver_finance(cd):
             if th_roe:
                 tr_roe = th_roe.find_parent('tr')
                 tds = tr_roe.find_all('td')
-                valid_roes = [safe_float(td.text) for td in tds if td.text.strip() and td.text.strip() != '-']
+                valid_roes = []
+                for td in tds:
+                    clean_text = re.sub(r'[^\d\.\-]', '', td.text)
+                    if clean_text: valid_roes.append(safe_float(clean_text))
                 if valid_roes:
                     res['returnOnEquity'] = valid_roes[-1] / 100.0
         except: pass
         
-    except:
+    except Exception:
         pass
     return res
 @st.cache_data(ttl=60)
