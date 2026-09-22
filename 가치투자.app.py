@@ -2425,6 +2425,13 @@ with tab1:
 
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+                
+                # [추가] 탭 1 메인 로직에 시클리컬(경기민감주) 판독 변수 선언 보장!
+                cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
+                cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+                is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                              any(kw in summary_str for kw in cyclical_kor_kw) or \
+                              (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
