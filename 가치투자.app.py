@@ -2587,50 +2587,55 @@ with tab1:
                 if f_pe <= 0 and t_pe > 0:
                     f_pe = t_pe
 
-                if sim_pct != 0 and kr:
-                    if t_pe > 0: t_pe = t_pe * multiplier
-                    if f_pe > 0: f_pe = f_pe * multiplier
-
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
-                
-                if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
+
+                # -------------------------------------------------------------
+                # [핵심 수술] ADR(TSM, ASML 등)의 통화 불일치 및 배수 왜곡을 완벽히 잡는 환율 보정 계수
+                # 한국 기업이나 일반 미국 주식은 이 계수가 1.0으로 고정되어 기존 자체 계산 로직이 정상 작동합니다.
+                # -------------------------------------------------------------
+                fx_ratio = 1.0
+                currency_trade = str(i.get('currency', 'USD')).upper()
+                currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+                is_adr = (currency_trade != currency_fin) and not kr
+
+                if is_adr and pbr > 0 and reg_p > 0:
+                    try:
+                        bs_temp = stk.balance_sheet
+                        if bs_temp is not None and not bs_temp.empty and 'Stockholders Equity' in bs_temp.index:
+                            curr_eq = safe_float(bs_temp.loc['Stockholders Equity'].iloc[0])
+                            sh_temp = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                            if curr_eq > 0 and sh_temp > 0:
+                                foreign_bvps = curr_eq / sh_temp
+                                usd_bvps = reg_p / pbr
+                                if foreign_bvps > 0:
+                                    fx_ratio = usd_bvps / foreign_bvps
+                    except: pass
+
+                if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"]:
                     try:
                         bs = stk.balance_sheet
                         if bs is not None and not bs.empty:
                             for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                                 if eq_key in bs.index:
                                     eq = safe_float(bs.loc[eq_key].iloc[0])
-                                    sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                                    if tk == "BRK-B": sh = 2160000000.0
-                                    elif tk == "BRK-A": sh = 1440000.0
-                                    if eq > 0 and sh > 0:
-                                        bv = eq / sh
+                                    sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                                    elif tk == "BRK-A": sh_proxy = 1440000.0
+                                    if eq > 0 and sh_proxy > 0:
+                                        bv = (eq / sh_proxy) * fx_ratio
                                         pbr = reg_p / bv
                                         break
                     except: pass
 
                 if pbr > 0:
-                    if bv > 0:
+                    if bv > 0 and not is_adr: # ADR은 실시간 주가 대비 bv 보정 시 오차가 생길 수 있으므로 원본 PBR 비례식 사용
                         pbr = p / bv
                     elif reg_p > 0:
                         pbr = pbr * (p / reg_p)
-                
-                if bv > 0:
+                elif bv > 0:
                     pbr = p / bv
-                else:
-                    if pbr > 0 and is_ext_active and reg_p > 0:
-                        pbr = pbr * (p / reg_p)
-                    elif pbr == 0.0:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh = safe_float(i.get('sharesOutstanding'))
-                                if eq > 0 and sh > 0:
-                                    pbr = p / (eq / sh)
-                        except: pass
-
+                
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 if roe == 0.0:
                     try:
@@ -2647,10 +2652,10 @@ with tab1:
                 real_roic = get_real_roic(stk, i)
                 
                 if is_financial:
-                    roic_str = t("금융주 제외", "N/A (Financial)")
+                    roic_str = "금융주 제외" if is_ko else "N/A (Financial)"
                 else:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = t("데이터 부족", "N/A")
+                    else: roic_str = "데이터 부족" if is_ko else "N/A"
 
                 div_yield = safe_float(i.get('dividendYield'))
                 div_rate = safe_float(i.get('dividendRate'))
@@ -2660,9 +2665,9 @@ with tab1:
                     if calc_div < 50.0: div = calc_div
                 if div == 0.0 and div_yield > 0:
                     div = div_yield if div_yield > 1.0 else div_yield * 100
-                    if sim_pct != 0: div = div / multiplier  # 주가가 변한 만큼 배당수익률도 수학적으로 보정
+                    if sim_pct != 0: div = div / multiplier
 
-                div_trend = t("확인 불가", "N/A")
+                div_trend = "확인 불가" if is_ko else "N/A"
                 try:
                     div_history = stk.dividends
                     if not div_history.empty:
@@ -2670,14 +2675,14 @@ with tab1:
                         if len(yearly_div) >= 3:
                             last_3 = yearly_div.tail(3)
                             if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
-                                div_trend = f"<span class='good'>{t('지속 상승 중', 'Consistently Increasing')}</span>"
+                                div_trend = f"<span class='good'>지속 상승 중</span>" if is_ko else f"<span class='good'>Consistently Increasing</span>"
                             elif last_3.iloc[-1] > 0:
-                                div_trend = t("유지/변동", "Maintained/Fluctuating")
+                                div_trend = "유지/변동" if is_ko else "Maintained/Fluctuating"
                             else:
-                                div_trend = t("배당 없음", "No Dividend")
+                                div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
-                
-                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기] ---
+
+                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기 (결측치 및 ADR 방어 탑재)] ---
                 a_pbr = 0.0
                 f_pbr = safe_float(i.get('priceToBook'))
                 if is_financial or kr or is_cyclical:
@@ -2693,10 +2698,12 @@ with tab1:
                                 if tk == "BRK-B": sh_proxy = 2160000000.0
                                 elif tk == "BRK-A": sh_proxy = 1440000.0
                                 if avg_eq > 0 and sh_proxy > 0:
-                                    a_pbr = avg_price / (avg_eq / sh_proxy)
+                                    # ADR 통화 불일치 보정 계수(fx_ratio) 적용 (한국/일반주는 1.0으로 연산)
+                                    a_pbr = avg_price / ((avg_eq / sh_proxy) * fx_ratio)
                     except: pass
+                    
                     if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-                    if a_pbr <= 0: a_pbr = 1.0
+                    if a_pbr <= 0: a_pbr = pbr if pbr > 0 else 1.0
                     
                     base_bv = safe_float(i.get('bookValue'))
                     if base_bv <= 0:
@@ -2707,10 +2714,11 @@ with tab1:
                                 sh_proxy = safe_float(i.get('sharesOutstanding'))
                                 if tk == "BRK-B": sh_proxy = 2160000000.0
                                 elif tk == "BRK-A": sh_proxy = 1440000.0
-                                if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
+                                if eq > 0 and sh_proxy > 0: 
+                                    base_bv = (eq / sh_proxy) * fx_ratio
                         except: pass
                     
-                    if tk == "BRK-B" or tk == "BRK-A":
+                    if tk in ["BRK-B", "BRK-A"]:
                         f_pbr = pbr
                     elif base_bv > 0 and f_eps != 0:
                         div_r_val = safe_float(i.get('dividendRate', 0))
