@@ -2588,27 +2588,33 @@ with tab1:
                     f_pe = t_pe
 
                 # =====================================================================
-                # [여기서부터 복사] 기존 코드를 지우고 이 코드로 완벽하게 덮어쓰세요.
+                # [복사 시작] 여기서부터 복사해서 기존 코드를 덮어쓰세요.
                 # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
 
+                currency_trade = str(i.get('currency', 'USD')).upper()
+                currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+                is_adr = (currency_trade != currency_fin) and not kr
+
                 # -------------------------------------------------------------
-                # [궁극의 해결책] 통화(환율) 및 ADR 배수, 잘못된 주식수 데이터를 완벽 우회하는
-                # 'EPS-순이익 비율 기반 BPS 역산 알고리즘'
+                # [오류 수정] 통화(환율) 및 ADR 배수 우회용 BPS 역산 알고리즘
+                # ※ ADR 기업(TSM, ASML 등)에만 엄격하게 가동되도록 잠금장치 설정 (is_adr == True)
+                # 마이크론 등 일반 시클리컬 기업은 이 로직을 피해가므로 과거 평균 PBR 왜곡이 발생하지 않습니다.
                 # -------------------------------------------------------------
                 calc_ratio = 0.0
-                try:
-                    inc_temp = stk.income_stmt
-                    if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
-                        ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
-                        eps_curr = safe_float(i.get('trailingEps'))
-                        if ni_curr != 0 and eps_curr != 0:
-                            calc_ratio = abs(eps_curr / ni_curr) # 비율은 무조건 양수
-                except: pass
+                if is_adr:
+                    try:
+                        inc_temp = stk.income_stmt
+                        if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
+                            ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
+                            eps_curr = safe_float(i.get('trailingEps'))
+                            if ni_curr != 0 and eps_curr != 0:
+                                calc_ratio = abs(eps_curr / ni_curr) # 비율은 무조건 양수
+                    except: pass
 
-                # 현재 PBR 및 BV 재계산 (비정상 값 100% 덮어쓰기)
-                if calc_ratio > 0:
+                # 현재 PBR 및 BV 재계산 (ADR 비정상 값 100% 덮어쓰기)
+                if is_adr and calc_ratio > 0:
                     try:
                         bs_temp = stk.balance_sheet
                         if bs_temp is not None and not bs_temp.empty:
@@ -2694,13 +2700,13 @@ with tab1:
                             if len(eq_vals) > 0:
                                 avg_eq = sum(eq_vals) / len(eq_vals)
                                 
-                                if calc_ratio > 0:
-                                    # 만능 계수를 통해 5년 평균 BPS도 완벽하게 추출
+                                if is_adr and calc_ratio > 0:
+                                    # ADR 한정: 만능 계수를 통해 5년 평균 BPS 추출
                                     past_bvps = avg_eq * calc_ratio
                                     if past_bvps > 0:
                                         a_pbr = avg_price / past_bvps
                                 else:
-                                    # 계수가 없을 경우 기존 방식 사용 (한국기업 등 문제없음)
+                                    # 일반 미국주식(마이크론 등) 및 한국기업은 정상 주식수 나누기 로직 사용
                                     sh_proxy = safe_float(i.get('sharesOutstanding'))
                                     if tk == "BRK-B": sh_proxy = 2160000000.0
                                     elif tk == "BRK-A": sh_proxy = 1440000.0
@@ -2728,7 +2734,7 @@ with tab1:
                         f_pbr = f_pbr * multiplier
                 # =====================================================================
                 # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
-                # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어져야 정상입니다.
+                # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
                 # =====================================================================
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
