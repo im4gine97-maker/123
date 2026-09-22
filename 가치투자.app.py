@@ -1965,8 +1965,7 @@ def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
     
-    try: ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
-    except: ty = 4.4
+    ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
     if ty == 0: ty = 4.4
     
     sector_str = str(i.get('sector', '')).lower()
@@ -1983,12 +1982,6 @@ def generate_quick_ai_preview(tk):
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
     
-    # [오류 해결 핵심] 미리보기 함수 안에도 시클리컬 판독 로직을 추가합니다!
-    cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs']
-    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지']
-    cyclical_tickers = ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "096770.KS", "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", "000880.KS", "010120.KS", "298040.KS"]
-    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or (tk_upper in cyclical_tickers)
-    
     ext_str = ""
     is_ext_active = False
     if not kr:
@@ -2001,10 +1994,10 @@ def generate_quick_ai_preview(tk):
             p = post_p
             is_ext_active = True
 
-    try:
-        fast_p = safe_float(stk.fast_info.last_price)
-        if fast_p > 0: p = fast_p
-    except: pass
+        try:
+            fast_p = safe_float(stk.fast_info.last_price)
+            if fast_p > 0: p = fast_p
+        except: pass
 
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
@@ -2030,60 +2023,31 @@ def generate_quick_ai_preview(tk):
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
-        
-    # --- [미리보기용 완벽 동기화] 메인 화면과 똑같은 한국/ADR 주식 PBR 구출 수식 적용 ---
+
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-
-    currency_trade = str(i.get('currency', 'USD')).upper()
-    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-    is_adr = (currency_trade != currency_fin) and not kr
-
-    adr_fx_ratio = 1.0
-    if is_adr:
-        try:
-            inc_temp = stk.income_stmt
-            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
-                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
-                eps_curr = safe_float(i.get('trailingEps'))
-                if ni_curr != 0 and eps_curr != 0:
-                    adr_fx_ratio = abs(eps_curr / ni_curr)
-        except: pass
-
-    if pbr > 100.0: pbr = 0.0
-
-    if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
+    if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
         try:
             bs = stk.balance_sheet
             if bs is not None and not bs.empty:
                 for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                     if eq_key in bs.index:
                         eq = safe_float(bs.loc[eq_key].iloc[0])
-                        sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                        if tk == "BRK-B": sh_proxy = 2160000000.0
-                        elif tk == "BRK-A": sh_proxy = 1440000.0
-                        
-                        if eq > 0 and sh_proxy > 0:
-                            if is_adr and adr_fx_ratio != 1.0:
-                                bv = eq * adr_fx_ratio
-                            else:
-                                bv = eq / sh_proxy
-                                if kr and bv < 1000 and p > 1000:
-                                    if bv * 1000 > p * 0.1: bv = bv * 1000
-                                    elif bv * 1000000 > p * 0.1: bv = bv * 1000000
-                            if bv > 0: pbr = reg_p / bv
-                        break
+                        sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                        if tk == "BRK-B": sh = 2160000000.0
+                        elif tk == "BRK-A": sh = 1440000.0
+                        if eq > 0 and sh > 0:
+                            bv = eq / sh
+                            pbr = reg_p / bv
+                            break
         except: pass
 
-    if pbr <= 0.0 and bv > 0 and p > 0:
-        pbr = p / bv
-
-    if pbr > 0 and is_ext_active and reg_p > 0:
-        pbr = pbr * (p / reg_p)
-    # -----------------------------------------------------------
+    if pbr > 0:
+        if bv > 0: pbr = p / bv
+        elif reg_p > 0: pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
-    if roe <= 0.0 or roe > 300.0:
+    if roe == 0.0:
         try:
             inc = stk.income_stmt
             bs = stk.balance_sheet
@@ -2139,10 +2103,11 @@ def generate_quick_ai_preview(tk):
             if len(prefix) < 40 and "위키 및 공공" not in prefix:
                 ceo_cleaned = prefix
 
-    # --- [미리보기용 완벽 동기화] a_pbr, f_pbr 수식 ---
+    # =================================================================
+    # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
-    if is_financial or kr or is_cyclical:
+    if is_financial or kr:  # [핵심] 한국 주식도 자체 PBR 엔진 가동
         try:
             hist_5y = stk.history(period="5y")
             avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2151,41 +2116,25 @@ def generate_quick_ai_preview(tk):
                 eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
                 if len(eq_vals) > 0:
                     avg_eq = sum(eq_vals) / len(eq_vals)
-                    
-                    if tk == "BRK-B":
-                        a_pbr = avg_price / (avg_eq / 2160000000.0)
-                    elif tk == "BRK-A":
-                        a_pbr = avg_price / (avg_eq / 1440000.0)
-                    elif is_adr and adr_fx_ratio != 1.0:
-                        past_bvps = avg_eq * adr_fx_ratio
-                        if past_bvps > 0:
-                            a_pbr = avg_price / past_bvps
-                    else:
-                        sh_proxy = safe_float(i.get('sharesOutstanding'))
-                        if avg_eq > 0 and sh_proxy > 0:
-                            past_bv = avg_eq / sh_proxy
-                            if kr and past_bv < 1000 and avg_price > 1000:
-                                if past_bv * 1000 > avg_price * 0.1: past_bv = past_bv * 1000
-                                elif past_bv * 1000000 > avg_price * 0.1: past_bv = past_bv * 1000000
-                            if past_bv > 0:
-                                a_pbr = avg_price / past_bv
+                    sh_proxy = safe_float(i.get('sharesOutstanding'))
+                    if tk == "BRK-B": sh_proxy = 2160000000.0
+                    elif tk == "BRK-A": sh_proxy = 1440000.0
+                    if avg_eq > 0 and sh_proxy > 0:
+                        a_pbr = avg_price / (avg_eq / sh_proxy)
         except: pass
-        
-        if a_pbr <= 0 or a_pbr > 200.0: 
-            a_pbr = pbr if pbr > 0 else 1.0
-        
-        base_bv = bv
-        if tk in ["BRK-B", "BRK-A"]:
-            f_pbr = pbr
-        elif base_bv > 0 and f_eps != 0:
-            div_r_val = safe_float(i.get('dividendRate', 0))
-            f_bps = base_bv + f_eps - div_r_val
-            if f_bps > 0: f_pbr = reg_p / f_bps
-            else: f_pbr = reg_p / base_bv
-        elif base_bv > 0:
-            f_pbr = reg_p / base_bv
+        if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
+        if a_pbr <= 0: a_pbr = 1.0
 
-    if is_financial or kr or is_cyclical:
+        if tk == "BRK-B" or tk == "BRK-A":
+            f_pbr = pbr
+        else:
+            if bv > 0 and f_eps != 0:
+                div_r_val = safe_float(i.get('dividendRate', 0))
+                f_bps = bv + f_eps - div_r_val
+                if f_bps > 0: f_pbr = reg_p / f_bps
+
+    # 금융주 및 한국주식은 PBR 할인율을, 일반 미국주식은 PER 할인율을 연동합니다.
+    if is_financial or kr:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
         pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
@@ -2210,20 +2159,22 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
+    # [수정] TypeError를 유발하던 use_pbr 변수를 삭제하고, is_cyclical을 파라미터로 넘깁니다.
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
         f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
     )
-    # -----------------------------------------------------------
+    # =================================================================
 
-    def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
+    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
+def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    # [핵심] 한국주식/금융주/시클리컬이면 레이더 차트 3시 방향 라벨을 PBR로 자동 변경!
+    # [핵심 수술] 한국주식/금융주/시클리컬이면 PBR로 라벨 자동 변경!
     radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr or is_cyclical) else t("가격 매력도(PER)", "Value(PER)")
     categories = [
         t('경영진/거버넌스', 'Management'), 
@@ -2276,7 +2227,7 @@ def generate_quick_ai_preview(tk):
         text=[f"{cat}: {val:.0f}점/100점" for cat, val in zip(categories, values)]
     ))
 
-    # margin 여백을 늘려 모바일에서도 글씨 잘림을 차단
+    # [핵심 수술] margin(l=90, r=90) 여백을 대폭 늘려 글씨 잘림을 완벽 차단!
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, 100], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
