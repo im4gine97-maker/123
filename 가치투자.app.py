@@ -391,7 +391,7 @@ tmap = {
     "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
     "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
     "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
-    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET"
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", "닌텐도": "NTDOY"
 }
 
 # =========================================================================
