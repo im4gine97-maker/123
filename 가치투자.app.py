@@ -2587,31 +2587,26 @@ with tab1:
                 if f_pe <= 0 and t_pe > 0:
                     f_pe = t_pe
 
+                # =====================================================================
+                # 여기서부터 복사해서 기존 코드를 덮어쓰세요.
+                # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
 
-                # -------------------------------------------------------------
-                # [핵심 수술] ADR(TSM, ASML 등)의 통화 불일치 및 배수 왜곡을 완벽히 잡는 환율 보정 계수
-                # 한국 기업이나 일반 미국 주식은 이 계수가 1.0으로 고정되어 기존 자체 계산 로직이 정상 작동합니다.
-                # -------------------------------------------------------------
-                fx_ratio = 1.0
                 currency_trade = str(i.get('currency', 'USD')).upper()
                 currency_fin = str(i.get('financialCurrency', 'USD')).upper()
                 is_adr = (currency_trade != currency_fin) and not kr
 
-                if is_adr and pbr > 0 and reg_p > 0:
-                    try:
-                        bs_temp = stk.balance_sheet
-                        if bs_temp is not None and not bs_temp.empty and 'Stockholders Equity' in bs_temp.index:
-                            curr_eq = safe_float(bs_temp.loc['Stockholders Equity'].iloc[0])
-                            sh_temp = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                            if curr_eq > 0 and sh_temp > 0:
-                                foreign_bvps = curr_eq / sh_temp
-                                usd_bvps = reg_p / pbr
-                                if foreign_bvps > 0:
-                                    fx_ratio = usd_bvps / foreign_bvps
-                    except: pass
-
+                # -------------------------------------------------------------
+                # [핵심 수술] ADR(TSM, ASML 등)의 PBR 1000배 폭증 버그 원천 차단
+                # 야후 파이낸스의 priceToBook은 ADR 비율이 꼬여 쓰레기값을 반환합니다.
+                # 정상적인 bookValue(BPS)가 있다면 현재 주가를 직접 나누어 '진짜 PBR'을 강제 산출합니다.
+                # -------------------------------------------------------------
+                if p > 0 and bv > 0:
+                    pbr = p / bv
+                elif is_adr and pbr > 100:  # bv가 없는데 pbr이 기형적일 경우의 최후 방어선
+                    pbr = 10.0 
+                
                 if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"]:
                     try:
                         bs = stk.balance_sheet
@@ -2623,19 +2618,15 @@ with tab1:
                                     if tk == "BRK-B": sh_proxy = 2160000000.0
                                     elif tk == "BRK-A": sh_proxy = 1440000.0
                                     if eq > 0 and sh_proxy > 0:
-                                        bv = (eq / sh_proxy) * fx_ratio
+                                        bv = eq / sh_proxy
                                         pbr = reg_p / bv
                                         break
                     except: pass
 
-                if pbr > 0:
-                    if bv > 0 and not is_adr: # ADR은 실시간 주가 대비 bv 보정 시 오차가 생길 수 있으므로 원본 PBR 비례식 사용
-                        pbr = p / bv
-                    elif reg_p > 0:
-                        pbr = pbr * (p / reg_p)
-                elif bv > 0:
-                    pbr = p / bv
-                
+                # 시뮬레이터(가상 주가) 연동 보정
+                if pbr > 0 and 'multiplier' in locals() and multiplier != 1.0:
+                    pbr = pbr * multiplier 
+
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 if roe == 0.0:
                     try:
@@ -2682,9 +2673,9 @@ with tab1:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
 
-                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기 (결측치 및 ADR 방어 탑재)] ---
+                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기 (ADR 통화 왜곡 방어 탑재)] ---
                 a_pbr = 0.0
-                f_pbr = safe_float(i.get('priceToBook'))
+                f_pbr = pbr
                 if is_financial or kr or is_cyclical:
                     try:
                         hist_5y = stk.history(period="5y")
@@ -2697,27 +2688,23 @@ with tab1:
                                 sh_proxy = safe_float(i.get('sharesOutstanding'))
                                 if tk == "BRK-B": sh_proxy = 2160000000.0
                                 elif tk == "BRK-A": sh_proxy = 1440000.0
+                                
                                 if avg_eq > 0 and sh_proxy > 0:
-                                    # ADR 통화 불일치 보정 계수(fx_ratio) 적용 (한국/일반주는 1.0으로 연산)
-                                    a_pbr = avg_price / ((avg_eq / sh_proxy) * fx_ratio)
+                                    if is_adr and bv > 0:
+                                        # ADR 통화 불일치 보정 (외국 자본금 -> 미국 달러 기준 BPS 비율 산출)
+                                        curr_eq_foreign = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                        if curr_eq_foreign > 0:
+                                            curr_bps_foreign = curr_eq_foreign / sh_proxy
+                                            fx_adr_multiplier = bv / curr_bps_foreign
+                                            a_pbr = avg_price / ((avg_eq / sh_proxy) * fx_adr_multiplier)
+                                    else:
+                                        a_pbr = avg_price / (avg_eq / sh_proxy)
                     except: pass
                     
-                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
+                    # 결측치 최후 방어
                     if a_pbr <= 0: a_pbr = pbr if pbr > 0 else 1.0
                     
-                    base_bv = safe_float(i.get('bookValue'))
-                    if base_bv <= 0:
-                        try:
-                            bs = stk.balance_sheet
-                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if tk == "BRK-B": sh_proxy = 2160000000.0
-                                elif tk == "BRK-A": sh_proxy = 1440000.0
-                                if eq > 0 and sh_proxy > 0: 
-                                    base_bv = (eq / sh_proxy) * fx_ratio
-                        except: pass
-                    
+                    base_bv = bv
                     if tk in ["BRK-B", "BRK-A"]:
                         f_pbr = pbr
                     elif base_bv > 0 and f_eps != 0:
@@ -2730,7 +2717,10 @@ with tab1:
                         
                     if 'multiplier' in locals() and multiplier != 1.0:
                         f_pbr = f_pbr * multiplier
-
+                # =====================================================================
+                # 여기까지 덮어쓰기 하시면 됩니다.
+                # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
+                # =====================================================================
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
