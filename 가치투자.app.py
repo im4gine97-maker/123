@@ -2429,9 +2429,27 @@ with tab1:
                 # [추가] 탭 1 메인 로직에 시클리컬(경기민감주) 판독 변수 선언 보장!
                 cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers']
                 cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '비철금속', '자동차']
+                
+                # 앱에 등록된 모든 경기민감주 총망라 (누락 없는 PBR 평가용)
+                cyclical_tickers = [
+                    # 반도체(메모리/장비/파운드리)
+                    "000660.KS", "MU", "WDC", "SNDK", "AMAT", "LRCX", "INTC", "AMD", "TSM", "UMC",
+                    # 철강/비철금속/광산/석탄
+                    "005490.KS", "004020.KS", "010130.KS", "NUE", "FCX", "AA", "AMR", "HCC",
+                    # 정유/에너지/가스
+                    "010950.KS", "096770.KS", "XOM", "CVX", "COP", "OXY", "SLB", "EOG", "MRO", "PSX", "VLO", "EPD", "PBR", "SHEL", "TTE", "RIG",
+                    # 화학
+                    "051910.KS", "011780.KS", "011170.KS", "009830.KS", "DOW", "DD", "APD",
+                    # 조선/중공업/기계/방산/주택건설
+                    "329180.KS", "009540.KS", "010620.KS", "042660.KS", "267250.KS", "241560.KS", "034020.KS", "CAT", "DE", "000720.KS", "006360.KS", "028050.KS", "047040.KS", "002990.KS", "LEN", "DHI",
+                    # 해운/항공/크루즈/여객/물류
+                    "003490.KS", "011200.KS", "028670.KS", "180640.KS", "086280.KS", "000120.KS", "DAL", "UAL", "RCL", "CCL", "NCLH", "TRMD", "AERO",
+                    # 자동차 및 부품
+                    "005380.KS", "000270.KS", "012330.KS", "161390.KS", "TM", "GM", "F", "NIO", "LI", "XPEV", "RACE"
+                ]
                 is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
                               any(kw in summary_str for kw in cyclical_kor_kw) or \
-                              (tk_upper in ["000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F"])
+                              (tk_upper in cyclical_tickers)
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
