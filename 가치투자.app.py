@@ -3185,7 +3185,7 @@ with tab1:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pbr:.2f}배</span>"
                     else:
                         fwd_pe_val_str = "N/A"
                         fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
@@ -3194,7 +3194,7 @@ with tab1:
                     t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
                     if f_pe > 0 and a_pe > 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} |  평균: {a_pe:.1f}배</span>"
                     elif f_pe > 0 and a_pe <= 0:
                         fwd_pe_val_str = f"{f_pe:.1f}배"
                         fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
