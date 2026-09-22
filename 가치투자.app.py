@@ -1533,8 +1533,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-# [핵심 수술] 맨 끝에 use_pbr=False 라는 새로운 스위치를 달아줍니다.
-def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, use_pbr=False):
+def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0):
     score_details = {}
     score = 0  # 반드시 0으로 단일 초기화
 
@@ -1586,6 +1585,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
             max_raw_score = 120.0
             ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
             
+            # 기준점 30점으로 축소 및 15단계 이상 정밀 세분화
             scaled_score = ratio * 30.0
 
             if scaled_score >= 28: ceo_final = 30
@@ -1657,10 +1657,9 @@ def get_comprehensive_investment_opinion(mos, pmos, roe, roic, erp, final_g, ceo
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # 3. 가격 매력도 (PER/PBR 안전마진)
+    # 3. 가격 매력도 (PER/PBR 안전마진) - 상하방 무한 개방
     p_score = 0
-    # [핵심 수술] kr이나 is_financial 조건 대신 오직 'use_pbr' 스위치로만 판단하도록 수정!
-    if use_pbr:
+    if is_financial or kr:
         p_score = pmos * 1.2
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
@@ -2156,15 +2155,14 @@ def generate_quick_ai_preview(tk):
     # =================================================================
 
     return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
-# [핵심 수술] 기존의 kr=False 대신 use_pbr=False 스위치를 장착합니다.
-def create_radar_chart(score_breakdown, is_financial, color_hex, use_pbr=False):
+def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    # [핵심 수술] 오직 use_pbr 스위치가 켜졌을 때만 PBR 라벨을 붙이도록 수정!
-    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if use_pbr else t("가격 매력도(PER)", "Value(PER)")
+    # [핵심 수술] 한국주식/금융주면 PBR로, 일반 미국주식은 PER로 라벨 자동 변경!
+    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr) else t("가격 매력도(PER)", "Value(PER)")
 
     categories = [
         t('경영진/거버넌스', 'Management'), 
@@ -2371,10 +2369,6 @@ with tab1:
     with col_btn:
         if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
             trigger_scan(); st.rerun() 
-
-    # [핵심 수술] 탭 1 상단에 일반 기업용 밸류에이션 선택 버튼 추가
-    st.markdown("<div style='margin-bottom:10px;'></div>", unsafe_allow_html=True)
-    val_method = st.radio("🔍 밸류에이션 기준 선택 (일반 기업용)", ["PER (수익성 기반)", "PBR (자산가치 기반)"], horizontal=True, key="val_toggle") 
 
     if st.session_state.suggestions:
         st.markdown(f"<div style='color:#fdcb6e; font-weight:bold; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;'>여러 종목이 발견되었습니다. 찾으시는 기업을 클릭해주세요.</div>", unsafe_allow_html=True)
@@ -2640,57 +2634,53 @@ with tab1:
                                 div_trend = t("배당 없음", "No Dividend")
                 except: pass
                 
-                # [핵심 수술] 사용자가 선택한 라디오 버튼(PBR)이거나 원래 금융주이면 PBR 모드 발동!
-                use_pbr = True if is_financial else ("PBR" in val_method)
-
-                # --- [모든 기업 대상 PBR 엔진 항상 가동] ---
+                # --- [금융주 및 한국주식 전용 평균 PBR(a_pbr) 및 Fwd PBR(f_pbr) 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = safe_float(i.get('priceToBook'))
-                
-                try:
-                    hist_5y = stk.history(period="5y")
-                    avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                    bs = stk.balance_sheet
-                    if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                        if len(eq_vals) > 0:
-                            avg_eq = sum(eq_vals) / len(eq_vals)
-                            sh_proxy = safe_float(i.get('sharesOutstanding'))
-                            if tk == "BRK-B": sh_proxy = 2160000000.0
-                            elif tk == "BRK-A": sh_proxy = 1440000.0
-                            if avg_eq > 0 and sh_proxy > 0:
-                                a_pbr = avg_price / (avg_eq / sh_proxy)
-                except: pass
-                if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-                if a_pbr <= 0: a_pbr = 1.0
-                
-                base_bv = safe_float(i.get('bookValue'))
-                if base_bv <= 0:
+                if is_financial or kr:
                     try:
+                        hist_5y = stk.history(period="5y")
+                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
                         bs = stk.balance_sheet
                         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                            eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                            sh_proxy = safe_float(i.get('sharesOutstanding'))
-                            if tk == "BRK-B": sh_proxy = 2160000000.0
-                            elif tk == "BRK-A": sh_proxy = 1440000.0
-                            if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
+                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                            if len(eq_vals) > 0:
+                                avg_eq = sum(eq_vals) / len(eq_vals)
+                                sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                if tk == "BRK-B": sh_proxy = 2160000000.0
+                                elif tk == "BRK-A": sh_proxy = 1440000.0
+                                if avg_eq > 0 and sh_proxy > 0:
+                                    a_pbr = avg_price / (avg_eq / sh_proxy)
                     except: pass
-                
-                if tk == "BRK-B" or tk == "BRK-A":
-                    f_pbr = pbr
-                elif base_bv > 0 and f_eps != 0:
-                    div_r_val = safe_float(i.get('dividendRate', 0))
-                    f_bps = base_bv + f_eps - div_r_val
-                    if f_bps > 0: f_pbr = reg_p / f_bps
-                    else: f_pbr = reg_p / base_bv
-                elif base_bv > 0:
-                    f_pbr = reg_p / base_bv
+                    if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
+                    if a_pbr <= 0: a_pbr = 1.0
                     
-                if 'multiplier' in locals() and multiplier != 1.0:
-                    f_pbr = f_pbr * multiplier
+                    base_bv = safe_float(i.get('bookValue'))
+                    if base_bv <= 0:
+                        try:
+                            bs = stk.balance_sheet
+                            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                if tk == "BRK-B": sh_proxy = 2160000000.0
+                                elif tk == "BRK-A": sh_proxy = 1440000.0
+                                if eq > 0 and sh_proxy > 0: base_bv = eq / sh_proxy
+                        except: pass
+                    
+                    if tk == "BRK-B" or tk == "BRK-A":
+                        f_pbr = pbr
+                    elif base_bv > 0 and f_eps != 0:
+                        div_r_val = safe_float(i.get('dividendRate', 0))
+                        f_bps = base_bv + f_eps - div_r_val
+                        if f_bps > 0: f_pbr = reg_p / f_bps
+                        else: f_pbr = reg_p / base_bv
+                    elif base_bv > 0:
+                        f_pbr = reg_p / base_bv
+                        
+                    if 'multiplier' in locals() and multiplier != 1.0:
+                        f_pbr = f_pbr * multiplier
 
-                # [핵심 수술] use_pbr 변수 하나로 할인율 기준을 일괄 정리합니다.
-                if use_pbr:
+                if is_financial or kr:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
                     pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
@@ -2722,7 +2712,7 @@ with tab1:
                     eps_g_str = t("적자지속", "Continued Loss")
                     eps_col = "#ff7675"
                 else:
-                    # 2순위: 컨센서스가 없으면 자체 재무제표로 최근 1년(YoY) 이익 성장률 수동 계산
+                    # 2순위: 컨센서스가 없으면(확인불가) 자체 재무제표로 최근 1년(YoY) 이익 성장률 수동 계산
                     try:
                         _inc = stk.income_stmt
                         if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -2753,7 +2743,7 @@ with tab1:
                     except:
                         eps_g_str = t("확인불가", "N/A")
                         eps_col = "#8892b0"
-                
+                    
                 has_ytd = False
                 ytd_ret = 0.0
                 try:
@@ -2878,26 +2868,30 @@ with tab1:
                                     t_en = "[Danger] Capital impairment detected."
                                     bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
                 except: pass
-                
                 iv, mos_val, err = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
                 mos_val = safe_float(mos_val)
                 
+                # [강력 방어망] 시뮬레이터가 안 도는 상황을 대비해 미리 0.0으로 깔아둡니다.
                 iv_best, mos_best, iv_worst, mos_worst = 0.0, 0.0, 0.0, 0.0
                 
                 # --- [사용자 커스텀 DCF 시뮬레이터 연동 로직] ---
+                # 1. AI의 원본 기본값 백업
                 ai_final_g = final_g
                 sim_g_default = float(ai_final_g * 100) if not is_financial else 10.0
-                sim_dr_default = 9.0 
+                sim_dr_default = 9.0  # 할인율 9%를 최소값이 아닌 '중간 기본값'으로 설정
                 
+                # 2. 사용자가 하단 슬라이더를 움직였다면 그 값을 가져옴
                 user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
                 user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
                 user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
                 
+                # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
                 if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
-                    u_dr = user_dr_val / 100 
+                    u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                     u_g = user_g_val / 100
                     u_tg = user_tg_val / 100
                     
+                    # 시뮬레이터 전용 계산 함수 (AI 기본 제한 회피)
                     def sim_dcf(g_rate):
                         cv = base_fcf
                         fut = []
@@ -2914,7 +2908,7 @@ with tab1:
 
                     if u_dr > u_tg:
                         iv, mos_val = sim_dcf(u_g)
-                        final_g = u_g 
+                        final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
                         
                         iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
                         iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
@@ -2922,23 +2916,24 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                
-                # [핵심 수술] 의견을 받아올 때 use_pbr 변수를 전달합니다.
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=f_pe, spy_pe=spy_pe_val, use_pbr=use_pbr
+                    f_pe=f_pe, spy_pe=spy_pe_val
                 )
 
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
+                    # 내부 변수 대신 화면에 표출된 세부 점수들을 직접 합산하여 총점 추출
                     total_score_val = sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values())
                     total_score_val = round(total_score_val)
                     
+                    # 점수 위치를 백분율(%)로 변환하여 마커 위치 계산 (최소 -100, 최대 100 기준)
                     gauge_score = max(-100, min(100, total_score_val))
                     marker_pos = ((gauge_score + 100) / 200) * 100
                     
+                    # 마커가 양쪽 끝을 넘어가지 않도록 안전망 설정
                     if marker_pos < 2: marker_pos = 2
                     if marker_pos > 98: marker_pos = 98
 
@@ -2981,8 +2976,9 @@ with tab1:
                         st.markdown(breakdown_html, unsafe_allow_html=True)
 
                 with col_op2:
-                    # [핵심 수술] 레이더 차트를 그릴 때도 PBR 모드 스위치를 전달합니다.
-                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, use_pbr=use_pbr)
+                    # [핵심] kr=kr 을 추가하여 한국 주식이라는 신호를 쏴줍니다!
+                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr)
+                    # [수정] staticPlot을 True로 설정하여 확대/이동/드래그를 완전히 차단합니다.
                     st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
                 st.divider()
 
@@ -3002,15 +2998,17 @@ with tab1:
                 # =====================================================================
                 st.subheader(t("기업 가치 심층 분석 (재무 · 내재가치 · AI 검증)", "Deep Value Analysis (Financials · DCF · AI)"))
                 
+                # [수정됨: 초보자 가이드 익스팬더 적용]
                 with st.expander(t("초보자 가이드 읽어보기 (클릭하여 열기)", "Read Beginner Guide (Click to expand)")):
                     st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:1.0rem; color:var(--text-color); line-height:1.6;'>{beginner_summary}</div>", unsafe_allow_html=True)
-                
+                # ------------------- 1. 평가 로직 연산 (문자열 및 점수 준비) -------------------
+                # [수정됨: PER/안전마진 및 PBR 신호등 컬러 완벽 분리 적용]
+                # 금융주/일반주 상관없이 PER 안전마진 텍스트를 무조건 산출하도록 밖으로 뺍니다.
                 if pmos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pmos_val:.1f}% (저평가)</span>"
                 elif pmos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pmos_val:+.1f}% (적정수준)</span>"
                 else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pmos_val:.1f}% (고평가)</span>"
                 
-                # [핵심 수술] UI 렌더링 시 사용자가 PBR 스위치를 켰다면 화면의 텍스트도 PBR 모드로 그립니다.
-                if use_pbr:
+                if is_financial or kr:
                     if pbr <= 0.0: pbr_eval = f"<span style='color:#8892b0; font-weight:bold;'>[평가 불가] 데이터 없음</span>"
                     elif pbr <= 0.6: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 극단적 저평가</span>"
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하</span>"
@@ -3021,7 +3019,7 @@ with tab1:
                     elif pbr <= 1.0: pbr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[안전] 청산가치 이하</span>"
                     elif pbr <= 3.0: pbr_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 정상 프리미엄</span>"
                     else: pbr_eval = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 높은 프리미엄</span>"
-                
+                # [수정됨: biz_eval 누락 복구]
                 if is_financial:
                     if roe >= 10: 
                         rr_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 우량 자본수익률</span>"
@@ -3063,6 +3061,7 @@ with tab1:
                 qqq_col = "#2ecc71" if qqq_gap >= 0 else "#ff7675"
                 bench_html = f"<div style='margin-bottom:4px; color:{spy_col}; font-weight:bold;'>S&P <b>{spy_gap:+.1f}%p</b></div><div style='color:{qqq_col}; font-weight:bold;'>NDX <b>{qqq_gap:+.1f}%p</b></div>"
 
+                # 구글 Material 카드 스타일 (다크모드/라이트모드 자동 적응형으로 변경)
                 item_style = "background: rgba(128, 128, 128, 0.05); border: 1px solid rgba(128, 128, 128, 0.2); padding: 16px 12px; border-radius: 12px; text-align: center; word-break: keep-all; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: all 0.2s;"
                 lbl_style = "font-size: 0.8rem; color: var(--text-color); opacity: 0.7; font-weight: 600; margin-bottom: 8px; line-height: 1.2;"
                 val_style = "font-size: 1.3rem; font-weight: 700; color: var(--text-color); margin-bottom: 8px; letter-spacing: -0.5px;"
@@ -3160,8 +3159,7 @@ with tab1:
                 elif pmos_val >= -20: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[주의] ({abs(pmos_val):.1f}% 할증)</span>"
                 else: p_txt += f"<span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(pmos_val):.1f}% 할증)</span>"
 
-                # [핵심 수술] 사용자가 PBR을 선택했다면 종합 검증 텍스트도 PBR 모드로 그립니다.
-                if use_pbr:
+                if is_financial or kr:
                     clean_p_txt = f"<b style='color:#74b9ff;'>[PBR]</b> {p_txt}"
                     if is_financial:
                         clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('금융주 평가 제외', 'N/A')}</span>"
@@ -3183,8 +3181,7 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # [핵심 수술] 사용자가 선택한 PBR 스위치에 맞춰 Fwd PER 카드 혹은 Fwd PBR 카드를 보여줍니다.
-                if use_pbr:
+                if is_financial or kr:
                     t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                     if f_pbr > 0 and a_pbr > 0:
                         fwd_pe_val_str = f"{f_pbr:.2f}배"
@@ -3964,3 +3961,4 @@ st.markdown(f"""
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
+        
