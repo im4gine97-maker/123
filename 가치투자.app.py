@@ -3276,7 +3276,6 @@ with tab1:
                     f"<div style='grid-column: 1 / -1; font-weight: 800; font-size: 1.2rem; color: #fff; background: {op_color}; padding: 15px 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>"
                     f"{easy_summary_msg}</div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 10px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>가치 평가 (현재 가격은 싼가?)</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>장부상 자산가치 (PBR)</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
@@ -3286,7 +3285,6 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>실제 장사 이익률 (영업이익)</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>비즈니스 경쟁력 종합</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
 
-                    f"<div style='grid-column: 1 / -1; font-weight: 700; font-size: 1.1rem; color: #74b9ff; margin-top: 20px; border-bottom: 2px solid rgba(128,128,128,0.2); padding-bottom: 8px;'>안전성 및 미래 대비</div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익 성장 추세 (EPS/자본)</div><div style='{desc_style}'>이익: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>위기 대처 현금력 (유동비율)</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
