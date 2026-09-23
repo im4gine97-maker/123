@@ -3281,7 +3281,7 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>장부상 자산가치 (PBR)</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE/ROIC)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>기본 마진율 (매출총이익률)</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>실제 장사 이익률 (영업이익)</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>비즈니스 경쟁력 종합</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
