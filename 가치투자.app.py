@@ -1756,21 +1756,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     crypto_proxies = ["MSTR", "COIN", "MARA", "RIOT", "IBIT", "MSTY"]
     is_crypto = tk_upper in crypto_proxies or any(k in ceo_text for k in ["비트코인", "가상자산", "암호화폐"])
 
-    # 6. 시장 퀄리티 (가중평균 ROIC/ROE vs S&P 500)
-    market_score = 0
-    if not is_financial and w_roic > 0:
-        diff = w_roic - 12.0 # S&P 500 ROIC
-        metric_title = "ROIC"
-    else:
-        diff = w_roe - 15.0  # S&P 500 ROE
-        metric_title = "ROE"
-        
-    if w_roe > 0 or w_roic > 0:
-        market_score = int(round(max(-20.0, min(20.0, diff * 1.33))))
-        sign = "+" if diff > 0 else ""
-        market_reason = t(f"시장(S&P 500) 대비 퀄리티: 평균 {metric_title} {sign}{diff:.1f}%p 격차", f"Quality vs S&P 500: {metric_title} {sign}{diff:.1f}%p")
-        score_details[t("시장 지수(S&P 500) 대비 퀄리티 검증", "Quality vs S&P 500")] = (market_score, market_reason)
-
     # 7. DCF (내재가치) 
     dcf_score = 0
     if not is_financial:
