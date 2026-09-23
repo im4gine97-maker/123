@@ -3387,7 +3387,7 @@ with tab1:
                 
                 # --- 내재가치 직접 계산하기 (시뮬레이터) ---
                 with st.expander(t("내재가치 직접 계산하기 (Custom DCF Simulator)", "Custom DCF Simulator")):
-                    st.caption(t("🔥 **수치를 변경하면 즉시 맨 위쪽의 'AI 종합 점수'와 '가치 평가' 패널이 나의 기준에 맞춰 실시간으로 다시 계산됩니다.**<br>💡 **팁:** 막대기 위에 있는 숫자를 클릭하면 키보드로 소수점까지 정확하게 기입할 수 있습니다.", "Adjust assumptions to seamlessly update the AI Score and Valuation panels in real-time."))
+                    st.caption(t(" **수치를 변경하면 즉시 맨 위쪽의 'AI 종합 점수'와 '가치 평가' 패널이 나의 기준에 맞춰 실시간으로 다시 계산됩니다.**<br> **팁:** 막대기 위에 있는 숫자를 클릭하면 키보드로 소수점까지 정확하게 기입할 수 있습니다.", "Adjust assumptions to seamlessly update the AI Score and Valuation panels in real-time."))
 
                     col_sim1, col_sim2 = st.columns(2)
                     with col_sim1:
