@@ -2424,7 +2424,13 @@ with tab1:
                     '메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', 
                     '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지'
                 ]
-                
+                # [추가] 중국, 홍콩, 대만 기업 자동 감지 로직
+                chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
+                taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
+    
+                is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or \
+                              any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
+
                 # 확실히 PBR 평가가 필요한 국내외 시클리컬 기업 티커 명시적 추가
                 cyclical_tickers = [
                     # --- 기존 티커 ---
@@ -2451,8 +2457,8 @@ with tab1:
                 ]
 
                 is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
-                              any(kw in summary_str for kw in cyclical_kor_kw) or \
-                              (tk_upper in cyclical_tickers)
+                  any(kw in summary_str for kw in cyclical_kor_kw) or \
+                  (tk_upper in cyclical_tickers) or is_china_tw
                 # =====================================================================
                 # =====================================================================
                 
