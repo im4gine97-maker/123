@@ -93,7 +93,6 @@ tmap = {
     # ===== 기존 오리지널 매핑 =====
     "삼성전자": "005930.KS", "삼전": "005930.KS", "SAMSUNG": "005930.KS",
     "SK하이닉스": "000660.KS", "하닉": "000660.KS", "HYNIX": "000660.KS",
-    "SKHY": "SKHY",
     "LG에너지솔루션": "373220.KS", "LG엔솔": "373220.KS", "엔솔": "373220.KS",
     "현대자동차": "005380.KS", "현대차": "005380.KS", "현차": "005380.KS", "HYUNDAI": "005380.KS",
     "삼성바이오로직스": "207940.KS", "삼바": "207940.KS",
@@ -2015,7 +2014,7 @@ def generate_quick_ai_preview(tk):
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
     is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
-    cyclical_tickers = ["MU", "WDC", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE", "BA", "GE", "RTX", "LMT", "GD", "NOC", "INTC", "AMAT", "LRCX", "KLAC", "BHP", "RIO", "VALE", "BP", "LIN", "SONY", "KYO", "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY", "HITC", "CAJ", "FANUY", "EADSY", "SIEGY", "BASFY", "STLA", "NEM", "GOLD", "SCCO", "GFS", "STM", "PCAR", "CMI", "LUV", "MPC", "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"]
+    cyclical_tickers = ["MU", "SKHY", "WDC", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE", "BA", "GE", "RTX", "LMT", "GD", "NOC", "INTC", "AMAT", "LRCX", "KLAC", "BHP", "RIO", "VALE", "BP", "LIN", "SONY", "KYO", "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY", "HITC", "CAJ", "FANUY", "EADSY", "SIEGY", "BASFY", "STLA", "NEM", "GOLD", "SCCO", "GFS", "STM", "PCAR", "CMI", "LUV", "MPC", "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"]
     
     is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or (tk_upper in cyclical_tickers) or is_china_tw
 
