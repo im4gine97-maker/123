@@ -1757,12 +1757,12 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     
     if is_financial:
         target_hist = hist_roe
-        hurdle = 10.0
+        hurdle = 12.0
         metric_name = "ROE"
         base_score = (w_roe - hurdle) * 3.0
     else:
         target_hist = hist_roic
-        hurdle = 12.0
+        hurdle = 15.0
         metric_name = "ROIC"
         moat_power = (w_roic * 2 + w_roe) / 3
         base_score = (moat_power - hurdle) * 3.0
