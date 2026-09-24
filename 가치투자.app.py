@@ -494,32 +494,30 @@ fallback_13f_data = {
         {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 9.20}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 4.67}, 
         {"티커": "OXY", "기업명": "Occidental Petroleum", "비중(%)": 4.30}, {"티커": "CB", "기업명": "Chubb", "비중(%)": 3.90}, 
         {"티커": "MCO", "기업명": "Moody's", "비중(%)": 3.73}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 3.21},
-        {"티커": "KHC", "기업명": "Kraft Heinz", "비중(%)": 2.55}, {"티커": "KR", "기업명": "Kroger", "비중(%)": 0.72},
+        {"티커": "KHC", "기업명": "Kraft Heinz", "비중(%)": 2.57}, {"티커": "KR", "기업명": "Kroger", "비중(%)": 0.72},
         {"티커": "ALLY", "기업명": "Ally Financial", "비중(%)": 0.41}, {"티커": "LEN", "기업명": "Lennar", "비중(%)": 0.40},
         {"티커": "NYT", "기업명": "New York Times", "비중(%)": 0.37}, {"티커": "V", "기업명": "Visa", "비중(%)": 0.35},
         {"티커": "MA", "기업명": "Mastercard", "비중(%)": 0.30}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 0.28},
         {"티커": "COF", "기업명": "Capital One", "비중(%)": 0.20}, {"티커": "DAL", "기업명": "Delta Air Lines", "비중(%)": 0.15}
     ],
     "BRK_PER": [
-        {"티커": "UBER", "기업명": "Uber Technologies", "비중(%)": 12.72}, {"티커": "BN", "기업명": "Brookfield Corp", "비중(%)": 12.58}, 
-        {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 11.89}, {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 10.49}, 
         {"티커": "HHH", "기업명": "Howard Hughes", "비중(%)": 10.23}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.62}, 
         {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 9.25}, {"티커": "V", "기업명": "Visa", "비중(%)": 5.76}, 
-        {"티커": "MA", "기업명": "Mastercard", "비중(%)": 5.61}, {"티커": "SPGI", "기업명": "S&P Global", "비중(%)": 5.43},
-        {"티커": "NFLX", "기업명": "Netflix", "비중(%)": 4.80}, {"티커": "PSUS", "기업명": "Pershing Square USA", "비중(%)": 1.00},
-        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 0.40}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 0.30}
+        {"티커": "MA", "기업명": "Mastercard", "비중(%)": 5.61}, {"티커": "SPGI", "기업명": "S&P Global", "비중(%)": 5.43}, 
+        {"티커": "NFLX", "기업명": "Netflix", "비중(%)": 4.90}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 4.20}, 
+        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 4.10}, {"티커": "HLT", "기업명": "Hilton Worldwide", "비중(%)": 3.80},
+        {"티커": "CMG", "기업명": "Chipotle Mexican Grill", "비중(%)": 3.50}, {"티커": "CP", "기업명": "Canadian Pacific", "비중(%)": 3.20},
+        {"티커": "HTZ", "기업명": "Hertz Global", "비중(%)": 0.17}
     ],
     "BAU": [
-        {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 16.50}, {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.10}, 
-        {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 9.00}, {"티커": "FERG", "기업명": "Ferguson", "비중(%)": 9.00}, 
-        {"티커": "GPC", "기업명": "Genuine Parts", "비중(%)": 6.40}, {"티커": "UNP", "기업명": "Union Pacific", "비중(%)": 6.10}, 
-        {"티커": "V", "기업명": "Visa", "비중(%)": 6.00}, {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 4.40}, 
-        {"티커": "AON", "기업명": "Aon PLC", "비중(%)": 4.20}, {"티커": "TFX", "기업명": "Teleflex", "비중(%)": 4.20},
-        {"티커": "NCLH", "기업명": "Norwegian Cruise Line", "비중(%)": 3.30}, {"티커": "MOH", "기업명": "Molina Healthcare", "비중(%)": 3.00},
-        {"티커": "CME", "기업명": "CME Group", "비중(%)": 2.70}, {"티커": "HLF", "기업명": "Herbalife", "비중(%)": 2.50},
-        {"티커": "EXP", "기업명": "Eagle Materials", "비중(%)": 2.20}, {"티커": "GDS", "기업명": "GDS Holdings", "비중(%)": 2.20},
-        {"티커": "COLD", "기업명": "Americold Realty", "비중(%)": 2.10}, {"티커": "LBTYK", "기업명": "Liberty Global", "비중(%)": 2.00},
-        {"티커": "AERO", "기업명": "Grupo Aeromexico", "비중(%)": 1.70}, {"티커": "AXTA", "기업명": "Axalta Coating", "비중(%)": 1.00}
+        {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 16.48}, {"티커": "ELV", "기업명": "Elevance Health", "비중(%)": 9.11}, 
+        {"티커": "QSR", "기업명": "Restaurant Brands", "비중(%)": 9.04}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 8.95}, 
+        {"티커": "FERG", "기업명": "Ferguson", "비중(%)": 6.36}, {"티커": "GPC", "기업명": "Genuine Parts", "비중(%)": 6.13}, 
+        {"티커": "NCLH", "기업명": "Norwegian Cruise Line", "비중(%)": 5.50}, {"티커": "WCC", "기업명": "WESCO International", "비중(%)": 4.14}, 
+        {"티커": "VST", "기업명": "Vistra", "비중(%)": 3.00}, {"티커": "CME", "기업명": "CME Group", "비중(%)": 2.52},
+        {"티커": "CRDC", "기업명": "Cardio Diagnostics", "비중(%)": 2.00}, {"티커": "SSNC", "기업명": "SS&C Technologies", "비중(%)": 1.80},
+        {"티커": "FICO", "기업명": "Fair Isaac Corp", "비중(%)": 1.50}, {"티커": "FIS", "기업명": "Fidelity National Info", "비중(%)": 1.20},
+        {"티커": "AXTA", "기업명": "Axalta Coating", "비중(%)": 0.81}
     ],
     "HC": [
         {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 24.55}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 23.39}, 
@@ -549,28 +547,28 @@ fallback_13f_data = {
         {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 2.15}, {"티커": "JPM", "기업명": "JPMorgan Chase", "비중(%)": 1.85}
     ],
     "DALIO": [
-        {"티커": "SPY", "기업명": "SPDR S&P 500 ETF", "비중(%)": 16.30}, {"티커": "IVV", "기업명": "iShares Core S&P 500", "비중(%)": 9.22}, 
-        {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 3.17}, {"티커": "AVGO", "기업명": "Broadcom", "비중(%)": 2.04}, 
-        {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 1.98}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 1.94}, 
-        {"티커": "LRCX", "기업명": "Lam Research", "비중(%)": 1.67}, {"티커": "VOO", "기업명": "Vanguard S&P 500", "비중(%)": 1.29}, 
-        {"티커": "AMD", "기업명": "AMD", "비중(%)": 1.28}, {"티커": "EWY", "기업명": "iShares South Korea", "비중(%)": 1.15},
-        {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 1.10}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 1.05},
-        {"티커": "AAPL", "기업명": "Apple", "비중(%)": 1.00}, {"티커": "JNJ", "기업명": "Johnson & Johnson", "비중(%)": 0.95},
-        {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 0.85}, {"티커": "MCD", "기업명": "McDonald's", "비중(%)": 0.80},
-        {"티커": "WMT", "기업명": "Walmart", "비중(%)": 0.75}, {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 0.70},
-        {"티커": "COST", "기업명": "Costco", "비중(%)": 0.65}, {"티커": "CVX", "기업명": "Chevron", "비중(%)": 0.60}
+        {"티커": "SPY", "기업명": "SPDR S&P 500 ETF", "비중(%)": 5.50}, {"티커": "IVV", "기업명": "iShares Core S&P 500", "비중(%)": 5.20}, 
+        {"티커": "VOO", "기업명": "Vanguard S&P 500", "비중(%)": 4.50}, {"티커": "IEMG", "기업명": "iShares Core MSCI EM", "비중(%)": 3.50}, 
+        {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 2.50}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 2.20}, 
+        {"티커": "JNJ", "기업명": "Johnson & Johnson", "비중(%)": 2.00}, {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 1.90}, 
+        {"티커": "MCD", "기업명": "McDonald's", "비중(%)": 1.80}, {"티커": "WMT", "기업명": "Walmart", "비중(%)": 1.70},
+        {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 1.50}, {"티커": "COST", "기업명": "Costco", "비중(%)": 1.40},
+        {"티커": "CVX", "기업명": "Chevron", "비중(%)": 1.30}, {"티커": "ABT", "기업명": "AbbVie", "비중(%)": 1.20},
+        {"티커": "KO", "기업명": "Coca-Cola", "비중(%)": 1.10}, {"티커": "LLY", "기업명": "Eli Lilly", "비중(%)": 1.00},
+        {"티커": "MDT", "기업명": "Medtronic", "비중(%)": 0.90}, {"티커": "MRK", "기업명": "Merck", "비중(%)": 0.80},
+        {"티커": "TGT", "기업명": "Target", "비중(%)": 0.70}, {"티커": "BMY", "기업명": "Bristol-Myers Squibb", "비중(%)": 0.60}
     ],
     "DRUCK": [
         {"티커": "NTRA", "기업명": "Natera", "비중(%)": 16.60}, {"티커": "INSM", "기업명": "Insmed", "비중(%)": 5.70}, 
         {"티커": "TSM", "기업명": "TSMC", "비중(%)": 5.40}, {"티커": "IBIT", "기업명": "iShares Bitcoin Trust", "비중(%)": 5.10}, 
         {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 4.60}, {"티커": "STM", "기업명": "STMicroelectronics", "비중(%)": 4.50}, 
-        {"티커": "IVZ", "기업명": "Invesco", "비중(%)": 3.70}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 3.50},
-        {"티커": "VRT", "기업명": "Vertiv", "비중(%)": 3.20}, {"티커": "SE", "기업명": "Sea Ltd", "비중(%)": 3.00},
-        {"티커": "LLY", "기업명": "Eli Lilly", "비중(%)": 2.80}, {"티커": "CRWD", "기업명": "CrowdStrike", "비중(%)": 2.50},
-        {"티커": "GE", "기업명": "General Electric", "비중(%)": 2.30}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 2.10},
-        {"티커": "PLTR", "기업명": "Palantir", "비중(%)": 1.90}, {"티커": "MRVL", "기업명": "Marvell", "비중(%)": 1.70},
-        {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 1.50}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 1.30},
-        {"티커": "IREN", "기업명": "IREN Ltd", "비중(%)": 1.10}, {"티커": "BTDR", "기업명": "Bitdeer", "비중(%)": 1.00}
+        {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 3.50}, {"티커": "VRT", "기업명": "Vertiv", "비중(%)": 3.20}, 
+        {"티커": "SE", "기업명": "Sea Ltd", "비중(%)": 3.00}, {"티커": "LLY", "기업명": "Eli Lilly", "비중(%)": 2.80},
+        {"티커": "CRWD", "기업명": "CrowdStrike", "비중(%)": 2.50}, {"티커": "GE", "기업명": "General Electric", "비중(%)": 2.30},
+        {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 2.10}, {"티커": "PLTR", "기업명": "Palantir", "비중(%)": 1.90},
+        {"티커": "MRVL", "기업명": "Marvell", "비중(%)": 1.70}, {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 1.50},
+        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 1.30}, {"티커": "IREN", "기업명": "IREN Ltd", "비중(%)": 1.10},
+        {"티커": "BTDR", "기업명": "Bitdeer", "비중(%)": 1.00}
     ],
     "TEPPER": [
         {"티커": "AMZN", "기업명": "Amazon", "비중(%)": 15.95}, {"티커": "MU", "기업명": "Micron Technology", "비중(%)": 15.06}, 
@@ -578,18 +576,18 @@ fallback_13f_data = {
         {"티커": "UBER", "기업명": "Uber Technologies", "비중(%)": 7.43}, {"티커": "EWY", "기업명": "iShares South Korea", "비중(%)": 6.55}, 
         {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 5.09}, {"티커": "VST", "기업명": "Vistra", "비중(%)": 4.70}, 
         {"티커": "NVDA", "기업명": "NVIDIA", "비중(%)": 4.08}, {"티커": "NRG", "기업명": "NRG Energy", "비중(%)": 3.44},
-        {"티커": "BA", "기업명": "Boeing", "비중(%)": 2.00}, {"티커": "AAL", "기업명": "American Airlines", "비중(%)": 2.00},
-        {"티커": "BIDU", "기업명": "Baidu", "비중(%)": 1.80}, {"티커": "CRWV", "기업명": "CoreWeave Proxy", "비중(%)": 1.50},
-        {"티커": "AVGO", "기업명": "Broadcom", "비중(%)": 1.00}, {"티커": "SPCX", "기업명": "SpaceX Proxy", "비중(%)": 1.00},
-        {"티커": "QCOM", "기업명": "Qualcomm", "비중(%)": 1.00}, {"티커": "AMD", "기업명": "AMD", "비중(%)": 1.00},
-        {"티커": "BABA", "기업명": "Alibaba Group", "비중(%)": 1.00}, {"티커": "GT", "기업명": "Goodyear Tire", "비중(%)": 0.13}
+        {"티커": "BABA", "기업명": "Alibaba Group", "비중(%)": 2.57}, {"티커": "BA", "기업명": "Boeing", "비중(%)": 2.32},
+        {"티커": "LRCX", "기업명": "Lam Research", "비중(%)": 2.22}, {"티커": "BIDU", "기업명": "Baidu", "비중(%)": 1.98},
+        {"티커": "AAL", "기업명": "American Airlines", "비중(%)": 1.81}, {"티커": "AMD", "기업명": "AMD", "비중(%)": 1.54},
+        {"티커": "CRWV", "기업명": "CoreWeave Proxy", "비중(%)": 1.44}, {"티커": "ASML", "기업명": "ASML", "비중(%)": 1.33},
+        {"티커": "AVGO", "기업명": "Broadcom", "비중(%)": 0.76}, {"티커": "QCOM", "기업명": "Qualcomm", "비중(%)": 0.62}
     ],
     "MARKS": [
         {"티커": "TRMD", "기업명": "TORM plc", "비중(%)": 9.87}, {"티커": "EXE", "기업명": "Expand Energy", "비중(%)": 8.99}, 
         {"티커": "GTX", "기업명": "Garrett Motion", "비중(%)": 5.18}, {"티커": "AU", "기업명": "AngloGold Ashanti", "비중(%)": 4.84}, 
         {"티커": "INDV", "기업명": "Indivior PLC", "비중(%)": 4.73}, {"티커": "TDS", "기업명": "Telephone and Data Systems", "비중(%)": 3.68}, 
         {"티커": "VNOM", "기업명": "Viper Energy", "비중(%)": 3.03}, {"티커": "CORZ", "기업명": "Core Scientific", "비중(%)": 2.41}, 
-        {"티커": "TLN", "기업명": "Talen Energy", "비중(%)": 2.40}, {"티커": "B", "기업명": "Barrick Gold", "비중(%)": 2.22},
+        {"티커": "TLN", "기업명": "Talen Energy", "비중(%)": 2.40}, {"티커": "GOLD", "기업명": "Barrick Gold", "비중(%)": 2.22},
         {"티커": "VST", "기업명": "Vistra", "비중(%)": 2.00}, {"티커": "PBR", "기업명": "Petrobras", "비중(%)": 1.80},
         {"티커": "HCC", "기업명": "Warrior Met Coal", "비중(%)": 1.60}, {"티커": "RIG", "기업명": "Transocean", "비중(%)": 1.50},
         {"티커": "CVX", "기업명": "Chevron", "비중(%)": 1.40}, {"티커": "XOM", "기업명": "Exxon Mobil", "비중(%)": 1.20},
@@ -597,16 +595,16 @@ fallback_13f_data = {
         {"티커": "VAL", "기업명": "Valaris", "비중(%)": 0.70}, {"티커": "CHK", "기업명": "Chesapeake Energy", "비중(%)": 0.60}
     ],
     "TSMITH": [
-        {"티커": "MAR", "기업명": "Marriott", "비중(%)": 7.02}, {"티커": "SYK", "기업명": "Stryker", "비중(%)": 6.72}, 
-        {"티커": "WAT", "기업명": "Waters", "비중(%)": 6.25}, {"티커": "V", "기업명": "Visa", "비중(%)": 5.08}, 
-        {"티커": "UBER", "기업명": "Uber Technologies", "비중(%)": 4.73}, {"티커": "MA", "기업명": "Mastercard", "비중(%)": 4.69}, 
-        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 4.64}, {"티커": "CHD", "기업명": "Church & Dwight", "비중(%)": 4.58}, 
-        {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 4.38}, {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 4.36},
-        {"티커": "PM", "기업명": "Philip Morris", "비중(%)": 4.12}, {"티커": "ADP", "기업명": "Automatic Data Processing", "비중(%)": 4.05},
-        {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 3.85}, {"티커": "INTU", "기업명": "Intuit", "비중(%)": 3.55},
-        {"티커": "NVO", "기업명": "Novo Nordisk", "비중(%)": 3.45}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 3.25},
-        {"티커": "IDXX", "기업명": "IDEXX Laboratories", "비중(%)": 2.90}, {"티커": "LVMUY", "기업명": "LVMH", "비중(%)": 2.80},
-        {"티커": "EL", "기업명": "Estee Lauder", "비중(%)": 2.50}, {"티커": "RMD", "기업명": "ResMed", "비중(%)": 2.10}
+        {"티커": "WAT", "기업명": "Waters Corp", "비중(%)": 7.00}, {"티커": "SYK", "기업명": "Stryker", "비중(%)": 5.90}, 
+        {"티커": "MSFT", "기업명": "Microsoft", "비중(%)": 5.80}, {"티커": "ADP", "기업명": "Automatic Data Processing", "비중(%)": 5.20}, 
+        {"티커": "MA", "기업명": "Mastercard", "비중(%)": 5.10}, {"티커": "META", "기업명": "Meta Platforms", "비중(%)": 5.10}, 
+        {"티커": "UBER", "기업명": "Uber Technologies", "비중(%)": 4.60}, {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 4.50}, 
+        {"티커": "PG", "기업명": "Procter & Gamble", "비중(%)": 4.40}, {"티커": "NFLX", "기업명": "Netflix", "비중(%)": 3.70},
+        {"티커": "PM", "기업명": "Philip Morris", "비중(%)": 3.60}, {"티커": "IDXX", "기업명": "IDEXX Laboratories", "비중(%)": 2.90},
+        {"티커": "LVMUY", "기업명": "LVMH", "비중(%)": 2.80}, {"티커": "EL", "기업명": "Estee Lauder", "비중(%)": 2.50},
+        {"티커": "RMD", "기업명": "ResMed", "비중(%)": 2.10}, {"티커": "CHD", "기업명": "Church & Dwight", "비중(%)": 2.00},
+        {"티커": "PEP", "기업명": "PepsiCo", "비중(%)": 1.90}, {"티커": "INTU", "기업명": "Intuit", "비중(%)": 1.80},
+        {"티커": "NVO", "기업명": "Novo Nordisk", "비중(%)": 1.70}, {"티커": "MAR", "기업명": "Marriott", "비중(%)": 1.50}
     ]
 }
 us_top30 = [
