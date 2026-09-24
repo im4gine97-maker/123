@@ -3729,12 +3729,15 @@ with tab2:
             
             st.markdown("---")
             st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-            c_tk, c_btn = st.columns([3, 1])
-            with c_tk: 
-                # [유지] 빠른 검색 버그 수정 로직
-                fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
-            with c_btn:
-                if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="btn_guru_scan", use_container_width=True):
+            # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
+            with st.form(key="form_guru_scan", border=False):
+                c_tk, c_btn = st.columns([3, 1])
+                with c_tk: 
+                    fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
+                with c_btn:
+                    btn_guru_scan = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+                
+                if btn_guru_scan:
                     if fast_name:
                         matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
                         select_ticker(matched_ticker)
@@ -3777,11 +3780,15 @@ with tab3:
     
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    c_tk2, c_btn2 = st.columns([3, 1])
-    with c_tk2: 
-        fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="mkt_fast_tk", label_visibility="collapsed")
-    with c_btn2:
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="mkt_load_btn", use_container_width=True):
+    # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
+    with st.form(key="form_mkt_scan", border=False):
+        c_tk2, c_btn2 = st.columns([3, 1])
+        with c_tk2: 
+            fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="mkt_fast_tk", label_visibility="collapsed")
+        with c_btn2:
+            mkt_load_btn = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+            
+        if mkt_load_btn:
             if fast_name_mkt:
                 matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
                 select_ticker(matched_ticker_mkt)
@@ -4055,11 +4062,15 @@ with tab6:
     
     st.markdown("---")
     st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    c_tk3, c_btn3 = st.columns([3, 1])
-    with c_tk3: 
-        fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="gov_fast_tk", label_visibility="collapsed")
-    with c_btn3:
-        if st.button(t("AI 상세 분석 실행", "Run AI Analysis"), key="gov_load_btn", use_container_width=True):
+    # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
+    with st.form(key="form_gov_scan", border=False):
+        c_tk3, c_btn3 = st.columns([3, 1])
+        with c_tk3: 
+            fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="gov_fast_tk", label_visibility="collapsed")
+        with c_btn3:
+            gov_load_btn = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+            
+        if gov_load_btn:
             if fast_name_gov:
                 matched_ticker_gov = gov_df[gov_df["기업명"] == fast_name_gov]["티커"].values[0]
                 select_ticker(matched_ticker_gov)
