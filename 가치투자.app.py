@@ -1631,49 +1631,78 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         ceo_final = 0
         ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
     else:
-        kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
-        is_one_strike = False
-        for k in kw_super_neg:
-            if k in ceo_text:
-                is_one_strike = True
-                break
-                
-        if is_one_strike:
-            ceo_final = -30  
-            ceo_reason = t("치명적 결함(사기/배임 등) 감지됨", "Fatal flaws detected (fraud/embezzlement)")
-        else:
-            kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
-            kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
-            kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
-            kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
-            kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
-            kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
+        # [수정] 자본 배분, 주주환원, 도덕성 중심의 가치투자 6원칙 키워드 세팅
+        kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
+        kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
+        kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
+        
+        kw_fatal = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
+        kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+        kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
+        kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
+        
+        # [핵심] 억울한 연좌제를 끊어낼 '과거/전임' 면죄부 키워드
+        past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
 
-            raw_score = 0
-            temp_text = ceo_text
+        raw_score = 0
+        is_current_fatal = False
+        has_past_fatal = False
 
-            for k in kw_super_pos:
-                if k in temp_text: raw_score += 40; temp_text = temp_text.replace(k, "") 
-            for k in kw_high_pos:
-                if k in temp_text: raw_score += 30; temp_text = temp_text.replace(k, "")
-            for k in kw_pos:
-                if k in temp_text: raw_score += 15; temp_text = temp_text.replace(k, "")
-                    
+        # 문장 단위로 분리하여 각 문맥이 과거인지 현재인지 정확히 파악합니다.
+        sentences = [s.strip() for s in ceo_text.replace('\n', '. ').split('.') if s.strip()]
+        
+        for sentence in sentences:
+            is_past_context = any(pm in sentence for pm in past_modifiers)
+            
+            # 치명적 결함 스캔 (과거의 일이면 페널티 대폭 감경)
+            for k in kw_fatal:
+                if k in sentence:
+                    if is_past_context: 
+                        raw_score -= 15  # 원스트라이크 아웃 면제 및 감경
+                        has_past_fatal = True
+                    else: 
+                        is_current_fatal = True # 현재 진행형이면 즉각 아웃
+                    sentence = sentence.replace(k, "")
+            
             for k in kw_high_neg:
-                if k in temp_text: raw_score -= 40; temp_text = temp_text.replace(k, "")
+                if k in sentence:
+                    raw_score -= 10 if is_past_context else 30
+                    sentence = sentence.replace(k, "")
             for k in kw_neg:
-                if k in temp_text: raw_score -= 20; temp_text = temp_text.replace(k, "")
+                if k in sentence:
+                    raw_score -= 5 if is_past_context else 20
+                    sentence = sentence.replace(k, "")
             for k in kw_minor_neg:
-                if k in temp_text: raw_score -= 5; temp_text = temp_text.replace(k, "")
+                if k in sentence:
+                    raw_score -= 5
+                    sentence = sentence.replace(k, "")
+                    
+            # 긍정적 자본 배분 성과 스캔 (현재 경영진이 훌륭하면 과거의 오점을 수학적으로 덮어버림)
+            for k in kw_super_pos:
+                if k in sentence: raw_score += 40; sentence = sentence.replace(k, "")
+            for k in kw_high_pos:
+                if k in sentence: raw_score += 30; sentence = sentence.replace(k, "")
+            for k in kw_pos:
+                if k in sentence: raw_score += 15; sentence = sentence.replace(k, "")
 
+        if is_current_fatal:
+            ceo_final = -30
+            ceo_reason = t("치명적 결함(사기/배임 등) 현재 진행 중", "Fatal flaws currently detected (fraud/embezzlement)")
+        else:
             ratio = max(-1.0, min(1.0, raw_score / 120.0))
             ceo_final = int(round(ratio * 30.0))
             
-            if ceo_final >= 15: ceo_reason = t("거장의 극찬 혹은 훌륭한 자본배분 등 긍정 요소 우세", "Highly shareholder-friendly & excellent allocation")
-            elif ceo_final > 0: ceo_reason = t("우수한 경영진 팩터 감지", "Good management factors dominate")
-            elif ceo_final == 0: ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
-            else: ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
-
+            if ceo_final >= 15:
+                if has_past_fatal:
+                    ceo_reason = t("과거 오점이 있으나, 현재 훌륭한 자본배분으로 턴어라운드 증명", "Turnaround proven with excellent allocation despite past flaws")
+                else:
+                    ceo_reason = t("거장의 극찬 혹은 훌륭한 자본배분 등 긍정 요소 우세", "Highly shareholder-friendly & excellent allocation")
+            elif ceo_final > 0:
+                ceo_reason = t("우수한 경영진 팩터 감지", "Good management factors dominate")
+            elif ceo_final == 0:
+                ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
+            else:
+                ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
     # 2. 배당 매력도
@@ -3973,37 +4002,53 @@ with tab6:
             # 평가가 안 된 기본 텍스트는 순위에서 제외
             if "위키 및 공공 기록 스크리닝 결과" in text: continue
                 
-            kw_super_neg = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
-            is_one_strike = False
-            for k in kw_super_neg:
-                if k in text:
-                    is_one_strike = True; break
+            # --- [수정된 랭킹용 문맥 분석 엔진] ---
+            kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
+            kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
+            kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
             
-            if is_one_strike:
-                ceo_final = -30  # [핵심 수술] 탭 6의 랭킹용 채점표 하한선도 -30점으로 수정
-            else:
-                kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
-                kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
-                kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
-                kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
-                kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
-                kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
+            kw_fatal = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
+            kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+            kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
+            kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
+            
+            past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
 
-                raw_score = 0
-                temp_text = text
-                for k in kw_super_pos:
-                    if k in temp_text: raw_score += 40; temp_text = temp_text.replace(k, "") 
-                for k in kw_high_pos:
-                    if k in temp_text: raw_score += 30; temp_text = temp_text.replace(k, "")
-                for k in kw_pos:
-                    if k in temp_text: raw_score += 15; temp_text = temp_text.replace(k, "")
+            raw_score = 0
+            is_current_fatal = False
+
+            sentences = [s.strip() for s in text.replace('\n', '. ').split('.') if s.strip()]
+            for sentence in sentences:
+                is_past_context = any(pm in sentence for pm in past_modifiers)
+                
+                for k in kw_fatal:
+                    if k in sentence:
+                        if is_past_context: raw_score -= 15
+                        else: is_current_fatal = True
+                        sentence = sentence.replace(k, "")
                 for k in kw_high_neg:
-                    if k in temp_text: raw_score -= 40; temp_text = temp_text.replace(k, "")
+                    if k in sentence:
+                        raw_score -= 10 if is_past_context else 30
+                        sentence = sentence.replace(k, "")
                 for k in kw_neg:
-                    if k in temp_text: raw_score -= 20; temp_text = temp_text.replace(k, "")
+                    if k in sentence:
+                        raw_score -= 5 if is_past_context else 20
+                        sentence = sentence.replace(k, "")
                 for k in kw_minor_neg:
-                    if k in temp_text: raw_score -= 5; temp_text = temp_text.replace(k, "")
+                    if k in sentence:
+                        raw_score -= 5
+                        sentence = sentence.replace(k, "")
+                        
+                for k in kw_super_pos:
+                    if k in sentence: raw_score += 40; sentence = sentence.replace(k, "")
+                for k in kw_high_pos:
+                    if k in sentence: raw_score += 30; sentence = sentence.replace(k, "")
+                for k in kw_pos:
+                    if k in sentence: raw_score += 15; sentence = sentence.replace(k, "")
 
+            if is_current_fatal:
+                ceo_final = -40
+            else:
                 max_raw_score = 120.0
                 ratio = max(-1.0, min(1.0, raw_score / max_raw_score))
                 scaled_score = ratio * 40.0
