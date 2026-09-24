@@ -2188,7 +2188,7 @@ def generate_quick_ai_preview(tk):
     # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
-    if is_financial or kr or is_cyclical:  # [핵심] 한국 주식도 자체 PBR 엔진 가동
+    if is_financial or kr:  # [핵심] 한국 주식도 자체 PBR 엔진 가동
         try:
             hist_5y = stk.history(period="5y")
             avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
