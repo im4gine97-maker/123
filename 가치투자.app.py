@@ -2105,30 +2105,59 @@ def generate_quick_ai_preview(tk):
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
 
+    # =================================================================
+    # [완벽 동기화 패치] 메인 탭과 100% 동일한 PBR 및 ADR 환율 보정 로직
+    # =================================================================
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-    if pbr <= 0.0 or bv <= 0.0 or tk == "BRK-B" or tk == "BRK-A":
+
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+    is_adr = (currency_trade != currency_fin) and not kr
+    adr_fx_ratio = 1.0
+
+    if is_adr:
+        try:
+            inc_temp = stk.income_stmt
+            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
+                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
+                eps_curr = safe_float(i.get('trailingEps'))
+                if ni_curr != 0 and eps_curr != 0:
+                    adr_fx_ratio = abs(eps_curr / ni_curr)
+        except: pass
+
+    if pbr > 100.0: pbr = 0.0
+
+    if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
         try:
             bs = stk.balance_sheet
             if bs is not None and not bs.empty:
                 for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
                     if eq_key in bs.index:
                         eq = safe_float(bs.loc[eq_key].iloc[0])
-                        sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                        if tk == "BRK-B": sh = 2160000000.0
-                        elif tk == "BRK-A": sh = 1440000.0
-                        if eq > 0 and sh > 0:
-                            bv = eq / sh
-                            pbr = reg_p / bv
-                            break
+                        sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                        if tk == "BRK-B": sh_proxy = 2160000000.0
+                        elif tk == "BRK-A": sh_proxy = 1440000.0
+                        
+                        if eq > 0 and sh_proxy > 0:
+                            # [핵심 수술 1] 현재 장부가치(bv)에 환율을 곱해 올바른 달러 가치로 복원!
+                            if is_adr and adr_fx_ratio != 1.0:
+                                bv = eq * adr_fx_ratio
+                            else:
+                                bv = eq / sh_proxy
+                                
+                            if bv > 0: pbr = reg_p / bv
+                        break
         except: pass
 
-    if pbr > 0:
-        if bv > 0: pbr = p / bv
-        elif reg_p > 0: pbr = pbr * (p / reg_p)
+    if pbr <= 0.0 and bv > 0 and p > 0:
+        pbr = p / bv
+
+    if pbr > 0 and reg_p > 0 and p != reg_p: 
+        pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
-    if roe == 0.0:
+    if roe <= 0.0 or roe > 300.0:
         try:
             inc = stk.income_stmt
             bs = stk.balance_sheet
@@ -2142,9 +2171,7 @@ def generate_quick_ai_preview(tk):
     real_roic = get_real_roic(stk, i)
     a_pe = safe_float(i.get('fiveYearAvgPE'))
     if a_pe <= 0.0:
-        currency = str(i.get('currency', 'USD')).upper()
-        fin_currency = str(i.get('financialCurrency', 'USD')).upper()
-        if currency == fin_currency:
+        if not is_adr:
             try:
                 _inc = stk.income_stmt
                 if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
@@ -2157,16 +2184,11 @@ def generate_quick_ai_preview(tk):
             except: pass
 
     if a_pe < 5.0 or a_pe > 200.0:
-        _raw_t_eps = safe_float(i.get('trailingEps'))
-        _raw_f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-        if _raw_t_eps > 0: a_pe = reg_p / _raw_t_eps
-        elif _raw_f_eps > 0: a_pe = reg_p / _raw_f_eps
-        else:
-            _raw_t_pe = safe_float(i.get('trailingPE'))
-            _raw_f_pe = safe_float(i.get('forwardPE'))
-            if _raw_t_pe > 0: a_pe = _raw_t_pe
-            elif _raw_f_pe > 0: a_pe = _raw_f_pe
-            else: a_pe = 0.0
+        if t_eps > 0: a_pe = reg_p / t_eps
+        elif f_eps > 0: a_pe = reg_p / f_eps
+        elif t_pe_raw > 0: a_pe = t_pe_raw
+        elif f_pe_raw > 0: a_pe = f_pe_raw
+        else: a_pe = 0.0
 
     off = i.get('companyOfficers', [])
     ceo_raw = '누락'
@@ -2184,27 +2206,9 @@ def generate_quick_ai_preview(tk):
             if len(prefix) < 40 and "위키 및 공공" not in prefix:
                 ceo_cleaned = prefix
 
-    # =================================================================
-    # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
     
-    # [핵심 수술] ADR(대만, 중국, 홍콩, 일본) 환율 왜곡 방어 로직 추가
-    currency_trade = str(i.get('currency', 'USD')).upper()
-    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-    is_adr = (currency_trade != currency_fin) and not kr
-    adr_fx_ratio = 1.0
-    
-    if is_adr:
-        try:
-            inc_temp = stk.income_stmt
-            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
-                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
-                eps_curr = safe_float(i.get('trailingEps'))
-                if ni_curr != 0 and eps_curr != 0: 
-                    adr_fx_ratio = abs(eps_curr / ni_curr)
-        except: pass
-
     if is_financial or kr or is_cyclical:
         try:
             hist_5y = stk.history(period="5y")
@@ -2220,7 +2224,6 @@ def generate_quick_ai_preview(tk):
                     elif tk == "BRK-A":
                         a_pbr = avg_price / (avg_eq / 1440000.0)
                     elif is_adr and adr_fx_ratio != 1.0:
-                        # [핵심] 중국/일본/대만 등 환율이 다른 기업은 환율 계수(adr_fx_ratio)를 곱해 완벽 보정
                         past_bvps = avg_eq * adr_fx_ratio
                         if past_bvps > 0:
                             a_pbr = avg_price / past_bvps
@@ -2238,6 +2241,7 @@ def generate_quick_ai_preview(tk):
             f_pbr = pbr
         elif base_bv > 0 and f_eps != 0:
             div_r_val = safe_float(i.get('dividendRate', 0))
+            # [핵심 수술 2] 환율이 정상 보정된 base_bv를 통해 f_bps를 안전하게 산출!
             f_bps = base_bv + f_eps - div_r_val
             if f_bps > 0: f_pbr = reg_p / f_bps
             else: f_pbr = reg_p / base_bv
