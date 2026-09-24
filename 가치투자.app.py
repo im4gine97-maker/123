@@ -2188,7 +2188,24 @@ def generate_quick_ai_preview(tk):
     # 변수 계산 로직 (에러 방지를 위해 들여쓰기 완벽하게 맞춤)
     a_pbr = 0.0
     f_pbr = pbr
-    if is_financial or kr:  # [핵심] 한국 주식도 자체 PBR 엔진 가동
+    
+    # [핵심 수술] ADR(대만, 중국, 홍콩, 일본) 환율 왜곡 방어 로직 추가
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+    is_adr = (currency_trade != currency_fin) and not kr
+    adr_fx_ratio = 1.0
+    
+    if is_adr:
+        try:
+            inc_temp = stk.income_stmt
+            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
+                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
+                eps_curr = safe_float(i.get('trailingEps'))
+                if ni_curr != 0 and eps_curr != 0: 
+                    adr_fx_ratio = abs(eps_curr / ni_curr)
+        except: pass
+
+    if is_financial or kr or is_cyclical:
         try:
             hist_5y = stk.history(period="5y")
             avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
@@ -2197,24 +2214,36 @@ def generate_quick_ai_preview(tk):
                 eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
                 if len(eq_vals) > 0:
                     avg_eq = sum(eq_vals) / len(eq_vals)
-                    sh_proxy = safe_float(i.get('sharesOutstanding'))
-                    if tk == "BRK-B": sh_proxy = 2160000000.0
-                    elif tk == "BRK-A": sh_proxy = 1440000.0
-                    if avg_eq > 0 and sh_proxy > 0:
-                        a_pbr = avg_price / (avg_eq / sh_proxy)
+                    
+                    if tk == "BRK-B":
+                        a_pbr = avg_price / (avg_eq / 2160000000.0)
+                    elif tk == "BRK-A":
+                        a_pbr = avg_price / (avg_eq / 1440000.0)
+                    elif is_adr and adr_fx_ratio != 1.0:
+                        # [핵심] 중국/일본/대만 등 환율이 다른 기업은 환율 계수(adr_fx_ratio)를 곱해 완벽 보정
+                        past_bvps = avg_eq * adr_fx_ratio
+                        if past_bvps > 0:
+                            a_pbr = avg_price / past_bvps
+                    else:
+                        sh_proxy = safe_float(i.get('sharesOutstanding'))
+                        if avg_eq > 0 and sh_proxy > 0:
+                            a_pbr = avg_price / (avg_eq / sh_proxy)
         except: pass
-        if a_pbr <= 0: a_pbr = safe_float(i.get('priceToBook'))
-        if a_pbr <= 0: a_pbr = 1.0
-
-        if tk == "BRK-B" or tk == "BRK-A":
+        
+        if a_pbr <= 0 or a_pbr > 200.0: 
+            a_pbr = pbr if pbr > 0 else 1.0
+            
+        base_bv = bv
+        if tk in ["BRK-B", "BRK-A"]:
             f_pbr = pbr
-        else:
-            if bv > 0 and f_eps != 0:
-                div_r_val = safe_float(i.get('dividendRate', 0))
-                f_bps = bv + f_eps - div_r_val
-                if f_bps > 0: f_pbr = reg_p / f_bps
+        elif base_bv > 0 and f_eps != 0:
+            div_r_val = safe_float(i.get('dividendRate', 0))
+            f_bps = base_bv + f_eps - div_r_val
+            if f_bps > 0: f_pbr = reg_p / f_bps
+            else: f_pbr = reg_p / base_bv
+        elif base_bv > 0:
+            f_pbr = reg_p / base_bv
 
-    # 금융주 및 한국주식은 PBR 할인율을, 일반 미국주식은 PER 할인율을 연동합니다.
     if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
