@@ -2418,15 +2418,15 @@ with tab1:
                     'semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 
                     'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 
                     'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs',
-                    'aerospace', 'semiconductor equipment', 'defense' # [추가] 항공우주, 반도체장비, 방산
+                    'aerospace', 'semiconductor equipment', 'defense', 'conglomerates' # [추가] 복합기업(상사)
                 ]
                 cyclical_kor_kw = [
                     '메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', 
                     '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지',
-                    '방산', '반도체 장비' # [추가] 방산, 반도체 장비
+                    '방산', '반도체 장비', '종합상사' # [추가] 종합상사
                 ]
                 
-                # [추가] 중국, 홍콩, 대만 기업 자동 감지 로직
+                # [유지] 중국, 홍콩, 대만 기업 자동 감지 로직
                 chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
                 taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
     
@@ -2435,28 +2435,32 @@ with tab1:
 
                 # 확실히 PBR 평가가 필요한 국내외 시클리컬 기업 티커 명시적 추가
                 cyclical_tickers = [
-                    # --- 기존 티커 (미국/글로벌/대만) ---
+                    # --- 1. 미국/글로벌 기존 시클리컬 ---
                     "MU", "WDC", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", 
                     "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", 
                     "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", 
-                    "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC",
+                    "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE",
                     
-                    # --- [신규 추가] 글로벌: 항공방산 / 반도체장비 / 원자재 / 일본하드웨어 / 경기민감 ---
-                    "BA", "GE", "RTX", "LMT", "GD", "NOC",        # 보잉, GE, 록히드마틴 등 항공우주/방산
-                    "INTC", "AMAT", "LRCX", "KLAC",               # 인텔, 어플라이드, 램리서치 등 반도체 제조/장비
-                    "BHP", "RIO", "VALE", "BP", "LIN",            # 글로벌 메이저 광산 및 화학/원자재
-                    "SONY", "KYO",                                # 소니, 교세라 (일본 핵심 장치산업)
-                    "EXPE",                                       # 익스피디아 (경기민감 여행)
+                    # --- 2. 항공방산 / 반도체장비 / 원자재 / 일본하드웨어 ---
+                    "BA", "GE", "RTX", "LMT", "GD", "NOC",        
+                    "INTC", "AMAT", "LRCX", "KLAC",               
+                    "BHP", "RIO", "VALE", "BP", "LIN",            
+                    "SONY", "KYO",                                
                     
-                    # --- 기존 티커 (한국) ---
+                    # --- 3. [신규 대거 추가] 일본 종합상사 / 유럽 중공업 / 글로벌 기계 및 금광 ---
+                    "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY",  # 워런 버핏의 일본 5대 종합상사 ADR
+                    "HITC", "CAJ", "FANUY",                       # 히타치, 캐논, 화낙 (일본 핵심 장비/제조)
+                    "EADSY", "SIEGY", "BASFY", "STLA",            # 에어버스, 지멘스, 바스프, 스텔란티스 (유럽 장치산업)
+                    "NEM", "GOLD", "SCCO",                        # 뉴몬트, 배릭골드, 서던코퍼 (글로벌 금/구리 광산)
+                    "GFS", "STM",                                 # 글로벌파운드리, ST마이크로 (종합반도체)
+                    "PCAR", "CMI", "LUV", "MPC",                  # 파카, 커민스, 사우스웨스트항공, 마라톤 (미국 기계/운송/정유)
+                    
+                    # --- 4. 한국 기업 ---
                     "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS",
                     "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", 
                     "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", 
                     "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", 
-                    "000880.KS", "010120.KS", "298040.KS",
-                    
-                    # --- [신규 추가] 한국: IT장비 / 장치산업 / 조선 ---
-                    "009150.KS", "011070.KS", "010140.KS"         # 삼성전기, LG이노텍, 삼성중공업
+                    "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"
                 ]
 
                 is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
