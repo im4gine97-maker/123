@@ -2215,7 +2215,7 @@ def generate_quick_ai_preview(tk):
                 if f_bps > 0: f_pbr = reg_p / f_bps
 
     # 금융주 및 한국주식은 PBR 할인율을, 일반 미국주식은 PER 할인율을 연동합니다.
-    if is_financial or kr:
+    if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
         pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
