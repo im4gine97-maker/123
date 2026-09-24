@@ -520,10 +520,14 @@ fallback_13f_data = {
         {"티커": "AXTA", "기업명": "Axalta Coating", "비중(%)": 0.81}
     ],
     "HC": [
-        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 24.55}, {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 23.39}, 
-        {"티커": "BRK-A", "기업명": "Berkshire Hathaway A", "비중(%)": 14.98}, {"티커": "BAC", "기업명": "Bank of America", "비중(%)": 12.45}, 
-        {"티커": "AAPL", "기업명": "Apple", "비중(%)": 10.86}, {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.68}, 
-        {"티커": "CROX", "기업명": "Crocs", "비중(%)": 2.89}, {"티커": "TME", "기업명": "Tencent Music", "비중(%)": 1.49}
+        {"티커": "GOOGL", "기업명": "Alphabet Class A", "비중(%)": 24.55}, 
+        {"티커": "GOOG", "기업명": "Alphabet Class C", "비중(%)": 23.39}, 
+        {"티커": "PDD", "기업명": "PDD Holdings", "비중(%)": 22.17}, 
+        {"티커": "BRK-B", "기업명": "Berkshire Hathaway B", "비중(%)": 14.98}, 
+        {"티커": "EWBC", "기업명": "East West Bancorp", "비중(%)": 9.68}, 
+        {"티커": "CROX", "기업명": "Crocs", "비중(%)": 2.89}, 
+        {"티커": "TME", "기업명": "Tencent Music", "비중(%)": 1.49},
+        {"티커": "AAPL", "기업명": "Apple", "비중(%)": 0.86}
     ],
     "AKRE": [
         {"티커": "MA", "기업명": "Mastercard", "비중(%)": 20.01}, {"티커": "MCO", "기업명": "Moody's", "비중(%)": 10.26}, 
