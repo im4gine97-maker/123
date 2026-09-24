@@ -2411,19 +2411,21 @@ with tab1:
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
                 
-                # [추가] 탭 1 메인 로직에 시클리컬(경기민감주) 판독 변수 선언 보장!
                 # =====================================================================
                 # [금융/보험주 강력 탐지 로직 바로 아래에 위치한 시클리컬 판독 변수 교체]
                 # =====================================================================
                 cyclical_eng_kw = [
                     'semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 
                     'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 
-                    'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs'
+                    'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs',
+                    'aerospace', 'semiconductor equipment', 'defense' # [추가] 항공우주, 반도체장비, 방산
                 ]
                 cyclical_kor_kw = [
                     '메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', 
-                    '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지'
+                    '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지',
+                    '방산', '반도체 장비' # [추가] 방산, 반도체 장비
                 ]
+                
                 # [추가] 중국, 홍콩, 대만 기업 자동 감지 로직
                 chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
                 taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
@@ -2433,32 +2435,33 @@ with tab1:
 
                 # 확실히 PBR 평가가 필요한 국내외 시클리컬 기업 티커 명시적 추가
                 cyclical_tickers = [
-                    # --- 기존 티커 ---
+                    # --- 기존 티커 (미국/글로벌/대만) ---
+                    "MU", "WDC", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", 
+                    "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", 
+                    "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", 
+                    "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC",
+                    
+                    # --- [신규 추가] 글로벌: 항공방산 / 반도체장비 / 원자재 / 일본하드웨어 / 경기민감 ---
+                    "BA", "GE", "RTX", "LMT", "GD", "NOC",        # 보잉, GE, 록히드마틴 등 항공우주/방산
+                    "INTC", "AMAT", "LRCX", "KLAC",               # 인텔, 어플라이드, 램리서치 등 반도체 제조/장비
+                    "BHP", "RIO", "VALE", "BP", "LIN",            # 글로벌 메이저 광산 및 화학/원자재
+                    "SONY", "KYO",                                # 소니, 교세라 (일본 핵심 장치산업)
+                    "EXPE",                                       # 익스피디아 (경기민감 여행)
+                    
+                    # --- 기존 티커 (한국) ---
                     "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS",
-                    "329180.KS", "042660.KS", "010130.KS", "003490.KS", "MU", "WDC", "XOM", "CVX", "COP", "NVDA",
-                    "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "005380.KS", "000270.KS", "TM", "GM", "F", "SNDK", "TSM", "ASML",
+                    "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", 
+                    "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", 
+                    "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", 
+                    "000880.KS", "010120.KS", "298040.KS",
                     
-                    # --- [신규 추가] 해외 에너지 / 화학 / 원자재 / 운송 / 기계 / 크루즈 ---
-                    "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR",  # 에너지/석탄/시추
-                    "DOW", "DD", "APD", "EXP", "AA",  # 화학/건자재/비철금속
-                    "CAT", "DE", "DHI", "LEN",  # 중장비/농기계/건설
-                    "RCL", "CCL", "NCLH", "AERO", "TRMD",  # 크루즈/항공/해운
-                    "HMC",  # 자동차(혼다)
-                    
-                    # --- [신규 추가] 국내 정유 / 화학 / 조선 / 건설 / 기계 / 해운 / 자본재 ---
-                    "096770.KS", # SK이노베이션
-                    "009540.KS", "010620.KS", # HD한국조선해양, 현대미포조선
-                    "034020.KS", "241560.KS", # 두산에너빌리티, 두산밥캣
-                    "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", # 현대건설, 삼성E&A, GS건설, 대우건설, 금호건설
-                    "028670.KS", # 팬오션
-                    "009830.KS", "002380.KS", # 한화솔루션, KCC
-                    "064350.KS", "161390.KS", # 현대로템, 한국타이어앤테크놀로지
-                    "000880.KS", "010120.KS", "298040.KS" # 한화, LS일렉트릭, 효성중공업 (경기민감 자본재)
+                    # --- [신규 추가] 한국: IT장비 / 장치산업 / 조선 ---
+                    "009150.KS", "011070.KS", "010140.KS"         # 삼성전기, LG이노텍, 삼성중공업
                 ]
 
                 is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
-                  any(kw in summary_str for kw in cyclical_kor_kw) or \
-                  (tk_upper in cyclical_tickers) or is_china_tw
+                              any(kw in summary_str for kw in cyclical_kor_kw) or \
+                              (tk_upper in cyclical_tickers) or is_china_tw
                 # =====================================================================
                 # =====================================================================
                 
