@@ -436,7 +436,7 @@ global_new_tickers = {
     "스미토모상사": "SSUMY", "SSUMY": "SSUMY", # 스미토모(SMFG)와 중복 방지
     "마루베니": "MARUY", "MARUY": "MARUY",
     "히타치": "HITC", "HITC": "HITC",
-    "캐논": "CAJ", "CAJ": "CAJ",
+    "캐논": "CAJPY", "CAJ": "CAJPY",
     "화낙": "FANUY", "FANUY": "FANUY",
     "에어버스": "EADSY", "EADSY": "EADSY",
     "지멘스": "SIEGY", "SIEGY": "SIEGY",
