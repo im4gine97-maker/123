@@ -1694,7 +1694,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
     if is_financial or kr or is_cyclical:
-        p_score = pmos * 1.0
+        p_score = pmos * 1.3
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
     else:
@@ -1702,7 +1702,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             p_score = 0
             p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
         else:
-            p_score = pmos * 1.0
+            p_score = pmos * 1.3
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
