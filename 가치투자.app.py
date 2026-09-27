@@ -1736,20 +1736,22 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # [수정] 누진제 방식의 안전마진 점수 계산 (주가가 올라 안전마진이 줄어들면 점수가 급격히 하락하여 적정가격으로 수렴)
+    # [수정] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (점수 변동성 극대화)
     def calc_dynamic_score(margin_pct):
         if margin_pct >= 0:
-            # 할인 (저평가) 구간: 점수가 높아질수록 구간별로 가중치가 1.0 -> 0.8 -> 0.6 -> 0.4로 감소 (누진 적용)
+            # 할인 (저평가) 구간: 1.5배부터 시작하여 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
             if margin_pct <= 10:
-                return margin_pct * 1.0
+                return margin_pct * 1.5
             elif margin_pct <= 20:
-                return (10 * 1.0) + ((margin_pct - 10) * 0.8)
+                return (10 * 1.5) + ((margin_pct - 10) * 1.4)
             elif margin_pct <= 30:
-                return (10 * 1.0) + (10 * 0.8) + ((margin_pct - 20) * 0.6)
+                return (10 * 1.5) + (10 * 1.4) + ((margin_pct - 20) * 1.3)
+            elif margin_pct <= 40:
+                return (10 * 1.5) + (10 * 1.4) + (10 * 1.3) + ((margin_pct - 30) * 1.2)
             else:
-                return (10 * 1.0) + (10 * 0.8) + (10 * 0.6) + ((margin_pct - 30) * 0.4)
+                return (10 * 1.5) + (10 * 1.4) + (10 * 1.3) + (10 * 1.2) + ((margin_pct - 40) * 1.1)
         else:
-            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 1.5배 -> 2.5배로 강력하게 감점 (적정가 이하로 빠르게 끌어내림)
+            # 할증 (고평가) 구간: 1.5배로 시작하여 마이너스 폭이 커질수록 2.0배, 2.5배로 더 강력하게 감점
             abs_m = abs(margin_pct)
             if abs_m <= 10:
                 return margin_pct * 1.5
@@ -1772,7 +1774,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             p_score = calc_dynamic_score(pmos)
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
-
     # ==============================================================================
     # 4. CAP_SCORE [NEW: 4년 가중평균 + 일관성 및 모멘텀 결합 하이브리드 엔진]
     # ==============================================================================
