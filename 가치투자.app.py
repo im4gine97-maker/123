@@ -1736,10 +1736,21 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
+    # [추가] 절댓값 기준 안전마진(할인/할증)이 커질수록 1.5배에서 1.0배까지 가중치를 점진적으로 차감하는 함수
+    def calc_dynamic_score(margin_pct):
+        abs_m = abs(margin_pct)
+        if abs_m < 10: mult = 1.5
+        elif abs_m < 20: mult = 1.4
+        elif abs_m < 30: mult = 1.3
+        elif abs_m < 40: mult = 1.2
+        elif abs_m < 50: mult = 1.1
+        else: mult = 1.0
+        return margin_pct * mult
+
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
     if is_financial or kr or is_cyclical:
-        p_score = pmos * 1.5
+        p_score = calc_dynamic_score(pmos)
         p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
         score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
     else:
@@ -1747,7 +1758,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             p_score = 0
             p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
         else:
-            p_score = pmos * 1.5
+            p_score = calc_dynamic_score(pmos)
             p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
         score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
 
@@ -1869,7 +1880,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             dcf_score = -20  
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            raw_dcf = mos * 1.0
+            # 1.5배 기반 점진적 가중치 차감 로직 동일 적용
+            raw_dcf = calc_dynamic_score(mos)
             dcf_score = max(-30.0, min(20.0, raw_dcf))
             limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -30.0 else "")
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
