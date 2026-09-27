@@ -1740,10 +1740,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     def calc_dynamic_score(margin_pct):
         abs_m = abs(margin_pct)
         if abs_m < 10: mult = 1.4
-        elif abs_m < 20: mult = 1.3
-        elif abs_m < 30: mult = 1.2
-        elif abs_m < 40: mult = 1.1
-        elif abs_m < 50: mult = 1.0
+        elif abs_m < 15: mult = 1.3
+        elif abs_m < 20: mult = 1.2
+        elif abs_m < 25: mult = 1.1
+        elif abs_m < 30: mult = 1.0
         else: mult = 0.9
         return margin_pct * mult
 
