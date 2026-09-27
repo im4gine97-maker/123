@@ -1739,12 +1739,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     # [추가] 절댓값 기준 안전마진(할인/할증)이 커질수록 1.5배에서 1.0배까지 가중치를 점진적으로 차감하는 함수
     def calc_dynamic_score(margin_pct):
         abs_m = abs(margin_pct)
-        if abs_m < 10: mult = 1.35
-        elif abs_m < 15: mult = 1.3
-        elif abs_m < 20: mult = 1.25
-        elif abs_m < 25: mult = 1.2
-        elif abs_m < 30: mult = 1.15
-        else: mult = 1.1
+        if abs_m < 20: mult = 1.5
+        elif abs_m < 40: mult = 0.8
+        elif abs_m < 50: mult = 0.7
+        else: mult = 0.6
         return margin_pct * mult
 
     # 3. 가격 매력도 (PER/PBR 안전마진)
