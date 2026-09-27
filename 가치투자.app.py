@@ -1736,14 +1736,27 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # [추가] 절댓값 기준 안전마진(할인/할증)이 커질수록 1.5배에서 1.0배까지 가중치를 점진적으로 차감하는 함수
+    # [수정] 누진제 방식의 안전마진 점수 계산 (주가가 올라 안전마진이 줄어들면 점수가 급격히 하락하여 적정가격으로 수렴)
     def calc_dynamic_score(margin_pct):
-        abs_m = abs(margin_pct)
-        if abs_m < 20: mult = 1.5
-        elif abs_m < 40: mult = 0.8
-        elif abs_m < 50: mult = 0.7
-        else: mult = 0.6
-        return margin_pct * mult
+        if margin_pct >= 0:
+            # 할인 (저평가) 구간: 점수가 높아질수록 구간별로 가중치가 1.0 -> 0.8 -> 0.6 -> 0.4로 감소 (누진 적용)
+            if margin_pct <= 10:
+                return margin_pct * 1.0
+            elif margin_pct <= 20:
+                return (10 * 1.0) + ((margin_pct - 10) * 0.8)
+            elif margin_pct <= 30:
+                return (10 * 1.0) + (10 * 0.8) + ((margin_pct - 20) * 0.6)
+            else:
+                return (10 * 1.0) + (10 * 0.8) + (10 * 0.6) + ((margin_pct - 30) * 0.4)
+        else:
+            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 1.5배 -> 2.5배로 강력하게 감점 (적정가 이하로 빠르게 끌어내림)
+            abs_m = abs(margin_pct)
+            if abs_m <= 10:
+                return margin_pct * 1.5
+            elif abs_m <= 20:
+                return -( (10 * 1.5) + ((abs_m - 10) * 2.0) )
+            else:
+                return -( (10 * 1.5) + (10 * 2.0) + ((abs_m - 20) * 2.5) )
 
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
@@ -1878,13 +1891,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             dcf_score = -20  
             dcf_reason = t("현금흐름 변동성 극심(지그재그)으로 신뢰도 최하점", "Extreme FCF volatility (Zigzag)")
         else:
-            # 1.5배 기반 점진적 가중치 차감 로직 동일 적용
             raw_dcf = calc_dynamic_score(mos)
             dcf_score = max(-30.0, min(20.0, raw_dcf))
             limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -30.0 else "")
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
-
     # 8. 거시 매력도 (ERP)
     erp_score = 0
     if f_pe <= 0:
