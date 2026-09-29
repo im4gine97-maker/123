@@ -1532,7 +1532,10 @@ def analyze_trends(stk):
     bps_trend = f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
     if stk is None: return eps_trend, bps_trend
     try:
-        inc, bs = stk.income_stmt, stk.balance_sheet
+        inc = stk.income_stmt
+        bs = stk.balance_sheet
+        
+        # 1. EPS 추세 분석
         if inc is not None and not inc.empty:
             target_col = 'Basic EPS' if 'Basic EPS' in inc.index else ('Diluted EPS' if 'Diluted EPS' in inc.index else None)
             if target_col:
@@ -1542,13 +1545,32 @@ def analyze_trends(stk):
                         eps_trend = f"<span class='good'>{t('[합격] 4년 지속 상승 추세', '[Pass] 4Y Consistent Upward Trend')}</span>"
                     else: 
                         eps_trend = f"<span class='highlight'>{t('[주의] 변동/하락', '[Warning] Fluctuating/Declining')}</span>"
+                        
+        # 2. BPS(자본) 추세 분석 및 주주환원 팩트 체크
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
                 if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: 
                     bps_trend = f"<span class='good'>{t('[합격] 4년 자본 지속 증가', '[Pass] 4Y Consistent Equity Growth')}</span>"
                 else: 
-                    bps_trend = f"<span class='highlight'>{t('[주의] 자본 변동/감소', '[Warning] Equity Fluctuating/Declining')}</span>"
+                    # [핵심 수술] 자본이 감소했을 때, 장사를 못해서인지 주주에게 퍼줘서(코스트코, 애플 등)인지 검증
+                    is_shareholder_return = False
+                    try:
+                        cf = stk.cash_flow
+                        if cf is not None and not cf.empty and inc is not None and not inc.empty:
+                            div = abs(safe_float(cf.loc['Cash Dividends Paid'].iloc[0])) if 'Cash Dividends Paid' in cf.index else 0
+                            bb = abs(safe_float(cf.loc['Repurchase Of Capital Stock'].iloc[0])) if 'Repurchase Of Capital Stock' in cf.index else 0
+                            ni = safe_float(inc.loc['Net Income'].iloc[0]) if 'Net Income' in inc.index else 0
+                            
+                            # 순이익(흑자)을 냈음에도 그중 50% 이상을 배당이나 자사주 매입으로 태워버린 경우
+                            if ni > 0 and (div + bb) >= (ni * 0.5):
+                                is_shareholder_return = True
+                    except: pass
+                    
+                    if is_shareholder_return:
+                        bps_trend = f"<span style='color:#fdcb6e; font-weight:bold;'>{t('[특수] 막대한 주주환원(특별배당/자사주)으로 인한 자본 감소', '[Note] Equity down due to massive shareholder returns')}</span>"
+                    else:
+                        bps_trend = f"<span class='highlight'>{t('[주의] 자본 변동/감소', '[Warning] Equity Fluctuating/Declining')}</span>"
     except: pass
     return eps_trend, bps_trend
 
