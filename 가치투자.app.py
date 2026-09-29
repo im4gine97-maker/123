@@ -2425,24 +2425,42 @@ st.markdown("""
     --border-color: #DADCE0;
 }
 
-.main { background-color: var(--bg-color); color: var(--text-main); font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
-h1, h2, h3 { color: var(--text-main); font-weight: 700; letter-spacing: -0.5px; }
-
-/* 탭 디자인 (구글 스타일) */
-.stTabs [data-baseweb="tab-list"] { gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 0; }
-.stTabs [data-baseweb="tab"] { font-size: 1rem; font-weight: 500; color: var(--text-muted); background: transparent; padding: 12px 16px; border-radius: 8px 8px 0 0; border: none; }
-.stTabs [aria-selected="true"] { color: var(--google-blue) !important; border-bottom: 3px solid var(--google-blue) !important; background: rgba(26, 115, 232, 0.04) !important; }
-
-/* 텍스트 컬러 포인트 */
-.good { color: var(--google-green); font-weight: 600; }
-.highlight { color: var(--google-red); font-weight: 600; }
-
-/* 매크로 티커 디자인 */
-.macro-ticker::-webkit-scrollbar { display: none; }
-.macro-ticker { -ms-overflow-style: none; scrollbar-width: none; }
+/* ... (기존 설정들 그대로 유지) ... */
 
 /* Streamlit 기본 테이블/차트 UI 깔끔하게 */
 div[data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+
+/* ========================================================
+   [추가] 닫혀 있는 사이드바 열기 버튼(>) 옆에 보조툴 안내 뱃지 달기 
+   ======================================================== */
+[data-testid="collapsedControl"] {
+    display: flex;
+    align-items: center;
+    z-index: 99999;
+}
+
+[data-testid="collapsedControl"]::after {
+    content: "🛠️ 설정 & 가상 시뮬레이터";
+    margin-left: 10px;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--google-blue);
+    background-color: rgba(26, 115, 232, 0.08);
+    border: 1px solid rgba(26, 115, 232, 0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    pointer-events: none; /* 클릭을 방해하지 않도록 처리 */
+    transition: all 0.3s ease;
+}
+
+[data-testid="collapsedControl"]:hover::after {
+    background-color: rgba(26, 115, 232, 0.15);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
 </style>
 """, unsafe_allow_html=True)
 
