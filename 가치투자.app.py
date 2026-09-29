@@ -3429,7 +3429,7 @@ with tab1:
                 else:
                     fwd_pe_val_str = "N/A"
                     fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
-                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
+                lbl_fwd_pe_title = "본전 회수 기간 (Fwd PER)"
 
                 pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% (저평가)</span>"
