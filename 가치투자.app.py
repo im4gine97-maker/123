@@ -2862,50 +2862,49 @@ with tab1:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
 
-                # --- [금융주, 한국주식, 시클리컬 전용 평균 PBR 자체 계산기] ---
+                # --- [모든 기업 대상: 5년 평균 PBR 및 Fwd PBR 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = pbr
-                if is_financial or kr or is_cyclical:
-                    try:
-                        hist_5y = stk.history(period="5y")
-                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                            if len(eq_vals) > 0:
-                                avg_eq = sum(eq_vals) / len(eq_vals)
-                                
-                                if tk == "BRK-B":
-                                    a_pbr = avg_price / (avg_eq / 2160000000.0)
-                                elif tk == "BRK-A":
-                                    a_pbr = avg_price / (avg_eq / 1440000.0)
-                                elif is_adr and adr_fx_ratio != 1.0:
-                                    past_bvps = avg_eq * adr_fx_ratio
-                                    if past_bvps > 0:
-                                        a_pbr = avg_price / past_bvps
-                                else:
-                                    sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                    if avg_eq > 0 and sh_proxy > 0:
-                                        a_pbr = avg_price / (avg_eq / sh_proxy)
-                    except: pass
+                try:
+                    hist_5y = stk.history(period="5y")
+                    avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+                    bs = stk.balance_sheet
+                    if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                        if len(eq_vals) > 0:
+                            avg_eq = sum(eq_vals) / len(eq_vals)
+                            
+                            if tk == "BRK-B":
+                                a_pbr = avg_price / (avg_eq / 2160000000.0)
+                            elif tk == "BRK-A":
+                                a_pbr = avg_price / (avg_eq / 1440000.0)
+                            elif is_adr and adr_fx_ratio != 1.0:
+                                past_bvps = avg_eq * adr_fx_ratio
+                                if past_bvps > 0:
+                                    a_pbr = avg_price / past_bvps
+                            else:
+                                sh_proxy = safe_float(i.get('sharesOutstanding'))
+                                if avg_eq > 0 and sh_proxy > 0:
+                                    a_pbr = avg_price / (avg_eq / sh_proxy)
+                except: pass
+                
+                # 결측치 최후 방어
+                if a_pbr <= 0 or a_pbr > 200.0: 
+                    a_pbr = pbr if pbr > 0 else 1.0
+                
+                base_bv = bv
+                if tk in ["BRK-B", "BRK-A"]:
+                    f_pbr = pbr
+                elif base_bv > 0 and f_eps != 0:
+                    div_r_val = safe_float(i.get('dividendRate', 0))
+                    f_bps = base_bv + f_eps - div_r_val
+                    if f_bps > 0: f_pbr = reg_p / f_bps
+                    else: f_pbr = reg_p / base_bv
+                elif base_bv > 0:
+                    f_pbr = reg_p / base_bv
                     
-                    # 결측치 최후 방어
-                    if a_pbr <= 0 or a_pbr > 200.0: 
-                        a_pbr = pbr if pbr > 0 else 1.0
-                    
-                    base_bv = bv
-                    if tk in ["BRK-B", "BRK-A"]:
-                        f_pbr = pbr
-                    elif base_bv > 0 and f_eps != 0:
-                        div_r_val = safe_float(i.get('dividendRate', 0))
-                        f_bps = base_bv + f_eps - div_r_val
-                        if f_bps > 0: f_pbr = reg_p / f_bps
-                        else: f_pbr = reg_p / base_bv
-                    elif base_bv > 0:
-                        f_pbr = reg_p / base_bv
-                        
-                    if 'multiplier' in locals() and multiplier != 1.0:
-                        f_pbr = f_pbr * multiplier
+                if 'multiplier' in locals() and multiplier != 1.0:
+                    f_pbr = f_pbr * multiplier
                 # =====================================================================
                 # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
                 # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
@@ -3414,40 +3413,53 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # PBR 모드 조건에 is_cyclical 추가
-                if is_financial or kr or is_cyclical:
-                    t_pe_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
-                    if f_pbr > 0 and a_pbr > 0:
-                        fwd_pe_val_str = f"{f_pbr:.2f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pbr:.2f}배</span>"
-                    else:
-                        fwd_pe_val_str = "N/A"
-                        fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
-                    lbl_fwd_title = "장부가치 회수 (Fwd PBR)"
+                # --- [수정] 모든 기업에 대해 PER, PBR UI 카드를 둘 다 표출 ---
+                per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+                if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% (저평가)</span>"
+                elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% (적정수준)</span>"
+                else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% (고평가)</span>"
+
+                t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
+                if f_pe > 0 and a_pe > 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                elif f_pe > 0 and a_pe <= 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
                 else:
-                    t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
-                    if f_pe > 0 and a_pe > 0:
-                        fwd_pe_val_str = f"{f_pe:.1f}배"
-                        fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
-                    elif f_pe > 0 and a_pe <= 0:
-                        fwd_pe_val_str = f"{f_pe:.1f}배"
-                        fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
-                    else:
-                        fwd_pe_val_str = "N/A"
-                        fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
-                    lbl_fwd_title = "본전 회수 기간 (예상 PER)"
+                    fwd_pe_val_str = "N/A"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
+
+                pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+                if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% (저평가)</span>"
+                elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% (적정수준)</span>"
+                else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% (고평가)</span>"
+
+                t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
+                if f_pbr > 0 and a_pbr > 0:
+                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                elif f_pbr > 0 and a_pbr <= 0:
+                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                else:
+                    fwd_pbr_val_str = "N/A"
+                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                lbl_fwd_pbr_title = "장부가치 회수 (Fwd PBR)"
+
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
-                if total_score >= 70:
-                    easy_summary_msg = "  돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
-                elif total_score >= 30:
-                    easy_summary_msg = "  튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
-                elif total_score >= 0:
-                    easy_summary_msg = "  비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
-                elif total_score >= -90:
-                    easy_summary_msg = "  좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
+                if total_score_val >= 70:
+                    easy_summary_msg = "💰 돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
+                elif total_score_val >= 30:
+                    easy_summary_msg = "✅ 튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
+                elif total_score_val >= 0:
+                    easy_summary_msg = "⚖️ 비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
+                elif total_score_val >= -90:
+                    easy_summary_msg = "⚠️ 좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
                 else:
-                    easy_summary_msg = "  실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
+                    easy_summary_msg = "🚨 실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
                 # ------------------------------------------------------------------
 
                 integrated_html = (
@@ -3458,8 +3470,8 @@ with tab1:
                     f"{easy_summary_msg}</div>"
 
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>장부상 자산가치 (PBR)</div><div style='{val_style}'>{pbr:.2f}배</div><div style='{desc_style}'>{pbr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE/ROIC)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>기본 마진율 (매출총이익률)</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
@@ -3696,10 +3708,10 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # [수정됨: 공유하기 익스팬더 적용 및 subheader 제거]
+                # [수정됨: 공유하기 익스팬더 최신 동적 포맷 연동]
                 st.divider()
                 with st.expander(t("5. 분석 결과 공유하기 (클릭하여 열기)", "5. Share Analysis Results (Click to expand)")):
-                    st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 제미나이에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
+                    st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 블로그 등에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
                     
                     def strip_html(h_str):
                         return re.sub(r'<[^>]+>', '', h_str)
@@ -3707,62 +3719,79 @@ with tab1:
                     clean_biz_eval = strip_html(biz_eval)
                     clean_eps_trend = strip_html(eps_trend)
                     clean_bps_trend = strip_html(bps_trend)
+                    clean_op_reason = strip_html(op_reason)
+                    clean_per_mos = strip_html(per_mos_str)
+                    clean_pbr_mos = strip_html(pbr_mos_str)
+
+                    # AI 점수 세부내역 동적 추출
+                    score_details_text = ""
+                    for k, val_data in score_breakdown.items():
+                        v = val_data[0] if isinstance(val_data, tuple) else val_data
+                        reason = val_data[1] if isinstance(val_data, tuple) else ""
+                        clean_reason = strip_html(reason).replace("&nbsp;", " ")
+                        sign_sd = "+" if v > 0 else ""
+                        score_details_text += f"- {k}: {sign_sd}{v:g}점 ({clean_reason})\n"
                     
                     if is_financial:
-                        share_fv = t('금융주 적용 제외 (PBR 대체 분석 진행)', 'N/A for Financials (PBR Evaluated)')
+                        share_fv = t('금융주 적용 제외 (PBR 기반 평가)', 'N/A for Financials')
                         share_mos = t('해당 없음', 'N/A')
-                        biz_summary_str = f"- 자산가치(PBR): {pbr:.2f}배\n- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 효율 (ROE/PBR 기준): {clean_biz_eval}"
-                        clean_p_txt = strip_html(p_txt).strip()
-                        share_val_summary = f"- 가격 매력도 (PBR 기준): {clean_p_txt}"
+                        roic_display = t("금융주 제외", "N/A")
                     else:
-                        clean_per_mos = strip_html(per_mos_str)
-                        biz_summary_str = f"- 자본효율(ROE): {roe:.1f}%\n- 비즈니스 해자 (ROE/ROIC 기준): {clean_biz_eval}"
                         if iv:
                             share_fv = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                             share_mos = f"{mos_val:.1f}% (최상 {mos_best:.1f}%, 최악 {mos_worst:.1f}%)"
                         else:
                             share_fv = t("계산 불가 (FCF 적자 등)", "N/A (Negative FCF)")
                             share_mos = t("계산 불가", "N/A")
-                        share_val_summary = f"- 가격 매력도 (PER 기준): {clean_per_mos}"
+                        roic_display = roic_str
 
-                    share_ko = f"""[AGIE 가치투자 분석 리포트]
+                    share_ko = f"""[AGIE 심층 가치투자 리포트]
 기업명: {i.get('shortName', tk)} ({tk})
-AI 종합 투자의견: {op_title}
+AI 종합 평가: {op_title} ({total_score_val}점)
 
-핵심 밸류에이션 지표
+[1] 핵심 밸류에이션 (안전마진)
 - 현재 주가: {p_str}
 - 추정 적정가(DCF): {share_fv}
-- 안전마진(MoS): {share_mos}
-{biz_summary_str}
-- 본전회수기간(Fwd PER): {f_pe:.1f}배 (과거평균: {a_pe:.1f}배)
-- 장기 BPS 성장: {clean_bps_trend}
+- DCF 안전마진: {share_mos}
+- Fwd PER: {f_pe:.1f}배 (5년 평균: {a_pe:.1f}배) -> {clean_per_mos}
+- Fwd PBR: {f_pbr:.2f}배 (5년 평균: {a_pbr:.2f}배) -> {clean_pbr_mos}
 
-AI 핵심 요약
-{op_reason}
+[2] 펀더멘털 및 해자 검증
+- 자본수익률(ROE): {roe:.1f}% / 투하자본수익률(ROIC): {roic_display}
+- 비즈니스 경쟁력: {clean_biz_eval}
+- 이익 성장 추세: {clean_eps_trend}
+- 자본(BPS) 성장 추세: {clean_bps_trend}
 
-투자 검증 요약
-{share_val_summary}
+[3] AI 스코어링 세부 내역 (가중치 반영)
+{score_details_text.strip()}
+
+[AI 총평]
+{clean_op_reason}
 """
-                    share_en = f"""[AGIE Value Investing Report]
+                    share_en = f"""[AGIE Deep Value Investing Report]
 Company: {i.get('shortName', tk)} ({tk})
-AI Opinion: {op_title}
+AI Opinion: {op_title} ({total_score_val} pts)
 
-Core Valuation Metrics
+[1] Core Valuation (Margin of Safety)
 - Current Price: {p_str}
 - Est. Fair Value (DCF): {share_fv}
-- Margin of Safety (MoS): {share_mos}
-{biz_summary_str}
-- Fwd PE: {f_pe:.1f}x (Hist Avg: {a_pe:.1f}x)
-- Long-term BPS Growth: {clean_bps_trend}
+- DCF Margin of Safety: {share_mos}
+- Fwd PE: {f_pe:.1f}x (5Y Avg: {a_pe:.1f}x) -> {clean_per_mos}
+- Fwd PBR: {f_pbr:.2f}x (5Y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
 
-AI Core Summary
-{op_reason}
+[2] Fundamentals & Moat
+- ROE: {roe:.1f}% / ROIC: {roic_display}
+- Business Moat: {clean_biz_eval}
+- Earnings Trend: {clean_eps_trend}
+- Equity (BPS) Trend: {clean_bps_trend}
 
-Verification Summary
-{share_val_summary}
+[3] AI Scoring Breakdown (Weighted)
+{score_details_text.strip()}
+
+[AI Summary]
+{clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
-
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
