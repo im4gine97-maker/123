@@ -1,0 +1,3 @@
+# .streamlit/secrets.toml
+TOSS_CLIENT_ID = "tsck_live_ofyPd53IPChM9LJC4sc0eM"
+TOSS_CLIENT_SECRET = "tssk_live_3Fg7CpWgOJGhYZUe2ePUgIskHQBzgEj2jS1Oc0Ybp2s"
