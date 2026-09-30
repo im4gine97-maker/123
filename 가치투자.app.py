@@ -721,11 +721,16 @@ for k, v in tmap.items():
     if v not in primary_names:
         primary_names[v] = k
 # ==========================================
-# [3-1] 토스증권 API 연동 엔진 (신규 추가)
+# [3-1] 토스증권 API 연동 엔진 (에러 추적용)
 # ==========================================
 @st.cache_data(ttl=3600)
 def get_toss_access_token():
     try:
+        # 1. 키 값이 제대로 들어왔는지 확인
+        if "TOSS_CLIENT_ID" not in st.secrets:
+            st.error("❌ secrets.toml 파일에 TOSS_CLIENT_ID가 없습니다.")
+            return None
+            
         client_id = st.secrets["TOSS_CLIENT_ID"]
         client_secret = st.secrets["TOSS_CLIENT_SECRET"]
         
@@ -736,11 +741,16 @@ def get_toss_access_token():
             "client_secret": client_secret
         }
         res = requests.post(url, data=payload, timeout=5)
+        
+        # 2. 토스증권 서버의 진짜 응답 확인
         if res.status_code == 200:
             return res.json().get("access_token")
+        else:
+            st.error(f"❌ 토스 API 인증 에러: [{res.status_code}] {res.text}")
+            return None
     except Exception as e:
+        st.error(f"❌ 시스템 에러 발생: {e}")
         return None
-    return None
 
 @st.cache_data(ttl=60)
 def get_toss_market_summary():
@@ -748,7 +758,7 @@ def get_toss_market_summary():
     if not token:
         return None
         
-    url = "https://openapi.tossinvest.com/v1/market/ranking?type=VOLUME" # 거래량 상위 API 예시
+    url = "https://openapi.tossinvest.com/v1/market/ranking?type=VOLUME"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -757,8 +767,10 @@ def get_toss_market_summary():
         res = requests.get(url, headers=headers, timeout=5)
         if res.status_code == 200:
             return res.json()
-    except:
-        pass
+        else:
+            st.warning(f"⚠️ 데이터 호출 에러: [{res.status_code}] {res.text}")
+    except Exception as e:
+        st.warning(f"⚠️ 네트워크 에러: {e}")
     return None
 
 # ==========================================        
