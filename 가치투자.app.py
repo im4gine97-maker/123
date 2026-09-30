@@ -721,65 +721,6 @@ for k, v in tmap.items():
     if v not in primary_names:
         primary_names[v] = k
 # ==========================================
-# [3-1] 토스증권 API 연동 엔진 (에러 추적용)
-# ==========================================
-@st.cache_data(ttl=3600)
-def get_toss_access_token():
-    try:
-        # [추가할 부분] 현재 서버의 진짜 IP 주소를 화면에 출력합니다.
-        current_ip = requests.get('https://api.ipify.org').text
-        st.info(f"📍 현재 앱이 실행 중인 서버의 IP 주소: {current_ip}")
-        
-        client_id = st.secrets["TOSS_CLIENT_ID"]
-        # 1. 키 값이 제대로 들어왔는지 확인
-        if "TOSS_CLIENT_ID" not in st.secrets:
-            st.error("❌ secrets.toml 파일에 TOSS_CLIENT_ID가 없습니다.")
-            st.info(f"현재 스트림릿이 인식한 키 목록: {list(st.secrets.keys())}") # 이 줄을 임시로 추가!
-            return None
-            
-        client_id = st.secrets["TOSS_CLIENT_ID"]
-        client_secret = st.secrets["TOSS_CLIENT_SECRET"]
-        
-        url = "https://openapi.tossinvest.com/oauth2/token"
-        payload = {
-            "grant_type": "client_credentials",
-            "client_id": client_id,
-            "client_secret": client_secret
-        }
-        res = requests.post(url, data=payload, timeout=5)
-        
-        # 2. 토스증권 서버의 진짜 응답 확인
-        if res.status_code == 200:
-            return res.json().get("access_token")
-        else:
-            st.error(f"❌ 토스 API 인증 에러: [{res.status_code}] {res.text}")
-            return None
-    except Exception as e:
-        st.error(f"❌ 시스템 에러 발생: {e}")
-        return None
-
-@st.cache_data(ttl=60)
-def get_toss_market_summary():
-    token = get_toss_access_token()
-    if not token:
-        return None
-        
-    url = "https://openapi.tossinvest.com/v1/market/ranking?type=VOLUME"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    try:
-        res = requests.get(url, headers=headers, timeout=5)
-        if res.status_code == 200:
-            return res.json()
-        else:
-            st.warning(f"⚠️ 데이터 호출 에러: [{res.status_code}] {res.text}")
-    except Exception as e:
-        st.warning(f"⚠️ 네트워크 에러: {e}")
-    return None
-
-# ==========================================        
 # [3] 데이터 가져오기 엔진
 # ==========================================
 def fetch_single_macro(name, tk):
@@ -2594,14 +2535,13 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab6, tab4, tab5, tab7_toss = st.tabs([
+tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 30"),
     t("경영진 평가 순위", "Management Ranking"),
     t("주식 용어 사전", "Stock Glossary"),
-    t("AGIE 철학", "About AGIE"),
-    t("실시간 시황 (Toss)", "Live Market (Toss)")
+    t("AGIE 철학", "About AGIE")
 ])
 
 # ==========================================
@@ -4332,30 +4272,6 @@ with tab6:
             if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
-# ==========================================
-# 탭 7: 토스증권 실시간 시황
-# ==========================================
-with tab7_toss:
-    st.subheader(t("🔥 실시간 시장 주도주 및 시황", "Live Market Summary"))
-    st.caption(t("※ 토스증권 Open API와 연동된 실시간 데이터입니다.", "※ Real-time data powered by Toss Securities Open API."))
-    
-    with st.spinner(t("토스증권 API에서 실시간 데이터를 불러오는 중입니다...", "Fetching live data from Toss...")):
-        market_data = get_toss_market_summary()
-        
-        if market_data:
-            items = market_data.get('items', [])
-            if items:
-                df_market = pd.DataFrame(items)
-                
-                # API로 넘어오는 컬럼명 중 불필요한 것 숨기기 및 이름 변경 (토스 API 규격에 맞춰 수정 필요)
-                st.dataframe(df_market, height=600, use_container_width=True)
-                
-                st.markdown("### 🤖 AGIE 시황 코멘트")
-                st.info(t("현재 시장은 위 종목들에 거래대금이 집중되고 있습니다. 단기 변동성에 유의하며, 기업의 내재가치와 무관하게 움직이는 투기적 흐름인지 점검하세요.", "Trading volume is concentrated in the above stocks. Beware of short-term volatility and check if it's speculative movement unrelated to intrinsic value."))
-            else:
-                st.caption(t("현재 시장 데이터를 불러올 수 없습니다.", "Cannot load market data right now."))
-        else:
-            st.error(t("토스증권 API 연동에 실패했거나 토큰이 유효하지 않습니다. secrets.toml 파일의 키 값을 확인해주세요.", "API connection failed. Please check your secrets.toml keys."))
 # 하단 면책 조항 및 카피라이트 
 st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
