@@ -726,6 +726,9 @@ for k, v in tmap.items():
 @st.cache_data(ttl=3600)
 def get_toss_access_token():
     try:
+        # [추가할 부분] 현재 서버의 진짜 IP 주소를 화면에 출력합니다.
+        current_ip = requests.get('https://api.ipify.org').text
+        st.info(f"📍 현재 앱이 실행 중인 서버의 IP 주소: {current_ip}")
         # 1. 키 값이 제대로 들어왔는지 확인
         if "TOSS_CLIENT_ID" not in st.secrets:
             st.error("❌ secrets.toml 파일에 TOSS_CLIENT_ID가 없습니다.")
