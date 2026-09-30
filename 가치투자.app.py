@@ -729,6 +729,7 @@ def get_toss_access_token():
         # 1. 키 값이 제대로 들어왔는지 확인
         if "TOSS_CLIENT_ID" not in st.secrets:
             st.error("❌ secrets.toml 파일에 TOSS_CLIENT_ID가 없습니다.")
+            st.info(f"현재 스트림릿이 인식한 키 목록: {list(st.secrets.keys())}") # 이 줄을 임시로 추가!
             return None
             
         client_id = st.secrets["TOSS_CLIENT_ID"]
