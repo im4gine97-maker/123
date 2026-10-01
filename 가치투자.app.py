@@ -2349,30 +2349,51 @@ def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cy
                 return v[0] if isinstance(v, tuple) else v
         return 0
 
+    # [핵심 수정 1] 사용자 가중치(Weights) 동기화 
+    # 오각형의 만점 기준을 현재 사이드바의 가중치 배수에 비례하게 조정하여 왜곡 방지
+    import streamlit as st
+    weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
+    w_mgmt = weights.get('mgmt', 1.0)
+    w_biz = weights.get('biz', 1.0)
+    w_val = weights.get('val', 1.0)
+    w_macro = weights.get('macro', 1.0)
+
+    def normalize(val, min_raw, max_raw):
+        if max_raw <= min_raw: return 0
+        norm = (val - min_raw) / (max_raw - min_raw) * 100
+        return max(0, min(100, norm))
+
+    # [핵심 수정 2] 세부 내역에서 적용된 '절반( / 2.0 ) * 가중치' 로직에 맞춰 
+    # 각 항목의 실제 수학적 상한선/하한선을 정확하게 매핑하여 만점 시 100점에 도달하도록 수정
+    
     mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
-    mgmt_norm = max(0, min(100, (mgmt_raw + 20) / 40 * 100))
+    mgmt_norm = normalize(mgmt_raw, -15.0 * w_mgmt, 15.0 * w_mgmt)
 
     eff_raw = get_score(["비즈니스 해자", "Business Moat", "자본 효율성", "Efficiency", "Profitability"])
-    eff_norm = max(0, min(100, (eff_raw + 30) / 60 * 100))
+    eff_norm = normalize(eff_raw, -15.0 * w_biz, 15.0 * w_biz)
 
     price_raw = get_score(["가격 매력도", "Price Attractiveness"])
-    price_norm = max(0, min(100, (price_raw + 30) / 60 * 100))
+    # 가격 매력도는 동적(Dynamic) 점수이나, 보통 40점 만점으로 스케일링됨 (절반 시 20점)
+    price_norm = normalize(price_raw, -20.0 * w_val, 20.0 * w_val)
 
     growth_raw = get_score(["장기 복리 성장성", "Compounding"])
-    growth_norm = max(0, min(100, (growth_raw + 15) / 30 * 100))
+    # 성장성은 원본 기준 최고 15점 (절반 시 7.5점), 최하 -30점 (절반 시 -15점)
+    growth_norm = normalize(growth_raw, -15.0 * w_macro, 7.5 * w_macro)
 
     if is_financial:
         safety_raw = get_score(["거시 매력도", "Macro"])
-        safety_norm = max(0, min(100, (safety_raw + 15) / 35 * 100))
+        # 매크로(ERP)는 최고 20점 (절반 시 10점), 최하 -30점 (절반 시 -15점)
+        safety_norm = normalize(safety_raw, -15.0 * w_macro, 10.0 * w_macro)
     else:
         safety_raw = get_score(["내재가치", "DCF MoS"])
-        safety_norm = max(0, min(100, (safety_raw + 20) / 40 * 100))
+        # DCF는 최고 20점 (절반 시 10점), 최하 -30점 (절반 시 -15점)
+        safety_norm = normalize(safety_raw, -15.0 * w_val, 10.0 * w_val)
 
     values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
     values.append(values[0])
     categories_loop = categories + [categories[0]]
     
-    # [수정] 차트 꼭짓점에 100점 만점 기준의 직관적인 숫자를 직접 표시합니다.
+    # 차트 꼭짓점에 100점 만점 비율에 맞춘 직관적인 환산 점수 표출
     text_labels = [f"{val:.0f}점" for val in values]
 
     fig = go.Figure()
@@ -2383,23 +2404,23 @@ def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cy
         fillcolor=fill_color,
         line=dict(color=line_color, width=2.5),
         marker=dict(size=10, color=line_color),
-        mode='lines+markers+text', # 텍스트 모드 활성화
-        text=text_labels, # 텍스트 매핑
-        textposition='top center', # 마커 위쪽에 표시
+        mode='lines+markers+text',
+        text=text_labels,
+        textposition='top center',
         textfont=dict(size=13, color=line_color, weight='bold'),
         hoverinfo='text'
     ))
 
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(visible=True, range=[0, 115], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'), # 글씨 공간 확보를 위해 range 확대
+            radialaxis=dict(visible=True, range=[0, 115], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
             angularaxis=dict(tickfont=dict(size=13, color='#8892b0', family='Pretendard, Noto Sans KR, sans-serif'), gridcolor='rgba(128,128,128,0.2)'),
             bgcolor='rgba(0,0,0,0)'
         ),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         showlegend=False,
-        margin=dict(l=100, r=100, t=50, b=50), # 텍스트 잘림 방지를 위해 마진 확대
+        margin=dict(l=100, r=100, t=50, b=50),
         height=360
     )
     return fig
