@@ -4225,10 +4225,10 @@ with tab6:
                 elif scaled_score >= -38: ceo_final = -36
                 else: ceo_final = -40
             
-            if ceo_final >= 32: tier = "S급 "
-            elif ceo_final >= 24: tier = "A급 "
-            elif ceo_final >= 8: tier = "B급 "
-            elif ceo_final >= 0: tier = "C급 "
+            if ceo_final >= 40: tier = "S급 "
+            elif ceo_final >= 32: tier = "A급 "
+            elif ceo_final >= 16: tier = "B급 "
+            elif ceo_final >= 8: tier = "C급 "
             elif ceo_final > -40: tier = "D급 "
             else: tier = "F급 "
             
