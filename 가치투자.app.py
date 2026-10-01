@@ -1540,18 +1540,17 @@ def analyze_trends(stk):
                 eps_vals = inc.loc[target_col].dropna().values[:4][::-1] 
                 if len(eps_vals) >= 3:
                     if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: 
-                        eps_trend = f"<span class='good'>{t('[합격] 4년 지속 상승 추세', '[Pass] 4Y Consistent Upward Trend')}</span>"
+                        eps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 지속 상승 추세', '[Pass] 4Y Consistent Upward Trend')}</span>"
                     else: 
-                        eps_trend = f"<span class='highlight'>{t('[주의] 변동/하락', '[Warning] Fluctuating/Declining')}</span>"
+                        eps_trend = f"<span style='color:#ff7675; font-weight:bold;'>{t('[주의] 변동/하락', '[Warning] Fluctuating/Declining')}</span>"
                         
         # 2. BPS(자본) 추세 분석 및 주주환원 팩트 체크
         if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
                 if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: 
-                    bps_trend = f"<span class='good'>{t('[합격] 4년 자본 지속 증가', '[Pass] 4Y Consistent Equity Growth')}</span>"
+                    bps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 자본 지속 증가', '[Pass] 4Y Consistent Equity Growth')}</span>"
                 else: 
-                    # [핵심 수술] 자본이 감소했을 때, 장사를 못해서인지 주주에게 퍼줘서(코스트코, 애플 등)인지 검증
                     is_shareholder_return = False
                     try:
                         cf = stk.cash_flow
@@ -1560,7 +1559,6 @@ def analyze_trends(stk):
                             bb = abs(safe_float(cf.loc['Repurchase Of Capital Stock'].iloc[0])) if 'Repurchase Of Capital Stock' in cf.index else 0
                             ni = safe_float(inc.loc['Net Income'].iloc[0]) if 'Net Income' in inc.index else 0
                             
-                            # 순이익(흑자)을 냈음에도 그중 50% 이상을 배당이나 자사주 매입으로 태워버린 경우
                             if ni > 0 and (div + bb) >= (ni * 0.5):
                                 is_shareholder_return = True
                     except: pass
@@ -1568,7 +1566,7 @@ def analyze_trends(stk):
                     if is_shareholder_return:
                         bps_trend = f"<span style='color:#fdcb6e; font-weight:bold;'>{t('[특수] 막대한 주주환원(특별배당/자사주)으로 인한 자본 감소', '[Note] Equity down due to massive shareholder returns')}</span>"
                     else:
-                        bps_trend = f"<span class='highlight'>{t('[주의] 자본 변동/감소', '[Warning] Equity Fluctuating/Declining')}</span>"
+                        bps_trend = f"<span style='color:#ff7675; font-weight:bold;'>{t('[주의] 자본 변동/감소', '[Warning] Equity Fluctuating/Declining')}</span>"
     except: pass
     return eps_trend, bps_trend
 
@@ -1613,28 +1611,28 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
                                 else:
                                     txt_ko = f"{years_ago+1}년 전에 {inc_pct:.1f}% 급상승"
                                     txt_en = f"Spiked {inc_pct:.1f}% {years_ago+1} years ago"
-                                sudden_alert = f" <span class='highlight'>[{t(txt_ko, txt_en)}]</span>"
+                                sudden_alert = f" <span style='color:#ff7675; font-weight:bold;'>[{t(txt_ko, txt_en)}]</span>"
                                 break 
                     
                     if base_fcf and base_fcf > 0:
                         ratio = (curr_rnd / base_fcf) * 100
                         if ratio >= 50:
-                            r_eval = f"<span class='highlight'>{t('[지출 과다] 현금흐름 압박 주의', '[High] Watch Cash Flow')}</span>"
+                            r_eval = f"<span style='color:#ff7675; font-weight:bold;'>{t('[지출 과다] 현금흐름 압박 주의', '[High] Watch Cash Flow')}</span>"
                             desc = t("FCF(순수여윳돈)의 절반 이상을 연구개발에 쏟고 있습니다. 공격적인 미래 베팅이지만 현금 고갈 리스크를 주의하세요.", "Consuming over half of FCF on R&D. Highly aggressive, watch for cash burn.")
                         elif ratio >= 15:
-                            r_eval = f"<span class='good'>{t('[적정 수준] 이상적인 재투자', '[Optimal] Ideal Reinvestment')}</span>"
+                            r_eval = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[적정 수준] 이상적인 재투자', '[Optimal] Ideal Reinvestment')}</span>"
                             desc = t("벌어들인 여윳돈 내에서 미래 먹거리에 아주 건강한 비율로 투자하고 있습니다.", "Healthy reinvestment rate into future growth within generated cash.")
                         else:
-                            r_eval = f"<span style='color:#fdcb6e;'>{t('[지출 적음] 투자 미흡 가능성', '[Low] Potential Underinvestment')}</span>"
+                            r_eval = f"<span style='color:#fdcb6e; font-weight:bold;'>{t('[지출 적음] 투자 미흡 가능성', '[Low] Potential Underinvestment')}</span>"
                             desc = t("FCF 대비 R&D 비율이 낮습니다. (단, 필수소비재 등 성숙 산업은 정상입니다)", "Low R&D relative to FCF. (Normal for mature non-tech industries).")
                             
                         rnd_trend = f"{r_eval}{sudden_alert} <span style='font-size:0.95em;'>-> FCF의 <b>{ratio:.1f}%</b> 지출 ({desc})<br><span style='color:#8892b0;'>4개년 지출 추이: [{history_str}]</span></span>"
                     elif base_fcf and base_fcf <= 0:
-                        rnd_trend = f"<span class='highlight'>{t('FCF(순수여윳돈) 적자로 적정선 계산 불가', 'Unable to calc optimal line due to negative FCF')}</span>{sudden_alert}<br><span style='color:#8892b0;'>4개년 지출 추이: [{history_str}]</span>"
+                        rnd_trend = f"<span style='color:#ff7675; font-weight:bold;'>{t('FCF(순수여윳돈) 적자로 적정선 계산 불가', 'Unable to calc optimal line due to negative FCF')}</span>{sudden_alert}<br><span style='color:#8892b0;'>4개년 지출 추이: [{history_str}]</span>"
                     else:
                         rnd_trend = f"<span style='color:#8892b0;'>4개년 지출 추이: [{history_str}]</span>{sudden_alert}"
-                else:
-                    rnd_trend = f"<span style='color:#8892b0'>{t('R&D 지출 없음', 'No R&D')}</span>"
+            else:
+                rnd_trend = f"<span style='color:#8892b0'>{t('R&D 지출 없음', 'No R&D')}</span>"
     except:
         pass
         
