@@ -3277,7 +3277,7 @@ with tab1:
                 else:
                     beginner_summary = t(
                         f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 회사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
-                        f"<b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (Fwd PE), and the company grows your money at <b>{roe:.1f}%/yr</b> (ROE)."
+                        f"<b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (예상 PE), and the company grows your money at <b>{roe:.1f}%/yr</b> (ROE)."
                     )
 
                 # =====================================================================
@@ -3486,7 +3486,7 @@ with tab1:
                 else:
                     fwd_pe_val_str = "N/A"
                     fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
-                lbl_fwd_pe_title = "본전 회수 기간 (Fwd PER)"
+                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
 
                 pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% (저평가)</span>"
@@ -3503,7 +3503,7 @@ with tab1:
                 else:
                     fwd_pbr_val_str = "N/A"
                     fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
-                lbl_fwd_pbr_title = "장부가치 회수 (Fwd PBR)"
+                lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
                 easy_summary_msg = ""
