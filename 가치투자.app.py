@@ -4225,12 +4225,12 @@ with tab6:
                 elif scaled_score >= -38: ceo_final = -36
                 else: ceo_final = -40
             
-            if ceo_final >= 32: tier = "S급 (만점)"
-            elif ceo_final >= 24: tier = "A급 (우수)"
-            elif ceo_final >= 8: tier = "B급 (양호)"
-            elif ceo_final >= 0: tier = "C급 (중립)"
-            elif ceo_final > -40: tier = "D급 (주의)"
-            else: tier = "F급 (치명적 결함)"
+            if ceo_final >= 32: tier = "S급 "
+            elif ceo_final >= 24: tier = "A급 "
+            elif ceo_final >= 8: tier = "B급 "
+            elif ceo_final >= 0: tier = "C급 "
+            elif ceo_final > -40: tier = "D급 "
+            else: tier = "F급 "
             
             # F급은 치명적인 단점을 요약해서 보여줌
             if ceo_final == -40 and "단점:" in text:
