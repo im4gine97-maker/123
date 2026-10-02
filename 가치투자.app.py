@@ -4018,7 +4018,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [파트 3] 📊 기업 10년 전문 재무제표 (에러 추적기 및 20대 지표 확장)
+                # [파트 3] 📊 기업 10년 전문 재무제표 (에러 추적기 및 전문 지표 확장)
                 # =====================================================================
                 st.divider()
                 st.subheader(t("📊 10년 핵심 장부 & 밸류에이션 추이", "📊 10-Year Financials & Valuation"))
@@ -4044,9 +4044,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for idx_val in plot_df.index:
                             if '01. 매출액' in str(idx_val):
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('매출액', 'Revenue'), marker_color='#74b9ff'))
-                            elif '영업이익' in str(idx_val):
+                            elif '영업이익' in str(idx_val) and '04.' in str(idx_val):
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('영업이익', 'Op. Income'), marker_color='#fdcb6e'))
-                            elif '당기순이익' in str(idx_val):
+                            elif '순이익' in str(idx_val) and '05.' in str(idx_val):
+                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
+                            elif '05. 영업이익' in str(idx_val):
+                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('영업이익', 'Op. Income'), marker_color='#fdcb6e'))
+                            elif '06. 당기순이익' in str(idx_val):
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                             
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
@@ -4061,14 +4065,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 if pd.isna(val) or val == 0 or val == 0.0:
                                     formatted_df.at[idx, col] = "-"
                                 else:
-                                    if 'ROE' in str(idx) or 'PER' in str(idx) or 'PBR' in str(idx):
+                                    if 'ROE' in str(idx) or 'PER' in str(idx) or 'PBR' in str(idx) or 'EPS' in str(idx):
                                         formatted_df.at[idx, col] = f"{val:.2f}"
                                     else:
                                         formatted_df.at[idx, col] = f"{val:,.0f}"
                         return formatted_df
 
                     # =========================================================
-                    # [한국 주식] DART 전문가용 18대 지표 (야후 대체 삭제, 에러 추적 100%)
+                    # [한국 주식] DART 전문가용 18대 지표 (에러 추적 100%)
                     # =========================================================
                     if kr:
                         st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터)', 'Financials (DART)')}** {t('(단위: 억 원, 배, %)', '(Unit: 100M KRW, x, %)')}")
@@ -4107,21 +4111,127 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.code(debug_msg, language="text")
                             
                     # =========================================================
-                    # [미국 주식] SEC EDGAR 전문가용 20대 지표 싹쓸이 추출
+                    # [미국 주식] SEC EDGAR 전문가용 21대 지표 싹쓸이 추출
                     # =========================================================
                     else:
-                        st.write(f"**{t('DART API는 `.KS`나 `.KQ` 같은 시장 식별자(Suffix)를 인식하지 못하므로, 입력값에서 해당 수식어를 완전히 제거해야 정상적으로 데이터를 불러올 수 있습니다.
+                        st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 배, %)', '(Unit: Million USD, x, %)')}")
+                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 장부를 분석 중입니다..."):
+                            debug_logs = []
+                            sec_df = pd.DataFrame()
+                            try:
+                                sec_headers = {'User-Agent': 'AGIE_App/1.0 (contact@agie.com)'}
+                                tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
+                                cik = None
+                                for key, val in tickers_res.items():
+                                    if val['ticker'].upper() == cd.upper():
+                                        cik = str(val['cik_str']).zfill(10)
+                                        break
+                                
+                                if not cik:
+                                    debug_logs.append(f"SEC에 등록된 CIK 번호를 찾을 수 없습니다. (티커: {cd})")
+                                else:
+                                    facts_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+                                    facts_res = requests.get(facts_url, headers=sec_headers, timeout=10).json()
+                                    us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
+                                    
+                                    # 광범위한 태그 스캔 및 병합 함수
+                                    def extract_annual_data(tags, unit_type='USD'):
+                                        res = {}
+                                        for tag in tags:
+                                            if tag in us_gaap:
+                                                data_list = us_gaap[tag].get('units', {}).get(unit_type, [])
+                                                for item in data_list:
+                                                    if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
+                                                        y_val = str(item.get('fy'))
+                                                        val = item.get('val', 0)
+                                                        if y_val not in res or abs(val) > abs(res[y_val]):
+                                                            res[y_val] = val
+                                        return res
+                                    
+                                    rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenuesNetOfInterestExpense'])
+                                    cogs = extract_annual_data(['CostOfGoodsAndServicesSold', 'CostOfRevenue'])
+                                    gp = extract_annual_data(['GrossProfit'])
+                                    op = extract_annual_data(['OperatingIncomeLoss'])
+                                    ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
+                                    
+                                    assets = extract_annual_data(['Assets'])
+                                    curr_assets = extract_annual_data(['AssetsCurrent'])
+                                    liab = extract_annual_data(['Liabilities'])
+                                    curr_liab = extract_annual_data(['LiabilitiesCurrent'])
+                                    equity = extract_annual_data(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'])
+                                    retained = extract_annual_data(['RetainedEarningsAccumulatedDeficit'])
+                                    
+                                    ocf = extract_annual_data(['NetCashProvidedByUsedInOperatingActivities'])
+                                    icf = extract_annual_data(['NetCashProvidedByUsedInInvestingActivities'])
+                                    fcf_f = extract_annual_data(['NetCashProvidedByUsedInFinancingActivities'])
+                                    capex = extract_annual_data(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+                                    divs = extract_annual_data(['PaymentsOfDividends', 'DividendsCash'])
+                                    
+                                    eps_data = extract_annual_data(['EarningsPerShareDiluted', 'EarningsPerShareBasic'], unit_type='USD/shares')
+                                    
+                                    all_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()))), reverse=True)[:10]
+                                    
+                                    if all_years:
+                                        sec_data = []
+                                        for y in all_years:
+                                            r_val = rev.get(y, 0)
+                                            op_val = op.get(y, 0)
+                                            ni_val = ni.get(y, 0)
+                                            a_val = assets.get(y, 0)
+                                            e_val = equity.get(y, 0)
+                                            ocf_val = ocf.get(y, 0)
+                                            cap_val = capex.get(y, 0)
+                                            eps_val = eps_data.get(y, 0)
+                                            
+                                            fcf_val = ocf_val - abs(cap_val) if ocf_val != 0 and cap_val != 0 else 0
+                                            
+                                            px_val = year_end_px.get(y, 0)
+                                            sh_out = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
+                                            
+                                            roe_val = (ni_val / e_val * 100) if e_val > 0 else 0
+                                            per_val = (px_val / eps_val) if eps_val > 0 and px_val > 0 else 0
+                                            pbr_val = px_val / (e_val / sh_out) if px_val > 0 and e_val > 0 and sh_out > 0 else 0
 
-DART 시스템은 야후 파이낸스나 트레이딩뷰 등에서 사용하는 글로벌 티커 방식 대신 다음 두 가지 코드 체계만을 지원합니다.
-
-*   **6자리 종목코드:** 한국거래소(KRX)에서 부여한 상장사 식별 코드입니다. (예: `005930.KS` ➔ `005930`)
-*   **8자리 DART 고유번호 (corp_code):** 금융감독원이 법인에 개별적으로 부여한 8자리 고유번호입니다. DART Open API의 핵심 엔드포인트들은 종목코드가 아닌 이 8자리 고유번호를 필수 파라미터로 요구합니다.
-
-해결을 위해 다음 두 가지를 코드에 적용해 보세요.
-
-1.  종목코드를 DART API로 전달하기 전 `.KS`나 `.KQ`를 잘라내는 문자열 전처리를 추가합니다. (예: Python의 경우 `ticker.split('.')[0]`)
-2.  OpenDartReader와 같은 라이브러리를 사용 중이라면 수식어 제거만으로 6자리 코드를 자동 인식하지만, 직접 API url을 호출하는 경우라면 DART Open API의 `corpCode.xml`(고유번호 다운로드)을 통해 6자리 종목코드를 8자리 DART 고유번호로 맵핑한 뒤 그 8자리 코드를 파라미터로 넘겨야 합니다.
-                            
+                                            sec_data.append({
+                                                '연도': y,
+                                                '01. 매출액 (Revenue)': r_val / 1000000,
+                                                '02. 매출원가 (COGS)': cogs.get(y, 0) / 1000000,
+                                                '03. 매출총이익 (Gross Profit)': gp.get(y, 0) / 1000000,
+                                                '04. 영업이익 (Op. Income)': op_val / 1000000,
+                                                '05. 당기순이익 (Net Income)': ni_val / 1000000,
+                                                '06. 자산총계 (Assets)': a_val / 1000000,
+                                                '07. 유동자산 (Current Assets)': curr_assets.get(y, 0) / 1000000,
+                                                '08. 부채총계 (Liabilities)': liab.get(y, 0) / 1000000,
+                                                '09. 유동부채 (Current Liab)': curr_liab.get(y, 0) / 1000000,
+                                                '10. 자본총계 (Equity)': e_val / 1000000,
+                                                '11. 이익잉여금 (Retained Earn)': retained.get(y, 0) / 1000000,
+                                                '12. 영업현금흐름 (Op. CF)': ocf_val / 1000000,
+                                                '13. 투자현금흐름 (Inv. CF)': icf.get(y, 0) / 1000000,
+                                                '14. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0) / 1000000,
+                                                '15. 설비투자 (CAPEX)': -abs(cap_val) / 1000000 if cap_val != 0 else 0,
+                                                '16. 잉여현금흐름 (FCF)': fcf_val / 1000000,
+                                                '17. 배당지급 (Dividends)': divs.get(y, 0) / 1000000,
+                                                '18. 주당순이익 (EPS $)': eps_val,
+                                                '19. 자본수익률 (ROE %)': roe_val,
+                                                '20. 주가수익비율 (PER 배)': per_val,
+                                                '21. 주가순자산비율 (PBR 배)': pbr_val
+                                            })
+                                        
+                                        sec_df = pd.DataFrame(sec_data).set_index('연도').T
+                                        sec_df = sec_df.sort_index()
+                                        
+                                    else:
+                                        debug_logs.append(f"SEC 데이터에서 매출/이익 태그를 찾을 수 없습니다.")
+                            except Exception as e:
+                                debug_logs.append(f"SEC 통신 및 파싱 에러: {str(e)}")
+                                
+                            if not sec_df.empty:
+                                draw_financial_chart(sec_df)
+                                st.dataframe(format_expert_df(sec_df), use_container_width=True)
+                            else:
+                                st.error("🚨 미국 SEC에서 데이터를 가져오지 못했습니다. 아래 에러 로그를 확인하세요.")
+                                with st.expander("에러 원인 보기 (디버깅 로그)"):
+                                    st.code("\n".join(debug_logs), language="text")
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
