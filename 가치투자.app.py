@@ -3281,9 +3281,9 @@ with tab1:
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
                 # [수정] 탭1에서도 투자의견 함수와 차트 함수에 is_cyclical 신호를 넘겨줍니다.
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-                    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-                    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
+                mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+                is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+                f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical
                 )
 
                 col_op1, col_op2 = st.columns([1.4, 1])
