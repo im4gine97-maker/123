@@ -1534,23 +1534,39 @@ def get_data(tk):
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
-def get_base_dcf_data(stk, i):
+def get_base_dcf_data(stk, i, tk, kr=False, is_adr=False):
     try:
         if stk is None: return None, None, 0.05, 0, False
         fcf_s = None
-        cf = stk.cash_flow
+        fcf_list = []
         
-        if cf is not None and not cf.empty:
-            if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
-            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
-                
-        # --- [유지] 현재 가치평가의 기준이 되는 FCF는 튀는 값 방지를 위해 최근 3년 평균 사용 ---
+        # 1. FMP API를 사용해 진짜 10년치 FCF 데이터를 끌어옴 (미국 주식 전용, ADR 제외)
+        if not kr and not is_adr and FMP_API_KEY:
+            try:
+                cf_url = f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{tk}?limit=10&apikey={FMP_API_KEY}"
+                cf_data = requests.get(cf_url, timeout=5).json()
+                if isinstance(cf_data, list) and len(cf_data) > 0:
+                    # FMP는 최신 연도가 먼저 나오므로 과거->최신 순으로 리스트를 뒤집음
+                    fcf_list = [safe_float(item.get('freeCashFlow', 0)) for item in cf_data][::-1]
+            except: pass
+
+        # 2. FMP 통신 실패 또는 한국/ADR 주식의 경우 기존 야후(yfinance) 로직 폴백
+        if not fcf_list:
+            cf = stk.cash_flow
+            if cf is not None and not cf.empty:
+                if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
+                elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                    fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
+            
+            if fcf_s is not None and not fcf_s.empty:
+                fcf_list = fcf_s.values[::-1]
+
+        # --- [유지] 현재 가치평가 기준이 되는 FCF는 튀는 값 방지를 위해 최근 3개년 평균 사용 ---
         avg_fcf = None
-        if fcf_s is not None and not fcf_s.empty:
-            vals = fcf_s.values[:3] 
-            valid_vals = [safe_float(v) for v in vals if pd.notna(v)]
-            if len(valid_vals) > 0:
+        if fcf_list:
+            recent_vals = fcf_list[-3:] # fcf_list는 과거->최신이므로 마지막 3개가 최근
+            valid_vals = [v for v in recent_vals if pd.notna(v)]
+            if valid_vals:
                 avg_fcf = sum(valid_vals) / len(valid_vals)
                 
         fcf = avg_fcf if avg_fcf is not None else safe_float(i.get('freeCashflow'))
@@ -1559,27 +1575,23 @@ def get_base_dcf_data(stk, i):
         g, data_len = 0.05, 0
         is_zigzag = False
         
-        # --- [수정] 10년(또는 제공되는 최대 기간) 평균 성장률(CAGR) 산출 ---
-        if fcf_s is not None and len(fcf_s) >= 2:
-            # yfinance에서 제공하는 한도 내에서 최대 10년까지 긁어옴 (10년 미만이면 있는 만큼만 유도리 있게 계산)
-            max_len = min(len(fcf_s), 10)
-            vals_for_growth = fcf_s.values[:max_len][::-1] # 가장 오래된 과거(o)부터 최신(c) 순으로 정렬
-            c, o = safe_float(vals_for_growth[-1]), safe_float(vals_for_growth[0])
-            data_len = len(vals_for_growth)
+        # --- 10년(또는 상장 후 존재하는 최대 기간) FCF 연평균 성장률(CAGR) 산출 ---
+        if fcf_list and len(fcf_list) >= 2:
+            data_len = len(fcf_list) # 10년 미만 상장 기업이면 존재하는 기간만큼 유도리 있게 계산됨
+            c, o = fcf_list[-1], fcf_list[0]
             
             if c > 0 and o > 0: 
                 g = (c / o) ** (1 / (data_len - 1)) - 1
             elif c > 0 and o <= 0:
-                # 과거 FCF가 적자였다가 최근 흑자로 돌아선 경우 수학적 에러 방지용 턴어라운드 마진 부여
-                g = 0.10 
+                g = 0.10 # 과거에 적자였다가 최근 흑자로 돌아선 경우 에러 방지용 마진 10% 부여
             elif c <= 0:
                 g = 0.0
             
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
-                    prev = safe_float(vals_for_growth[idx-1])
-                    curr = safe_float(vals_for_growth[idx])
+                    prev = fcf_list[idx-1]
+                    curr = fcf_list[idx]
                     if prev == 0:
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
@@ -1593,7 +1605,7 @@ def get_base_dcf_data(stk, i):
         else:
             eg = safe_float(i.get('earningsGrowth'))
             if eg != 0.0: g = eg
-            data_len = 1 if fcf_s is None else len(fcf_s)
+            data_len = len(fcf_list) if fcf_list else 1
             
         g = max(0.02, min(g, 0.15))
         return fcf, sh, g, data_len, is_zigzag
@@ -2286,17 +2298,17 @@ def generate_quick_ai_preview(tk):
     if f_pe <= 0 and t_pe > 0:
         f_pe = t_pe
 
-    # =================================================================
-    # [완벽 동기화 패치] 메인 탭과 100% 동일한 PBR 및 ADR 환율 보정 로직
-    # =================================================================
+    # =====================================================================
+    # [통합 로직 시작] PER/PBR 10년 산출 및 FMP API 연동 
+    # =====================================================================
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
 
     currency_trade = str(i.get('currency', 'USD')).upper()
     currency_fin = str(i.get('financialCurrency', 'USD')).upper()
     is_adr = (currency_trade != currency_fin) and not kr
-    adr_fx_ratio = 1.0
 
+    adr_fx_ratio = 1.0
     if is_adr:
         try:
             inc_temp = stk.income_stmt
@@ -2309,110 +2321,136 @@ def generate_quick_ai_preview(tk):
 
     if pbr > 100.0: pbr = 0.0
 
-    if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
+    # -------------------------------------------------------------
+    # 과거 평균 PER(a_pe) 10년치 산출 (FMP API 최우선 연동)
+    # -------------------------------------------------------------
+    a_pe = 0.0
+    if not kr and not is_adr and FMP_API_KEY:
         try:
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty:
-                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                    if eq_key in bs.index:
-                        eq = safe_float(bs.loc[eq_key].iloc[0])
-                        sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                        if tk == "BRK-B": sh_proxy = 2160000000.0
-                        elif tk == "BRK-A": sh_proxy = 1440000.0
-                        
-                        if eq > 0 and sh_proxy > 0:
-                            # [핵심 수술 1] 현재 장부가치(bv)에 환율을 곱해 올바른 달러 가치로 복원!
-                            if is_adr and adr_fx_ratio != 1.0:
-                                bv = eq * adr_fx_ratio
-                            else:
-                                bv = eq / sh_proxy
-                                
-                            if bv > 0: pbr = reg_p / bv
-                        break
+            rt_url = f"https://financialmodelingprep.com/api/v3/ratios/{tk}?limit=10&apikey={FMP_API_KEY}"
+            rt_data = requests.get(rt_url, timeout=5).json()
+            pe_list = []
+            if isinstance(rt_data, list):
+                for item in rt_data:
+                    val = safe_float(item.get('priceEarningsRatio', 0))
+                    if val > 0: pe_list.append(val)
+            if pe_list:
+                a_pe = sum(pe_list) / len(pe_list) # 10년 미만이면 존재하는 길이만큼 유도리 있게 평균 계산됨
         except: pass
 
-    if pbr <= 0.0 and bv > 0 and p > 0:
-        pbr = p / bv
-
-    if pbr > 0 and reg_p > 0 and p != reg_p: 
-        pbr = pbr * (p / reg_p)
-
-    roe = safe_float(i.get('returnOnEquity')) * 100
-    if roe <= 0.0 or roe > 300.0:
-        try:
-            inc = stk.income_stmt
-            bs = stk.balance_sheet
-            if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
-                    ni = safe_float(inc.loc['Net Income'].iloc[0])
-                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    if eq > 0: roe = (ni / eq) * 100
-        except: pass
-    
-    real_roic = get_real_roic(stk, i)
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    # FMP API 실패 혹은 한국/ADR 기업일 경우 기존 야후 10y 역산 폴백
     if a_pe <= 0.0:
-        if not is_adr:
+        a_pe = safe_float(i.get('fiveYearAvgPE'))
+        if a_pe <= 0.0 and not is_adr:
             try:
+                hist_10y = stk.history(period="10y")
                 _inc = stk.income_stmt
-                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                    if len(_ni_vals) >= 2:
-                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                        _sh_out = safe_float(i.get('sharesOutstanding'))
-                        if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = reg_p / (_avg_ni / _sh_out) 
-            except: pass
+                pe_list = []
+                if not hist_10y.empty and _inc is not None and not _inc.empty:
+                    for col_date in _inc.columns[:10]:
+                        y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                        year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                        y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
+                        
+                        eps_val = 0.0
+                        if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                            eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                        elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                            eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                            
+                        if y_price > 0 and eps_val > 0:
+                            pe_list.append(y_price / eps_val)
+                            
+                    if pe_list:
+                        a_pe = sum(pe_list) / len(pe_list)
+            except Exception: pass
 
-    if a_pe < 5.0 or a_pe > 200.0:
-        if t_eps > 0: a_pe = reg_p / t_eps
-        elif f_eps > 0: a_pe = reg_p / f_eps
-        elif t_pe_raw > 0: a_pe = t_pe_raw
-        elif f_pe_raw > 0: a_pe = f_pe_raw
-        else: a_pe = 0.0
+    if a_pe < 0: a_pe = 0.0
 
-    off = i.get('companyOfficers', [])
-    ceo_raw = '누락'
-    if isinstance(off, list) and len(off) > 0:
-        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-        else: ceo_raw = str(off[0])
-    elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-    elif isinstance(off, str): ceo_raw = off
-    ceo_cleaned = clean_ceo_name(ceo_raw)
-    criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
-
-    if ceo_cleaned == '누락' or ceo_cleaned == 'N/A':
-        if ":" in criticism_text:
-            prefix = criticism_text.split(":")[0].strip()
-            if len(prefix) < 40 and "위키 및 공공" not in prefix:
-                ceo_cleaned = prefix
-
+    # -------------------------------------------------------------
+    # 10년 평균 PBR 및 Fwd PBR 산출
+    # -------------------------------------------------------------
     a_pbr = 0.0
     f_pbr = pbr
     
     if is_financial or kr or is_cyclical:
-        try:
+        # 1. 미국 주식 (ADR 제외) -> FMP API에서 정확한 10년 PBR 가져오기
+        if not kr and not is_adr and FMP_API_KEY:
+            try:
+                rt_url = f"https://financialmodelingprep.com/api/v3/ratios/{tk}?limit=10&apikey={FMP_API_KEY}"
+                rt_data = requests.get(rt_url, timeout=5).json()
+                pbr_list = []
+                if isinstance(rt_data, list):
+                    for item in rt_data:
+                        val = safe_float(item.get('priceToBookRatio', 0))
+                        if val > 0: pbr_list.append(val)
+                if pbr_list:
+                    a_pbr = sum(pbr_list) / len(pbr_list)
+            except: pass
             
-            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                if len(eq_vals) > 0:
-                    avg_eq = sum(eq_vals) / len(eq_vals)
+        # 2. FMP에서 못 가져왔거나, ADR, 한국주식일 경우 폴백
+        if a_pbr <= 0.0:
+            if is_adr:
+                # [ADR 예외 적용] 복잡한 주식수 역산 대신 과거 5년 단순 자본평균과 환율 보정만 적용
+                try:
+                    hist_5y = stk.history(period="5y")
+                    bs = stk.balance_sheet
+                    if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                        avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                        if len(eq_vals) > 0:
+                            avg_eq = sum(eq_vals) / len(eq_vals)
+                            past_bvps = avg_eq * adr_fx_ratio
+                            if past_bvps > 0:
+                                a_pbr = avg_price / past_bvps
+                except: pass
+            else:
+                # [한국 기업 또는 FMP 실패 시] 기존 10년 PBR 역산 로직 (주식수 역산 포함)
+                try:
+                    hist_10y = stk.history(period="10y")
+                    bs = stk.balance_sheet
+                    _inc = stk.income_stmt
+                    pbr_list = []
                     
-                    if tk == "BRK-B":
-                        a_pbr = avg_price / (avg_eq / 2160000000.0)
-                    elif tk == "BRK-A":
-                        a_pbr = avg_price / (avg_eq / 1440000.0)
-                    elif is_adr and adr_fx_ratio != 1.0:
-                        past_bvps = avg_eq * adr_fx_ratio
-                        if past_bvps > 0:
-                            a_pbr = avg_price / past_bvps
-                    else:
-                        sh_proxy = safe_float(i.get('sharesOutstanding'))
-                        if avg_eq > 0 and sh_proxy > 0:
-                            a_pbr = avg_price / (avg_eq / sh_proxy)
-        except: pass
+                    if not hist_10y.empty and bs is not None and not bs.empty:
+                        for col_date in bs.columns[:10]:
+                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                            year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
+                            
+                            eq = 0.0
+                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                                if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
+                                    eq = safe_float(bs.loc[eq_key, col_date])
+                                    break
+                                    
+                            if y_price > 0 and eq > 0:
+                                past_sh = 0.0
+                                if _inc is not None and not _inc.empty and col_date in _inc.columns:
+                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
+                                    eps_val = 0.0
+                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                        
+                                    if eps_val > 0 and ni_val != 0:
+                                        past_sh = abs(ni_val / eps_val)
+                                        
+                                if past_sh == 0:
+                                    past_sh = safe_float(i.get('sharesOutstanding'))
+                                    
+                                if tk == "BRK-B": past_sh = 2160000000.0
+                                elif tk == "BRK-A": past_sh = 1440000.0
+                                
+                                if past_sh > 0:
+                                    past_bps = eq / past_sh
+                                    if past_bps > 0:
+                                        pbr_list.append(y_price / past_bps)
+                                        
+                if pbr_list:
+                    a_pbr = sum(pbr_list) / len(pbr_list)
+                except Exception: pass
         
         if a_pbr <= 0 or a_pbr > 200.0: 
             a_pbr = pbr if pbr > 0 else 1.0
@@ -2422,13 +2460,17 @@ def generate_quick_ai_preview(tk):
             f_pbr = pbr
         elif base_bv > 0 and f_eps != 0:
             div_r_val = safe_float(i.get('dividendRate', 0))
-            # [핵심 수술 2] 환율이 정상 보정된 base_bv를 통해 f_bps를 안전하게 산출!
             f_bps = base_bv + f_eps - div_r_val
             if f_bps > 0: f_pbr = reg_p / f_bps
             else: f_pbr = reg_p / base_bv
         elif base_bv > 0:
             f_pbr = reg_p / base_bv
-
+            
+        if 'multiplier' in locals() and multiplier != 1.0:
+            f_pbr = f_pbr * multiplier
+    # =====================================================================
+    # [통합 로직 끝] 바로 아래에 ey = (1 / f_pe * 100) if f_pe > 0 else 0 코드가 이어집니다.
+    # =====================================================================
     if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
@@ -2437,7 +2479,7 @@ def generate_quick_ai_preview(tk):
     ey = (1 / f_pe * 100) if f_pe > 0 else 0
     erp = ey - ty
     
-    base_fcf, sh_dcf, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+    base_fcf, sh_dcf, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i, tk, kr, is_adr)
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
     
@@ -2957,7 +2999,7 @@ with tab1:
                     f_pe = t_pe
 
                 # =====================================================================
-                # [복사 시작] 여기서부터 복사해서 덮어쓰세요.
+                # [수정/복사 시작] 여기서부터 복사해서 덮어쓰세요.
                 # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
@@ -2966,9 +3008,6 @@ with tab1:
                 currency_fin = str(i.get('financialCurrency', 'USD')).upper()
                 is_adr = (currency_trade != currency_fin) and not kr
 
-                # -------------------------------------------------------------
-                # [ADR 보정 계수] TSM, ASML 등 환율/배수 왜곡 보정용
-                # -------------------------------------------------------------
                 adr_fx_ratio = 1.0
                 if is_adr:
                     try:
@@ -2980,178 +3019,158 @@ with tab1:
                                 adr_fx_ratio = abs(eps_curr / ni_curr)
                     except: pass
 
-                # 야후 파이낸스 자체 버그(1400배 등) 필터링
                 if pbr > 100.0: pbr = 0.0
 
                 # -------------------------------------------------------------
-                # [핵심 복구] 한국 기업 및 결측치 발생 기업 자산(BV) 강제 추출 로직
-                # (이전 코드에서 ADR만 살리려다 누락된 한국 주식 대차대조표 계산식 복원)
+                # 과거 평균 PER(a_pe) 10년치 산출 (FMP API 최우선 연동)
                 # -------------------------------------------------------------
-                if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
+                a_pe = 0.0
+                if not kr and not is_adr and FMP_API_KEY:
                     try:
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty:
-                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                                if eq_key in bs.index:
-                                    eq = safe_float(bs.loc[eq_key].iloc[0])
-                                    sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                                    if tk == "BRK-B": sh_proxy = 2160000000.0
-                                    elif tk == "BRK-A": sh_proxy = 1440000.0
+                        rt_url = f"https://financialmodelingprep.com/api/v3/ratios/{tk}?limit=10&apikey={FMP_API_KEY}"
+                        rt_data = requests.get(rt_url, timeout=5).json()
+                        pe_list = []
+                        if isinstance(rt_data, list):
+                            for item in rt_data:
+                                val = safe_float(item.get('priceEarningsRatio', 0))
+                                if val > 0: pe_list.append(val)
+                        if pe_list:
+                            a_pe = sum(pe_list) / len(pe_list) # 10년 미만이면 존재하는 길이만큼 유도리 있게 평균 계산됨
+                    except: pass
+
+                # FMP API 실패 혹은 한국/ADR 기업일 경우 기존 야후 10y 역산 폴백
+                if a_pe <= 0.0:
+                    a_pe = safe_float(i.get('fiveYearAvgPE'))
+                    if a_pe <= 0.0 and not is_adr:
+                        try:
+                            hist_10y = stk.history(period="10y")
+                            _inc = stk.income_stmt
+                            pe_list = []
+                            if not hist_10y.empty and _inc is not None and not _inc.empty:
+                                for col_date in _inc.columns[:10]:
+                                    y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                                    year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                                    y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                                     
-                                    if eq > 0 and sh_proxy > 0:
-                                        if is_adr and adr_fx_ratio != 1.0:
-                                            bv = eq * adr_fx_ratio
-                                        else:
-                                            bv = eq / sh_proxy
-                                            
-                                        if bv > 0: pbr = reg_p / bv
-                                    break
-                    except: pass
+                                    eps_val = 0.0
+                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                        
+                                    if y_price > 0 and eps_val > 0:
+                                        pe_list.append(y_price / eps_val)
+                                        
+                                if pe_list:
+                                    a_pe = sum(pe_list) / len(pe_list)
+                        except Exception: pass
 
-                # 2차 방어선 (주가와 BPS만 존재할 경우 PBR 역산)
-                if pbr <= 0.0 and bv > 0 and p > 0:
-                    pbr = p / bv
+                if a_pe < 0: a_pe = 0.0
 
-                # 시뮬레이터(가상 주가) 연동 보정
-                if pbr > 0:
-                    if 'multiplier' in locals() and multiplier != 1.0:
-                        pbr = pbr * multiplier
-                    elif reg_p > 0 and p != reg_p: # 장전/장후 주가 실시간 반영
-                        pbr = pbr * (p / reg_p)
-                
-                roe = safe_float(i.get('returnOnEquity')) * 100
-                if roe <= 0.0 or roe > 300.0:
-                    try:
-                        inc = stk.income_stmt
-                        bs = stk.balance_sheet
-                        if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                            if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
-                                ni = safe_float(inc.loc['Net Income'].iloc[0])
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                if eq > 0:
-                                    roe = (ni / eq) * 100
-                    except: pass
-                
-                real_roic = get_real_roic(stk, i)
-                
-                if is_financial:
-                    roic_str = "금융주 제외" if is_ko else "N/A (Financial)"
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = "데이터 부족" if is_ko else "N/A"
-
-                div_yield = safe_float(i.get('dividendYield'))
-                div_rate = safe_float(i.get('dividendRate'))
-                div = 0.0
-                if div_rate > 0 and p > 0:
-                    calc_div = (div_rate / p) * 100
-                    if calc_div < 50.0: div = calc_div
-                if div == 0.0 and div_yield > 0:
-                    div = div_yield if div_yield > 1.0 else div_yield * 100
-                    if sim_pct != 0: div = div / multiplier
-
-                div_trend = "확인 불가" if is_ko else "N/A"
-                try:
-                    div_history = stk.dividends
-                    if not div_history.empty:
-                        yearly_div = div_history.groupby(div_history.index.year).sum()
-                        if len(yearly_div) >= 3:
-                            last_3 = yearly_div.tail(3)
-                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
-                                div_trend = f"<span class='good'>지속 상승 중</span>" if is_ko else f"<span class='good'>Consistently Increasing</span>"
-                            elif last_3.iloc[-1] > 0:
-                                div_trend = "유지/변동" if is_ko else "Maintained/Fluctuating"
-                            else:
-                                div_trend = "배당 없음" if is_ko else "No Dividend"
-                except: pass
-
-                # --- [10년 평균 PBR 및 Fwd PBR 자체 계산기] ---
+                # -------------------------------------------------------------
+                # 10년 평균 PBR 및 Fwd PBR 산출
+                # -------------------------------------------------------------
                 a_pbr = 0.0
                 f_pbr = pbr
                 
-                if is_adr:
-                    # [ADR 예외 추가] 복잡한 주식수 역산 대신 과거 단순 자본평균과 환율 보정(adr_fx_ratio)만 적용하는 기존 안전 방식 사용
-                    try:
-                        hist_5y = stk.history(period="5y")
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                            if len(eq_vals) > 0:
-                                avg_eq = sum(eq_vals) / len(eq_vals)
-                                past_bvps = avg_eq * adr_fx_ratio
-                                if past_bvps > 0:
-                                    a_pbr = avg_price / past_bvps
-                    except:
-                        pass
-                else:
-                    # [일반 기업] 10년 PBR 역산 로직 (주식수 역산 포함)
-                    try:
-                        hist_10y = stk.history(period="10y")
-                        bs = stk.balance_sheet
-                        _inc = stk.income_stmt
-                        pbr_list = []
-                        
-                        if not hist_10y.empty and bs is not None and not bs.empty:
-                            for col_date in bs.columns[:10]:
-                                y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                                year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
-                                y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
-                                
-                                eq = 0.0
-                                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                                    if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
-                                        eq = safe_float(bs.loc[eq_key, col_date])
-                                        break
-                                        
-                                if y_price > 0 and eq > 0:
-                                    past_sh = 0.0
-                                    if _inc is not None and not _inc.empty and col_date in _inc.columns:
-                                        ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
-                                        eps_val = 0.0
-                                        if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
-                                            eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
-                                        elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
-                                            eps_val = safe_float(_inc.loc['Basic EPS', col_date])
-                                            
-                                        if eps_val > 0 and ni_val != 0:
-                                            past_sh = abs(ni_val / eps_val)
-                                            
-                                    if past_sh == 0:
-                                        past_sh = safe_float(i.get('sharesOutstanding'))
-                                        
-                                    if tk == "BRK-B": past_sh = 2160000000.0
-                                    elif tk == "BRK-A": past_sh = 1440000.0
-                                    
-                                    if past_sh > 0:
-                                        past_bps = eq / past_sh
-                                        if past_bps > 0:
-                                            pbr_list.append(y_price / past_bps)
-                                            
+                if is_financial or kr or is_cyclical:
+                    # 1. 미국 주식 (ADR 제외) -> FMP API에서 정확한 10년 PBR 가져오기
+                    if not kr and not is_adr and FMP_API_KEY:
+                        try:
+                            rt_url = f"https://financialmodelingprep.com/api/v3/ratios/{tk}?limit=10&apikey={FMP_API_KEY}"
+                            rt_data = requests.get(rt_url, timeout=5).json()
+                            pbr_list = []
+                            if isinstance(rt_data, list):
+                                for item in rt_data:
+                                    val = safe_float(item.get('priceToBookRatio', 0))
+                                    if val > 0: pbr_list.append(val)
                             if pbr_list:
                                 a_pbr = sum(pbr_list) / len(pbr_list)
-                    except Exception:
-                        pass
-                
-                if a_pbr <= 0 or a_pbr > 200.0: 
-                    a_pbr = pbr if pbr > 0 else 1.0
-                
-                base_bv = bv
-                if tk in ["BRK-B", "BRK-A"]:
-                    f_pbr = pbr
-                elif base_bv > 0 and f_eps != 0:
-                    div_r_val = safe_float(i.get('dividendRate', 0))
-                    f_bps = base_bv + f_eps - div_r_val
-                    if f_bps > 0: f_pbr = reg_p / f_bps
-                    else: f_pbr = reg_p / base_bv
-                elif base_bv > 0:
-                    f_pbr = reg_p / base_bv
+                        except: pass
+                        
+                    # 2. FMP에서 못 가져왔거나, ADR, 한국주식일 경우 폴백
+                    if a_pbr <= 0.0:
+                        if is_adr:
+                            # [ADR 예외 적용] 복잡한 주식수 역산 대신 과거 5년 단순 자본평균과 환율 보정만 적용
+                            try:
+                                hist_5y = stk.history(period="5y")
+                                bs = stk.balance_sheet
+                                if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                                    avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+                                    eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                                    if len(eq_vals) > 0:
+                                        avg_eq = sum(eq_vals) / len(eq_vals)
+                                        past_bvps = avg_eq * adr_fx_ratio
+                                        if past_bvps > 0:
+                                            a_pbr = avg_price / past_bvps
+                            except: pass
+                        else:
+                            # [한국 기업 또는 FMP 실패 시] 기존 10년 PBR 역산 로직 (주식수 역산 포함)
+                            try:
+                                hist_10y = stk.history(period="10y")
+                                bs = stk.balance_sheet
+                                _inc = stk.income_stmt
+                                pbr_list = []
+                                
+                                if not hist_10y.empty and bs is not None and not bs.empty:
+                                    for col_date in bs.columns[:10]:
+                                        y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                                        year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                                        y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
+                                        
+                                        eq = 0.0
+                                        for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                                            if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
+                                                eq = safe_float(bs.loc[eq_key, col_date])
+                                                break
+                                                
+                                        if y_price > 0 and eq > 0:
+                                            past_sh = 0.0
+                                            if _inc is not None and not _inc.empty and col_date in _inc.columns:
+                                                ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
+                                                eps_val = 0.0
+                                                if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                                    eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                                elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                                    eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                                    
+                                                if eps_val > 0 and ni_val != 0:
+                                                    past_sh = abs(ni_val / eps_val)
+                                                    
+                                            if past_sh == 0:
+                                                past_sh = safe_float(i.get('sharesOutstanding'))
+                                                
+                                            if tk == "BRK-B": past_sh = 2160000000.0
+                                            elif tk == "BRK-A": past_sh = 1440000.0
+                                            
+                                            if past_sh > 0:
+                                                past_bps = eq / past_sh
+                                                if past_bps > 0:
+                                                    pbr_list.append(y_price / past_bps)
+                                                    
+                            if pbr_list:
+                                a_pbr = sum(pbr_list) / len(pbr_list)
+                            except Exception: pass
                     
-                if 'multiplier' in locals() and multiplier != 1.0:
-                    f_pbr = f_pbr * multiplier
+                    if a_pbr <= 0 or a_pbr > 200.0: 
+                        a_pbr = pbr if pbr > 0 else 1.0
+                        
+                    base_bv = bv
+                    if tk in ["BRK-B", "BRK-A"]:
+                        f_pbr = pbr
+                    elif base_bv > 0 and f_eps != 0:
+                        div_r_val = safe_float(i.get('dividendRate', 0))
+                        f_bps = base_bv + f_eps - div_r_val
+                        if f_bps > 0: f_pbr = reg_p / f_bps
+                        else: f_pbr = reg_p / base_bv
+                    elif base_bv > 0:
+                        f_pbr = reg_p / base_bv
+                        
+                    if 'multiplier' in locals() and multiplier != 1.0:
+                        f_pbr = f_pbr * multiplier
                 # =====================================================================
                 # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
-                # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
+                # 바로 아래에 ey = (1 / f_pe * 100) if f_pe > 0 else 0 코드가 이어집니다.
                 # =====================================================================
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
@@ -3162,7 +3181,7 @@ with tab1:
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 erp = ey - ty
                 
-                base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+                base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i, tk, kr, is_adr)
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
