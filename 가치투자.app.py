@@ -9,6 +9,7 @@ from datetime import datetime
 import re
 import concurrent.futures
 import plotly.graph_objects as go
+import OpenDartReader
 
 # 스트림릿 Secrets에서 키를 불러옵니다.
 try:
