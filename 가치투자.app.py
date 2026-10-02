@@ -3877,50 +3877,51 @@ with tab1:
                     user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
 
                     # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                    if not is_financial and sh_dcf > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
-                        u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
-                        u_g = user_g_val / 100
-                        u_tg = user_tg_val / 100
-                        
-                        # 시뮬레이터 전용 계산 함수 (AI 기본 제한 회피)
-                        def sim_dcf(g_rate):
-                            cv = base_fcf
-                            fut = []
-                            for y in range(1, 11):
-                                cv *= (1 + g_rate)
-                                fut.append(cv / ((1 + u_dr) ** y))
-                            if u_dr > u_tg:
-                                tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
-                                dtv = tv / ((1 + u_dr) ** 10)
-                                calc_iv = (sum(fut) + dtv) / sh_dcf  # <-- sh_dcf로 복구 완료
-                                calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
-                                return calc_iv, calc_mos
-                            return 0, 0
-
+                # [에러 해결] sh와 base_fcf가 None(데이터 없음)일 때 앱이 터지지 않도록 'is not None' 방어막 추가
+                if not is_financial and sh is not None and sh > 0 and base_fcf is not None and base_fcf > 0 and not is_zigzag:
+                    u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
+                    u_g = user_g_val / 100
+                    u_tg = user_tg_val / 100
+                    
+                    # 시뮬레이터 전용 계산 함수 (AI 기본 제한 회피)
+                    def sim_dcf(g_rate):
+                        cv = base_fcf
+                        fut = []
+                        for y in range(1, 11):
+                            cv *= (1 + g_rate)
+                            fut.append(cv / ((1 + u_dr) ** y))
                         if u_dr > u_tg:
-                            iv, mos_val = sim_dcf(u_g)
-                            final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
-                            
-                            iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
-                            iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
+                            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+                            dtv = tv / ((1 + u_dr) ** 10)
+                            calc_iv = (sum(fut) + dtv) / sh
+                            calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
+                            return calc_iv, calc_mos
+                        return 0, 0
 
-                    # 하단 UI 표출 부분
-                    if not is_financial and sh_dcf > 0:
-                        c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
-                        val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                    if u_dr > u_tg:
+                        iv, mos_val = sim_dcf(u_g)
+                        final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
+                        
+                        iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
+                        iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
 
-                        st.markdown(
-                            f"<div style='{item_style} margin-top: 15px; padding: 25px; max-width: 500px; margin-left: auto; margin-right: auto;'>"
-                            f"<div style='{lbl_style} font-size:0.9rem;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
-                            f"<div style='{val_style} font-size:1.8rem; margin:10px 0; color:#A0C4FF;'>{val_c_str}</div>"
-                            f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <span style='color:{c_mos_col}; font-weight:bold; font-size:1.0rem;'>{c_mos_lbl} {mos_val:.1f}%</span></div>"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    elif is_financial:
-                        st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
-                    else:
-                        st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
+                # 하단 UI 표출 부분
+                if not is_financial and sh is not None and sh > 0:
+                    c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
+                    val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+
+                    st.markdown(
+                        f"<div style='{item_style} margin-top: 15px; padding: 25px; max-width: 500px; margin-left: auto; margin-right: auto;'>"
+                        f"<div style='{lbl_style} font-size:0.9rem;'>{t('나만의 시뮬레이션 적정 주가', 'Custom Fair Value')}</div>"
+                        f"<div style='{val_style} font-size:1.8rem; margin:10px 0; color:#A0C4FF;'>{val_c_str}</div>"
+                        f"<div style='{desc_style} font-size:0.9rem;'>{t('현재 주가 대비 안전마진:', 'Margin of Safety:')} <span style='color:{c_mos_col}; font-weight:bold; font-size:1.0rem;'>{c_mos_lbl} {mos_val:.1f}%</span></div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                elif is_financial:
+                    st.info(t("금융주는 예치금 구조상 DCF 계산 대상이 아닙니다.", "Financial stocks are excluded from DCF."))
+                else:
+                    st.error(t("주식수(Shares Outstanding) 또는 현금흐름 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing data."))
                 st.divider()
                 st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
