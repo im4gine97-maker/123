@@ -9,10 +9,23 @@ from datetime import datetime
 import re
 import concurrent.futures
 import plotly.graph_objects as go
+import OpenDartReader
 
-# 앱 이름 변경 및 레이아웃 (여기에 절대 띄어쓰기가 있으면 안 됩니다)
+# 스트림릿 Secrets에서 키를 불러옵니다.
+try:
+    DART_API_KEY = st.secrets["DART_API_KEY"]
+    FMP_API_KEY = st.secrets["FMP_API_KEY"]
+except:
+    DART_API_KEY = "102371dc99e43c0ea0a70f8ec5a6b04440766798"
+    FMP_API_KEY = "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4"
+
+try:
+    dart = OpenDartReader(DART_API_KEY)
+except:
+    dart = None
+
+# 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
-
 # ==========================================
 # [1] 세션 상태 초기화 및 글로벌 유틸리티
 # ==========================================
