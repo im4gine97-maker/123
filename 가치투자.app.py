@@ -3943,7 +3943,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     if kr:
                         # [한국 주식] DART API로 10년치 매출/영업이익/순이익 추출
                         st.write(f"**{t('손익계산서 (DART 10년치)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
-                        if dart is not None and DART_API_KEY != "여기에_발급받은_DART_API키를_넣으세요":
+                        if dart is not None and DART_API_KEY != "102371dc99e43c0ea0a70f8ec5a6b04440766798":
                             with st.spinner("DART에서 10년치 데이터를 수집 중입니다..."):
                                 years = [2023, 2020, 2017, 2014]
                                 all_data = []
@@ -3985,7 +3985,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         # [미국 주식] FMP API로 10년치 추출
                         st.write(f"**{t('손익계산서 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
-                        if FMP_API_KEY != "여기에_발급받은_FMP_API키를_넣으세요":
+                        if FMP_API_KEY != "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4":
                             with st.spinner("FMP에서 10년치 데이터를 수집 중입니다..."):
                                 try:
                                     fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
