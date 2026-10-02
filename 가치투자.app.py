@@ -9,7 +9,9 @@ from datetime import datetime
 import re
 import concurrent.futures
 import plotly.graph_objects as go
-import OpenDartReader
+import zipfile
+import io
+import xml.etree.ElementTree as ET
 
 # 스트림릿 Secrets에서 키를 불러옵니다.
 try:
@@ -18,11 +20,6 @@ try:
 except:
     DART_API_KEY = "102371dc99e43c0ea0a70f8ec5a6b04440766798"
     FMP_API_KEY = "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4"
-
-try:
-    dart = OpenDartReader(DART_API_KEY)
-except:
-    dart = None
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
@@ -1159,7 +1156,60 @@ def fetch_governance_criticism(tk, cd, ceo_name):
         return db[tk_clean]
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
+# =========================================================================
+# [추가] 외부 라이브러리 없이 DART 10년치 가져오는 안전한 엔진
+# =========================================================================
+@st.cache_data(ttl=86400*30)
+def get_dart_corp_codes(api_key):
+    url = f"https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key={api_key}"
+    mapping = {}
+    try:
+        res = requests.get(url, timeout=10)
+        with zipfile.ZipFile(io.BytesIO(res.content)) as z:
+            with z.open('CORPCODE.xml') as f:
+                tree = ET.parse(f)
+                root = tree.getroot()
+                for list_node in root.findall('list'):
+                    stock_code = list_node.find('stock_code').text
+                    if stock_code and stock_code.strip():
+                        mapping[stock_code.strip()] = list_node.find('corp_code').text
+    except: pass
+    return mapping
 
+@st.cache_data(ttl=86400)
+def get_10yr_dart_financials_raw(stock_code, api_key):
+    mapping = get_dart_corp_codes(api_key)
+    corp_code = mapping.get(stock_code)
+    if not corp_code: return pd.DataFrame()
+    
+    years = [2023, 2020, 2017, 2014]
+    all_data = []
+    for y in years:
+        url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=CFS"
+        try:
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get('status') == '000':
+                    for item in data.get('list', []):
+                        acc_nm = item.get('account_nm')
+                        if acc_nm in ['매출액', '영업이익', '당기순이익']:
+                            all_data.append({'연도': str(y), '계정': acc_nm, '금액': item.get('thstrm_amount')})
+                            all_data.append({'연도': str(y-1), '계정': acc_nm, '금액': item.get('frmtrm_amount')})
+                            all_data.append({'연도': str(y-2), '계정': acc_nm, '금액': item.get('bfefrmtrm_amount')})
+        except: pass
+        
+    if not all_data: return pd.DataFrame()
+    
+    df = pd.DataFrame(all_data)
+    df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
+    df = df.dropna().drop_duplicates(subset=['연도', '계정'])
+    
+    pivot_df = df.pivot(index='계정', columns='연도', values='금액')
+    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
+    try: pivot_df = pivot_df.reindex(['매출액', '영업이익', '당기순이익'])
+    except: pass
+    return pivot_df
 def get_yf_info(stk):
     try:
         res = stk.info
@@ -3913,80 +3963,51 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [파트 3] 📊 기업 재무제표 (10년치 API 연동 완료)
+                # [파트 3] 📊 기업 10년 재무제표 (안전 API 연동 및 차트 시각화)
                 # =====================================================================
                 st.divider()
-                st.subheader(t("📊 기업 10년 재무제표 요약 (Income Statement)", "📊 10-Year Financial Statements"))
+                st.subheader(t("📊 기업 10년 재무제표 & 막대 그래프", "📊 10-Year Financials & Charts"))
 
-                with st.expander(t("상세 재무제표 테이블 보기 (클릭하여 열기)", "View Detailed Financials (Click to expand)"), expanded=False):
+                with st.expander(t("10년치 상세 재무제표 및 차트 보기 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     
-                    # 단위 변환 및 포맷팅 (applymap 에러 해결을 위해 map 사용)
-                    def format_financial_df(df, is_kr):
-                        if df is None or df.empty: return pd.DataFrame()
-                        df = df[df.columns[::-1]] # 과거 -> 최신 순 정렬
-                        df.columns = [str(col).split(' ')[0] for col in df.columns]
-                        
-                        try:
-                            if is_kr:
-                                # 한국: 억원 단위
-                                return (df / 100000000).map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            else:
-                                # 미국: 백만 달러 단위
-                                return (df / 1000000).map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                        except AttributeError:
-                            # 구버전 판다스 호환성 유지
-                            if is_kr:
-                                return (df / 100000000).applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            else:
-                                return (df / 1000000).applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                    # 차트 그리기 전용 함수 (과거->최신순 정렬)
+                    def draw_financial_chart(df, is_kr):
+                        plot_df = df[sorted(df.columns)] 
+                        years = plot_df.columns.tolist()
+                        fig = go.Figure()
+                        c_rev, c_op, c_ni = '#74b9ff', '#fdcb6e', '#2ecc71'
+                        acc_rev, acc_op, acc_ni = ('매출액', '영업이익', '당기순이익') if is_kr else ('Revenue (매출)', 'Operating Income (영업이익)', 'Net Income (순이익)')
+                            
+                        if acc_rev in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_rev], name=t('매출액', 'Revenue'), marker_color=c_rev))
+                        if acc_op in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_op], name=t('영업이익', 'Operating Income'), marker_color=c_op))
+                        if acc_ni in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_ni], name=t('순이익', 'Net Income'), marker_color=c_ni))
+                            
+                        fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                        st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
                     if kr:
-                        # [한국 주식] DART API로 10년치 매출/영업이익/순이익 추출
-                        st.write(f"**{t('손익계산서 (DART 10년치)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
-                        if dart is not None and DART_API_KEY != "102371dc99e43c0ea0a70f8ec5a6b04440766798":
-                            with st.spinner("DART에서 10년치 데이터를 수집 중입니다..."):
-                                years = [2023, 2020, 2017, 2014]
-                                all_data = []
-                                for y in years:
-                                    try:
-                                        df_dart = dart.finstate(cd, y, reprt_code='11011')
-                                        if df_dart is not None and not df_dart.empty:
-                                            is_df = df_dart[df_dart['sj_div'].isin(['IS', 'CIS'])]
-                                            is_df = is_df[is_df['account_nm'].isin(['매출액', '영업이익', '당기순이익'])]
-                                            for col in ['thstrm_amount', 'frmtrm_amount', 'bfefrmtrm_amount']:
-                                                is_df[col] = pd.to_numeric(is_df[col].astype(str).str.replace(',', ''), errors='coerce')
-                                            
-                                            for _, row in is_df.iterrows():
-                                                acc = row['account_nm']
-                                                all_data.append({'연도': str(y), '계정': acc, '금액': row['thstrm_amount']})
-                                                all_data.append({'연도': str(y-1), '계정': acc, '금액': row['frmtrm_amount']})
-                                                all_data.append({'연도': str(y-2), '계정': acc, '금액': row['bfefrmtrm_amount']})
-                                    except: pass
-                                
-                                if all_data:
-                                    res_df = pd.DataFrame(all_data).dropna().drop_duplicates(subset=['연도', '계정'])
-                                    pivot_df = res_df.pivot(index='계정', columns='연도', values='금액')
-                                    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
-                                    
-                                    # 인덱스 순서 고정
-                                    pivot_df = pivot_df.reindex(['매출액', '영업이익', '당기순이익'])
-                                    
-                                    try:
-                                        formatted_dart = pivot_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                    except:
-                                        formatted_dart = pivot_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                        
+                        # [한국 주식] 파이썬 기본 모듈(requests)로만 구동되는 DART 10년치 (에러 없음)
+                        st.write(f"**{t('손익계산서 추이 (DART 10년치)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
+                        if DART_API_KEY:
+                            with st.spinner("DART에서 10년치 재무 데이터를 수집 중입니다..."):
+                                dart_df = get_10yr_dart_financials_raw(cd, DART_API_KEY)
+                                if not dart_df.empty:
+                                    # 1. 10년치 막대 차트 그리기
+                                    draw_financial_chart(dart_df, True)
+                                    # 2. 10년치 표 그리기 (안전한 map/applymap 혼용)
+                                    try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                    except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                     st.dataframe(formatted_dart, use_container_width=True)
                                 else:
-                                    st.info("해당 기업의 DART 재무제표 데이터를 찾을 수 없습니다.")
+                                    st.info("해당 기업의 DART 재무제표 데이터를 찾을 수 없거나 아직 서버에 업데이트되지 않았습니다.")
                         else:
-                            st.warning("DART API 키가 설정되지 않았습니다. 코드 맨 위쪽에 키를 입력해 주세요.")
+                            st.warning("DART API 키가 설정되지 않았습니다.")
                             
                     else:
-                        # [미국 주식] FMP API로 10년치 추출
-                        st.write(f"**{t('손익계산서 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
-                        if FMP_API_KEY != "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4":
-                            with st.spinner("FMP에서 10년치 데이터를 수집 중입니다..."):
+                        # [미국 주식] FMP API 10년치
+                        st.write(f"**{t('손익계산서 추이 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
+                        if FMP_API_KEY:
+                            with st.spinner("FMP에서 10년치 재무 데이터를 수집 중입니다..."):
                                 try:
                                     fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
                                     fmp_r = requests.get(fmp_url, timeout=5)
@@ -4002,19 +4023,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                 'Net Income (순이익)': item.get('netIncome', 0)
                                             }
                                         fmp_df = pd.DataFrame(fmp_dict)
-                                        # 최신 연도가 우측에 오게 정렬
-                                        fmp_df = fmp_df[sorted(fmp_df.columns)] 
-                                        formatted_fmp = format_financial_df(fmp_df, False)
+                                        fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
+                                        
+                                        # 1. 10년치 막대 차트 그리기
+                                        draw_financial_chart(fmp_df, False)
+                                        # 2. 10년치 표 그리기
+                                        try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                        except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         st.dataframe(formatted_fmp, use_container_width=True)
                                     else:
-                                        st.info("FMP API 호출 한도가 초과되었거나 데이터를 찾을 수 없습니다. 기본 4년치 데이터를 표시합니다.")
-                                        st.dataframe(format_financial_df(stk.income_stmt, False), use_container_width=True)
+                                        st.info("FMP API 호출 한도가 초과되었거나 데이터를 찾을 수 없습니다.")
                                 except:
-                                    st.info("FMP API 연결에 실패했습니다. 기본 4년치 데이터를 표시합니다.")
-                                    st.dataframe(format_financial_df(stk.income_stmt, False), use_container_width=True)
+                                    st.info("FMP API 연결에 실패했습니다.")
                         else:
-                            st.warning("FMP API 키가 설정되지 않았습니다. 기본 4년치 데이터를 표시합니다.")
-                            st.dataframe(format_financial_df(stk.income_stmt, False), use_container_width=True)
+                            st.warning("FMP API 키가 설정되지 않았습니다.")
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
