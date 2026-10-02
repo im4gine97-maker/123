@@ -4005,90 +4005,162 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [파트 3] 📊 기업 10년 재무제표 (안전 API 연동 및 차트 시각화)
+                # [파트 3] 📊 기업 10년 핵심 장부 내역 (전문가용 11대 지표)
                 # =====================================================================
                 st.divider()
-                st.subheader(t("📊 기업 10년 핵심 장부 내역 & 차트", "📊 10-Year Financials & Charts"))
+                st.subheader(t("📊 10년 핵심 장부 & 밸류에이션 추이", "📊 10-Year Financials & Valuation"))
 
                 cd = tk.split('.')[0] if kr else tk
 
                 with st.expander(t("10년치 상세 재무제표 및 차트 보기 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     
-                    def draw_financial_chart(df, is_kr):
+                    # 1. 10년치 연말 종가(Historical Price) 가져오기 (PER, PBR 계산용)
+                    hist_px = stk.history(period="10y")
+                    year_end_px = {}
+                    if not hist_px.empty:
+                        for y_idx in hist_px.index.year.unique():
+                            year_end_px[str(y_idx)] = float(hist_px[hist_px.index.year == y_idx]['Close'].iloc[-1])
+
+                    # 2. 차트 그리기 함수
+                    def draw_financial_chart(df):
                         if df is None or df.empty: return
                         plot_df = df[sorted(df.columns)] 
                         years = plot_df.columns.tolist()
                         fig = go.Figure()
-                        c_rev, c_op, c_ni = '#74b9ff', '#fdcb6e', '#2ecc71'
                         
-                        # 너무 많은 선이 겹치면 더러워지므로 막대그래프는 매출, 영업이익, 순이익 3대장만 그려줍니다. (표에는 다 나옴)
-                        for idx_val in plot_df.index:
-                            if '매출' in idx_val or 'Revenue' in idx_val:
-                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('매출액', 'Revenue'), marker_color=c_rev))
-                            elif '영업이익' in idx_val or 'Operating Income' in idx_val:
-                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('영업이익', 'Operating Income'), marker_color=c_op))
-                            elif '순이익' in idx_val or 'Net Income' in idx_val:
-                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color=c_ni))
+                        # 차트에는 매출, 영업이익, 순이익 3가지만 깔끔하게 표시
+                        if '매출액 (Revenue)' in plot_df.index:
+                            fig.add_trace(go.Bar(x=years, y=plot_df.loc['매출액 (Revenue)'], name=t('매출액', 'Revenue'), marker_color='#74b9ff'))
+                        if '영업이익 (Op. Income)' in plot_df.index:
+                            fig.add_trace(go.Bar(x=years, y=plot_df.loc['영업이익 (Op. Income)'], name=t('영업이익', 'Op. Income'), marker_color='#fdcb6e'))
+                        if '순이익 (Net Income)' in plot_df.index:
+                            fig.add_trace(go.Bar(x=years, y=plot_df.loc['순이익 (Net Income)'], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                             
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
-                    def fallback_yfinance():
-                        st.info("💡 공공 데이터를 찾을 수 없어 yfinance(최근 4년치)로 대체 시각화합니다.")
-                        inc_df = stk.income_stmt
-                        bs_df = stk.balance_sheet
-                        cf_df = stk.cash_flow
-                        
-                        combined_dict = {}
-                        if inc_df is not None and not inc_df.empty:
-                            if 'Total Revenue' in inc_df.index: combined_dict['매출액 (Revenue)'] = inc_df.loc['Total Revenue']
-                            if 'Operating Income' in inc_df.index: combined_dict['영업이익 (Op. Income)'] = inc_df.loc['Operating Income']
-                            if 'Net Income' in inc_df.index: combined_dict['순이익 (Net Income)'] = inc_df.loc['Net Income']
-                        if bs_df is not None and not bs_df.empty:
-                            if 'Total Assets' in bs_df.index: combined_dict['자산총계 (Assets)'] = bs_df.loc['Total Assets']
-                            if 'Stockholders Equity' in bs_df.index: combined_dict['자본총계 (Equity)'] = bs_df.loc['Stockholders Equity']
-                        if cf_df is not None and not cf_df.empty:
-                            if 'Operating Cash Flow' in cf_df.index: combined_dict['영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow']
-                            if 'Capital Expenditure' in cf_df.index: combined_dict['설비투자 (CAPEX)'] = cf_df.loc['Capital Expenditure']
-                        
-                        if combined_dict:
-                            yf_df = pd.DataFrame(combined_dict).T
-                            yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
-                            divider = 100000000 if kr else 1000000
-                            yf_df = yf_df / divider
-                            
-                            draw_financial_chart(yf_df, kr)
-                            try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            st.dataframe(formatted_yf, use_container_width=True)
-                        else:
-                            st.warning("재무제표 데이터를 완전히 불러올 수 없습니다.")
-
-                    if kr:
-                        st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터)', 'Financials (DART)')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
-                        dart_success = False
-                        if DART_API_KEY and DART_API_KEY != "102371dc99e43c0ea0a70f8ec5a6b04440766798":
-                            with st.spinner("금융감독원 DART에서 데이터를 수집 중입니다..."):
-                                dart_df, debug_msg = get_10yr_dart_financials_raw(cd, DART_API_KEY)
-                                if not dart_df.empty:
-                                    draw_financial_chart(dart_df, True)
-                                    try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                    except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                    st.dataframe(formatted_dart, use_container_width=True)
-                                    dart_success = True
+                    # 3. 데이터프레임 포맷팅 함수 (소수점 처리)
+                    def format_expert_df(df):
+                        formatted_df = df.copy()
+                        for col in formatted_df.columns:
+                            for idx in formatted_df.index:
+                                val = formatted_df.at[idx, col]
+                                if pd.isna(val) or val == 0:
+                                    formatted_df.at[idx, col] = "-"
                                 else:
-                                    # [핵심] 실패 원인을 적나라하게 화면에 표출합니다!
-                                    st.error("🚨 DART API에서 데이터를 가져오지 못했습니다. 아래 에러 로그를 확인하세요.")
-                                    with st.expander("에러 원인 보기 (디버깅 로그)"):
-                                        st.code(debug_msg, language="text")
+                                    if 'ROE' in idx or 'PER' in idx or 'PBR' in idx:
+                                        formatted_df.at[idx, col] = f"{val:.1f}"
+                                    else:
+                                        formatted_df.at[idx, col] = f"{val:,.0f}"
+                        return formatted_df
+
+                    # =========================================================
+                    # [한국 주식] DART API 엔진 (디버그 로그 강력 표출)
+                    # =========================================================
+                    if kr:
+                        st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터)', 'Financials (DART)')}** {t('(단위: 억 원, 배, %)', '(Unit: 100M KRW, x, %)')}")
                         
-                        if not dart_success:
-                            fallback_yfinance()
-                            
+                        if not DART_API_KEY or DART_API_KEY == "102371dc99e43c0ea0a70f8ec5a6b04440766798":
+                            st.warning("DART API 키가 설정되지 않았습니다. 사이드바나 코드 상단에 키를 입력해 주세요.")
+                        else:
+                            with st.spinner("금융감독원 DART에서 10년치 장부를 분석 중입니다..."):
+                                debug_logs = []
+                                dart_df = pd.DataFrame()
+                                
+                                # 고유번호(corp_code) 가져오기
+                                mapping = get_dart_corp_codes(DART_API_KEY)
+                                if "error" in mapping:
+                                    debug_logs.append(f"[오류] 기업 고유번호 파일 다운로드 실패: {mapping['error']}")
+                                else:
+                                    corp_code = mapping.get(cd)
+                                    if not corp_code:
+                                        debug_logs.append(f"[오류] DART에 상장/등록된 기업 코드를 찾을 수 없습니다. (종목코드: {cd})")
+                                    else:
+                                        current_year = datetime.now().year
+                                        base_year = current_year - 1
+                                        years = [base_year, base_year - 3, base_year - 6, base_year - 9]
+                                        all_data = []
+                                        headers = {'User-Agent': 'Mozilla/5.0'}
+                                        
+                                        for y in years:
+                                            success_for_year = False
+                                            for fs_div in ['CFS', 'OFS']:
+                                                url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={DART_API_KEY}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
+                                                try:
+                                                    r = requests.get(url, headers=headers, timeout=5)
+                                                    if r.status_code != 200:
+                                                        debug_logs.append(f"[{y}년 {fs_div}] 서버 응답 에러: HTTP {r.status_code}")
+                                                        continue
+                                                    
+                                                    data = r.json()
+                                                    status = data.get('status')
+                                                    if status == '000':
+                                                        for item in data.get('list', []):
+                                                            raw_nm = item.get('account_nm', '').replace(' ', '')
+                                                            std_nm = None
+                                                            if '매출' in raw_nm or '영업수익' in raw_nm: std_nm = '매출액 (Revenue)'
+                                                            elif '영업이익' in raw_nm or '영업손실' in raw_nm: std_nm = '영업이익 (Op. Income)'
+                                                            elif '당기순이익' in raw_nm or '당기순손실' in raw_nm or '순이익' in raw_nm: std_nm = '순이익 (Net Income)'
+                                                            elif '자산총계' in raw_nm: std_nm = '자산 (Assets)'
+                                                            elif '부채총계' in raw_nm: std_nm = '부채 (Liabilities)'
+                                                            elif '자본총계' in raw_nm: std_nm = '자본 (Equity)'
+                                                            
+                                                            if std_nm:
+                                                                all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
+                                                                all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
+                                                                all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                                                        success_for_year = True
+                                                        break
+                                                    else:
+                                                        msg = data.get('message', '알 수 없는 에러')
+                                                        debug_logs.append(f"[{y}년 {fs_div}] DART API 거부: {msg} (코드: {status})")
+                                                except Exception as e: 
+                                                    debug_logs.append(f"[{y}년 {fs_div}] 통신 실패: {str(e)}")
+                                            
+                                            if not success_for_year:
+                                                debug_logs.append(f"-> {y}년도 결산 데이터를 가져오지 못했습니다.")
+
+                                        if all_data:
+                                            df = pd.DataFrame(all_data)
+                                            df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
+                                            df = df.dropna().drop_duplicates(subset=['연도', '계정'])
+                                            pivot_df = df.pivot(index='계정', columns='연도', values='금액')
+                                            pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
+                                            
+                                            # 한국 주식 추가 지표 계산 (PER, PBR, ROE)
+                                            sh_out = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
+                                            for yr in pivot_df.columns:
+                                                ni_val = pivot_df.at['순이익 (Net Income)', yr] if '순이익 (Net Income)' in pivot_df.index else 0
+                                                eq_val = pivot_df.at['자본 (Equity)', yr] if '자본 (Equity)' in pivot_df.index else 0
+                                                px_val = year_end_px.get(yr, 0)
+                                                
+                                                if pd.notna(ni_val) and pd.notna(eq_val) and eq_val > 0:
+                                                    pivot_df.at['ROE (%)', yr] = (ni_val / eq_val) * 100
+                                                    
+                                                if px_val > 0 and sh_out > 0:
+                                                    if pd.notna(ni_val) and ni_val > 0:
+                                                        pivot_df.at['PER (배)', yr] = px_val / ((ni_val * 100000000) / sh_out)
+                                                    if pd.notna(eq_val) and eq_val > 0:
+                                                        pivot_df.at['PBR (배)', yr] = px_val / ((eq_val * 100000000) / sh_out)
+
+                                            final_idx = ['매출액 (Revenue)', '영업이익 (Op. Income)', '순이익 (Net Income)', '자산 (Assets)', '부채 (Liabilities)', '자본 (Equity)', 'ROE (%)', 'PER (배)', 'PBR (배)']
+                                            dart_df = pivot_df.reindex([x for x in final_idx if x in pivot_df.index])
+
+                                if not dart_df.empty:
+                                    draw_financial_chart(dart_df)
+                                    st.dataframe(format_expert_df(dart_df), use_container_width=True)
+                                else:
+                                    st.error("🚨 DART API에서 데이터를 가져오지 못했습니다. 아래 에러 로그를 확인하세요.")
+                                    st.code("\n".join(debug_logs), language="text")
+
+                    # =========================================================
+                    # [미국 주식] SEC EDGAR 공공데이터 엔진 (11대 지표 완벽 추출)
+                    # =========================================================
                     else:
-                        st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터)', 'Financials (SEC)')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
-                        sec_success = False
-                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 핵심 데이터를 수집 중입니다..."):
+                        st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 배, %)', '(Unit: Million USD, x, %)')}")
+                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 장부를 분석 중입니다..."):
+                            debug_logs = []
+                            sec_df = pd.DataFrame()
                             try:
                                 sec_headers = {'User-Agent': 'AGIE_App/1.0 (contact@agie.com)'}
                                 tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
@@ -4098,17 +4170,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         cik = str(val['cik_str']).zfill(10)
                                         break
                                 
-                                if cik:
+                                if not cik:
+                                    debug_logs.append(f"SEC에 등록된 CIK 번호를 찾을 수 없습니다. (티커: {cd})")
+                                else:
                                     facts_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
                                     facts_res = requests.get(facts_url, headers=sec_headers, timeout=10).json()
                                     us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
                                     
-                                    def extract_annual_data(tags):
+                                    # 광범위한 태그 스캔 및 병합 함수
+                                    def extract_annual_data(tags, unit_type='USD'):
                                         res = {}
                                         for tag in tags:
                                             if tag in us_gaap:
-                                                usd_data = us_gaap[tag].get('units', {}).get('USD', [])
-                                                for item in usd_data:
+                                                data_list = us_gaap[tag].get('units', {}).get(unit_type, [])
+                                                for item in data_list:
                                                     if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
                                                         y_val = str(item.get('fy'))
                                                         val = item.get('val', 0)
@@ -4116,7 +4191,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                             res[y_val] = val
                                         return res
                                     
-                                    # [확장] 밸류에이션 계산에 필요한 항목들 모조리 스캔
                                     rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenuesNetOfInterestExpense'])
                                     op = extract_annual_data(['OperatingIncomeLoss'])
                                     ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
@@ -4124,38 +4198,63 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     equity = extract_annual_data(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'])
                                     ocf = extract_annual_data(['NetCashProvidedByUsedInOperatingActivities'])
                                     capex = extract_annual_data(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
-                                    divs = extract_annual_data(['PaymentsOfDividends', 'DividendsCash'])
+                                    eps = extract_annual_data(['EarningsPerShareDiluted', 'EarningsPerShareBasic'], unit_type='USD/shares')
                                     
                                     all_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()))), reverse=True)[:10]
                                     
                                     if all_years:
                                         sec_data = []
                                         for y in all_years:
+                                            r_val = rev.get(y, 0)
+                                            op_val = op.get(y, 0)
+                                            ni_val = ni.get(y, 0)
+                                            a_val = assets.get(y, 0)
+                                            e_val = equity.get(y, 0)
+                                            ocf_val = ocf.get(y, 0)
+                                            cap_val = capex.get(y, 0)
+                                            eps_val = eps.get(y, 0)
+                                            
+                                            # FCF = 영업현금흐름 - |설비투자|
+                                            fcf_val = ocf_val - abs(cap_val) if ocf_val != 0 and cap_val != 0 else 0
+                                            roe_val = (ni_val / e_val * 100) if e_val > 0 else 0
+                                            
+                                            # PER, PBR 계산 (해당 연도 연말 주가 기준)
+                                            px_val = year_end_px.get(y, 0)
+                                            per_val = (px_val / eps_val) if eps_val > 0 and px_val > 0 else 0
+                                            
+                                            pbr_val = 0
+                                            sh_out = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
+                                            if px_val > 0 and e_val > 0 and sh_out > 0:
+                                                pbr_val = px_val / (e_val / sh_out)
+
                                             sec_data.append({
                                                 '연도': y,
-                                                '매출액 (Revenue)': rev.get(y, 0),
-                                                '영업이익 (Op. Income)': op.get(y, 0),
-                                                '순이익 (Net Income)': ni.get(y, 0),
-                                                '자산총계 (Assets)': assets.get(y, 0),
-                                                '자본총계 (Equity)': equity.get(y, 0),
-                                                '영업현금 (Op. CF)': ocf.get(y, 0),
-                                                '설비투자 (CAPEX)': capex.get(y, 0),
-                                                '배당지급 (Dividends)': divs.get(y, 0)
+                                                '매출액 (Revenue)': r_val / 1000000,
+                                                '영업이익 (Op. Income)': op_val / 1000000,
+                                                '순이익 (Net Income)': ni_val / 1000000,
+                                                '자산 (Assets)': a_val / 1000000,
+                                                '자본 (Equity)': e_val / 1000000,
+                                                '영업현금 (Op. CF)': ocf_val / 1000000,
+                                                '설비투자 (CAPEX)': -abs(cap_val) / 1000000 if cap_val != 0 else 0,
+                                                '잉여현금 (FCF)': fcf_val / 1000000,
+                                                'ROE (%)': roe_val,
+                                                'PER (배)': per_val,
+                                                'PBR (배)': pbr_val
                                             })
                                         
                                         sec_df = pd.DataFrame(sec_data).set_index('연도').T
-                                        sec_df = sec_df / 1000000 # 백만 달러 단위 변환
                                         
-                                        draw_financial_chart(sec_df, False)
-                                        try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
-                                        except: formatted_sec = sec_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
-                                        st.dataframe(formatted_sec, use_container_width=True)
-                                        sec_success = True
-                            except Exception:
-                                pass
-                        
-                        if not sec_success:
-                            fallback_yfinance()
+                                    else:
+                                        debug_logs.append(f"SEC 데이터에서 매출/이익 태그를 찾을 수 없습니다.")
+                            except Exception as e:
+                                debug_logs.append(f"SEC 통신 및 파싱 에러: {str(e)}")
+                                
+                            if not sec_df.empty:
+                                draw_financial_chart(sec_df)
+                                st.dataframe(format_expert_df(sec_df), use_container_width=True)
+                            else:
+                                st.error("🚨 미국 SEC에서 데이터를 가져오지 못했습니다. 아래 에러 로그를 확인하세요.")
+                                st.code("\n".join(debug_logs), language="text")
                             
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
