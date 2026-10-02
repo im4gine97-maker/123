@@ -3396,7 +3396,7 @@ with tab1:
                 user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
                 
                 # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                if not is_financial and sh_dcf > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
                     u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                     u_g = user_g_val / 100
                     u_tg = user_tg_val / 100
@@ -3411,11 +3411,12 @@ with tab1:
                         if u_dr > u_tg:
                             tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
                             dtv = tv / ((1 + u_dr) ** 10)
-                            calc_iv = (sum(fut) + dtv) / sh_dcf
+                            calc_iv = (sum(fut) + dtv) / sh  # sh_dcf를 sh로 변경 완료
                             calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
                             return calc_iv, calc_mos
                         return 0, 0
 
+                    # 들여쓰기 버그 수정 완료 (if문 안으로 정상 편입)
                     if u_dr > u_tg:
                         iv, mos_val = sim_dcf(u_g)
                         final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
