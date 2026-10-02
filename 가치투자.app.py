@@ -2538,6 +2538,7 @@ def generate_quick_ai_preview(tk):
                 ceo_cleaned = prefix
 
     # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
+    cd = tk.split('.')[0] if kr else tk  # <--- [수정] 에러 방지를 위해 cd 변수 정의 추가
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag = get_10yr_custom_metrics(
         stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
     )
