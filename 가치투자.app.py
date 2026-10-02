@@ -1163,7 +1163,6 @@ def fetch_governance_criticism(tk, cd, ceo_name):
 def get_dart_corp_codes(api_key):
     url = f"https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key={api_key}"
     mapping = {}
-    # [핵심 수술 1] 금감원 서버의 봇 차단을 우회하기 위한 필수 User-Agent
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     try:
         res = requests.get(url, headers=headers, timeout=10)
@@ -1180,8 +1179,9 @@ def get_dart_corp_codes(api_key):
         return {"error": str(e)}
     return mapping
 
+# [캐시 충돌 방지] 함수명을 v2로 변경하여 Streamlit 캐시 찌꺼기로 인한 언패킹 에러를 원천 차단합니다.
 @st.cache_data(ttl=86400)
-def get_10yr_dart_financials_raw(stock_code, api_key):
+def get_10yr_dart_financials_v2(stock_code, api_key):
     mapping = get_dart_corp_codes(api_key)
     if "error" in mapping: return pd.DataFrame(), f"DART 연결 에러: {mapping['error']}"
     corp_code = mapping.get(stock_code)
@@ -1194,7 +1194,7 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
     all_data = []
     headers = {'User-Agent': 'Mozilla/5.0'}
     
-    # [핵심 수술 2] 한글 이름 의존도를 낮추고 IFRS 국제표준코드로 정확하게 핀포인트 파싱
+    # [핵심 수술] 한글 이름 의존도를 낮추고 IFRS 국제표준코드로 정확하게 핀포인트 파싱
     std_mapping = {
         'ifrs-full_Revenue': '1. 매출액',
         'ifrs-full_GrossProfit': '2. 매출총이익',
@@ -1222,10 +1222,8 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
                             raw_nm = item.get('account_nm', '').replace(' ', '')
                             std_nm = None
                             
-                            # 1순위: account_id 매칭 (가장 확실함)
                             if acct_id in std_mapping:
                                 std_nm = std_mapping[acct_id]
-                            # 2순위: K-GAAP 등으로 ID가 누락된 경우 한글 휴리스틱 예비 매칭
                             elif not std_nm:
                                 if raw_nm in ['매출액', '영업수익']: std_nm = '1. 매출액'
                                 elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
@@ -1243,7 +1241,7 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
                                 all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
                                 all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
                                 all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
-                        break # 성공적으로 가져왔으면 다음 fs_div 탐색 중단
+                        break 
             except: pass
             
     if not all_data: return pd.DataFrame(), "데이터 없음"
