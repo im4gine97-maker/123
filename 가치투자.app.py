@@ -3968,6 +3968,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                 st.divider()
                 st.subheader(t("📊 기업 10년 재무제표 & 막대 그래프", "📊 10-Year Financials & Charts"))
 
+                # [에러 해결 핵심] 티커(tk)에서 순수 종목코드(cd) 추출
+                cd = tk.split('.')[0] if kr else tk
+
                 with st.expander(t("10년치 상세 재무제표 및 차트 보기 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     
                     # 차트 그리기 전용 함수 (과거->최신순 정렬)
@@ -4002,6 +4005,43 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.info("해당 기업의 DART 재무제표 데이터를 찾을 수 없거나 아직 서버에 업데이트되지 않았습니다.")
                         else:
                             st.warning("DART API 키가 설정되지 않았습니다.")
+                            
+                    else:
+                        # [미국 주식] FMP API 10년치
+                        st.write(f"**{t('손익계산서 추이 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
+                        if FMP_API_KEY:
+                            with st.spinner("FMP에서 10년치 재무 데이터를 수집 중입니다..."):
+                                try:
+                                    fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
+                                    fmp_r = requests.get(fmp_url, timeout=10)
+                                    fmp_data = fmp_r.json()
+                                    
+                                    if fmp_data and isinstance(fmp_data, list):
+                                        fmp_dict = {}
+                                        for item in fmp_data:
+                                            year = item['calendarYear']
+                                            fmp_dict[year] = {
+                                                'Revenue (매출)': item.get('revenue', 0),
+                                                'Operating Income (영업이익)': item.get('operatingIncome', 0),
+                                                'Net Income (순이익)': item.get('netIncome', 0)
+                                            }
+                                        fmp_df = pd.DataFrame(fmp_dict)
+                                        fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
+                                        
+                                        # 1. 10년치 막대 차트 그리기
+                                        draw_financial_chart(fmp_df, False)
+                                        # 2. 10년치 표 그리기
+                                        try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                        except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                        st.dataframe(formatted_fmp, use_container_width=True)
+                                    else:
+                                        # API 호출 실패 시 정확한 이유를 화면에 띄움
+                                        err_msg = fmp_data.get('Error Message', '데이터를 찾을 수 없습니다.') if isinstance(fmp_data, dict) else '데이터를 찾을 수 없습니다.'
+                                        st.info(f"FMP API 호출 실패: {err_msg}")
+                                except Exception as e:
+                                    st.error(f"FMP API 연결에 실패했습니다: {str(e)}")
+                        else:
+                            st.warning("FMP API 키가 설정되지 않았습니다.")
                             
                     else:
                         # [미국 주식] FMP API 10년치
