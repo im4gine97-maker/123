@@ -1182,21 +1182,31 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
     corp_code = mapping.get(stock_code)
     if not corp_code: return pd.DataFrame()
     
-    years = [2023, 2020, 2017, 2014]
+    current_year = datetime.now().year
+    base_year = current_year - 1
+    years = [base_year, base_year - 3, base_year - 6, base_year - 9]
+    
     all_data = []
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
     for y in years:
+        # 1. 연결재무제표(CFS) 먼저 시도
         url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=CFS"
         try:
-            r = requests.get(url, timeout=5)
-            if r.status_code == 200:
-                data = r.json()
-                if data.get('status') == '000':
-                    for item in data.get('list', []):
-                        acc_nm = item.get('account_nm')
-                        if acc_nm in ['매출액', '영업이익', '당기순이익']:
-                            all_data.append({'연도': str(y), '계정': acc_nm, '금액': item.get('thstrm_amount')})
-                            all_data.append({'연도': str(y-1), '계정': acc_nm, '금액': item.get('frmtrm_amount')})
-                            all_data.append({'연도': str(y-2), '계정': acc_nm, '금액': item.get('bfefrmtrm_amount')})
+            r = requests.get(url, headers=headers, timeout=5).json()
+            # 2. 만약 연결재무제표가 없는 기업(013 에러)이라면 개별재무제표(OFS)로 재요청
+            if r.get('status') == '013': 
+                url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=OFS"
+                r = requests.get(url, headers=headers, timeout=5).json()
+            
+            if r.get('status') == '000':
+                for item in r.get('list', []):
+                    raw_nm = item.get('account_nm', '')
+                    if any(k in raw_nm for k in ['매출액', '영업이익', '영업손실', '당기순이익', '당기순손실', '수익(매출액)']):
+                        acc_nm = '매출액' if '매출' in raw_nm else ('영업이익' if '영업' in raw_nm else '당기순이익')
+                        all_data.append({'연도': str(y), '계정': acc_nm, '금액': item.get('thstrm_amount')})
+                        all_data.append({'연도': str(y-1), '계정': acc_nm, '금액': item.get('frmtrm_amount')})
+                        all_data.append({'연도': str(y-2), '계정': acc_nm, '금액': item.get('bfefrmtrm_amount')})
         except: pass
         
     if not all_data: return pd.DataFrame()
@@ -1207,9 +1217,9 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
     
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
-    try: pivot_df = pivot_df.reindex(['매출액', '영업이익', '당기순이익'])
-    except: pass
-    return pivot_df
+    
+    final_idx = [i for i in ['매출액', '영업이익', '당기순이익'] if i in pivot_df.index]
+    return pivot_df.reindex(final_idx)
 def get_yf_info(stk):
     try:
         res = stk.info
@@ -3979,17 +3989,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         years = plot_df.columns.tolist()
                         fig = go.Figure()
                         c_rev, c_op, c_ni = '#74b9ff', '#fdcb6e', '#2ecc71'
-                        acc_rev, acc_op, acc_ni = ('매출액', '영업이익', '당기순이익') if is_kr else ('Revenue (매출)', 'Operating Income (영업이익)', 'Net Income (순이익)')
-                            
-                        if acc_rev in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_rev], name=t('매출액', 'Revenue'), marker_color=c_rev))
-                        if acc_op in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_op], name=t('영업이익', 'Operating Income'), marker_color=c_op))
-                        if acc_ni in plot_df.index: fig.add_trace(go.Bar(x=years, y=plot_df.loc[acc_ni], name=t('순이익', 'Net Income'), marker_color=c_ni))
+                        
+                        for idx_val in plot_df.index:
+                            if '매출' in idx_val or 'Revenue' in idx_val:
+                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('매출액', 'Revenue'), marker_color=c_rev))
+                            elif '영업이익' in idx_val or 'Operating' in idx_val:
+                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('영업이익', 'Operating Income'), marker_color=c_op))
+                            elif '순이익' in idx_val or 'Net Income' in idx_val:
+                                fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color=c_ni))
                             
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
                     if kr:
-                        # [한국 주식] 파이썬 기본 모듈(requests)로만 구동되는 DART 10년치 (에러 없음)
+                        # [한국 주식] 파이썬 기본 모듈(requests)로만 구동되는 DART 10년치
                         st.write(f"**{t('손익계산서 추이 (DART 10년치)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
                         if DART_API_KEY:
                             with st.spinner("DART에서 10년치 재무 데이터를 수집 중입니다..."):
@@ -4007,15 +4020,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning("DART API 키가 설정되지 않았습니다.")
                             
                     else:
-                        # [미국 주식] FMP API 10년치
-                        st.write(f"**{t('손익계산서 추이 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
+                        st.write(f"**{t('손익계산서 추이', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
+                        fmp_success = False
+                        
                         if FMP_API_KEY:
-                            with st.spinner("FMP에서 10년치 재무 데이터를 수집 중입니다..."):
+                            with st.spinner("FMP 10년치 재무 데이터를 수집 중입니다..."):
                                 try:
                                     fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
-                                    fmp_r = requests.get(fmp_url, timeout=10)
+                                    fmp_r = requests.get(fmp_url, timeout=5)
                                     fmp_data = fmp_r.json()
                                     
+                                    # FMP가 정상 응답했을 경우만 성공 처리
                                     if fmp_data and isinstance(fmp_data, list):
                                         fmp_dict = {}
                                         for item in fmp_data:
@@ -4027,21 +4042,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                             }
                                         fmp_df = pd.DataFrame(fmp_dict)
                                         fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
-                                        
-                                        # 1. 10년치 막대 차트 그리기
                                         draw_financial_chart(fmp_df, False)
-                                        # 2. 10년치 표 그리기
                                         try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         st.dataframe(formatted_fmp, use_container_width=True)
-                                    else:
-                                        # API 호출 실패 시 정확한 이유를 화면에 띄움
-                                        err_msg = fmp_data.get('Error Message', '데이터를 찾을 수 없습니다.') if isinstance(fmp_data, dict) else '데이터를 찾을 수 없습니다.'
-                                        st.info(f"FMP API 호출 실패: {err_msg}")
-                                except Exception as e:
-                                    st.error(f"FMP API 연결에 실패했습니다: {str(e)}")
-                        else:
-                            st.warning("FMP API 키가 설정되지 않았습니다.")
+                                        fmp_success = True
+                                except: pass
+                        
+                        # [오류 방어] FMP 무료 계정(Legacy) 에러 시, 즉시 야후파이낸스로 스무스하게 대체!
+                        if not fmp_success:
+                            st.info("💡 FMP 무료 API 정책 변경(Legacy 차단)으로 인해 yfinance(최근 4년치)로 대체하여 시각화합니다.")
+                            inc_df = stk.income_stmt
+                            if inc_df is not None and not inc_df.empty:
+                                idx_map = {}
+                                for r in inc_df.index:
+                                    if r in ['Total Revenue', 'Operating Revenue']: idx_map[r] = 'Revenue (매출)'
+                                    elif r in ['Operating Income', 'EBIT']: idx_map[r] = 'Operating Income (영업이익)'
+                                    elif r in ['Net Income', 'Net Income Common Stockholders']: idx_map[r] = 'Net Income (순이익)'
+                                
+                                yf_df = inc_df.rename(index=idx_map)
+                                yf_df = yf_df[yf_df.index.isin(['Revenue (매출)', 'Operating Income (영업이익)', 'Net Income (순이익)'])]
+                                yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
+                                yf_df = yf_df / 1000000
+                                
+                                draw_financial_chart(yf_df, False)
+                                try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                st.dataframe(formatted_yf, use_container_width=True)
+                            else:
+                                st.warning("재무제표 데이터를 불러올 수 없습니다.")
                             
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
