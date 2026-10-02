@@ -9,19 +9,26 @@ from datetime import datetime
 import re
 import concurrent.futures
 import plotly.graph_objects as go
+import requests
+import json
 
-# 스트림릿 Secrets에서 키를 불러옵니다.
+# 스트림릿 Secrets 또는 직접 입력한 API 키 가져오기
 try:
     DART_API_KEY = st.secrets["DART_API_KEY"]
-    FMP_API_KEY = st.secrets["FMP_API_KEY"]
 except:
     DART_API_KEY = "102371dc99e43c0ea0a70f8ec5a6b04440766798"
-    FMP_API_KEY = "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4"
 
-try:
-    dart = OpenDartReader(DART_API_KEY)
-except:
-    dart = None
+# requests를 이용해 DART 고유번호(Corp Code) 및 재무제표를 직접 긁어오는 안전한 함수
+def get_dart_financial_raw(corp_code, bsns_year):
+    # DART는 기업 고유번호와 사업년도를 통해 재무제표 JSON을 다이렉트로 제공합니다.
+    url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={DART_API_KEY}&corp_code={corp_code}&bsns_year={bsns_year}&reprt_code=11011"
+    try:
+        res = requests.get(url, timeout=5).json()
+        if res.get('status') == '000':
+            return res.get('list', [])
+    except:
+        pass
+    return []
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
