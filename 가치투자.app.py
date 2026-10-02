@@ -3396,7 +3396,7 @@ with tab1:
                 user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
                 
                 # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                if not is_financial and sh_dcf > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
                     u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                     u_g = user_g_val / 100
                     u_tg = user_tg_val / 100
@@ -3411,7 +3411,7 @@ with tab1:
                         if u_dr > u_tg:
                             tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
                             dtv = tv / ((1 + u_dr) ** 10)
-                            calc_iv = (sum(fut) + dtv) / sh
+                            calc_iv = (sum(fut) + dtv) / sh_dcf
                             calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
                             return calc_iv, calc_mos
                         return 0, 0
@@ -3871,7 +3871,7 @@ with tab1:
                     with col_sim2:
                         user_dr = st.slider(t("할인율 (요구수익률, %)", "Discount Rate (%)"), min_value=1.0, max_value=25.0, value=sim_dr_default, step=0.1, key=f"user_dr_{tk}")
 
-                    if not is_financial and sh > 0:
+                    if not is_financial and sh_dcf > 0:
                         c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
                         val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
 
