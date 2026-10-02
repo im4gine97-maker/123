@@ -2221,7 +2221,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
         return safe_float(y_prices.mean()) if not y_prices.empty else 0.0
 
-    # 1. ADR 기업: 야후 파이낸스 환율 보정식 유지
+    sh_out = safe_float(stk.info.get('sharesOutstanding', 1))
+
+    # 1. ADR 기업 (환율 보정 유지)
     if is_adr:
         base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
         try:
@@ -2241,33 +2243,34 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
                     yp = get_avg_price(y_val)
                     eq = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
-                    past_bps = (eq * adr_fx_ratio) if adr_fx_ratio != 1.0 else (eq / safe_float(stk.info.get('sharesOutstanding', 1)))
+                    past_bps = (eq * adr_fx_ratio) if adr_fx_ratio != 1.0 else (eq / sh_out)
                     if yp > 0 and past_bps > 0: pbr_l.append(yp / past_bps)
             if pbr_l: a_pbr_10y = sum(pbr_l) / len(pbr_l)
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 
-    # 2. 한국 기업: DART API 10년치 적용
+    # 2. 한국 기업 (DART API - 시가총액 기반 액면분할 방어 로직 적용)
     elif kr:
         dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
         if not dart_df.empty:
             years_desc = [str(col) for col in dart_df.columns]
             pe_list, pbr_list, fcf_list = [], [], []
-            sh_out = safe_float(stk.info.get('sharesOutstanding'))
 
             for y_str in years_desc:
                 try: y_int = int(y_str)
                 except: continue
                 yp = get_avg_price(y_int)
                 if yp <= 0: continue
+                
+                mkt_cap = yp * sh_out
 
-                if '4. 당기순이익' in dart_df.index and sh_out > 0:
-                    eps_val = (safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000) / sh_out
-                    if eps_val > 0: pe_list.append(yp / eps_val)
+                if '4. 당기순이익' in dart_df.index:
+                    ni_val = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000
+                    if ni_val > 0 and sh_out > 0: pe_list.append(mkt_cap / ni_val)
 
-                if '8. 자본총계' in dart_df.index and sh_out > 0:
-                    bps_val = (safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000) / sh_out
-                    if bps_val > 0: pbr_list.append(yp / bps_val)
+                if '8. 자본총계' in dart_df.index:
+                    eq_val = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000
+                    if eq_val > 0 and sh_out > 0: pbr_list.append(mkt_cap / eq_val)
 
                 ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
                 icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
@@ -2291,7 +2294,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             if a_pe_10y > 0 and a_pbr_10y > 0:
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 
-    # 3. 미국 기업: SEC EDGAR 10-K API 적용
+    # 3. 미국 기업 (SEC EDGAR - 시가총액 기반 액면분할 방어 로직 적용)
     else:
         try:
             sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
@@ -2311,7 +2314,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         if tag in us_gaap:
                             for item in us_gaap[tag].get('units', {}).get('USD', []):
                                 if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
-                                    res[str(item.get('fy'))] = item.get('val', 0)
+                                    fy = str(item.get('fy'))
+                                    val = item.get('val', 0)
+                                    if fy not in res or abs(val) > abs(res[fy]):
+                                        res[fy] = val
                     return res
 
                 sec_ni = get_sec_fact(['NetIncomeLoss', 'ProfitLoss'])
@@ -2320,24 +2326,25 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
 
                 sec_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()))), reverse=True)[:10]
-                sh_out = safe_float(stk.info.get('sharesOutstanding'))
 
                 pe_list, pbr_list, fcf_list = [], [], []
                 for y_str in sec_years:
                     y_int = int(y_str)
                     yp = get_avg_price(y_int)
                     if yp <= 0: continue
+                    
+                    mkt_cap = yp * sh_out
 
                     if y_str in sec_ni and sh_out > 0:
-                        eps_v = sec_ni[y_str] / sh_out
-                        if eps_v > 0: pe_list.append(yp / eps_v)
+                        ni_total = sec_ni[y_str]
+                        if ni_total > 0: pe_list.append(mkt_cap / ni_total)
 
                     if y_str in sec_eq and sh_out > 0:
-                        bps_v = sec_eq[y_str] / sh_out
-                        if bps_v > 0: pbr_list.append(yp / bps_v)
+                        eq_total = sec_eq[y_str]
+                        if eq_total > 0: pbr_list.append(mkt_cap / eq_total)
 
                     if y_str in sec_ocf:
-                        fcf_v = sec_ocf[y_str] - sec_capex.get(y_str, 0)
+                        fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
                         fcf_list.append(fcf_v)
 
                 if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
@@ -2358,7 +2365,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
         except: pass
 
-    # 4. 폴백: API 통신 실패 시 기존 yfinance 4년으로 우회
+    # 4. 폴백: 데이터 부재 시 yfinance 우회
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
     if a_pe_10y <= 0: a_pe_10y = safe_float(stk.info.get('trailingPE', 15.0))
     if a_pbr_10y <= 0: a_pbr_10y = safe_float(stk.info.get('priceToBook', 1.0))
@@ -3723,13 +3730,14 @@ with tab1:
                 t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
                 if f_pe > 0 and a_pe > 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                    
+                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: {a_pe:.1f}배</span>"
                 elif f_pe > 0 and a_pe <= 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
                 else:
                     fwd_pe_val_str = "N/A"
-                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
                 lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
 
                 pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
@@ -3740,13 +3748,13 @@ with tab1:
                 t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                 if f_pbr > 0 and a_pbr > 0:
                     fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: {a_pbr:.2f}배</span>"
                 elif f_pbr > 0 and a_pbr <= 0:
                     fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
                 else:
                     fwd_pbr_val_str = "N/A"
-                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
                 lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
@@ -4054,8 +4062,8 @@ AI 종합 평가: {op_title} ({total_score_val}점)
 - 현재 주가: {p_str}
 - 추정 적정가(DCF): {share_fv}
 - DCF 안전마진: {share_mos}
-- Fwd PER: {f_pe:.1f}배 (5년 평균: {a_pe:.1f}배) -> {clean_per_mos}
-- Fwd PBR: {f_pbr:.2f}배 (5년 평균: {a_pbr:.2f}배) -> {clean_pbr_mos}
+- Fwd PER: {f_pe:.1f}배 (10년 평균: {a_pe:.1f}배) -> {clean_per_mos}
+- Fwd PBR: {f_pbr:.2f}배 (10년 평균: {a_pbr:.2f}배) -> {clean_pbr_mos}
 
 [2] 펀더멘털 및 해자 검증
 - 자본수익률(ROE): {roe:.1f}% / 투하자본수익률(ROIC): {roic_display}
