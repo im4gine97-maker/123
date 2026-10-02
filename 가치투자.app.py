@@ -2203,7 +2203,7 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
     else: p_str = f"{p:,.2f}"
     return p_str, c, pct
 # =========================================================================
-# [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 복수클래스 왜곡 완벽 방어)
+# [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
 # =========================================================================
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
     a_pe_10y = 0.0
@@ -2221,8 +2221,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
         return safe_float(y_prices.mean()) if not y_prices.empty else 0.0
 
-    # [핵심 수술] 구글, 버크셔 등 복수 클래스(A, B, C) 주식의 발행주식수 오류 방지 및 액면분할 완벽 대응
-    # yfinance의 sharesOutstanding은 종종 단일 클래스만 반영하므로, 시가총액을 현재가로 나누어 '진짜 총 발행주식수'를 역산
+    # 구글, 버크셔 등 복수 클래스 주식의 시가총액 역산
     mcap = safe_float(stk.info.get('marketCap'))
     if mcap > 0 and reg_p > 0:
         sh_out = mcap / reg_p
@@ -2231,7 +2230,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         if sh_out <= 0:
             sh_out = safe_float(stk.info.get('sharesOutstanding', 1))
 
-    # 1. ADR 기업 (환율 보정 유지 + 10년치 Net Income 기반 시총으로 EPS 액면분할 에러 원천 차단)
+    # 1. ADR 기업 (TSMC, ASML, 테무 등: 환율 보정 및 시총 오류 완벽 해결)
     if is_adr:
         base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
         try:
@@ -2245,9 +2244,12 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     yp = get_avg_price(y_val)
                     ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
                     
-                    # [액면분할 방지] 수정주가(yp) * 진짜 주식수(sh_out) = 과거 시가총액
-                    mkt_cap = yp * sh_out
-                    if ni_val > 0 and mkt_cap > 0: pe_l.append(mkt_cap / (ni_val * adr_fx_ratio))
+                    # [핵심 수술] ni_val(총이익) * adr_fx_ratio = 달러 기준 1주당 순이익(EPS)
+                    # 따라서 시가총액이 아닌 1주당 가격(yp)을 EPS로 직접 나누어야 정상적인 PER이 나옵니다.
+                    past_eps_usd = ni_val * adr_fx_ratio
+                    if past_eps_usd > 0 and yp > 0: 
+                        pe_l.append(yp / past_eps_usd)
+                        
             if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
 
             if not hist_10y.empty and bs is not None and not bs.empty:
@@ -2256,13 +2258,16 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     yp = get_avg_price(y_val)
                     eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
                     
-                    mkt_cap = yp * sh_out
-                    if eq_val > 0 and mkt_cap > 0: pbr_l.append(mkt_cap / (eq_val * adr_fx_ratio))
+                    # [핵심 수술] eq_val(총자산) * adr_fx_ratio = 달러 기준 1주당 장부가치(BPS)
+                    past_bps_usd = eq_val * adr_fx_ratio
+                    if past_bps_usd > 0 and yp > 0: 
+                        pbr_l.append(yp / past_bps_usd)
+                        
             if pbr_l: a_pbr_10y = sum(pbr_l) / len(pbr_l)
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 
-    # 2. 한국 기업 (DART API - 기존 시가총액 기반 로직 유지, 액면분할 방지 완벽함)
+    # 2. 한국 기업 (DART API - 기존 유지)
     elif kr:
         dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
         if not dart_df.empty:
@@ -2307,7 +2312,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             if a_pe_10y > 0 and a_pbr_10y > 0:
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 
-    # 3. 미국 기업 (SEC EDGAR - 기존 로직 유지, 최상단 sh_out 수정으로 구글/버크셔 분할 오류 자동 해결됨)
+    # 3. 미국 기업 (SEC EDGAR - 기존 유지)
     else:
         try:
             sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
@@ -2378,7 +2383,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
         except: pass
 
-    # 4. 폴백: 공시 데이터 부재 시 yfinance 우회 (액면분할 방지 로직 10년 치 반영 완료)
+    # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
 
     if a_pe_10y <= 0:
