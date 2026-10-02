@@ -1549,7 +1549,7 @@ def analyze_trends(stk):
                 eps_vals = inc.loc[target_col].dropna().values[:4][::-1] 
                 if len(eps_vals) >= 3:
                     if all(eps_vals[i] <= eps_vals[i+1] for i in range(len(eps_vals)-1)) and eps_vals[0] < eps_vals[-1]: 
-                        eps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 지속 상승 추세', '[Pass] 4Y Consistent Upward Trend')}</span>"
+                        eps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 지속 상승 추세', '[Pass] 5y Consistent Upward Trend')}</span>"
                     else: 
                         eps_trend = f"<span style='color:#ff7675; font-weight:bold;'>{t('[주의] 변동/하락', '[Warning] Fluctuating/Declining')}</span>"
                         
@@ -1558,7 +1558,7 @@ def analyze_trends(stk):
             eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4][::-1]
             if len(eq_vals) >= 3:
                 if all(eq_vals[i] <= eq_vals[i+1] for i in range(len(eq_vals)-1)) and eq_vals[0] < eq_vals[-1]: 
-                    bps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 자본 지속 증가', '[Pass] 4Y Consistent Equity Growth')}</span>"
+                    bps_trend = f"<span style='color:#2ecc71; font-weight:bold;'>{t('[합격] 4년 자본 지속 증가', '[Pass] 5y Consistent Equity Growth')}</span>"
                 else: 
                     is_shareholder_return = False
                     try:
@@ -1865,7 +1865,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     # [일관성 모델] 4년 내내 허들 방어 시 보너스, 단 한 번이라도 적자면 치명적 감점
     if all(v >= hurdle for v in target_hist):
         trend_bonus += 10
-        t_msgs.append(t("4년 연속 해자 방어(+)", "4Y Perfect Moat(+)"))
+        t_msgs.append(t("4년 연속 해자 방어(+)", "5y Perfect Moat(+)"))
     elif any(v < 0 for v in target_hist):
         trend_bonus -= 15
         t_msgs.append(t("과거 적자 이력 감점(-)", "Past Deficit(-)"))
@@ -1885,7 +1885,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     msg_combined = " / ".join(t_msgs) if t_msgs else t("평이한 변동성", "Average Volatility")
     
     cap_reason = f"{metric_name} 4년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 추이: {hist_str} [{msg_combined}]</span>"
-    score_details[t("비즈니스 해자 및 4년 수익 트렌드", "Moat & 4Y Profitability Trend")] = (cap_score, cap_reason)
+    score_details[t("비즈니스 해자 및 4년 수익 트렌드", "Moat & 5y Profitability Trend")] = (cap_score, cap_reason)
 
     # 5. 레버리지 왜곡 방어 (단일 연도가 아닌 가중평균된 w_roe, w_roic를 기준으로 변경)
     lev_score = 0
@@ -2261,7 +2261,7 @@ def generate_quick_ai_preview(tk):
     if is_financial or kr or is_cyclical:
         try:
             
-            avg_price = hist_4y['Close'].mean() if not hist_4y.empty else reg_p
+            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
             bs = stk.balance_sheet
             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
                 eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
@@ -2772,14 +2772,14 @@ with tab1:
                 # 2. 과거 평균 PER(a_pe) 4년 치 자체 계산
                 a_pe = 0.0
                 try:
-                    hist_4y = stk.history(period="4y")
+                    hist_5y = stk.history(period="5y")
                     _inc = stk.income_stmt
                     pe_list = []
                     
-                    if not hist_4y.empty and _inc is not None and not _inc.empty:
+                    if not hist_5y.empty and _inc is not None and not _inc.empty:
                         for col_date in _inc.columns[:4]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_4y[hist_4y.index.year == y_val]['Close']
+                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eps_val = 0.0
@@ -2934,15 +2934,15 @@ with tab1:
                 a_pbr = 0.0
                 f_pbr = pbr
                 try:
-                    hist_4y = stk.history(period="4y")
+                    hist_5y = stk.history(period="5y")
                     bs = stk.balance_sheet
                     _inc = stk.income_stmt
                     pbr_list = []
                     
-                    if not hist_4y.empty and bs is not None and not bs.empty:
+                    if not hist_5y.empty and bs is not None and not bs.empty:
                         for col_date in bs.columns[:4]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_4y[hist_4y.index.year == y_val]['Close']
+                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eq = 0.0
@@ -3869,8 +3869,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
 - Current Price: {p_str}
 - Est. Fair Value (DCF): {share_fv}
 - DCF Margin of Safety: {share_mos}
-- Fwd PE: {f_pe:.1f}x (4y Avg: {a_pe:.1f}x) -> {clean_per_mos}
-- Fwd PBR: {f_pbr:.2f}x (4y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
+- Fwd PE: {f_pe:.1f}x (5y Avg: {a_pe:.1f}x) -> {clean_per_mos}
+- Fwd PBR: {f_pbr:.2f}x (5y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
 
 [2] Fundamentals & Moat
 - ROE: {roe:.1f}% / ROIC: {roic_display}
