@@ -4007,6 +4007,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
+                # =====================================================================
+                # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
+                # =====================================================================
+                st.divider()
+                st.subheader(t("📊 10년 핵심 장부 요약 및 차트", "📊 10-Year Financials & Charts"))
+
+                cd = tk.split('.')[0] if kr else tk
+
                 with st.expander(t("10년치 상세 재무제표 및 차트 보기 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     
                     def draw_financial_chart(df):
@@ -4027,7 +4035,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
-                    # [핵심 추가] 재무제표에 '발행주식수'를 강제로 추가해 주는 함수
+                    # [핵심 수술] 미국 데이터(12.재무현금흐름)와 충돌하지 않도록 '13. 발행주식수'로 안전하게 추가
                     def append_shares(df, stk_obj, is_kr):
                         if df is None or df.empty or stk_obj is None: return df
                         scale = 100000000 if is_kr else 1000000
@@ -4046,9 +4054,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except: pass
                         
                         if s_dict:
-                            row_vals = [s_dict.get(str(col).split('-')[0], None) for col in df.columns]
+                            row_vals = []
+                            for col in df.columns:
+                                y_key = str(col).split('-')[0]
+                                row_vals.append(s_dict.get(y_key, None))
+                                
                             if any(pd.notna(x) for x in row_vals):
-                                df.loc['12. 발행주식수 (Shares)'] = row_vals
+                                df.loc['13. 발행주식수 (Shares)'] = row_vals
                         return df
 
                     def fallback_yfinance():
@@ -4058,38 +4070,39 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         cf_df = stk.cash_flow
                         
                         combined_dict = {}
-                        if inc_df is not None and not inc_df.empty:
-                            if 'Total Revenue' in inc_df.index: combined_dict['1. 매출액 (Revenue)'] = inc_df.loc['Total Revenue']
-                            if 'Gross Profit' in inc_df.index: combined_dict['2. 매출총이익 (Gross Profit)'] = inc_df.loc['Gross Profit']
-                            if 'Operating Income' in inc_df.index: combined_dict['3. 영업이익 (Op. Income)'] = inc_df.loc['Operating Income']
-                            if 'Net Income' in inc_df.index: combined_dict['4. 당기순이익 (Net Income)'] = inc_df.loc['Net Income']
-                        if bs_df is not None and not bs_df.empty:
-                            if 'Total Assets' in bs_df.index: combined_dict['5. 자산총계 (Assets)'] = bs_df.loc['Total Assets']
-                            if 'Total Liabilities Net Minority Interest' in bs_df.index: combined_dict['6. 부채총계 (Liabilities)'] = bs_df.loc['Total Liabilities Net Minority Interest']
-                            if 'Stockholders Equity' in bs_df.index: combined_dict['7. 자본총계 (Equity)'] = bs_df.loc['Stockholders Equity']
-                        if cf_df is not None and not cf_df.empty:
-                            if 'Operating Cash Flow' in cf_df.index: combined_dict['8. 영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow']
-                            if 'Investing Cash Flow' in cf_df.index: combined_dict['9. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow']
-                            if 'Financing Cash Flow' in cf_df.index: combined_dict['10. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow']
-                        
-                        if combined_dict:
-                            yf_df = pd.DataFrame(combined_dict).T
-                            yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
-                            yf_df = yf_df / (100000000 if kr else 1000000)
+                        try:
+                            if inc_df is not None and not inc_df.empty:
+                                if 'Total Revenue' in inc_df.index: combined_dict['1. 매출액 (Revenue)'] = inc_df.loc['Total Revenue']
+                                if 'Gross Profit' in inc_df.index: combined_dict['2. 매출총이익 (Gross Profit)'] = inc_df.loc['Gross Profit']
+                                if 'Operating Income' in inc_df.index: combined_dict['3. 영업이익 (Op. Income)'] = inc_df.loc['Operating Income']
+                                if 'Net Income' in inc_df.index: combined_dict['4. 당기순이익 (Net Income)'] = inc_df.loc['Net Income']
+                            if bs_df is not None and not bs_df.empty:
+                                if 'Total Assets' in bs_df.index: combined_dict['5. 자산총계 (Assets)'] = bs_df.loc['Total Assets']
+                                if 'Total Liabilities Net Minority Interest' in bs_df.index: combined_dict['6. 부채총계 (Liabilities)'] = bs_df.loc['Total Liabilities Net Minority Interest']
+                                if 'Stockholders Equity' in bs_df.index: combined_dict['7. 자본총계 (Equity)'] = bs_df.loc['Stockholders Equity']
+                            if cf_df is not None and not cf_df.empty:
+                                if 'Operating Cash Flow' in cf_df.index: combined_dict['8. 영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow']
+                                if 'Investing Cash Flow' in cf_df.index: combined_dict['9. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow']
+                                if 'Financing Cash Flow' in cf_df.index: combined_dict['10. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow']
                             
-                            draw_financial_chart(yf_df)
-                            
-                            # [주식수 연동 적용]
-                            yf_df = append_shares(yf_df, stk, kr)
-                            
-                            try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                            st.dataframe(formatted_yf, use_container_width=True)
-                        else:
-                            st.warning("재무제표 데이터를 가져올 수 없습니다.")
+                            if combined_dict:
+                                yf_df = pd.DataFrame(combined_dict).T
+                                yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
+                                yf_df = yf_df / (100000000 if kr else 1000000)
+                                
+                                draw_financial_chart(yf_df)
+                                yf_df = append_shares(yf_df, stk, kr)
+                                
+                                try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                st.dataframe(formatted_yf, use_container_width=True)
+                            else:
+                                st.warning("재무제표 데이터를 가져올 수 없습니다.")
+                        except Exception as e:
+                            st.warning("데이터 처리 중 에러가 발생했습니다.")
 
                     # =========================================================
-                    # [한국 주식] DART
+                    # [한국 주식] DART (v2 함수명 적용 완료)
                     # =========================================================
                     if kr:
                         st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터)', 'Financials (DART)')}** {t('(단위: 억 원, 억 주)', '(Unit: 100M KRW)')}")
@@ -4097,11 +4110,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         
                         if DART_API_KEY:
                             with st.spinner("금융감독원 DART에서 데이터를 수집 중입니다..."):
-                                dart_df, debug_msg = get_10yr_dart_financials_raw(cd, DART_API_KEY)
+                                dart_df, debug_msg = get_10yr_dart_financials_v2(cd, DART_API_KEY)
                                 if not dart_df.empty:
                                     draw_financial_chart(dart_df)
-                                    
-                                    # [주식수 연동 적용]
                                     dart_df = append_shares(dart_df, stk, kr)
                                     
                                     try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
@@ -4117,14 +4128,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             fallback_yfinance()
                             
                     # =========================================================
-                    # [미국 주식] SEC EDGAR
+                    # [미국 주식] SEC EDGAR (봇 우회용 헤더 교체 및 충돌 방지)
                     # =========================================================
                     else:
                         st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 백만 주)', '(Unit: Million USD)')}")
                         sec_success = False
                         with st.spinner("미국 증권거래위원회(SEC)에서 10년치 핵심 데이터를 수집 중입니다..."):
                             try:
-                                sec_headers = {'User-Agent': 'AGIE_App/1.0 (contact@agie.com)'}
+                                # SEC 방화벽을 우회하기 위한 정식 User-Agent 포맷
+                                sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
                                 tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
                                 cik = None
                                 for key, val in tickers_res.items():
@@ -4190,8 +4202,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         sec_df = sec_df / 1000000 
                                         
                                         draw_financial_chart(sec_df)
-                                        
-                                        # [주식수 연동 적용]
                                         sec_df = append_shares(sec_df, stk, kr)
                                         
                                         try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
