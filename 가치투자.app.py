@@ -1545,10 +1545,10 @@ def get_base_dcf_data(stk, i):
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
-        # --- [핵심 추가] 최근 3년 평균 FCF 산출 (이상치 완화) ---
+        # --- [유지] 현재 가치평가의 기준이 되는 FCF는 튀는 값 방지를 위해 최근 3년 평균 사용 ---
         avg_fcf = None
         if fcf_s is not None and not fcf_s.empty:
-            vals = fcf_s.values[:3] # 최근 최대 3개년
+            vals = fcf_s.values[:3] 
             valid_vals = [safe_float(v) for v in vals if pd.notna(v)]
             if len(valid_vals) > 0:
                 avg_fcf = sum(valid_vals) / len(valid_vals)
@@ -1559,17 +1559,27 @@ def get_base_dcf_data(stk, i):
         g, data_len = 0.05, 0
         is_zigzag = False
         
+        # --- [수정] 10년(또는 제공되는 최대 기간) 평균 성장률(CAGR) 산출 ---
         if fcf_s is not None and len(fcf_s) >= 2:
-            vals = fcf_s.values[::-1]
-            c, o = safe_float(vals[-1]), safe_float(vals[0])
-            data_len = len(vals)
-            if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
+            # yfinance에서 제공하는 한도 내에서 최대 10년까지 긁어옴 (10년 미만이면 있는 만큼만 유도리 있게 계산)
+            max_len = min(len(fcf_s), 10)
+            vals_for_growth = fcf_s.values[:max_len][::-1] # 가장 오래된 과거(o)부터 최신(c) 순으로 정렬
+            c, o = safe_float(vals_for_growth[-1]), safe_float(vals_for_growth[0])
+            data_len = len(vals_for_growth)
+            
+            if c > 0 and o > 0: 
+                g = (c / o) ** (1 / (data_len - 1)) - 1
+            elif c > 0 and o <= 0:
+                # 과거 FCF가 적자였다가 최근 흑자로 돌아선 경우 수학적 에러 방지용 턴어라운드 마진 부여
+                g = 0.10 
+            elif c <= 0:
+                g = 0.0
             
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
-                    prev = safe_float(vals[idx-1])
-                    curr = safe_float(vals[idx])
+                    prev = safe_float(vals_for_growth[idx-1])
+                    curr = safe_float(vals_for_growth[idx])
                     if prev == 0:
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
@@ -2891,17 +2901,18 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 과거 평균 PER(a_pe) 4년 치 자체 계산
+                # 2. 과거 평균 PER(a_pe) 10년 치 자체 계산
                 a_pe = 0.0
                 try:
-                    hist_5y = stk.history(period="5y")
+                    hist_10y = stk.history(period="10y")
                     _inc = stk.income_stmt
                     pe_list = []
                     
-                    if not hist_5y.empty and _inc is not None and not _inc.empty:
-                        for col_date in _inc.columns[:4]:
+                    if not hist_10y.empty and _inc is not None and not _inc.empty:
+                        # [수정] 4년 -> 최대 10년 치 순회
+                        for col_date in _inc.columns[:10]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eps_val = 0.0
@@ -3052,19 +3063,19 @@ with tab1:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
 
-                # --- [4년 평균 PBR 및 Fwd PBR 자체 계산기] ---
+                # --- [10년 평균 PBR 및 Fwd PBR 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = pbr
                 try:
-                    hist_5y = stk.history(period="5y")
+                    hist_10y = stk.history(period="10y")
                     bs = stk.balance_sheet
                     _inc = stk.income_stmt
                     pbr_list = []
                     
-                    if not hist_5y.empty and bs is not None and not bs.empty:
-                        for col_date in bs.columns[:4]:
+                    if not hist_10y.empty and bs is not None and not bs.empty:
+                        for col_date in bs.columns[:10]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eq = 0.0
@@ -3075,6 +3086,7 @@ with tab1:
                                     
                             if y_price > 0 and eq > 0:
                                 past_sh = 0.0
+                                # [핵심] 당기순이익 / EPS로 해당 과거 연도의 '정확한 주식수'를 역산
                                 if _inc is not None and not _inc.empty and col_date in _inc.columns:
                                     ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
                                     eps_val = 0.0
@@ -3637,13 +3649,13 @@ with tab1:
                 t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
                 if f_pe > 0 and a_pe > 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: {a_pe:.1f}배</span>"
+                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: {a_pe:.1f}배</span>"
                 elif f_pe > 0 and a_pe <= 0:
                     fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
                 else:
                     fwd_pe_val_str = "N/A"
-                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 5년 평균: N/A</span>"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
                 lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
 
                 pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
@@ -3654,13 +3666,13 @@ with tab1:
                 t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
                 if f_pbr > 0 and a_pbr > 0:
                     fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: {a_pbr:.2f}배</span>"
+                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: {a_pbr:.2f}배</span>"
                 elif f_pbr > 0 and a_pbr <= 0:
                     fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
                 else:
                     fwd_pbr_val_str = "N/A"
-                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 5년 평균: N/A</span>"
+                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
                 lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                 # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
