@@ -3396,7 +3396,7 @@ with tab1:
                 user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
                 
                 # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                if not is_financial and sh_dcf > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
                     u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                     u_g = user_g_val / 100
                     u_tg = user_tg_val / 100
