@@ -3973,20 +3973,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [파트 3] 📊 기업 10년 재무제표 (안전 API 연동 및 차트 시각화)
+                # [파트 3] 📊 기업 10년 재무제표 (미국 SEC / 한국 DART 공공데이터 엔진)
                 # =====================================================================
                 st.divider()
                 st.subheader(t("📊 기업 10년 재무제표 & 막대 그래프", "📊 10-Year Financials & Charts"))
 
-                # 티커(tk)에서 순수 종목코드(cd) 추출
                 cd = tk.split('.')[0] if kr else tk
 
                 with st.expander(t("10년치 상세 재무제표 및 차트 보기 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     
-                    # 차트 그리기 전용 함수 (과거->최신순 정렬)
                     def draw_financial_chart(df, is_kr):
-                        if df is None or df.empty:
-                            return
+                        if df is None or df.empty: return
                         plot_df = df[sorted(df.columns)] 
                         years = plot_df.columns.tolist()
                         fig = go.Figure()
@@ -4003,9 +4000,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
-                    # yfinance Fallback(대체) 함수
                     def fallback_yfinance():
-                        st.info("💡 외부 API 응답 지연/권한 문제로 yfinance(최근 4년치)로 대체 시각화합니다.")
+                        st.info("💡 10년치 공공 데이터를 찾을 수 없어 yfinance(최근 4년치)로 대체 시각화합니다.")
                         inc_df = stk.income_stmt
                         if inc_df is not None and not inc_df.empty:
                             idx_map = {}
@@ -4018,7 +4014,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             yf_df = yf_df[yf_df.index.isin(['Revenue (매출)', 'Operating Income (영업이익)', 'Net Income (순이익)'])]
                             yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
                             
-                            # 한국 주식은 억원 단위, 미국 주식은 백만 달러 단위로 나눔
                             divider = 100000000 if kr else 1000000
                             yf_df = yf_df / divider
                             
@@ -4030,11 +4025,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning("재무제표 데이터를 완전히 불러올 수 없습니다.")
 
                     if kr:
-                        st.write(f"**{t('손익계산서 추이', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
+                        st.write(f"**{t('손익계산서 추이 (한국 DART 공공데이터)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
                         dart_success = False
-                        
-                        if DART_API_KEY:
-                            with st.spinner("DART에서 10년치 재무 데이터를 수집 중입니다..."):
+                        if DART_API_KEY and DART_API_KEY != "102371dc99e43c0ea0a70f8ec5a6b04440766798":
+                            with st.spinner("금융감독원 DART에서 데이터를 수집 중입니다..."):
                                 try:
                                     dart_df = get_10yr_dart_financials_raw(cd, DART_API_KEY)
                                     if not dart_df.empty:
@@ -4043,49 +4037,69 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         st.dataframe(formatted_dart, use_container_width=True)
                                         dart_success = True
-                                except Exception:
-                                    pass
-                                
+                                except Exception: pass
                         if not dart_success:
                             fallback_yfinance()
                             
                     else:
-                        st.write(f"**{t('손익계산서 추이', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
-                        fmp_success = False
-                        
-                        if FMP_API_KEY:
-                            with st.spinner("FMP 10년치 재무 데이터를 수집 중입니다..."):
-                                try:
-                                    fmp_url = f"https://financialmodelingprep.com/stable/income-statement?symbol={cd}&apikey={FMP_API_KEY}"
-                                    fmp_r = requests.get(fmp_url, timeout=10)
-                                    fmp_data = fmp_r.json()
+                        st.write(f"**{t('손익계산서 추이 (미국 SEC 공공데이터)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
+                        sec_success = False
+                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 데이터를 수집 중입니다..."):
+                            try:
+                                # 1. 미국 증권거래위원회(SEC) CIK 번호 가져오기
+                                sec_headers = {'User-Agent': 'AGIE_App/1.0 (contact@agie.com)'}
+                                tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
+                                cik = None
+                                for key, val in tickers_res.items():
+                                    if val['ticker'].upper() == cd.upper():
+                                        cik = str(val['cik_str']).zfill(10)
+                                        break
+                                
+                                # 2. SEC EDGAR API 다이렉트 호출 (완전 무료, 키 불필요)
+                                if cik:
+                                    facts_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+                                    facts_res = requests.get(facts_url, headers=sec_headers, timeout=10).json()
+                                    us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
                                     
-                                    # 에러의 원인 완벽 차단: 데이터가 리스트 형식이고, 안에 'calendarYear'가 실제로 있을 때만 성공 처리
-                                    if isinstance(fmp_data, list) and len(fmp_data) > 0 and 'calendarYear' in fmp_data[0]:
-                                        fmp_data = fmp_data[:10] 
-                                        fmp_dict = {}
-                                        for item in fmp_data:
-                                            year = item.get('calendarYear')
-                                            if year:
-                                                fmp_dict[year] = {
-                                                    'Revenue (매출)': item.get('revenue', 0),
-                                                    'Operating Income (영업이익)': item.get('operatingIncome', 0),
-                                                    'Net Income (순이익)': item.get('netIncome', 0)
-                                                }
+                                    def extract_annual_data(tags):
+                                        res = {}
+                                        for tag in tags:
+                                            if tag in us_gaap:
+                                                usd_data = us_gaap[tag].get('units', {}).get('USD', [])
+                                                for item in usd_data:
+                                                    if item.get('form') == '10-K' and item.get('fp') == 'FY':
+                                                        res[str(item.get('fy'))] = item.get('val', 0)
+                                                if res: break
+                                        return res
+                                    
+                                    rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                                    op = extract_annual_data(['OperatingIncomeLoss'])
+                                    ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
+                                    
+                                    all_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()))), reverse=True)[:10]
+                                    
+                                    if all_years:
+                                        sec_data = []
+                                        for y in all_years:
+                                            sec_data.append({
+                                                '연도': y,
+                                                'Revenue (매출)': rev.get(y, 0),
+                                                'Operating Income (영업이익)': op.get(y, 0),
+                                                'Net Income (순이익)': ni.get(y, 0)
+                                            })
                                         
-                                        if fmp_dict:
-                                            fmp_df = pd.DataFrame(fmp_dict)
-                                            fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
-                                            
-                                            draw_financial_chart(fmp_df, False)
-                                            try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                            except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                            st.dataframe(formatted_fmp, use_container_width=True)
-                                            fmp_success = True
-                                except Exception:
-                                    pass
+                                        sec_df = pd.DataFrame(sec_data).set_index('연도').T
+                                        sec_df = sec_df / 1000000 # 백만 달러 단위 변환
+                                        
+                                        draw_financial_chart(sec_df, False)
+                                        try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
+                                        except: formatted_sec = sec_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
+                                        st.dataframe(formatted_sec, use_container_width=True)
+                                        sec_success = True
+                            except Exception:
+                                pass
                         
-                        if not fmp_success:
+                        if not sec_success:
                             fallback_yfinance()
                             
 # ==========================================
