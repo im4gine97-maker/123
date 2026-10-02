@@ -1194,7 +1194,7 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
         url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=CFS"
         try:
             r = requests.get(url, headers=headers, timeout=5).json()
-            # 2. 만약 연결재무제표가 없는 기업(013 에러)이라면 개별재무제표(OFS)로 재요청
+            # 2. 만약 연결재무제표가 없는 기업(013 에러)이라면 개별재무제표(OFS)로 자동 재요청
             if r.get('status') == '013': 
                 url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=OFS"
                 r = requests.get(url, headers=headers, timeout=5).json()
@@ -4002,7 +4002,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
                     if kr:
-                        # [한국 주식] 파이썬 기본 모듈(requests)로만 구동되는 DART 10년치
+                        # [한국 주식] 파이썬 기본 모듈(requests)로만 구동되는 DART 10년치 (에러 없음)
                         st.write(f"**{t('손익계산서 추이 (DART 10년치)', 'Income Statement')}** {t('(단위: 억 원)', '(Unit: 100M KRW)')}")
                         if DART_API_KEY:
                             with st.spinner("DART에서 10년치 재무 데이터를 수집 중입니다..."):
@@ -4027,7 +4027,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             with st.spinner("FMP 10년치 재무 데이터를 수집 중입니다..."):
                                 try:
                                     fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
-                                    fmp_r = requests.get(fmp_url, timeout=5)
+                                    fmp_r = requests.get(fmp_url, timeout=10)
                                     fmp_data = fmp_r.json()
                                     
                                     # FMP가 정상 응답했을 경우만 성공 처리
@@ -4042,16 +4042,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                             }
                                         fmp_df = pd.DataFrame(fmp_dict)
                                         fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
+                                        
+                                        # 1. 10년치 막대 차트 그리기
                                         draw_financial_chart(fmp_df, False)
+                                        # 2. 10년치 표 그리기
                                         try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         st.dataframe(formatted_fmp, use_container_width=True)
                                         fmp_success = True
-                                except: pass
+                                    else:
+                                        # API 호출 실패 시 정확한 이유를 화면에 띄움
+                                        err_msg = fmp_data.get('Error Message', '데이터를 찾을 수 없습니다.') if isinstance(fmp_data, dict) else '데이터를 찾을 수 없습니다.'
+                                        st.info(f"FMP API 호출 실패: {err_msg}")
+                                except Exception as e:
+                                    st.error(f"FMP API 연결에 실패했습니다: {str(e)}")
                         
                         # [오류 방어] FMP 무료 계정(Legacy) 에러 시, 즉시 야후파이낸스로 스무스하게 대체!
                         if not fmp_success:
-                            st.info("💡 FMP 무료 API 정책 변경(Legacy 차단)으로 인해 yfinance(최근 4년치)로 대체하여 시각화합니다.")
+                            st.info("💡 FMP 무료 API 한도 초과 시 yfinance(최근 4년치)로 대체하여 시각화합니다.")
                             inc_df = stk.income_stmt
                             if inc_df is not None and not inc_df.empty:
                                 idx_map = {}
