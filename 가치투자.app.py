@@ -2260,7 +2260,7 @@ def generate_quick_ai_preview(tk):
     
     if is_financial or kr or is_cyclical:
         try:
-            hist_5y = stk.history(period="5y")
+            
             avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
             bs = stk.balance_sheet
             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
@@ -2769,45 +2769,36 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 과거 평균 PER(a_pe)은 주가 조작 전에 순수 reg_p로만 계산하여 영구 고정
-                a_pe = safe_float(i.get('fiveYearAvgPE'))
-                if a_pe <= 0.0:
-                    try:
-                        hist_5y = stk.history(period="5y")
-                        if not hist_5y.empty:
-                            yearly_prices = hist_5y['Close'].resample('Y').mean()
-                            _inc = stk.income_stmt
-                            pe_list = []
-                            if _inc is not None and not _inc.empty:
-                                for col_date in _inc.columns[:4]:
-                                    try:
-                                        y_price = yearly_prices.loc[str(col_date.year)].iloc[0]
-                                    except:
-                                        y_price = reg_p
-                                        
-                                    eps_val = 0
-                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
-                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
-                                        
-                                    if eps_val > 0:
-                                        pe_list.append(y_price / eps_val)
-                            if pe_list:
-                                a_pe = sum(pe_list) / len(pe_list)
-                    except: pass
+                # 2. 과거 평균 PER(a_pe) 4년 치 자체 계산
+                a_pe = 0.0
+                try:
+                    hist_5y = stk.history(period="5y")
+                    _inc = stk.income_stmt
+                    pe_list = []
+                    
+                    if not hist_5y.empty and _inc is not None and not _inc.empty:
+                        for col_date in _inc.columns[:4]:
+                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
+                            
+                            eps_val = 0.0
+                            if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                            elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                
+                            if y_price > 0 and eps_val > 0:
+                                pe_list.append(y_price / eps_val)
+                                
+                        if pe_list:
+                            a_pe = sum(pe_list) / len(pe_list)
+                except Exception:
+                    pass
 
-                if a_pe < 5.0 or a_pe > 200.0:
-                    if t_eps > 0:
-                        a_pe = reg_p / t_eps
-                    elif f_eps > 0:
-                        a_pe = reg_p / f_eps
-                    elif t_pe_raw > 0:
-                        a_pe = t_pe_raw
-                    elif f_pe_raw > 0:
-                        a_pe = f_pe_raw
-                    else:
-                        a_pe = 0.0
+                # 음수 방어 (현재 PER 덮어쓰기 완전 제거)
+                if a_pe < 0:
+                    a_pe = 0.0
 
                 # 3. 가상 주가(시뮬레이터) 배수 적용 (현재 주가, 현재 PER, f_pe, 배당률만 변경)
                 sim_pct = st.session_state.get('price_adj_pct', 0)
@@ -2939,7 +2930,7 @@ with tab1:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
 
-                # --- [모든 기업 대상: 5년 평균 PBR 및 Fwd PBR 자체 계산기] ---
+                # --- [4년 평균 PBR 및 Fwd PBR 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = pbr
                 try:
@@ -2949,31 +2940,27 @@ with tab1:
                     pbr_list = []
                     
                     if not hist_5y.empty and bs is not None and not bs.empty:
-                        yearly_prices = hist_5y['Close'].resample('Y').mean()
-                        
                         for col_date in bs.columns[:4]:
-                            try:
-                                y_price = yearly_prices.loc[str(col_date.year)].iloc[0]
-                            except:
-                                y_price = hist_5y['Close'].mean()
-                                
-                            eq = 0
+                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
+                            
+                            eq = 0.0
                             for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
                                 if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
                                     eq = safe_float(bs.loc[eq_key, col_date])
                                     break
                                     
-                            if eq > 0:
-                                # 과거 연도의 정확한 주식 수 역산 (Net Income / EPS)
-                                past_sh = 0
-                                if _inc is not None and not _inc.empty:
-                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0
-                                    eps_val = 0
+                            if y_price > 0 and eq > 0:
+                                past_sh = 0.0
+                                if _inc is not None and not _inc.empty and col_date in _inc.columns:
+                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
+                                    eps_val = 0.0
                                     if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
                                         eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
                                     elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
                                         eps_val = safe_float(_inc.loc['Basic EPS', col_date])
-                                    
+                                        
                                     if eps_val > 0 and ni_val != 0:
                                         past_sh = abs(ni_val / eps_val)
                                         
@@ -2987,13 +2974,14 @@ with tab1:
                                     past_bps = eq / past_sh
                                     if is_adr and adr_fx_ratio != 1.0:
                                         past_bps = past_bps * adr_fx_ratio
-                                    pbr_list.append(y_price / past_bps)
-                                    
+                                    if past_bps > 0:
+                                        pbr_list.append(y_price / past_bps)
+                                        
                         if pbr_list:
                             a_pbr = sum(pbr_list) / len(pbr_list)
-                except: pass
+                except Exception:
+                    pass
                 
-                # 결측치 최후 방어
                 if a_pbr <= 0 or a_pbr > 200.0: 
                     a_pbr = pbr if pbr > 0 else 1.0
                 
