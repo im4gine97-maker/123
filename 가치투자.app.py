@@ -2944,6 +2944,24 @@ with tab1:
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
                 # 2. 과거 평균 PER(a_pe) 자체 계산
+                # --- [변수 정의 누락분 추가] ---
+                currency_trade = str(i.get('currency', 'USD')).upper()
+                currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+                is_adr = (currency_trade != currency_fin) and not kr
+
+                adr_fx_ratio = 1.0
+                if is_adr:
+                    try:
+                        inc_temp = stk.income_stmt
+                        if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
+                            ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
+                            eps_curr = safe_float(i.get('trailingEps'))
+                            if ni_curr != 0 and eps_curr != 0:
+                                adr_fx_ratio = abs(eps_curr / ni_curr)
+                    except: pass
+                # -------------------------------
+                
+                a_pe = safe_float(i.get('fiveYearAvgPE')) # <-- 원래 회원님 코드 2947번째 줄
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 
                 # [ADR 예외 추가] ADR은 주식수 역산 시 환율/예탁비율 왜곡이 크므로 야후 API 5년 평균치(a_pe)를 우선 사용하고 10년 역산 스킵
