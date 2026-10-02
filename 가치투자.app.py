@@ -2202,7 +2202,167 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
     elif is_rate: p_str = f"{p:.3f}%"
     else: p_str = f"{p:,.2f}"
     return p_str, c, pct
+# =========================================================================
+# [신규] DART / SEC 10년 재무제표 기반 10년 평균 PER, PBR, FCF 성장률 자체 연산 엔진
+# =========================================================================
+def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
+    a_pe_10y = 0.0
+    a_pbr_10y = 0.0
+    final_g_10y = 0.05
+    data_len = 0
+    base_fcf_10y = None
+    is_zigzag_10y = False
 
+    try: hist_10y = stk.history(period="10y")
+    except: hist_10y = pd.DataFrame()
+
+    def get_avg_price(y_int):
+        if hist_10y.empty: return reg_p
+        y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
+        return safe_float(y_prices.mean()) if not y_prices.empty else 0.0
+
+    # 1. ADR 기업: 야후 파이낸스 환율 보정식 유지
+    if is_adr:
+        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
+        try:
+            _inc = stk.income_stmt
+            bs = stk.balance_sheet
+            pe_l, pbr_l = [], []
+            if not hist_10y.empty and _inc is not None and not _inc.empty:
+                for c_date in _inc.columns[:4]:
+                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
+                    yp = get_avg_price(y_val)
+                    eps_v = safe_float(_inc.loc['Diluted EPS', c_date]) if 'Diluted EPS' in _inc.index else safe_float(_inc.loc['Basic EPS', c_date])
+                    if yp > 0 and eps_v > 0: pe_l.append(yp / eps_v)
+            if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
+            
+            if not hist_10y.empty and bs is not None and not bs.empty:
+                for c_date in bs.columns[:4]:
+                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
+                    yp = get_avg_price(y_val)
+                    eq = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
+                    past_bps = (eq * adr_fx_ratio) if adr_fx_ratio != 1.0 else (eq / safe_float(stk.info.get('sharesOutstanding', 1)))
+                    if yp > 0 and past_bps > 0: pbr_l.append(yp / past_bps)
+            if pbr_l: a_pbr_10y = sum(pbr_l) / len(pbr_l)
+        except: pass
+        return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
+
+    # 2. 한국 기업: DART API 10년치 적용
+    elif kr:
+        dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+        if not dart_df.empty:
+            years_desc = [str(col) for col in dart_df.columns]
+            pe_list, pbr_list, fcf_list = [], [], []
+            sh_out = safe_float(stk.info.get('sharesOutstanding'))
+
+            for y_str in years_desc:
+                try: y_int = int(y_str)
+                except: continue
+                yp = get_avg_price(y_int)
+                if yp <= 0: continue
+
+                if '4. 당기순이익' in dart_df.index and sh_out > 0:
+                    eps_val = (safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000) / sh_out
+                    if eps_val > 0: pe_list.append(yp / eps_val)
+
+                if '8. 자본총계' in dart_df.index and sh_out > 0:
+                    bps_val = (safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000) / sh_out
+                    if bps_val > 0: pbr_list.append(yp / bps_val)
+
+                ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
+                icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
+                calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
+                if calc_fcf != 0: fcf_list.append(calc_fcf)
+
+            if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
+            if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+
+            if len(fcf_list) >= 2:
+                data_len = len(fcf_list)
+                c, o = fcf_list[0], fcf_list[-1]
+                base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
+                final_g_10y = max(0.02, min(final_g_10y, 0.15))
+                
+                rev_fcf = fcf_list[::-1]
+                dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
+                if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+            
+            if a_pe_10y > 0 and a_pbr_10y > 0:
+                return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
+
+    # 3. 미국 기업: SEC EDGAR 10-K API 적용
+    else:
+        try:
+            sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
+            tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
+            cik = None
+            for key, val in tickers_res.items():
+                if val['ticker'].upper() == cd.upper():
+                    cik = str(val['cik_str']).zfill(10); break
+            
+            if cik:
+                facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=8).json()
+                us_gaap = facts.get('facts', {}).get('us-gaap', {})
+
+                def get_sec_fact(tags):
+                    res = {}
+                    for tag in tags:
+                        if tag in us_gaap:
+                            for item in us_gaap[tag].get('units', {}).get('USD', []):
+                                if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
+                                    res[str(item.get('fy'))] = item.get('val', 0)
+                    return res
+
+                sec_ni = get_sec_fact(['NetIncomeLoss', 'ProfitLoss'])
+                sec_eq = get_sec_fact(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'])
+                sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'])
+                sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+
+                sec_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()))), reverse=True)[:10]
+                sh_out = safe_float(stk.info.get('sharesOutstanding'))
+
+                pe_list, pbr_list, fcf_list = [], [], []
+                for y_str in sec_years:
+                    y_int = int(y_str)
+                    yp = get_avg_price(y_int)
+                    if yp <= 0: continue
+
+                    if y_str in sec_ni and sh_out > 0:
+                        eps_v = sec_ni[y_str] / sh_out
+                        if eps_v > 0: pe_list.append(yp / eps_v)
+
+                    if y_str in sec_eq and sh_out > 0:
+                        bps_v = sec_eq[y_str] / sh_out
+                        if bps_v > 0: pbr_list.append(yp / bps_v)
+
+                    if y_str in sec_ocf:
+                        fcf_v = sec_ocf[y_str] - sec_capex.get(y_str, 0)
+                        fcf_list.append(fcf_v)
+
+                if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
+                if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+
+                if len(fcf_list) >= 2:
+                    data_len = len(fcf_list)
+                    c, o = fcf_list[0], fcf_list[-1]
+                    base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                    if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
+                    final_g_10y = max(0.02, min(final_g_10y, 0.15))
+                    
+                    rev_fcf = fcf_list[::-1]
+                    dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
+                    if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+
+                if a_pe_10y > 0 and a_pbr_10y > 0:
+                    return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
+        except: pass
+
+    # 4. 폴백: API 통신 실패 시 기존 yfinance 4년으로 우회
+    base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
+    if a_pe_10y <= 0: a_pe_10y = safe_float(stk.info.get('trailingPE', 15.0))
+    if a_pbr_10y <= 0: a_pbr_10y = safe_float(stk.info.get('priceToBook', 1.0))
+    return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
@@ -2377,48 +2537,25 @@ def generate_quick_ai_preview(tk):
             if len(prefix) < 40 and "위키 및 공공" not in prefix:
                 ceo_cleaned = prefix
 
-    a_pbr = 0.0
-    f_pbr = pbr
-    
-    if is_financial or kr or is_cyclical:
-        try:
-            
-            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                if len(eq_vals) > 0:
-                    avg_eq = sum(eq_vals) / len(eq_vals)
-                    
-                    if tk == "BRK-B":
-                        a_pbr = avg_price / (avg_eq / 2160000000.0)
-                    elif tk == "BRK-A":
-                        a_pbr = avg_price / (avg_eq / 1440000.0)
-                    elif is_adr and adr_fx_ratio != 1.0:
-                        past_bvps = avg_eq * adr_fx_ratio
-                        if past_bvps > 0:
-                            a_pbr = avg_price / past_bvps
-                    else:
-                        sh_proxy = safe_float(i.get('sharesOutstanding'))
-                        if avg_eq > 0 and sh_proxy > 0:
-                            a_pbr = avg_price / (avg_eq / sh_proxy)
-        except: pass
-        
-        if a_pbr <= 0 or a_pbr > 200.0: 
-            a_pbr = pbr if pbr > 0 else 1.0
-            
-        base_bv = bv
-        if tk in ["BRK-B", "BRK-A"]:
-            f_pbr = pbr
-        elif base_bv > 0 and f_eps != 0:
-            div_r_val = safe_float(i.get('dividendRate', 0))
-            # [핵심 수술 2] 환율이 정상 보정된 base_bv를 통해 f_bps를 안전하게 산출!
-            f_bps = base_bv + f_eps - div_r_val
-            if f_bps > 0: f_pbr = reg_p / f_bps
-            else: f_pbr = reg_p / base_bv
-        elif base_bv > 0:
-            f_pbr = reg_p / base_bv
+    # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
+    a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag = get_10yr_custom_metrics(
+        stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
+    )
 
+    # 2. 예상 PBR (f_pbr) 계산 유지
+    f_pbr = pbr
+    base_bv = bv
+    if tk in ["BRK-B", "BRK-A"]:
+        f_pbr = pbr
+    elif base_bv > 0 and f_eps != 0:
+        div_r_val = safe_float(i.get('dividendRate', 0))
+        f_bps = base_bv + f_eps - div_r_val
+        if f_bps > 0: f_pbr = reg_p / f_bps
+        else: f_pbr = reg_p / base_bv
+    elif base_bv > 0:
+        f_pbr = reg_p / base_bv
+
+    # 3. 할인율/할증률 및 ERP 계산
     if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
@@ -2426,8 +2563,7 @@ def generate_quick_ai_preview(tk):
         
     ey = (1 / f_pe * 100) if f_pe > 0 else 0
     erp = ey - ty
-    
-    base_fcf, sh_dcf, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+    sh_dcf = safe_float(i.get('sharesOutstanding'))
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
     
@@ -3052,61 +3188,13 @@ with tab1:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
 
-                # --- [4년 평균 PBR 및 Fwd PBR 자체 계산기] ---
-                a_pbr = 0.0
+                # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
+                a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag = get_10yr_custom_metrics(
+                    stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
+                )
+
+                # 2. 예상 PBR (f_pbr) 계산 유지
                 f_pbr = pbr
-                try:
-                    hist_5y = stk.history(period="5y")
-                    bs = stk.balance_sheet
-                    _inc = stk.income_stmt
-                    pbr_list = []
-                    
-                    if not hist_5y.empty and bs is not None and not bs.empty:
-                        for col_date in bs.columns[:4]:
-                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
-                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
-                            
-                            eq = 0.0
-                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                                if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
-                                    eq = safe_float(bs.loc[eq_key, col_date])
-                                    break
-                                    
-                            if y_price > 0 and eq > 0:
-                                past_sh = 0.0
-                                if _inc is not None and not _inc.empty and col_date in _inc.columns:
-                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
-                                    eps_val = 0.0
-                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
-                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
-                                        
-                                    if eps_val > 0 and ni_val != 0:
-                                        past_sh = abs(ni_val / eps_val)
-                                        
-                                if past_sh == 0:
-                                    past_sh = safe_float(i.get('sharesOutstanding'))
-                                    
-                                if tk == "BRK-B": past_sh = 2160000000.0
-                                elif tk == "BRK-A": past_sh = 1440000.0
-                                
-                                if past_sh > 0:
-                                    past_bps = eq / past_sh
-                                    if is_adr and adr_fx_ratio != 1.0:
-                                        past_bps = past_bps * adr_fx_ratio
-                                    if past_bps > 0:
-                                        pbr_list.append(y_price / past_bps)
-                                        
-                        if pbr_list:
-                            a_pbr = sum(pbr_list) / len(pbr_list)
-                except Exception:
-                    pass
-                
-                if a_pbr <= 0 or a_pbr > 200.0: 
-                    a_pbr = pbr if pbr > 0 else 1.0
-                
                 base_bv = bv
                 if tk in ["BRK-B", "BRK-A"]:
                     f_pbr = pbr
@@ -3120,11 +3208,8 @@ with tab1:
                     
                 if 'multiplier' in locals() and multiplier != 1.0:
                     f_pbr = f_pbr * multiplier
-                # =====================================================================
-                # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
-                # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
-                # =====================================================================
-                # 할인율 수식 결정
+
+                # 3. 할인율/할증률 및 ERP 계산
                 if is_financial or kr or is_cyclical:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
                 else:
@@ -3132,8 +3217,7 @@ with tab1:
                     
                 ey = (1 / f_pe * 100) if f_pe > 0 else 0
                 erp = ey - ty
-                
-                base_fcf, sh, final_g, data_len, is_zigzag = get_base_dcf_data(stk, i)
+                sh = safe_float(i.get('sharesOutstanding'))
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
