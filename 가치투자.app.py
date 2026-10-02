@@ -2448,8 +2448,8 @@ def generate_quick_ai_preview(tk):
                                     if past_bps > 0:
                                         pbr_list.append(y_price / past_bps)
                                         
-                if pbr_list:
-                    a_pbr = sum(pbr_list) / len(pbr_list)
+                    if pbr_list:  # <-- 이 부분 들여쓰기 에러 완벽 수정됨
+                        a_pbr = sum(pbr_list) / len(pbr_list)
                 except Exception: pass
         
         if a_pbr <= 0 or a_pbr > 200.0: 
@@ -2999,7 +2999,7 @@ with tab1:
                     f_pe = t_pe
 
                 # =====================================================================
-                # [수정/복사 시작] 여기서부터 복사해서 덮어쓰세요.
+                # [통합 로직 시작] PER/PBR 10년 산출 및 FMP API 연동 
                 # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
@@ -3148,8 +3148,8 @@ with tab1:
                                                 if past_bps > 0:
                                                     pbr_list.append(y_price / past_bps)
                                                     
-                            if pbr_list:
-                                a_pbr = sum(pbr_list) / len(pbr_list)
+                                if pbr_list:  # <-- 이 부분 들여쓰기 에러 완벽 수정됨
+                                    a_pbr = sum(pbr_list) / len(pbr_list)
                             except Exception: pass
                     
                     if a_pbr <= 0 or a_pbr > 200.0: 
@@ -3169,8 +3169,7 @@ with tab1:
                     if 'multiplier' in locals() and multiplier != 1.0:
                         f_pbr = f_pbr * multiplier
                 # =====================================================================
-                # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
-                # 바로 아래에 ey = (1 / f_pe * 100) if f_pe > 0 else 0 코드가 이어집니다.
+                # [통합 로직 끝] 바로 아래에 ey = (1 / f_pe * 100) if f_pe > 0 else 0 코드가 이어집니다.
                 # =====================================================================
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
