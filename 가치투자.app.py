@@ -2261,7 +2261,7 @@ def generate_quick_ai_preview(tk):
     if is_financial or kr or is_cyclical:
         try:
             
-            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+            avg_price = hist_4y['Close'].mean() if not hist_4y.empty else reg_p
             bs = stk.balance_sheet
             if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
                 eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
@@ -2772,14 +2772,14 @@ with tab1:
                 # 2. 과거 평균 PER(a_pe) 4년 치 자체 계산
                 a_pe = 0.0
                 try:
-                    hist_5y = stk.history(period="5y")
+                    hist_4y = stk.history(period="4y")
                     _inc = stk.income_stmt
                     pe_list = []
                     
-                    if not hist_5y.empty and _inc is not None and not _inc.empty:
+                    if not hist_4y.empty and _inc is not None and not _inc.empty:
                         for col_date in _inc.columns[:4]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            year_prices = hist_4y[hist_4y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eps_val = 0.0
@@ -2934,15 +2934,15 @@ with tab1:
                 a_pbr = 0.0
                 f_pbr = pbr
                 try:
-                    hist_5y = stk.history(period="5y")
+                    hist_4y = stk.history(period="4y")
                     bs = stk.balance_sheet
                     _inc = stk.income_stmt
                     pbr_list = []
                     
-                    if not hist_5y.empty and bs is not None and not bs.empty:
+                    if not hist_4y.empty and bs is not None and not bs.empty:
                         for col_date in bs.columns[:4]:
                             y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_5y[hist_5y.index.year == y_val]['Close']
+                            year_prices = hist_4y[hist_4y.index.year == y_val]['Close']
                             y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                             
                             eq = 0.0
@@ -3869,8 +3869,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
 - Current Price: {p_str}
 - Est. Fair Value (DCF): {share_fv}
 - DCF Margin of Safety: {share_mos}
-- Fwd PE: {f_pe:.1f}x (5Y Avg: {a_pe:.1f}x) -> {clean_per_mos}
-- Fwd PBR: {f_pbr:.2f}x (5Y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
+- Fwd PE: {f_pe:.1f}x (4y Avg: {a_pe:.1f}x) -> {clean_per_mos}
+- Fwd PBR: {f_pbr:.2f}x (4y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
 
 [2] Fundamentals & Moat
 - ROE: {roe:.1f}% / ROIC: {roic_display}
