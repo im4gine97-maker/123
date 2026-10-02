@@ -2219,27 +2219,27 @@ def generate_quick_ai_preview(tk):
     
     real_roic = get_real_roic(stk, i)
     a_pe = safe_float(i.get('fiveYearAvgPE'))
-        if a_pe <= 0.0:
-            if not is_adr:
-                try:
-                    _inc = stk.income_stmt
-                    if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                        _ni_vals = _inc.loc['Net Income'].dropna().values[:5]
-                        if len(_ni_vals) >= 1:
-                            _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                            _sh_out = safe_float(i.get('sharesOutstanding'))
-                            if _avg_ni > 0 and _sh_out > 0:
-                                hist_pe = stk.history(period="5y")
-                                avg_p_pe = hist_pe['Close'].mean() if not hist_pe.empty else reg_p
-                                a_pe = avg_p_pe / (_avg_ni / _sh_out) 
-                except: pass
+    if a_pe <= 0.0:
+        if not is_adr:
+            try:
+                _inc = stk.income_stmt
+                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                    _ni_vals = _inc.loc['Net Income'].dropna().values[:5]
+                    if len(_ni_vals) >= 1:
+                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                        _sh_out = safe_float(i.get('sharesOutstanding'))
+                        if _avg_ni > 0 and _sh_out > 0:
+                            hist_pe = stk.history(period="5y")
+                            avg_p_pe = hist_pe['Close'].mean() if not hist_pe.empty else reg_p
+                            a_pe = avg_p_pe / (_avg_ni / _sh_out) 
+            except: pass
 
-        if a_pe < 5.0 or a_pe > 200.0:
-            if t_eps > 0: a_pe = reg_p / t_eps
-            elif f_eps > 0: a_pe = reg_p / f_eps
-            elif t_pe_raw > 0: a_pe = t_pe_raw
-            elif f_pe_raw > 0: a_pe = f_pe_raw
-            else: a_pe = 0.0
+    if a_pe < 5.0 or a_pe > 200.0:
+        if t_eps > 0: a_pe = reg_p / t_eps
+        elif f_eps > 0: a_pe = reg_p / f_eps
+        elif t_pe_raw > 0: a_pe = t_pe_raw
+        elif f_pe_raw > 0: a_pe = f_pe_raw
+        else: a_pe = 0.0
 
     off = i.get('companyOfficers', [])
     ceo_raw = '누락'
