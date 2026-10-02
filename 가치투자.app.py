@@ -2778,12 +2778,14 @@ with tab1:
                         try:
                             _inc = stk.income_stmt
                             if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                                if len(_ni_vals) >= 2:
+                                _ni_vals = _inc.loc['Net Income'].dropna().values[:5] # 4에서 5로 변경
+                                if len(_ni_vals) >= 1: # 1년치라도 있으면 계산
                                     _avg_ni = sum(_ni_vals) / len(_ni_vals)
                                     _sh_out = safe_float(i.get('sharesOutstanding'))
                                     if _avg_ni > 0 and _sh_out > 0:
-                                        a_pe = reg_p / (_avg_ni / _sh_out)
+                                        hist_pe = stk.history(period="5y")
+                                        avg_p_pe = hist_pe['Close'].mean() if not hist_pe.empty else reg_p
+                                        a_pe = avg_p_pe / (_avg_ni / _sh_out)
                         except: pass
 
                 if a_pe < 5.0 or a_pe > 200.0:
@@ -2797,7 +2799,6 @@ with tab1:
                         a_pe = f_pe_raw
                     else:
                         a_pe = 0.0
-
                 # 3. 가상 주가(시뮬레이터) 배수 적용 (현재 주가, 현재 PER, f_pe, 배당률만 변경)
                 sim_pct = st.session_state.get('price_adj_pct', 0)
                 multiplier = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
@@ -2936,8 +2937,8 @@ with tab1:
                     avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
                     bs = stk.balance_sheet
                     if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                        if len(eq_vals) > 0:
+                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:5] # 4에서 5로 변경
+                        if len(eq_vals) > 0: # 1년치라도 있으면 계산
                             avg_eq = sum(eq_vals) / len(eq_vals)
                             
                             if tk == "BRK-B":
