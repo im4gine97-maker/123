@@ -2822,6 +2822,60 @@ with tab1:
                 # =====================================================================
                 # [복사 시작] 여기서부터 복사해서 덮어쓰세요.
                 # =====================================================================
+                
+                # 1. Forward PER 강제 재계산 방지 및 누락 시 자체 추정 (CAGR 적용)
+                t_pe_raw = safe_float(i.get('trailingPE'))
+                f_pe_raw = safe_float(i.get('forwardPE'))
+                t_eps = safe_float(i.get('trailingEps'))
+                f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+
+                t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((reg_p / t_eps) if (t_eps > 0 and reg_p > 0) else t_pe_raw)
+                f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((reg_p / f_eps) if (f_eps > 0 and reg_p > 0) else f_pe_raw)
+                
+                # [신규 추가] 야후에 Forward PER이 누락된 기업의 자체 추정 로직
+                if f_pe <= 0:
+                    try:
+                        inc_hist_fwd = stk.income_stmt
+                        if inc_hist_fwd is not None and not inc_hist_fwd.empty:
+                            hist_eps_vals = []
+                            for date_col in inc_hist_fwd.columns[:4]: 
+                                e_val = 0
+                                if 'Diluted EPS' in inc_hist_fwd.index:
+                                    e_val = safe_float(inc_hist_fwd[date_col].loc['Diluted EPS'])
+                                elif 'Basic EPS' in inc_hist_fwd.index:
+                                    e_val = safe_float(inc_hist_fwd[date_col].loc['Basic EPS'])
+                                
+                                if e_val == 0 and 'Net Income' in inc_hist_fwd.index:
+                                    n_inc = safe_float(inc_hist_fwd[date_col].loc['Net Income'])
+                                    sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                                    if n_inc != 0 and sh_proxy > 0:
+                                        e_val = n_inc / sh_proxy
+
+                                if e_val != 0:
+                                    hist_eps_vals.append(e_val)
+                                    
+                            if len(hist_eps_vals) >= 2:
+                                recent_eps = hist_eps_vals[0]
+                                oldest_eps = hist_eps_vals[-1]
+                                y_diff = len(hist_eps_vals) - 1
+                                
+                                if recent_eps > 0 and oldest_eps > 0:
+                                    cagr = (recent_eps / oldest_eps) ** (1 / y_diff) - 1
+                                    cagr = max(-0.30, min(cagr, 0.30)) # 상하한 30% 캡
+                                    
+                                    base_eps = t_eps if t_eps > 0 else recent_eps
+                                    est_f_eps = base_eps * (1 + cagr)
+                                    
+                                    if est_f_eps > 0 and reg_p > 0:
+                                        f_pe = reg_p / est_f_eps
+                                        f_eps = est_f_eps
+                    except:
+                        pass
+                
+                if f_pe <= 0 and t_pe > 0: 
+                    f_pe = t_pe
+
+                # 2. PBR 기본 산출 (ADR 보정 포함)
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
 
@@ -2829,9 +2883,6 @@ with tab1:
                 currency_fin = str(i.get('financialCurrency', 'USD')).upper()
                 is_adr = (currency_trade != currency_fin) and not kr
 
-                # -------------------------------------------------------------
-                # [ADR 보정 계수] TSM, ASML 등 환율/배수 왜곡 보정용
-                # -------------------------------------------------------------
                 adr_fx_ratio = 1.0
                 if is_adr:
                     try:
@@ -2843,13 +2894,8 @@ with tab1:
                                 adr_fx_ratio = abs(eps_curr / ni_curr)
                     except: pass
 
-                # 야후 파이낸스 자체 버그(1400배 등) 필터링
                 if pbr > 100.0: pbr = 0.0
 
-                # -------------------------------------------------------------
-                # [핵심 복구] 한국 기업 및 결측치 발생 기업 자산(BV) 강제 추출 로직
-                # (이전 코드에서 ADR만 살리려다 누락된 한국 주식 대차대조표 계산식 복원)
-                # -------------------------------------------------------------
                 if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
                     try:
                         bs = stk.balance_sheet
@@ -2871,17 +2917,16 @@ with tab1:
                                     break
                     except: pass
 
-                # 2차 방어선 (주가와 BPS만 존재할 경우 PBR 역산)
                 if pbr <= 0.0 and bv > 0 and p > 0:
                     pbr = p / bv
 
-                # 시뮬레이터(가상 주가) 연동 보정
-                if pbr > 0:
-                    if 'multiplier' in locals() and multiplier != 1.0:
-                        pbr = pbr * multiplier
-                    elif reg_p > 0 and p != reg_p: # 장전/장후 주가 실시간 반영
-                        pbr = pbr * (p / reg_p)
-                
+                # [복구] PBR 실시간 가격 보정 로직
+                if pbr > 0 and reg_p > 0 and p != reg_p: 
+                    pbr = pbr * (p / reg_p)
+
+                # =====================================================================
+                # [복구] 실수로 누락되었던 핵심 지표 (ROE, ROIC) 완벽 복구
+                # =====================================================================
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 if roe <= 0.0 or roe > 300.0:
                     try:
@@ -2891,73 +2936,89 @@ with tab1:
                             if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
                                 ni = safe_float(inc.loc['Net Income'].iloc[0])
                                 eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                if eq > 0:
-                                    roe = (ni / eq) * 100
+                                if eq > 0: roe = (ni / eq) * 100
                     except: pass
                 
                 real_roic = get_real_roic(stk, i)
-                
-                if is_financial:
-                    roic_str = "금융주 제외" if is_ko else "N/A (Financial)"
-                else:
-                    if real_roic is not None: roic_str = f"{real_roic:.2f}%"
-                    else: roic_str = "데이터 부족" if is_ko else "N/A"
+                # =====================================================================
 
-                div_yield = safe_float(i.get('dividendYield'))
-                div_rate = safe_float(i.get('dividendRate'))
-                div = 0.0
-                if div_rate > 0 and p > 0:
-                    calc_div = (div_rate / p) * 100
-                    if calc_div < 50.0: div = calc_div
-                if div == 0.0 and div_yield > 0:
-                    div = div_yield if div_yield > 1.0 else div_yield * 100
-                    if sim_pct != 0: div = div / multiplier
-
-                div_trend = "확인 불가" if is_ko else "N/A"
-                try:
-                    div_history = stk.dividends
-                    if not div_history.empty:
-                        yearly_div = div_history.groupby(div_history.index.year).sum()
-                        if len(yearly_div) >= 3:
-                            last_3 = yearly_div.tail(3)
-                            if last_3.is_monotonic_increasing and last_3.iloc[-1] > last_3.iloc[0]:
-                                div_trend = f"<span class='good'>지속 상승 중</span>" if is_ko else f"<span class='good'>Consistently Increasing</span>"
-                            elif last_3.iloc[-1] > 0:
-                                div_trend = "유지/변동" if is_ko else "Maintained/Fluctuating"
-                            else:
-                                div_trend = "배당 없음" if is_ko else "No Dividend"
-                except: pass
-
-                # --- [모든 기업 대상: 5년 평균 PBR 및 Fwd PBR 자체 계산기] ---
+                # 3. 과거 평균 PER / PBR 정석 산출 (시점 1:1 매칭 방식)
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
                 a_pbr = 0.0
-                f_pbr = pbr
+
                 try:
-                    hist_5y = stk.history(period="5y")
-                    avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                    bs = stk.balance_sheet
-                    if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                        if len(eq_vals) > 0:
-                            avg_eq = sum(eq_vals) / len(eq_vals)
-                            
-                            if tk == "BRK-B":
-                                a_pbr = avg_price / (avg_eq / 2160000000.0)
-                            elif tk == "BRK-A":
-                                a_pbr = avg_price / (avg_eq / 1440000.0)
-                            elif is_adr and adr_fx_ratio != 1.0:
-                                past_bvps = avg_eq * adr_fx_ratio
-                                if past_bvps > 0:
-                                    a_pbr = avg_price / past_bvps
-                            else:
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if avg_eq > 0 and sh_proxy > 0:
-                                    a_pbr = avg_price / (avg_eq / sh_proxy)
-                except: pass
-                
+                    inc_hist = stk.income_stmt
+                    bs_hist = stk.balance_sheet
+                    price_hist = stk.history(period="5y")
+
+                    if not price_hist.empty and inc_hist is not None and not inc_hist.empty:
+                        # [타임존 버그 예방] 날짜 매칭 시 에러 방지
+                        price_hist.index = price_hist.index.tz_localize(None)
+                        
+                        historical_pes = []
+                        historical_pbrs = []
+
+                        shares_data = None
+                        if 'Diluted Average Shares' in inc_hist.index:
+                            shares_data = inc_hist.loc['Diluted Average Shares'].dropna()
+                        elif 'Basic Average Shares' in inc_hist.index:
+                            shares_data = inc_hist.loc['Basic Average Shares'].dropna()
+
+                        for date_col in inc_hist.columns[:5]:
+                            try:
+                                target_date = pd.to_datetime(date_col).tz_localize(None)
+                                idx = price_hist.index.get_indexer([target_date], method='nearest')[0]
+                                historical_price = safe_float(price_hist['Close'].iloc[idx])
+
+                                if historical_price > 0:
+                                    # 과거 연도별 PER
+                                    eps_val = 0
+                                    if 'Diluted EPS' in inc_hist.index:
+                                        eps_val = safe_float(inc_hist[date_col].loc['Diluted EPS'])
+                                    elif 'Basic EPS' in inc_hist.index:
+                                        eps_val = safe_float(inc_hist[date_col].loc['Basic EPS'])
+
+                                    if eps_val > 0:
+                                        historical_pes.append(historical_price / eps_val)
+
+                                    # 과거 연도별 PBR
+                                    if bs_hist is not None and 'Stockholders Equity' in bs_hist.index and shares_data is not None:
+                                        if date_col in bs_hist.columns and date_col in shares_data.index:
+                                            eq_val = safe_float(bs_hist[date_col].loc['Stockholders Equity'])
+                                            sh_val = safe_float(shares_data.loc[date_col])
+
+                                            if is_adr and adr_fx_ratio != 1.0:
+                                                eq_val = eq_val * adr_fx_ratio
+
+                                            if eq_val > 0 and sh_val > 0:
+                                                bps_val = eq_val / sh_val
+                                                historical_pbrs.append(historical_price / bps_val)
+                            except Exception:
+                                continue
+
+                        if len(historical_pes) >= 2:
+                            calc_a_pe = sum(historical_pes) / len(historical_pes)
+                            if a_pe <= 0.0 or abs(a_pe - calc_a_pe) > a_pe * 0.15:
+                                a_pe = calc_a_pe
+
+                        if len(historical_pbrs) >= 2:
+                            a_pbr = sum(historical_pbrs) / len(historical_pbrs)
+                except Exception:
+                    pass
+
                 # 결측치 최후 방어
-                if a_pbr <= 0 or a_pbr > 200.0: 
+                if a_pe < 5.0 or a_pe > 200.0:
+                    a_pe = t_pe if t_pe > 0 else (f_pe if f_pe > 0 else 15.0)
+
+                if a_pbr <= 0.0 or a_pbr > 200.0:
                     a_pbr = pbr if pbr > 0 else 1.0
-                
+
+                # 4. 시뮬레이터(가상 주가) 연동 보정
+                if 'multiplier' in locals() and multiplier != 1.0:
+                    pbr = pbr * multiplier
+                    t_pe = t_pe * multiplier
+                    f_pe = f_pe * multiplier
+                    
                 base_bv = bv
                 if tk in ["BRK-B", "BRK-A"]:
                     f_pbr = pbr
@@ -2971,10 +3032,16 @@ with tab1:
                     
                 if 'multiplier' in locals() and multiplier != 1.0:
                     f_pbr = f_pbr * multiplier
+
+                # [안전망 추가] 안전마진 산출 공식 보호
+                if is_financial or kr or is_cyclical:
+                    pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+                else:
+                    pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+
                 # =====================================================================
                 # [복사 끝] 여기까지 덮어쓰기 하시면 됩니다.
                 # 바로 아래에 `ey = (1 / f_pe * 100) if f_pe > 0 else 0` 코드가 이어집니다.
-                # =====================================================================
                 # 할인율 수식 결정
                 if is_financial or kr or is_cyclical:
                     pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
