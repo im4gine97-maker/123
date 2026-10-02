@@ -4043,40 +4043,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             st.warning("FMP API 키가 설정되지 않았습니다.")
                             
-                    else:
-                        # [미국 주식] FMP API 10년치
-                        st.write(f"**{t('손익계산서 추이 (FMP 10년치)', 'Income Statement')}** {t('(단위: 백만 달러)', '(Unit: Million USD)')}")
-                        if FMP_API_KEY:
-                            with st.spinner("FMP에서 10년치 재무 데이터를 수집 중입니다..."):
-                                try:
-                                    fmp_url = f"https://financialmodelingprep.com/api/v3/income-statement/{cd}?limit=10&apikey={FMP_API_KEY}"
-                                    fmp_r = requests.get(fmp_url, timeout=5)
-                                    fmp_data = fmp_r.json()
-                                    
-                                    if fmp_data and isinstance(fmp_data, list):
-                                        fmp_dict = {}
-                                        for item in fmp_data:
-                                            year = item['calendarYear']
-                                            fmp_dict[year] = {
-                                                'Revenue (매출)': item.get('revenue', 0),
-                                                'Operating Income (영업이익)': item.get('operatingIncome', 0),
-                                                'Net Income (순이익)': item.get('netIncome', 0)
-                                            }
-                                        fmp_df = pd.DataFrame(fmp_dict)
-                                        fmp_df = fmp_df[sorted(fmp_df.columns, reverse=True)] / 1000000
-                                        
-                                        # 1. 10년치 막대 차트 그리기
-                                        draw_financial_chart(fmp_df, False)
-                                        # 2. 10년치 표 그리기
-                                        try: formatted_fmp = fmp_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                        except: formatted_fmp = fmp_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                        st.dataframe(formatted_fmp, use_container_width=True)
-                                    else:
-                                        st.info("FMP API 호출 한도가 초과되었거나 데이터를 찾을 수 없습니다.")
-                                except:
-                                    st.info("FMP API 연결에 실패했습니다.")
-                        else:
-                            st.warning("FMP API 키가 설정되지 않았습니다.")
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
