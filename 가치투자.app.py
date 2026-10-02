@@ -1184,31 +1184,35 @@ def get_10yr_dart_financials_raw(stock_code, api_key):
     
     current_year = datetime.now().year
     base_year = current_year - 1
+    # 10년치를 커버하기 위해 3년 간격으로 4번 호출 (2023, 2020, 2017, 2014)
     years = [base_year, base_year - 3, base_year - 6, base_year - 9]
     
     all_data = []
     headers = {'User-Agent': 'Mozilla/5.0'}
     
     for y in years:
-        # 1. 연결재무제표(CFS) 먼저 시도
-        url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=CFS"
-        try:
-            r = requests.get(url, headers=headers, timeout=5).json()
-            # 2. 만약 연결재무제표가 없는 기업(013 에러)이라면 개별재무제표(OFS)로 자동 재요청
-            if r.get('status') == '013': 
-                url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div=OFS"
+        # [핵심] 연결재무제표(CFS)와 개별재무제표(OFS)를 모두 순회하며 데이터 싹쓸이
+        for fs_div in ['CFS', 'OFS']:
+            url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
+            try:
                 r = requests.get(url, headers=headers, timeout=5).json()
+                if r.get('status') == '000':
+                    for item in r.get('list', []):
+                        raw_nm = item.get('account_nm', '').replace(' ', '')
+                        
+                        # [핵심] 기업마다 제멋대로인 회계정 계정명을 3가지로 강제 통일
+                        std_nm = None
+                        if '매출' in raw_nm or '영업수익' in raw_nm: std_nm = '매출액'
+                        elif '영업이익' in raw_nm or '영업손실' in raw_nm: std_nm = '영업이익'
+                        elif '당기순이익' in raw_nm or '당기순손실' in raw_nm or '순이익' in raw_nm: std_nm = '당기순이익'
+                        
+                        if std_nm:
+                            all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
+                            all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
+                            all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                    break # 연결(CFS)에서 성공했으면 개별(OFS)은 건너뜀
+            except: pass
             
-            if r.get('status') == '000':
-                for item in r.get('list', []):
-                    raw_nm = item.get('account_nm', '')
-                    if any(k in raw_nm for k in ['매출액', '영업이익', '영업손실', '당기순이익', '당기순손실', '수익(매출액)']):
-                        acc_nm = '매출액' if '매출' in raw_nm else ('영업이익' if '영업' in raw_nm else '당기순이익')
-                        all_data.append({'연도': str(y), '계정': acc_nm, '금액': item.get('thstrm_amount')})
-                        all_data.append({'연도': str(y-1), '계정': acc_nm, '금액': item.get('frmtrm_amount')})
-                        all_data.append({'연도': str(y-2), '계정': acc_nm, '금액': item.get('bfefrmtrm_amount')})
-        except: pass
-        
     if not all_data: return pd.DataFrame()
     
     df = pd.DataFrame(all_data)
@@ -4061,18 +4065,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     facts_res = requests.get(facts_url, headers=sec_headers, timeout=10).json()
                                     us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
                                     
+                                    # [핵심] 기업들이 연도마다 다르게 사용하는 수많은 태그들을 하나로 묶어 빈칸 방지
                                     def extract_annual_data(tags):
                                         res = {}
                                         for tag in tags:
                                             if tag in us_gaap:
                                                 usd_data = us_gaap[tag].get('units', {}).get('USD', [])
                                                 for item in usd_data:
-                                                    if item.get('form') == '10-K' and item.get('fp') == 'FY':
-                                                        res[str(item.get('fy'))] = item.get('val', 0)
-                                                if res: break
+                                                    # 10-K(연간 보고서)만 추출
+                                                    if item.get('form') in ['10-K', '10-K/A']:
+                                                        y_val = str(item.get('fy'))
+                                                        val = item.get('val', 0)
+                                                        # 최신 수정 공시나 더 큰 값이 있으면 덮어쓰기
+                                                        if y_val not in res or abs(val) > abs(res[y_val]):
+                                                            res[y_val] = val
                                         return res
                                     
-                                    rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                                    # 매출, 영업이익, 순이익에 해당하는 광범위한 태그 스캔
+                                    rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenuesNetOfInterestExpense'])
                                     op = extract_annual_data(['OperatingIncomeLoss'])
                                     ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
                                     
