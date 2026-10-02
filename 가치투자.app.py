@@ -2772,19 +2772,30 @@ with tab1:
                 # 2. 과거 평균 PER(a_pe)은 주가 조작 전에 순수 reg_p로만 계산하여 영구 고정
                 a_pe = safe_float(i.get('fiveYearAvgPE'))
                 if a_pe <= 0.0:
-                    currency = str(i.get('currency', 'USD')).upper()
-                    fin_currency = str(i.get('financialCurrency', 'USD')).upper()
-                    if currency == fin_currency:
-                        try:
+                    try:
+                        hist_5y = stk.history(period="5y")
+                        if not hist_5y.empty:
+                            yearly_prices = hist_5y['Close'].resample('Y').mean()
                             _inc = stk.income_stmt
-                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                                _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                                if len(_ni_vals) >= 2:
-                                    _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                                    _sh_out = safe_float(i.get('sharesOutstanding'))
-                                    if _avg_ni > 0 and _sh_out > 0:
-                                        a_pe = reg_p / (_avg_ni / _sh_out)
-                        except: pass
+                            pe_list = []
+                            if _inc is not None and not _inc.empty:
+                                for col_date in _inc.columns[:4]:
+                                    try:
+                                        y_price = yearly_prices.loc[str(col_date.year)].iloc[0]
+                                    except:
+                                        y_price = reg_p
+                                        
+                                    eps_val = 0
+                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                        
+                                    if eps_val > 0:
+                                        pe_list.append(y_price / eps_val)
+                            if pe_list:
+                                a_pe = sum(pe_list) / len(pe_list)
+                    except: pass
 
                 if a_pe < 5.0 or a_pe > 200.0:
                     if t_eps > 0:
@@ -2933,25 +2944,53 @@ with tab1:
                 f_pbr = pbr
                 try:
                     hist_5y = stk.history(period="5y")
-                    avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
                     bs = stk.balance_sheet
-                    if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                        eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
-                        if len(eq_vals) > 0:
-                            avg_eq = sum(eq_vals) / len(eq_vals)
-                            
-                            if tk == "BRK-B":
-                                a_pbr = avg_price / (avg_eq / 2160000000.0)
-                            elif tk == "BRK-A":
-                                a_pbr = avg_price / (avg_eq / 1440000.0)
-                            elif is_adr and adr_fx_ratio != 1.0:
-                                past_bvps = avg_eq * adr_fx_ratio
-                                if past_bvps > 0:
-                                    a_pbr = avg_price / past_bvps
-                            else:
-                                sh_proxy = safe_float(i.get('sharesOutstanding'))
-                                if avg_eq > 0 and sh_proxy > 0:
-                                    a_pbr = avg_price / (avg_eq / sh_proxy)
+                    _inc = stk.income_stmt
+                    pbr_list = []
+                    
+                    if not hist_5y.empty and bs is not None and not bs.empty:
+                        yearly_prices = hist_5y['Close'].resample('Y').mean()
+                        
+                        for col_date in bs.columns[:4]:
+                            try:
+                                y_price = yearly_prices.loc[str(col_date.year)].iloc[0]
+                            except:
+                                y_price = hist_5y['Close'].mean()
+                                
+                            eq = 0
+                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                                if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
+                                    eq = safe_float(bs.loc[eq_key, col_date])
+                                    break
+                                    
+                            if eq > 0:
+                                # 과거 연도의 정확한 주식 수 역산 (Net Income / EPS)
+                                past_sh = 0
+                                if _inc is not None and not _inc.empty:
+                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0
+                                    eps_val = 0
+                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                    
+                                    if eps_val > 0 and ni_val != 0:
+                                        past_sh = abs(ni_val / eps_val)
+                                        
+                                if past_sh == 0:
+                                    past_sh = safe_float(i.get('sharesOutstanding'))
+                                    
+                                if tk == "BRK-B": past_sh = 2160000000.0
+                                elif tk == "BRK-A": past_sh = 1440000.0
+                                
+                                if past_sh > 0:
+                                    past_bps = eq / past_sh
+                                    if is_adr and adr_fx_ratio != 1.0:
+                                        past_bps = past_bps * adr_fx_ratio
+                                    pbr_list.append(y_price / past_bps)
+                                    
+                        if pbr_list:
+                            a_pbr = sum(pbr_list) / len(pbr_list)
                 except: pass
                 
                 # 결측치 최후 방어
