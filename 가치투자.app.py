@@ -2261,31 +2261,31 @@ def generate_quick_ai_preview(tk):
     f_pbr = pbr
     
     if is_financial or kr or is_cyclical:
-            try:
-                hist_5y = stk.history(period="5y")
-                avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
-                bs = stk.balance_sheet
-                if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
-                    eq_vals = bs.loc['Stockholders Equity'].dropna().values[:5]
-                    if len(eq_vals) > 0:
-                        avg_eq = sum(eq_vals) / len(eq_vals)
-                        
-                        if tk == "BRK-B":
-                            a_pbr = avg_price / (avg_eq / 2160000000.0)
-                        elif tk == "BRK-A":
-                            a_pbr = avg_price / (avg_eq / 1440000.0)
-                        elif is_adr and adr_fx_ratio != 1.0:
-                            past_bvps = avg_eq * adr_fx_ratio
-                            if past_bvps > 0:
-                                a_pbr = avg_price / past_bvps
-                        else:
-                            sh_proxy = safe_float(i.get('sharesOutstanding'))
-                            if avg_eq > 0 and sh_proxy > 0:
-                                a_pbr = avg_price / (avg_eq / sh_proxy)
-            except: pass
-            
-            if a_pbr <= 0 or a_pbr > 200.0: 
-                a_pbr = pbr if pbr > 0 else 1.0
+        try:
+            hist_5y = stk.history(period="5y")
+            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+            bs = stk.balance_sheet
+            if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                eq_vals = bs.loc['Stockholders Equity'].dropna().values[:5]
+                if len(eq_vals) > 0:
+                    avg_eq = sum(eq_vals) / len(eq_vals)
+                    
+                    if tk == "BRK-B":
+                        a_pbr = avg_price / (avg_eq / 2160000000.0)
+                    elif tk == "BRK-A":
+                        a_pbr = avg_price / (avg_eq / 1440000.0)
+                    elif is_adr and adr_fx_ratio != 1.0:
+                        past_bvps = avg_eq * adr_fx_ratio
+                        if past_bvps > 0:
+                            a_pbr = avg_price / past_bvps
+                    else:
+                        sh_proxy = safe_float(i.get('sharesOutstanding'))
+                        if avg_eq > 0 and sh_proxy > 0:
+                            a_pbr = avg_price / (avg_eq / sh_proxy)
+        except: pass
+        
+        if a_pbr <= 0 or a_pbr > 200.0: 
+            a_pbr = pbr if pbr > 0 else 1.0
             
         base_bv = bv
         if tk in ["BRK-B", "BRK-A"]:
