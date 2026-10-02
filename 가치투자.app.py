@@ -3899,6 +3899,82 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
+                # =====================================================================
+                # [파트 3] 📊 기업 재무제표 (Financial Statements) - 탭 1 최하단
+                # =====================================================================
+                st.divider()
+                st.subheader(t("📊 기업 재무제표 요약 (Financial Statements)", "📊 Financial Statements"))
+                st.caption(t("※ 기본 4개년 데이터가 제공되며, 전체 기간 데이터는 추후 API 연동 시 10년치로 확장됩니다.", "※ Displays standard 4-year data. Will expand to 10 years upon external API integration."))
+
+                with st.expander(t("상세 재무제표 테이블 보기 (클릭하여 열기)", "View Detailed Financials (Click to expand)"), expanded=False):
+                    f_tab1, f_tab2, f_tab3 = st.tabs([
+                        t("손익계산서 (Income)", "Income Statement"), 
+                        t("재무상태표 (Balance Sheet)", "Balance Sheet"), 
+                        t("현금흐름표 (Cash Flow)", "Cash Flow")
+                    ])
+
+                    # 데이터 전처리: 금액을 보기 쉽게 변환하는 함수
+                    def format_financial_df(df, is_kr):
+                        if df is None or df.empty:
+                            return pd.DataFrame()
+                        
+                        # 열(날짜) 순서를 과거 -> 최신으로 정렬
+                        df = df[df.columns[::-1]]
+                        
+                        # 날짜 포맷 (YYYY-MM-DD)
+                        df.columns = [str(col).split(' ')[0] for col in df.columns]
+                        
+                        # 한국/미국 단위에 맞게 나누기 (보기 좋게 가공)
+                        if is_kr:
+                            # 한국: '억원' 단위로 표기
+                            df_formatted = (df / 100000000).applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                        else:
+                            # 미국: '백만 달러(M)' 단위로 표기
+                            df_formatted = (df / 1000000).applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                        
+                        return df_formatted
+
+                    # 1. 손익계산서 렌더링
+                    with f_tab1:
+                        inc_df = stk.income_stmt
+                        if inc_df is not None and not inc_df.empty:
+                            unit_text = t("(단위: 억 원)", "(Unit: Million USD)") if kr else t("(단위: 백만 달러)", "(Unit: Million USD)")
+                            st.write(f"**{t('손익계산서', 'Income Statement')}** {unit_text}")
+                            
+                            formatted_inc = format_financial_df(inc_df, kr)
+                            st.dataframe(formatted_inc, use_container_width=True, height=400)
+                        else:
+                            st.info(t("손익계산서 데이터를 불러올 수 없습니다.", "Income statement data not available."))
+
+                    # 2. 재무상태표 렌더링
+                    with f_tab2:
+                        bs_df = stk.balance_sheet
+                        if bs_df is not None and not bs_df.empty:
+                            st.write(f"**{t('재무상태표', 'Balance Sheet')}** {unit_text}")
+                            formatted_bs = format_financial_df(bs_df, kr)
+                            st.dataframe(formatted_bs, use_container_width=True, height=400)
+                        else:
+                            st.info(t("재무상태표 데이터를 불러올 수 없습니다.", "Balance sheet data not available."))
+
+                    # 3. 현금흐름표 렌더링
+                    with f_tab3:
+                        cf_df = stk.cash_flow
+                        if cf_df is not None and not cf_df.empty:
+                            st.write(f"**{t('현금흐름표', 'Cash Flow')}** {unit_text}")
+                            formatted_cf = format_financial_df(cf_df, kr)
+                            st.dataframe(formatted_cf, use_container_width=True, height=400)
+                        else:
+                            st.info(t("현금흐름표 데이터를 불러올 수 없습니다.", "Cash flow data not available."))
+
+                    # 추후 10년치 API 연동을 위한 안내 구역
+                    st.markdown("""
+                    ---
+                    <div style='text-align:right; font-size:0.8rem; color:#8892b0;'>
+                        ⚙️ <b>10년치 데이터 확장 모드 (API 필요)</b><br>
+                        한국 주식 10년 데이터: Open DART API 연동 필요<br>
+                        미국 주식 10년 데이터: SEC EDGAR 또는 FMP API 연동 필요
+                    </div>
+                    """, unsafe_allow_html=True)
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
