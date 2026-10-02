@@ -3876,7 +3876,7 @@ with tab1:
                     user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
 
                     # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                    if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                    if not is_financial and sh_dcf > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
                         u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
                         u_g = user_g_val / 100
                         u_tg = user_tg_val / 100
@@ -3891,7 +3891,7 @@ with tab1:
                             if u_dr > u_tg:
                                 tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
                                 dtv = tv / ((1 + u_dr) ** 10)
-                                calc_iv = (sum(fut) + dtv) / sh  # <-- 여기가 핵심 (sh로 통일)
+                                calc_iv = (sum(fut) + dtv) / sh_dcf  # <-- sh_dcf로 복구 완료
                                 calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
                                 return calc_iv, calc_mos
                             return 0, 0
@@ -3903,8 +3903,8 @@ with tab1:
                             iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
                             iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
 
-                    # 하단 UI 표출 부분도 sh로 통일
-                    if not is_financial and sh > 0:
+                    # 하단 UI 표출 부분
+                    if not is_financial and sh_dcf > 0:
                         c_mos_col, c_mos_lbl = ("#2ecc71", "[안전]") if mos_val >= 10 else ("#fdcb6e", "[보통]") if mos_val >= -5 else ("#ff7675", "[위험]")
                         val_c_str = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
 
