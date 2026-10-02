@@ -2901,33 +2901,35 @@ with tab1:
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 과거 평균 PER(a_pe) 10년 치 자체 계산
-                a_pe = 0.0
-                try:
-                    hist_10y = stk.history(period="10y")
-                    _inc = stk.income_stmt
-                    pe_list = []
-                    
-                    if not hist_10y.empty and _inc is not None and not _inc.empty:
-                        # [수정] 4년 -> 최대 10년 치 순회
-                        for col_date in _inc.columns[:10]:
-                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
-                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
-                            
-                            eps_val = 0.0
-                            if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
-                                eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
-                            elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
-                                eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                # 2. 과거 평균 PER(a_pe) 자체 계산
+                a_pe = safe_float(i.get('fiveYearAvgPE'))
+                
+                # [ADR 예외 추가] ADR은 주식수 역산 시 환율/예탁비율 왜곡이 크므로 야후 API 5년 평균치(a_pe)를 우선 사용하고 10년 역산 스킵
+                if a_pe <= 0.0 and not is_adr:
+                    try:
+                        hist_10y = stk.history(period="10y")
+                        _inc = stk.income_stmt
+                        pe_list = []
+                        
+                        if not hist_10y.empty and _inc is not None and not _inc.empty:
+                            for col_date in _inc.columns[:10]:
+                                y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                                year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                                y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                                 
-                            if y_price > 0 and eps_val > 0:
-                                pe_list.append(y_price / eps_val)
-                                
-                        if pe_list:
-                            a_pe = sum(pe_list) / len(pe_list)
-                except Exception:
-                    pass
+                                eps_val = 0.0
+                                if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                    eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                    eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                    
+                                if y_price > 0 and eps_val > 0:
+                                    pe_list.append(y_price / eps_val)
+                                    
+                            if pe_list:
+                                a_pe = sum(pe_list) / len(pe_list)
+                    except Exception:
+                        pass
 
                 # 음수 방어 (현재 PER 덮어쓰기 완전 제거)
                 if a_pe < 0:
@@ -3066,55 +3068,70 @@ with tab1:
                 # --- [10년 평균 PBR 및 Fwd PBR 자체 계산기] ---
                 a_pbr = 0.0
                 f_pbr = pbr
-                try:
-                    hist_10y = stk.history(period="10y")
-                    bs = stk.balance_sheet
-                    _inc = stk.income_stmt
-                    pbr_list = []
-                    
-                    if not hist_10y.empty and bs is not None and not bs.empty:
-                        for col_date in bs.columns[:10]:
-                            y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
-                            year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
-                            y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
-                            
-                            eq = 0.0
-                            for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                                if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
-                                    eq = safe_float(bs.loc[eq_key, col_date])
-                                    break
-                                    
-                            if y_price > 0 and eq > 0:
-                                past_sh = 0.0
-                                # [핵심] 당기순이익 / EPS로 해당 과거 연도의 '정확한 주식수'를 역산
-                                if _inc is not None and not _inc.empty and col_date in _inc.columns:
-                                    ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
-                                    eps_val = 0.0
-                                    if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
-                                    elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
-                                        eps_val = safe_float(_inc.loc['Basic EPS', col_date])
-                                        
-                                    if eps_val > 0 and ni_val != 0:
-                                        past_sh = abs(ni_val / eps_val)
-                                        
-                                if past_sh == 0:
-                                    past_sh = safe_float(i.get('sharesOutstanding'))
-                                    
-                                if tk == "BRK-B": past_sh = 2160000000.0
-                                elif tk == "BRK-A": past_sh = 1440000.0
+                
+                if is_adr:
+                    # [ADR 예외 추가] 복잡한 주식수 역산 대신 과거 단순 자본평균과 환율 보정(adr_fx_ratio)만 적용하는 기존 안전 방식 사용
+                    try:
+                        hist_5y = stk.history(period="5y")
+                        bs = stk.balance_sheet
+                        if bs is not None and not bs.empty and 'Stockholders Equity' in bs.index:
+                            avg_price = hist_5y['Close'].mean() if not hist_5y.empty else reg_p
+                            eq_vals = bs.loc['Stockholders Equity'].dropna().values[:4]
+                            if len(eq_vals) > 0:
+                                avg_eq = sum(eq_vals) / len(eq_vals)
+                                past_bvps = avg_eq * adr_fx_ratio
+                                if past_bvps > 0:
+                                    a_pbr = avg_price / past_bvps
+                    except:
+                        pass
+                else:
+                    # [일반 기업] 10년 PBR 역산 로직 (주식수 역산 포함)
+                    try:
+                        hist_10y = stk.history(period="10y")
+                        bs = stk.balance_sheet
+                        _inc = stk.income_stmt
+                        pbr_list = []
+                        
+                        if not hist_10y.empty and bs is not None and not bs.empty:
+                            for col_date in bs.columns[:10]:
+                                y_val = col_date.year if hasattr(col_date, 'year') else int(str(col_date)[:4])
+                                year_prices = hist_10y[hist_10y.index.year == y_val]['Close']
+                                y_price = safe_float(year_prices.mean()) if not year_prices.empty else 0.0
                                 
-                                if past_sh > 0:
-                                    past_bps = eq / past_sh
-                                    if is_adr and adr_fx_ratio != 1.0:
-                                        past_bps = past_bps * adr_fx_ratio
-                                    if past_bps > 0:
-                                        pbr_list.append(y_price / past_bps)
+                                eq = 0.0
+                                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                                    if eq_key in bs.index and pd.notna(bs.loc[eq_key, col_date]):
+                                        eq = safe_float(bs.loc[eq_key, col_date])
+                                        break
                                         
-                        if pbr_list:
-                            a_pbr = sum(pbr_list) / len(pbr_list)
-                except Exception:
-                    pass
+                                if y_price > 0 and eq > 0:
+                                    past_sh = 0.0
+                                    if _inc is not None and not _inc.empty and col_date in _inc.columns:
+                                        ni_val = safe_float(_inc.loc['Net Income', col_date]) if 'Net Income' in _inc.index else 0.0
+                                        eps_val = 0.0
+                                        if 'Diluted EPS' in _inc.index and pd.notna(_inc.loc['Diluted EPS', col_date]):
+                                            eps_val = safe_float(_inc.loc['Diluted EPS', col_date])
+                                        elif 'Basic EPS' in _inc.index and pd.notna(_inc.loc['Basic EPS', col_date]):
+                                            eps_val = safe_float(_inc.loc['Basic EPS', col_date])
+                                            
+                                        if eps_val > 0 and ni_val != 0:
+                                            past_sh = abs(ni_val / eps_val)
+                                            
+                                    if past_sh == 0:
+                                        past_sh = safe_float(i.get('sharesOutstanding'))
+                                        
+                                    if tk == "BRK-B": past_sh = 2160000000.0
+                                    elif tk == "BRK-A": past_sh = 1440000.0
+                                    
+                                    if past_sh > 0:
+                                        past_bps = eq / past_sh
+                                        if past_bps > 0:
+                                            pbr_list.append(y_price / past_bps)
+                                            
+                            if pbr_list:
+                                a_pbr = sum(pbr_list) / len(pbr_list)
+                    except Exception:
+                        pass
                 
                 if a_pbr <= 0 or a_pbr > 200.0: 
                     a_pbr = pbr if pbr > 0 else 1.0
