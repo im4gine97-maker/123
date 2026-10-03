@@ -2407,6 +2407,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'], unit='USD')
                 sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'], unit='USD')
                 
+                # [핵심 수술] ROIC 10년치 역산을 위해 영업이익, 총자산, 유동자산 추가 추출
+                sec_op = get_sec_fact(['OperatingIncomeLoss'], unit='USD')
+                sec_assets = get_sec_fact(['Assets'], unit='USD')
+                sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD')
+
                 # [핵심] 과거 연도별 실제 발행주식수 추출
                 sec_shares = get_sec_fact([
                     'WeightedAverageNumberOfDilutedSharesOutstanding',
@@ -2453,6 +2458,20 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if y_str in sec_ocf:
                         fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
                         fcf_list.append(fcf_v)
+                        
+                    # [추가] 미국 SEC ROE / ROIC 10년치 자체 역산 및 배열 추가
+                    _ni = sec_ni.get(y_str, 0)
+                    _eq = sec_eq.get(y_str, 0)
+                    _op = sec_op.get(y_str, 0)
+                    _ast = sec_assets.get(y_str, 0)
+                    _ca = sec_ca.get(y_str, 0)
+                    
+                    if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
+                    else: hist_roe_10y.append(0)
+                    
+                    _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
+                    if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 미국 법인세율 25% 단순 가정
+                    else: hist_roic_10y.append(0)
 
                 if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
                 if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
