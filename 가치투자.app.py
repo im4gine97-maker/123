@@ -2249,6 +2249,23 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if past_eps_usd > 0 and yp > 0: 
                         pe_l.append(yp / past_eps_usd)
                         
+                    # [추가] ADR 기업 ROE / ROIC 10년치 자체 계산 로직
+                    try:
+                        eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if bs is not None and 'Stockholders Equity' in bs.index else 0
+                        if eq_val > 0: hist_roe_10y.append((ni_val / eq_val) * 100)
+                        
+                        ebit = safe_float(_inc.loc['EBIT', c_date]) if 'EBIT' in _inc.index else (safe_float(_inc.loc['Operating Income', c_date]) if 'Operating Income' in _inc.index else 0)
+                        pretax = safe_float(_inc.loc['Pretax Income', c_date]) if 'Pretax Income' in _inc.index else 0
+                        tax = safe_float(_inc.loc['Tax Provision', c_date]) if 'Tax Provision' in _inc.index else 0
+                        tax_rate = tax / pretax if pretax > 0 else 0.25
+                        nopat = ebit * (1 - tax_rate)
+                        
+                        total_debt = safe_float(bs.loc['Total Debt', c_date]) if bs is not None and 'Total Debt' in bs.index else 0
+                        cash = safe_float(bs.loc['Cash And Cash Equivalents', c_date]) if bs is not None and 'Cash And Cash Equivalents' in bs.index else 0
+                        inv_cap = total_debt + eq_val - cash
+                        if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
+                    except: pass
+                        
             if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
 
             if not hist_10y.empty and bs is not None and not bs.empty:
@@ -2296,6 +2313,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
             if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
 
+            # DART FCF 및 성장률 로직 결합 (기존 안전망 유지)
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
             if not dart_df.empty:
                 fcf_list = []
@@ -2304,6 +2322,17 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
                     calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
                     if calc_fcf != 0: fcf_list.append(calc_fcf)
+
+                    # [추가] 한국 DART 원시 데이터로 10년 ROE / ROIC 역산
+                    _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000 if '4. 당기순이익' in dart_df.index else 0
+                    _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000 if '8. 자본총계' in dart_df.index else 0
+                    _op = safe_float(dart_df.loc['3. 영업이익', y_str]) * 100000000 if '3. 영업이익' in dart_df.index else 0
+                    _ast = safe_float(dart_df.loc['5. 자산총계', y_str]) * 100000000 if '5. 자산총계' in dart_df.index else 0
+                    _ca = safe_float(dart_df.loc['6. 유동자산', y_str]) * 100000000 if '6. 유동자산' in dart_df.index else 0
+                    
+                    if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
+                    _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
+                    if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 한국 법인세율 25% 단순 가정
                     
                     # [추가] DART 10년 ROE/ROIC 역산
                     _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) if '4. 당기순이익' in dart_df.index else 0
@@ -2436,19 +2465,29 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
 
-    if a_pe_10y <= 0:
+    # [추가] 만약 공시 데이터에서 ROE/ROIC를 못 구했다면 yfinance(최대 4년)로 최후의 자체 계산
+    if not hist_roe_10y or not hist_roic_10y:
         try:
-            pe_l = []
             _inc = stk.income_stmt
-            if not hist_10y.empty and _inc is not None and not _inc.empty:
-                for c_date in _inc.columns[:10]:
-                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
-                    yp = get_avg_price(y_val)
-                    ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
-                    
-                    mkt_cap = yp * sh_out
-                    if ni_val > 0 and mkt_cap > 0: pe_l.append(mkt_cap / ni_val)
-            if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
+            _bs = stk.balance_sheet
+            if _inc is not None and not _inc.empty and _bs is not None and not _bs.empty:
+                for c in _inc.columns:
+                    try:
+                        ni = safe_float(_inc[c].loc['Net Income']) if 'Net Income' in _inc.index else 0
+                        eq = safe_float(_bs[c].loc['Stockholders Equity']) if 'Stockholders Equity' in _bs.index else 0
+                        if eq > 0: hist_roe_10y.append((ni / eq) * 100)
+                    except: pass
+                    try:
+                        ebit = safe_float(_inc[c].loc['EBIT']) if 'EBIT' in _inc.index else (safe_float(_inc[c].loc['Operating Income']) if 'Operating Income' in _inc.index else 0)
+                        pretax = safe_float(_inc[c].loc['Pretax Income']) if 'Pretax Income' in _inc.index else 0
+                        tax = safe_float(_inc[c].loc['Tax Provision']) if 'Tax Provision' in _inc.index else 0
+                        tax_rate = tax / pretax if pretax > 0 else 0.25
+                        nopat = ebit * (1 - tax_rate)
+                        total_debt = safe_float(_bs[c].loc['Total Debt']) if 'Total Debt' in _bs.index else 0
+                        cash = safe_float(_bs[c].loc['Cash And Cash Equivalents']) if 'Cash And Cash Equivalents' in _bs.index else 0
+                        inv_cap = total_debt + eq - cash
+                        if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
+                    except: pass
         except: pass
 
     if a_pe_10y <= 0:
@@ -4382,7 +4421,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     if all_years:
                                         sec_data = []
                                         for y in all_years:
-                                            # [추가] SEC 10년 ROE/ROIC 역산
+                                            # [추가] 미국 SEC 에드거 원시 데이터로 10년 ROE / ROIC 역산
                                             _ni = ni.get(y, 0)
                                             _eq = equity.get(y, 0)
                                             _op = op.get(y, 0)
@@ -4390,11 +4429,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                             _ca = curr_assets.get(y, 0)
                                             
                                             if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
-                                            else: hist_roe_10y.append(0)
-                                            
                                             _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
-                                            if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100)
-                                            else: hist_roic_10y.append(0)
+                                            if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 미국 법인세율 25% 단순 가정
 
                                             sec_data.append({
                                                 '연도': y,
