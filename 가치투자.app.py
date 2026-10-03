@@ -1926,26 +1926,23 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     # ==============================================================================
     # 4. CAP_SCORE [NEW: 10년 가중평균 + 일관성 및 모멘텀 결합 하이브리드 엔진]
     # ==============================================================================
-    # [핵심 수정] DART/SEC 데이터 배열에 들어간 결측치(0)를 필터링하여 실제 데이터가 있는 연도만 추출합니다.
-    hist_roe = [v for v in (hist_roe_10y if hist_roe_10y else []) if v != 0]
-    hist_roic = [v for v in (hist_roic_10y if hist_roic_10y else []) if v != 0]
-
-    # 공공데이터(DART/SEC)가 비어있거나 2년치 미만인 경우(ADR 등), 기존 야후 4년치로 안전하게 폴백
-    if len(hist_roe) < 2 or len(hist_roic) < 2:
-        hist_roe = []
-        hist_roic = []
+    hist_roe = hist_roe_10y if hist_roe_10y else []
+    hist_roic = hist_roic_10y if hist_roic_10y else []
+    
+    # 공공데이터(DART/SEC)가 비어있을 경우에만 기존 야후 4년치로 안전하게 폴백
+    if not hist_roe or not hist_roic:
         try:
             stk_temp = yf.Ticker(tk)
             inc = stk_temp.income_stmt
             bs = stk_temp.balance_sheet
             if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                cols = inc.columns
+                cols = inc.columns[:4]
                 for c in cols:
                     try:
                         ni = safe_float(inc[c].loc['Net Income']) if 'Net Income' in inc.index else 0
                         eq = safe_float(bs[c].loc['Stockholders Equity']) if 'Stockholders Equity' in bs.index else 0
-                        if eq > 0: hist_roe.append((ni / eq) * 100)
-                    except: pass
+                        hist_roe.append((ni / eq) * 100 if eq > 0 else 0)
+                    except: hist_roe.append(0)
                     try:
                         ebit = safe_float(inc[c].loc['EBIT']) if 'EBIT' in inc.index else (safe_float(inc[c].loc['Operating Income']) if 'Operating Income' in inc.index else 0)
                         pretax = safe_float(inc[c].loc['Pretax Income']) if 'Pretax Income' in inc.index else 0
@@ -1956,8 +1953,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                         total_eq = safe_float(bs[c].loc['Stockholders Equity']) if 'Stockholders Equity' in bs.index else 0
                         cash = safe_float(bs[c].loc['Cash And Cash Equivalents']) if 'Cash And Cash Equivalents' in bs.index else 0
                         inv_cap = total_debt + total_eq - cash
-                        if inv_cap > 0: hist_roic.append((nopat / inv_cap) * 100)
-                    except: pass
+                        hist_roic.append((nopat / inv_cap) * 100 if inv_cap > 0 else 0)
+                    except: hist_roic.append(0)
         except: pass
 
     # 실제 확보된 데이터 개수 파악 (비어있으면 현재값으로 최소 1개 보정)
@@ -1965,21 +1962,21 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     if not hist_roic: hist_roic = [roic_current]
     hist_roe = hist_roe[:10]
     hist_roic = hist_roic[:10]
-    actual_len = len(hist_roe)  # 여기서 10년(DART/SEC) 또는 4년(야후)이 동적으로 결정됩니다.
-
+    actual_len = len(hist_roe)
+    
     # 확보된 연도만큼만 가중치 슬라이싱 후, 합이 1(100%)이 되도록 비율 정규화(보정)
     base_weights = [0.20, 0.15, 0.12, 0.10, 0.09, 0.08, 0.07, 0.07, 0.06, 0.06]
     valid_weights = base_weights[:actual_len]
     weight_sum = sum(valid_weights)
     norm_weights = [w / weight_sum for w in valid_weights]
-
+    
     # 정규화된 가중치로 동적 평균 계산
     w_roe = sum(val * w for val, w in zip(hist_roe, norm_weights))
     w_roic = sum(val * w for val, w in zip(hist_roic, norm_weights))
-
+    
     trend_bonus = 0
     t_msgs = []
-
+    
     if is_financial:
         target_hist = hist_roe
         hurdle = 12.0
@@ -1992,7 +1989,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         moat_power = (w_roic * 2 + w_roe) / 3
         base_score = (moat_power - hurdle) * 3.0
         
-    # [일관성 모델] 실제 확보된 기간(최대 10년) 내내 방어 시 보너스, 한 번이라도 적자면 감점
+    # [일관성 모델] 실제 확보된 기간 내내 방어 시 보너스, 한 번이라도 적자면 감점
     if all(v >= hurdle for v in target_hist):
         trend_bonus += 15
         t_msgs.append(t(f"{actual_len}년 연속 해자 방어(+)", f"{actual_len}y Perfect Moat(+)"))
@@ -2011,13 +2008,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
 
     cap_score = int(round(max(-30.0, min(30.0, base_score + trend_bonus))))
     
-    # UI에 보여줄 히스토리 텍스트 포맷팅 (오래된 연도 -> 최근 연도)
     hist_str = " → ".join([f"{v:.1f}%" for v in reversed(target_hist)])
     msg_combined = " / ".join(t_msgs) if t_msgs else t("평이한 변동성", "Average Volatility")
     
     cap_reason = f"{metric_name} {actual_len}년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 {actual_len}년 추이: {hist_str} [{msg_combined}]</span>"
     score_details[t(f"비즈니스 해자 및 {actual_len}년 수익 트렌드", f"Moat & {actual_len}y Profitability Trend")] = (cap_score, cap_reason)
-    # ==============================================================================
     # 5. 레버리지 왜곡 방어 (단일 연도가 아닌 가중평균된 w_roe, w_roic를 기준으로 변경)
     lev_score = 0
     if not is_financial and w_roic > 0 and w_roe > 0:
@@ -2407,11 +2402,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'], unit='USD')
                 sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'], unit='USD')
                 
-                # [핵심 수술] ROIC 10년치 역산을 위해 영업이익, 총자산, 유동자산 추가 추출
-                sec_op = get_sec_fact(['OperatingIncomeLoss'], unit='USD')
-                sec_assets = get_sec_fact(['Assets'], unit='USD')
-                sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD')
-
                 # [핵심] 과거 연도별 실제 발행주식수 추출
                 sec_shares = get_sec_fact([
                     'WeightedAverageNumberOfDilutedSharesOutstanding',
@@ -2458,20 +2448,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if y_str in sec_ocf:
                         fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
                         fcf_list.append(fcf_v)
-                        
-                    # [추가] 미국 SEC ROE / ROIC 10년치 자체 역산 및 배열 추가
-                    _ni = sec_ni.get(y_str, 0)
-                    _eq = sec_eq.get(y_str, 0)
-                    _op = sec_op.get(y_str, 0)
-                    _ast = sec_assets.get(y_str, 0)
-                    _ca = sec_ca.get(y_str, 0)
-                    
-                    if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
-                    else: hist_roe_10y.append(0)
-                    
-                    _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
-                    if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 미국 법인세율 25% 단순 가정
-                    else: hist_roic_10y.append(0)
 
                 if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
                 if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
