@@ -2520,8 +2520,12 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     except: pass
         except: pass
 
+    # [수정할 부분] get_10yr_custom_metrics 함수의 맨 마지막 (return 직전)
+
     if a_pe_10y <= 0:
-        a_pe_10y = safe_float(stk.info.get('trailingPE', 15.0))
+        a_pe_10y = safe_float(stk.info.get('trailingPE'))
+        if a_pe_10y <= 0 and t_eps > 0 and reg_p > 0:
+            a_pe_10y = reg_p / t_eps  # 15.0 고정값 대신 현재가/EPS 역산으로 대체
 
     if a_pbr_10y <= 0:
         try:
@@ -2539,7 +2543,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
 
     if a_pbr_10y <= 0:
-        a_pbr_10y = safe_float(stk.info.get('priceToBook', 1.0))
+        a_pbr_10y = safe_float(stk.info.get('priceToBook'))
+        if a_pbr_10y <= 0 and bv > 0 and reg_p > 0:
+            a_pbr_10y = reg_p / bv  # 1.0 고정값 대신 현재가/BPS 역산으로 대체
 
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 def generate_quick_ai_preview(tk):
