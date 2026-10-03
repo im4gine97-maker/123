@@ -2267,51 +2267,61 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
 
-    # 2. 한국 기업 (DART API - 기존 유지)
+    # 2. 한국 기업 (PyKRX: 한국거래소 공인 10개년 PER, PBR, BPS 완벽 수집)
     elif kr:
-        dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
-        if not dart_df.empty:
-            years_desc = [str(col) for col in dart_df.columns]
-            pe_list, pbr_list, fcf_list = [], [], []
+        try:
+            from pykrx import stock as krx_stock
+            current_y = datetime.now().year
+            pe_list, pbr_list, bps_list = [], [], []
 
-            for y_str in years_desc:
-                try: y_int = int(y_str)
-                except: continue
-                yp = get_avg_price(y_int)
-                if yp <= 0: continue
-                
-                mkt_cap = yp * sh_out
+            # 과거 10개년 연말(12월 마지막 영업일) 펀더멘털 순회
+            for y in range(current_y - 10, current_y):
+                try:
+                    # 해당 연도 12월 20일~31일 구간 중 실제 마지막 거래일 데이터 추출
+                    df_fund = krx_stock.get_market_fundamental_by_date(
+                        f"{y}1220", f"{y}1231", cd
+                    )
+                    if df_fund is not None and not df_fund.empty:
+                        last_row = df_fund.iloc[-1]
+                        val_pe = safe_float(last_row.get('PER', 0.0))
+                        val_pbr = safe_float(last_row.get('PBR', 0.0))
+                        val_bps = safe_float(last_row.get('BPS', 0.0))
 
-                if '4. 당기순이익' in dart_df.index:
-                    ni_val = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000
-                    if ni_val > 0 and sh_out > 0: pe_list.append(mkt_cap / ni_val)
-
-                if '8. 자본총계' in dart_df.index:
-                    eq_val = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000
-                    if eq_val > 0 and sh_out > 0: pbr_list.append(mkt_cap / eq_val)
-
-                ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
-                icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
-                calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
-                if calc_fcf != 0: fcf_list.append(calc_fcf)
+                        # 적자 기업(PER 0 이하) 제외 및 정상 범위 수집
+                        if val_pe > 0: pe_list.append(val_pe)
+                        if val_pbr > 0: pbr_list.append(val_pbr)
+                        if val_bps > 0: bps_list.append(val_bps)
+                except Exception:
+                    continue
 
             if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
             if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
 
-            if len(fcf_list) >= 2:
-                data_len = len(fcf_list)
-                c, o = fcf_list[0], fcf_list[-1]
-                base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
-                final_g_10y = max(0.02, min(final_g_10y, 0.15))
+            # DART FCF 및 성장률 로직 결합 (기존 안전망 유지)
+            dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+            if not dart_df.empty:
+                fcf_list = []
+                for y_str in dart_df.columns:
+                    ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
+                    icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
+                    calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
+                    if calc_fcf != 0: fcf_list.append(calc_fcf)
 
-                rev_fcf = fcf_list[::-1]
-                dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
-                if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+                if len(fcf_list) >= 2:
+                    data_len = len(fcf_list)
+                    c, o = fcf_list[0], fcf_list[-1]
+                    base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                    if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
+                    final_g_10y = max(0.02, min(final_g_10y, 0.15))
+
+                    rev_fcf = fcf_list[::-1]
+                    dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
+                    if 1 in dirs and -1 in dirs: is_zigzag_10y = True
 
             if a_pe_10y > 0 and a_pbr_10y > 0:
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
-
+        except Exception:
+            pass  # 거래소 통신 실패 시 아래 4번 폴백(yfinance)으로 안전 전환
     # 3. 미국 기업 (SEC EDGAR - 기존 유지)
     else:
         try:
