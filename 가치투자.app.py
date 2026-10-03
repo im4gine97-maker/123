@@ -1957,16 +1957,22 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                     except: hist_roic.append(0)
         except: pass
 
-    # 10년이 안채워질 경우 현재값으로 빈칸 보정 (최대 10개)
-    if not hist_roe: hist_roe = [roe_current] * 10
-    if not hist_roic: hist_roic = [roic_current] * 10
-    while len(hist_roe) < 10: hist_roe.append(hist_roe[-1] if hist_roe else 0)
-    while len(hist_roic) < 10: hist_roic.append(hist_roic[-1] if hist_roic else 0)
+    # 실제 확보된 데이터 개수 파악 (비어있으면 현재값으로 최소 1개 보정)
+    if not hist_roe: hist_roe = [roe_current]
+    if not hist_roic: hist_roic = [roic_current]
+    hist_roe = hist_roe[:10]
+    hist_roic = hist_roic[:10]
+    actual_len = len(hist_roe)
     
-    # 10년 가중 평균 (최근일수록 비중 배분: 20% -> 6%)
-    weights = [0.20, 0.15, 0.12, 0.10, 0.09, 0.08, 0.07, 0.07, 0.06, 0.06]
-    w_roe = sum(val * w for val, w in zip(hist_roe[:10], weights))
-    w_roic = sum(val * w for val, w in zip(hist_roic[:10], weights))
+    # 확보된 연도만큼만 가중치 슬라이싱 후, 합이 1(100%)이 되도록 비율 정규화(보정)
+    base_weights = [0.20, 0.15, 0.12, 0.10, 0.09, 0.08, 0.07, 0.07, 0.06, 0.06]
+    valid_weights = base_weights[:actual_len]
+    weight_sum = sum(valid_weights)
+    norm_weights = [w / weight_sum for w in valid_weights]
+    
+    # 정규화된 가중치로 동적 평균 계산
+    w_roe = sum(val * w for val, w in zip(hist_roe, norm_weights))
+    w_roic = sum(val * w for val, w in zip(hist_roic, norm_weights))
     
     trend_bonus = 0
     t_msgs = []
@@ -1983,29 +1989,30 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         moat_power = (w_roic * 2 + w_roe) / 3
         base_score = (moat_power - hurdle) * 3.0
         
-    # [일관성 모델] 10년 내내 방어 시 보너스, 단 한 번이라도 적자면 감점
-    if all(v >= hurdle for v in target_hist[:10]):
+    # [일관성 모델] 실제 확보된 기간 내내 방어 시 보너스, 한 번이라도 적자면 감점
+    if all(v >= hurdle for v in target_hist):
         trend_bonus += 15
-        t_msgs.append(t("10년 연속 해자 방어(+)", "10y Perfect Moat(+)"))
-    elif any(v < 0 for v in target_hist[:10]):
+        t_msgs.append(t(f"{actual_len}년 연속 해자 방어(+)", f"{actual_len}y Perfect Moat(+)"))
+    elif any(v < 0 for v in target_hist):
         trend_bonus -= 15
-        t_msgs.append(t("과거 10년 내 적자 이력(-)", "Past Deficit in 10y(-)"))
+        t_msgs.append(t(f"과거 {actual_len}년 내 적자 이력(-)", f"Past Deficit in {actual_len}y(-)"))
         
-    # [모멘텀 모델] 최근 3년 연속 상승/하락 추세 체크
-    if target_hist[0] > target_hist[1] and target_hist[1] > target_hist[2]:
-        trend_bonus += 15
-        t_msgs.append(t("수익성 턴어라운드/모멘텀(+)", "Profitability Momentum(+)"))
-    elif target_hist[0] < target_hist[1] and target_hist[1] < target_hist[2]:
-        trend_bonus -= 15
-        t_msgs.append(t("해자 훼손 및 경쟁력 하락(-)", "Deteriorating Moat(-)"))
+    # [모멘텀 모델] 데이터가 3년 이상일 때만 최근 3년 연속 상승/하락 추세 체크
+    if actual_len >= 3:
+        if target_hist[0] > target_hist[1] and target_hist[1] > target_hist[2]:
+            trend_bonus += 15
+            t_msgs.append(t("수익성 턴어라운드/모멘텀(+)", "Profitability Momentum(+)"))
+        elif target_hist[0] < target_hist[1] and target_hist[1] < target_hist[2]:
+            trend_bonus -= 15
+            t_msgs.append(t("해자 훼손 및 경쟁력 하락(-)", "Deteriorating Moat(-)"))
 
     cap_score = int(round(max(-30.0, min(30.0, base_score + trend_bonus))))
     
-    hist_str = " → ".join([f"{v:.1f}%" for v in reversed(target_hist[:10])])
+    hist_str = " → ".join([f"{v:.1f}%" for v in reversed(target_hist)])
     msg_combined = " / ".join(t_msgs) if t_msgs else t("평이한 변동성", "Average Volatility")
     
-    cap_reason = f"{metric_name} 10년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 10년 추이: {hist_str} [{msg_combined}]</span>"
-    score_details[t("비즈니스 해자 및 10년 수익 트렌드", "Moat & 10y Profitability Trend")] = (cap_score, cap_reason)
+    cap_reason = f"{metric_name} {actual_len}년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 {actual_len}년 추이: {hist_str} [{msg_combined}]</span>"
+    score_details[t(f"비즈니스 해자 및 {actual_len}년 수익 트렌드", f"Moat & {actual_len}y Profitability Trend")] = (cap_score, cap_reason)
     # 5. 레버리지 왜곡 방어 (단일 연도가 아닌 가중평균된 w_roe, w_roic를 기준으로 변경)
     lev_score = 0
     if not is_financial and w_roic > 0 and w_roe > 0:
