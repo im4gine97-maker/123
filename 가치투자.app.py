@@ -2043,7 +2043,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         else:
             raw_dcf = calc_dynamic_score(mos)
             dcf_score = max(-30.0, min(20.0, raw_dcf))
-            limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -30.0 else "")
+            limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -20.0 else "")
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
     # 8. 거시 매력도 (ERP)
