@@ -2322,9 +2322,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
         except Exception:
             pass  # 거래소 통신 실패 시 아래 4번 폴백(yfinance)으로 안전 전환
-    # 3. 미국 기업 (SEC EDGAR - 기존 유지)
+    # 3. 미국 기업 (SEC EDGAR: 유상증자/소각 및 주식분할 완벽 방어 로직)
     else:
         try:
+            # SEC 봇 차단 우회용 헤더
             sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
             tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
             cik = None
@@ -2336,11 +2337,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=8).json()
                 us_gaap = facts.get('facts', {}).get('us-gaap', {})
 
-                def get_sec_fact(tags):
+                def get_sec_fact(tags, unit='USD'):
                     res = {}
                     for tag in tags:
                         if tag in us_gaap:
-                            for item in us_gaap[tag].get('units', {}).get('USD', []):
+                            for item in us_gaap[tag].get('units', {}).get(unit, []):
                                 if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
                                     fy = str(item.get('fy'))
                                     val = item.get('val', 0)
@@ -2348,26 +2349,51 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                                         res[fy] = val
                     return res
 
-                sec_ni = get_sec_fact(['NetIncomeLoss', 'ProfitLoss'])
-                sec_eq = get_sec_fact(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'])
-                sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'])
-                sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+                sec_ni = get_sec_fact(['NetIncomeLoss', 'ProfitLoss'], unit='USD')
+                sec_eq = get_sec_fact(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], unit='USD')
+                sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'], unit='USD')
+                sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'], unit='USD')
+                
+                # [핵심] 과거 연도별 실제 발행주식수 추출
+                sec_shares = get_sec_fact([
+                    'WeightedAverageNumberOfDilutedSharesOutstanding',
+                    'WeightedAverageNumberOfSharesOutstandingBasic',
+                    'CommonStockSharesOutstanding'
+                ], unit='shares')
 
                 sec_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()))), reverse=True)[:10]
 
                 pe_list, pbr_list, fcf_list = [], [], []
+                
+                # [핵심] yfinance에서 해당 종목의 주식분할(Splits) 히스토리를 가져옴
+                try: splits_data = stk.splits
+                except: splits_data = pd.Series(dtype=float)
+
                 for y_str in sec_years:
                     y_int = int(y_str)
-                    yp = get_avg_price(y_int)
+                    yp = get_avg_price(y_int)  # yfinance의 분할 조정된 과거 주가
                     if yp <= 0: continue
 
-                    mkt_cap = yp * sh_out
+                    # 과거 SEC 공시 원본 주식수 (누락 시 현재 주식수 폴백)
+                    hist_sh = sec_shares.get(y_str, sh_out)
+                    
+                    # [완벽 방어 로직] 과거 주식수에 그 이후 발생한 분할 비율을 모두 곱해 시점 동기화
+                    split_factor = 1.0
+                    if not splits_data.empty:
+                        for split_date, split_ratio in splits_data.items():
+                            if split_date.year > y_int:
+                                split_factor *= split_ratio
+                    
+                    hist_sh_adjusted = hist_sh * split_factor
+                    
+                    # 동기화된 주식수 * 조정 주가 = 자사주 소각/증자가 완벽히 반영된 '과거 실제 시가총액'
+                    mkt_cap = yp * hist_sh_adjusted
 
-                    if y_str in sec_ni and sh_out > 0:
+                    if y_str in sec_ni and hist_sh_adjusted > 0:
                         ni_total = sec_ni[y_str]
                         if ni_total > 0: pe_list.append(mkt_cap / ni_total)
 
-                    if y_str in sec_eq and sh_out > 0:
+                    if y_str in sec_eq and hist_sh_adjusted > 0:
                         eq_total = sec_eq[y_str]
                         if eq_total > 0: pbr_list.append(mkt_cap / eq_total)
 
@@ -2382,7 +2408,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     data_len = len(fcf_list)
                     c, o = fcf_list[0], fcf_list[-1]
                     base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
+                    if c > 0 and o > 0: 
+                        final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
                     final_g_10y = max(0.02, min(final_g_10y, 0.15))
 
                     rev_fcf = fcf_list[::-1]
@@ -2391,7 +2418,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
 
                 if a_pe_10y > 0 and a_pbr_10y > 0:
                     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y
-        except: pass
+        except Exception:
+            pass
 
     # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
