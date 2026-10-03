@@ -2295,47 +2295,43 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # 2. 한국 기업 (PyKRX: 한국거래소 공인 10개년 PER, PBR, BPS 완벽 수집)
+    # 2. 한국 기업 (DART 10년 재무제표 우선 수집 및 PyKRX 보완)
     elif kr:
+        pe_list, pbr_list, fcf_list = [], [], []
+        
+        # (1) PyKRX 시도 (설치되어 있을 경우 정확한 과거 PER, PBR 수집)
         try:
             from pykrx import stock as krx_stock
             current_y = datetime.now().year
-            pe_list, pbr_list, bps_list = [], [], []
-
-            # 과거 10개년 연말(12월 마지막 영업일) 펀더멘털 순회
             for y in range(current_y - 10, current_y):
                 try:
-                    # 해당 연도 12월 20일~31일 구간 중 실제 마지막 거래일 데이터 추출
-                    df_fund = krx_stock.get_market_fundamental_by_date(
-                        f"{y}1220", f"{y}1231", cd
-                    )
+                    df_fund = krx_stock.get_market_fundamental_by_date(f"{y}1220", f"{y}1231", cd)
                     if df_fund is not None and not df_fund.empty:
                         last_row = df_fund.iloc[-1]
                         val_pe = safe_float(last_row.get('PER', 0.0))
                         val_pbr = safe_float(last_row.get('PBR', 0.0))
-                        val_bps = safe_float(last_row.get('BPS', 0.0))
-
-                        # 적자 기업(PER 0 이하) 제외 및 정상 범위 수집
                         if val_pe > 0: pe_list.append(val_pe)
                         if val_pbr > 0: pbr_list.append(val_pbr)
-                        if val_bps > 0: bps_list.append(val_bps)
-                except Exception:
-                    continue
+                except: pass
+        except Exception:
+            pass
 
-            if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
-            if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+        if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
+        if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
 
-            # DART FCF 및 성장률 로직 결합 (기존 안전망 유지)
+        # (2) DART 10년치 재무제표 파싱 (PyKRX 실패와 무관하게 무조건 실행)
+        try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
             if not dart_df.empty:
-                fcf_list = []
                 for y_str in dart_df.columns:
+                    y_int = int(y_str)
+                    yp = get_avg_price(y_int)
+                    
                     ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
                     icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
                     calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
                     if calc_fcf != 0: fcf_list.append(calc_fcf)
 
-                    # [추가] 한국 DART 원시 데이터로 10년 ROE / ROIC 역산
                     _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000 if '4. 당기순이익' in dart_df.index else 0
                     _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000 if '8. 자본총계' in dart_df.index else 0
                     _op = safe_float(dart_df.loc['3. 영업이익', y_str]) * 100000000 if '3. 영업이익' in dart_df.index else 0
@@ -2343,22 +2339,21 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     _ca = safe_float(dart_df.loc['6. 유동자산', y_str]) * 100000000 if '6. 유동자산' in dart_df.index else 0
                     
                     if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
-                    _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
-                    if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 한국 법인세율 25% 단순 가정
-                    
-                    # [추가] DART 10년 ROE/ROIC 역산
-                    _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) if '4. 당기순이익' in dart_df.index else 0
-                    _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) if '8. 자본총계' in dart_df.index else 0
-                    _op = safe_float(dart_df.loc['3. 영업이익', y_str]) if '3. 영업이익' in dart_df.index else 0
-                    _ast = safe_float(dart_df.loc['5. 자산총계', y_str]) if '5. 자산총계' in dart_df.index else 0
-                    _ca = safe_float(dart_df.loc['6. 유동자산', y_str]) if '6. 유동자산' in dart_df.index else 0
-                    
-                    if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
                     else: hist_roe_10y.append(0)
                     
                     _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
                     if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100)
                     else: hist_roic_10y.append(0)
+
+                    # 만약 pykrx가 없어서 a_pe_10y, a_pbr_10y가 계산되지 않았다면 DART 10년 데이터와 주가로 자체 역산
+                    if yp > 0 and sh_out > 0:
+                        mkt_cap = yp * sh_out
+                        if not pe_list and _ni > 0: pe_list.append(mkt_cap / _ni)
+                        if not pbr_list and _eq > 0: pbr_list.append(mkt_cap / _eq)
+
+                # DART 자체 역산 결과로 10년 평균 PER/PBR 업데이트
+                if not a_pe_10y and pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
+                if not a_pbr_10y and pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
 
                 if len(fcf_list) >= 2:
                     data_len = len(fcf_list)
@@ -2374,7 +2369,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             if a_pe_10y > 0 and a_pbr_10y > 0:
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
-            pass  # 거래소 통신 실패 시 아래 4번 폴백(yfinance)으로 안전 전환
+            pass
     # 3. 미국 기업 (SEC EDGAR: 유상증자/소각 및 주식분할 완벽 방어 로직)
     else:
         try:
@@ -2522,7 +2517,23 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
 
     if a_pe_10y <= 0:
-        a_pe_10y = safe_float(stk.info.get('trailingPE', 15.0))
+        try:
+            _inc = stk.income_stmt
+            pe_l = []
+            if _inc is not None and not _inc.empty and not hist_10y.empty:
+                for c_date in _inc.columns[:10]:
+                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
+                    yp = get_avg_price(y_val)
+                    ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
+                    if ni_val > 0 and yp > 0 and sh_out > 0:
+                        pe_l.append((yp * sh_out) / ni_val)
+                if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
+        except: pass
+        
+        if a_pe_10y <= 0:
+            t_pe_fallback = safe_float(stk.info.get('trailingPE'))
+            if t_pe_fallback > 0: a_pe_10y = t_pe_fallback
+            else: a_pe_10y = 15.0
 
     if a_pbr_10y <= 0:
         try:
