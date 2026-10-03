@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import zipfile
 import io
 import xml.etree.ElementTree as ET
-import pykrx
+
 # 스트림릿 Secrets에서 키를 불러옵니다.
 try:
     DART_API_KEY = st.secrets["DART_API_KEY"]
