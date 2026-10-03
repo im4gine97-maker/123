@@ -2536,27 +2536,17 @@ def generate_quick_ai_preview(tk):
         except: pass
     
     real_roic = get_real_roic(stk, i)
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe <= 0.0:
-        if not is_adr:
-            try:
-                _inc = stk.income_stmt
-                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                    if len(_ni_vals) >= 2:
-                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                        _sh_out = safe_float(i.get('sharesOutstanding'))
-                        if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = reg_p / (_avg_ni / _sh_out) 
-            except: pass
-
-    if a_pe < 5.0 or a_pe > 200.0:
-        if t_eps > 0: a_pe = reg_p / t_eps
-        elif f_eps > 0: a_pe = reg_p / f_eps
-        elif t_pe_raw > 0: a_pe = t_pe_raw
-        elif f_pe_raw > 0: a_pe = f_pe_raw
-        else: a_pe = 0.0
-
+    
+    # [수정] 10년치 엔진에서 구한 찐 평균 PER(a_pe)을 강제로 덮어쓰던 버그 제거
+    # 10년치 값이 비정상(0 이하 또는 300 이상)일 때만 야후 파이낸스 데이터로 후퇴
+    if a_pe <= 0.0 or a_pe > 300.0:
+        a_pe = safe_float(i.get('fiveYearAvgPE'))
+        if a_pe <= 0.0 or a_pe > 300.0:
+            if t_eps > 0: a_pe = reg_p / t_eps
+            elif f_eps > 0: a_pe = reg_p / f_eps
+            elif t_pe_raw > 0: a_pe = t_pe_raw
+            elif f_pe_raw > 0: a_pe = f_pe_raw
+            else: a_pe = 15.0
     off = i.get('companyOfficers', [])
     ceo_raw = '누락'
     if isinstance(off, list) and len(off) > 0:
