@@ -6,4 +6,4 @@ deep-translator
 pandas
 plotly
 OpenDartReader
-pip install pykrx
+pykrx
