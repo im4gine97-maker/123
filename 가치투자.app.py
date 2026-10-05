@@ -4868,31 +4868,42 @@ with tab2:
             df = df.head(20)
             df.index = df.index + 1
             
-            st.dataframe(df, height=600, column_config={"티커": st.column_config.TextColumn("Ticker"), "기업명": st.column_config.TextColumn("Company Name"), "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)}, use_container_width=True)
+            # ▼▼ 교체할 탭 2 코드 ▼▼
+            st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
+            
+            # [핵심] on_select와 selection_mode를 추가하여 표 클릭 기능 활성화
+            event_13f = st.dataframe(
+                df, 
+                height=600, 
+                column_config={
+                    "티커": st.column_config.TextColumn("Ticker"), 
+                    "기업명": st.column_config.TextColumn("Company Name"), 
+                    "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)
+                }, 
+                use_container_width=True,
+                on_select="rerun",
+                selection_mode="single-row"
+            )
             
             if (df["비중(%)"] == 0.0).any():
                 st.caption(t("※ 비중이 0.00%로 표기된 종목은 비중 미상이거나 전량 매도된 종목입니다.", "※ Stocks with 0.00% weight are unknown or fully sold."))
             
-            st.markdown("---")
-            st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-            # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
-            with st.form(key="form_guru_scan", border=False):
-                c_tk, c_btn = st.columns([3, 1])
-                with c_tk: 
-                    fast_name = st.selectbox("Company Name", df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="guru_fast_tk", label_visibility="collapsed")
-                with c_btn:
-                    btn_guru_scan = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
+            # 표 클릭 시 즉시 실행되는 로직
+            if event_13f and len(event_13f.selection.rows) > 0:
+                selected_idx = event_13f.selection.rows[0]
+                matched_ticker = df.iloc[selected_idx]["티커"]
                 
-                if btn_guru_scan:
-                    if fast_name:
-                        matched_ticker = df[df["기업명"] == fast_name]["티커"].values[0]
-                        select_ticker(matched_ticker)
-                        with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                            st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
-                            st.session_state["preview_tk_tab2"] = matched_ticker
-                        st.rerun()
-                    else:
-                        st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
+                # 다른 종목을 클릭했을 때만 새롭게 스캔 (무한 로딩 방지)
+                if st.session_state.get("preview_tk_tab2") != matched_ticker:
+                    select_ticker(matched_ticker)
+                    with st.spinner(f"AI가 {matched_ticker} 데이터를 스캔 중입니다..."):
+                        st.session_state["preview_tab2"] = generate_quick_ai_preview(matched_ticker)
+                        st.session_state["preview_tk_tab2"] = matched_ticker
+            else:
+                # 선택을 해제하면 미리보기도 깔끔하게 지워줌
+                if "preview_tab2" in st.session_state:
+                    del st.session_state["preview_tab2"]
+                    del st.session_state["preview_tk_tab2"]
             
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
@@ -4917,33 +4928,37 @@ with tab3:
     else:
         df_mkt = pd.DataFrame(global_top30)
         
-    st.dataframe(df_mkt, height=1200, use_container_width=True, hide_index=True, column_config={
-        "순위": st.column_config.NumberColumn(t("순위", "Rank")),
-        "티커": st.column_config.TextColumn(t("티커", "Ticker")),
-        "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
-        "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
-    })
+    # ▼▼ 교체할 탭 3 코드 ▼▼
+    st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
     
-    st.markdown("---")
-    st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
-    with st.form(key="form_mkt_scan", border=False):
-        c_tk2, c_btn2 = st.columns([3, 1])
-        with c_tk2: 
-            fast_name_mkt = st.selectbox("Company Name", df_mkt["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="mkt_fast_tk", label_visibility="collapsed")
-        with c_btn2:
-            mkt_load_btn = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
-            
-        if mkt_load_btn:
-            if fast_name_mkt:
-                matched_ticker_mkt = df_mkt[df_mkt["기업명"] == fast_name_mkt]["티커"].values[0]
-                select_ticker(matched_ticker_mkt)
-                with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                    st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
-                    st.session_state["preview_tk_tab3"] = matched_ticker_mkt
-                st.rerun()
-            else:
-                st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
+    event_mkt = st.dataframe(
+        df_mkt, 
+        height=1200, 
+        use_container_width=True, 
+        hide_index=True, 
+        column_config={
+            "순위": st.column_config.NumberColumn(t("순위", "Rank")),
+            "티커": st.column_config.TextColumn(t("티커", "Ticker")),
+            "기업명": st.column_config.TextColumn(t("기업명", "Company Name")),
+            "시가총액": st.column_config.TextColumn(t("시가총액", "Market Cap"))
+        },
+        on_select="rerun",
+        selection_mode="single-row"
+    )
+    
+    if event_mkt and len(event_mkt.selection.rows) > 0:
+        selected_idx = event_mkt.selection.rows[0]
+        matched_ticker_mkt = df_mkt.iloc[selected_idx]["티커"]
+        
+        if st.session_state.get("preview_tk_tab3") != matched_ticker_mkt:
+            select_ticker(matched_ticker_mkt)
+            with st.spinner(f"AI가 {matched_ticker_mkt} 데이터를 스캔 중입니다..."):
+                st.session_state["preview_tab3"] = generate_quick_ai_preview(matched_ticker_mkt)
+                st.session_state["preview_tk_tab3"] = matched_ticker_mkt
+    else:
+        if "preview_tab3" in st.session_state:
+            del st.session_state["preview_tab3"]
+            del st.session_state["preview_tk_tab3"]
                 
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
@@ -5207,8 +5222,10 @@ with tab6:
     with st.spinner("경영진 데이터를 계산 중입니다..."):
         gov_df = pd.DataFrame(get_gov_ranking_data(len(tmap)))
     
-    # [수정] 데이터를 직접 자르지 않고, column_order 옵션을 사용해 원하는 항목만 쏙 뽑아서 보여줍니다.
-    st.dataframe(
+    # ▼▼ 교체할 탭 6 코드 ▼▼
+    st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
+    
+    event_gov = st.dataframe(
         gov_df, 
         height=800, 
         use_container_width=True, 
@@ -5219,29 +5236,24 @@ with tab6:
             "등급": st.column_config.TextColumn(t("등급", "Tier"), width="small"),
             "티커": st.column_config.TextColumn(t("티커", "Ticker"), width="small"),
             "기업명": st.column_config.TextColumn(t("기업명", "Company"), width="large")
-        }
+        },
+        on_select="rerun",
+        selection_mode="single-row"
     )
     
-    st.markdown("---")
-    st.write(t("[선택 종목 빠른 분석]", "[Fast Load for Analysis]"))
-    # --- [수정] 폼(Form)을 적용하여 클릭할 때마다 버벅이는 현상 제거 ---
-    with st.form(key="form_gov_scan", border=False):
-        c_tk3, c_btn3 = st.columns([3, 1])
-        with c_tk3: 
-            fast_name_gov = st.selectbox("Company Name", gov_df["기업명"].tolist(), index=None, placeholder=t("기업을 선택/검색하세요...", "Select a company..."), key="gov_fast_tk", label_visibility="collapsed")
-        with c_btn3:
-            gov_load_btn = st.form_submit_button(t("AI 상세 분석 실행", "Run AI Analysis"), use_container_width=True)
-            
-        if gov_load_btn:
-            if fast_name_gov:
-                matched_ticker_gov = gov_df[gov_df["기업명"] == fast_name_gov]["티커"].values[0]
-                select_ticker(matched_ticker_gov)
-                with st.spinner("AI가 데이터를 스캔 중입니다..."):
-                    st.session_state["preview_tab6"] = generate_quick_ai_preview(matched_ticker_gov)
-                    st.session_state["preview_tk_tab6"] = matched_ticker_gov
-                st.rerun()
-            else:
-                st.warning(t("먼저 기업을 검색하거나 선택해주세요.", "Please select a company first."))
+    if event_gov and len(event_gov.selection.rows) > 0:
+        selected_idx = event_gov.selection.rows[0]
+        matched_ticker_gov = gov_df.iloc[selected_idx]["티커"]
+        
+        if st.session_state.get("preview_tk_tab6") != matched_ticker_gov:
+            select_ticker(matched_ticker_gov)
+            with st.spinner(f"AI가 {matched_ticker_gov} 데이터를 스캔 중입니다..."):
+                st.session_state["preview_tab6"] = generate_quick_ai_preview(matched_ticker_gov)
+                st.session_state["preview_tk_tab6"] = matched_ticker_gov
+    else:
+        if "preview_tab6" in st.session_state:
+            del st.session_state["preview_tab6"]
+            del st.session_state["preview_tk_tab6"]
                 
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
