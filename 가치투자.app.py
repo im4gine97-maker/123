@@ -539,7 +539,8 @@ portfolio_13f_tickers = {
     "크래프트하인즈": "KHC", "다비타": "DVA", "크로거": "KR", "캐피탈원": "COF", 
     "처브": "CB", "워너 브라더스 디스커버리": "WBD", "아메리칸 타워": "AMT", 
     "이오지 리소시스": "EOG", "마라톤 오일": "MRO", "인튜이트": "INTU", 
-    "메리어트": "MAR", "어보트 래버러토리스": "ABT"
+    "메리어트": "MAR", "어보트 래버러토리스": "ABT", " 듀오링고": "DOUL"
+    
 }
 tmap.update(portfolio_13f_tickers)
 
