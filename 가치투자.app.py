@@ -3320,7 +3320,7 @@ st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("유명 투자자 13F", "Guru 13F Portfolios"),
-    t("시가총액 랭킹", "Market Cap Top 30"),
+    t("시가총액 랭킹", "Market Cap Top 100"),
     t("경영진 평가 순위", "Management Ranking"),
     t("주식 용어 사전", "Stock Glossary"),
     t("AGIE 철학", "About AGIE")
@@ -4904,7 +4904,7 @@ with tab2:
 # 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
 with tab3:
-    st.subheader(t("글로벌 시가총액 TOP 30 (미국/한국/기타)", "Global Market Cap TOP 30"))
+    st.subheader(t("글로벌 시가총액 TOP 100 (미국/한국/기타)", "Global Market Cap TOP 100"))
     st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
     
     # [핵심] 유럽/아시아 버튼 추가!
