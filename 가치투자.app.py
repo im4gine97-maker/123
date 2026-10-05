@@ -405,7 +405,7 @@ tmap = {
     "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
     "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
     "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
-    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY"  
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", " 듀오링고": "DOUL"
 }    
     # ▼▼▼ 기존 tmap = { ... } 끝나는 괄호 밑에 붙여넣기 ▼▼▼
 new_tickers_100 = {
@@ -539,7 +539,7 @@ portfolio_13f_tickers = {
     "크래프트하인즈": "KHC", "다비타": "DVA", "크로거": "KR", "캐피탈원": "COF", 
     "처브": "CB", "워너 브라더스 디스커버리": "WBD", "아메리칸 타워": "AMT", 
     "이오지 리소시스": "EOG", "마라톤 오일": "MRO", "인튜이트": "INTU", 
-    "메리어트": "MAR", "어보트 래버러토리스": "ABT", " 듀오링고": "DOUL"
+    "메리어트": "MAR", "어보트 래버러토리스": "ABT"
     
 }
 tmap.update(portfolio_13f_tickers)
