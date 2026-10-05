@@ -451,14 +451,7 @@ new_tickers_100 = {
     "토름": "TRMD", "SQM": "SQM", "선코어": "SU", "SU": "SU", "캐나디안내추럴": "CNQ", "CNQ": "CNQ", "BCE": "BCE", 
     "텔러스": "TU", "TU": "TU", "프레제니우스": "FMS", "FMS": "FMS", "텔레포니카": "TEF", "TEF": "TEF", "BNP파리바": "BNPQY", "BNPQY": "BNPQY", "ING": "ING"
 }
-tmap.update(new_tickers_100)
-# 한글 이름을 최우선 대표 이름으로 보정
-for k, v in new_tickers_100.items():
-    if v not in primary_names:
-        primary_names[v] = k
-    else:
-        if not re.search(r'[가-힣]', primary_names[v]) and re.search(r'[가-힣]', k):
-            primary_names[v] = k
+
 # ▲▲▲ 여기까지 ▲▲▲
 
 
