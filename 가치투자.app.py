@@ -4330,7 +4330,7 @@ with tab1:
                         <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
                             <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'> 역산 DCF (Reverse DCF)</div>
                             <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
-                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 3년 평균 FCF)</span></div>
+                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 10년 평균 FCF)</span></div>
                         </div>
                         """
                     else:
