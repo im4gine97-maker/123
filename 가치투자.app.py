@@ -4414,18 +4414,24 @@ with tab1:
                     inc = stk.income_stmt if stk else None
                     cf = stk.cash_flow if stk else None
                     if inc is not None and not inc.empty:
-                        cols = inc.columns[:4]
+                        # [수정] 하드코딩된 4년을 최대 10년으로 확장 (신생기업은 존재하는 데이터 길이만큼 유동적 처리)
+                        max_len = 10
+                        cols = inc.columns[:max_len]
                         years = [str(c)[:4] for c in cols][::-1]
                         
-                        rev = inc.loc['Total Revenue'].iloc[:4].values[::-1] if 'Total Revenue' in inc.index else []
-                        ni = inc.loc['Net Income'].iloc[:4].values[::-1] if 'Net Income' in inc.index else []
+                        rev = inc.loc['Total Revenue'].iloc[:max_len].values[::-1] if 'Total Revenue' in inc.index else []
+                        ni = inc.loc['Net Income'].iloc[:max_len].values[::-1] if 'Net Income' in inc.index else []
                         
                         fcf_chart = []
+                        fcf_years = []
                         if cf is not None and not cf.empty:
+                            # FCF는 수익계산서(inc)와 데이터 연도가 다를 수 있으므로 축을 따로 잡습니다 (신생기업 에러 방지)
+                            cf_cols = cf.columns[:max_len]
+                            fcf_years = [str(c)[:4] for c in cf_cols][::-1]
                             if 'Free Cash Flow' in cf.index:
-                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:4].values[::-1]
+                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:max_len].values[::-1]
                             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:4].values[::-1]
+                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:max_len].values[::-1]
                         
                         def scale_vals(data_lists, is_kr):
                             all_v = []
@@ -4443,26 +4449,29 @@ with tab1:
 
                         c_v1, c_v2 = st.columns(2)
                         with c_v1:
-                            if len(rev) == len(years) and len(ni) == len(years):
+                            # [수정] 정확히 일치하지 않아도 데이터가 1개라도 있으면 그리도록 완화
+                            if len(rev) > 0 and len(ni) > 0:
                                 div_val, u_str = scale_vals([rev, ni], kr)
                                 st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
                                 
                                 fig1 = go.Figure()
-                                fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
-                                fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
+                                fig1.add_trace(go.Bar(x=years[-len(rev):], y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
+                                fig1.add_trace(go.Bar(x=years[-len(ni):], y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                                 fig1.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                                 st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
                             else:
                                 st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                        
                         with c_v2:
                             if is_financial:
                                 st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials..."))
-                            elif len(fcf_chart) == len(years):
+                            # [수정] 수익계산서와 FCF의 개수가 달라도 FCF 데이터가 있기만 하면 그려줍니다.
+                            elif len(fcf_chart) > 0:
                                 div_val, u_str = scale_vals([fcf_chart], kr)
                                 st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
                                 
                                 fig2 = go.Figure()
-                                fig2.add_trace(go.Bar(x=years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
+                                fig2.add_trace(go.Bar(x=fcf_years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
                                 fig2.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), showlegend=False)
                                 st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
                             else:
@@ -4471,7 +4480,6 @@ with tab1:
                         st.caption(t("시각화 데이터를 불러오는 데 실패했습니다 (데이터 미제공).", "Visualization data not available."))
                 except Exception as e:
                     st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
-
                 st.divider()
 
                 st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
