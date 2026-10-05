@@ -405,7 +405,7 @@ tmap = {
     "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
     "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
     "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
-    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", " 듀오링고": "DOUL"
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", " 듀오링고": "DUOL"
 }    
     # ▼▼▼ 기존 tmap = { ... } 끝나는 괄호 밑에 붙여넣기 ▼▼▼
 new_tickers_100 = {
@@ -4409,77 +4409,144 @@ with tab1:
                     else:
                         st.error(t("주식수(Shares Outstanding) 데이터가 부족하여 계산할 수 없습니다.", "Cannot calculate due to missing shares outstanding."))
                 st.divider()
+                # ▼▼▼ 여기서부터 교체 ▼▼▼
                 st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
                 try:
-                    inc = stk.income_stmt if stk else None
-                    cf = stk.cash_flow if stk else None
-                    if inc is not None and not inc.empty:
-                        # [수정] 하드코딩된 4년을 최대 10년으로 확장 (신생기업은 존재하는 데이터 길이만큼 유동적 처리)
-                        max_len = 10
-                        cols = inc.columns[:max_len]
-                        years = [str(c)[:4] for c in cols][::-1]
-                        
-                        rev = inc.loc['Total Revenue'].iloc[:max_len].values[::-1] if 'Total Revenue' in inc.index else []
-                        ni = inc.loc['Net Income'].iloc[:max_len].values[::-1] if 'Net Income' in inc.index else []
-                        
-                        fcf_chart = []
-                        fcf_years = []
-                        if cf is not None and not cf.empty:
-                            # FCF는 수익계산서(inc)와 데이터 연도가 다를 수 있으므로 축을 따로 잡습니다 (신생기업 에러 방지)
-                            cf_cols = cf.columns[:max_len]
-                            fcf_years = [str(c)[:4] for c in cf_cols][::-1]
-                            if 'Free Cash Flow' in cf.index:
-                                fcf_chart = cf.loc['Free Cash Flow'].iloc[:max_len].values[::-1]
-                            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:max_len].values[::-1]
-                        
-                        def scale_vals(data_lists, is_kr):
-                            all_v = []
-                            for lst in data_lists: all_v.extend([abs(x) for x in lst if pd.notna(x)])
-                            mv = max(all_v) if all_v else 0
+                    api_success = False
+                    years = []
+                    rev, ni, fcf_chart, fcf_years = [], [], [], []
+                    
+                    cd = tk.split('.')[0] if kr else tk
+                    
+                    # --- 1. 한국 주식: DART API 연동 ---
+                    if kr and DART_API_KEY:
+                        dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+                        if not dart_df.empty:
+                            # 신생기업 유도리: 존재하는 연도만 오름차순 정렬
+                            df_sorted = dart_df[sorted(dart_df.columns)]
+                            years = df_sorted.columns.tolist()
                             
-                            if is_kr:
-                                if mv >= 1e12: return 1e12, t("(단위: 조 원)", "(Unit: Trillion KRW)")
-                                elif mv >= 1e8: return 1e8, t("(단위: 억 원)", "(Unit: 100M KRW)")
-                                else: return 1, t("(단위: 원)", "(Unit: KRW)")
-                            else:
-                                if mv >= 1e9: return 1e9, t("(단위: 10억 달러 [B])", "(Unit: Billion USD)")
-                                elif mv >= 1e6: return 1e6, t("(단위: 백만 달러 [M])", "(Unit: Million USD)")
-                                else: return 1, t("(단위: 달러)", "(Unit: USD)")
-
-                        c_v1, c_v2 = st.columns(2)
-                        with c_v1:
-                            # [수정] 정확히 일치하지 않아도 데이터가 1개라도 있으면 그리도록 완화
+                            # DART 데이터는 내부적으로 억 원 단위로 축소되어 있으므로 스케일링 함수 호환을 위해 원 단위로 복원
+                            if '1. 매출액' in df_sorted.index: rev = (df_sorted.loc['1. 매출액'].fillna(0) * 1e8).tolist()
+                            if '4. 당기순이익' in df_sorted.index: ni = (df_sorted.loc['4. 당기순이익'].fillna(0) * 1e8).tolist()
+                            
+                            ocf = df_sorted.loc['9. 영업현금흐름'].fillna(0) * 1e8 if '9. 영업현금흐름' in df_sorted.index else pd.Series(0, index=years)
+                            icf = df_sorted.loc['10. 투자현금흐름'].fillna(0) * 1e8 if '10. 투자현금흐름' in df_sorted.index else pd.Series(0, index=years)
+                            
+                            fcf_series = ocf + icf
+                            if (ocf.sum() != 0 or icf.sum() != 0):
+                                fcf_chart = fcf_series.tolist()
+                                fcf_years = years
+                                
                             if len(rev) > 0 and len(ni) > 0:
-                                div_val, u_str = scale_vals([rev, ni], kr)
-                                st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
+                                api_success = True
+
+                    # --- 2. 미국 주식: SEC EDGAR API 연동 (ADR 제외) ---
+                    elif not kr and not is_adr:
+                        try:
+                            sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
+                            tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
+                            cik = next((str(v['cik_str']).zfill(10) for k, v in tickers_res.items() if v['ticker'].upper() == cd.upper()), None)
+                            
+                            if cik:
+                                facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=5).json()
+                                us_gaap = facts.get('facts', {}).get('us-gaap', {})
                                 
-                                fig1 = go.Figure()
-                                fig1.add_trace(go.Bar(x=years[-len(rev):], y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
-                                fig1.add_trace(go.Bar(x=years[-len(ni):], y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
-                                fig1.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                                st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
-                            else:
-                                st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                                def get_sec_fact(tags):
+                                    res = {}
+                                    for tag in tags:
+                                        if tag in us_gaap:
+                                            for item in us_gaap[tag].get('units', {}).get('USD', []):
+                                                if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
+                                                    fy = str(item.get('fy'))
+                                                    val = item.get('val', 0)
+                                                    if fy not in res or abs(val) > abs(res[fy]):
+                                                        res[fy] = val
+                                    return res
+                                    
+                                sec_rev = get_sec_fact(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                                sec_ni = get_sec_fact(['NetIncomeLoss', 'ProfitLoss'])
+                                sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities'])
+                                sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+                                
+                                if sec_rev and sec_ni:
+                                    # 신생기업 유도리: 존재하는 연도만 오름차순 정렬 (최대 10년)
+                                    all_years = sorted(list(set(list(sec_rev.keys()) + list(sec_ni.keys()))))[-10:]
+                                    years = all_years
+                                    fcf_years = all_years
+                                    
+                                    rev = [sec_rev.get(y, 0) for y in all_years]
+                                    ni = [sec_ni.get(y, 0) for y in all_years]
+                                    fcf_chart = [sec_ocf.get(y, 0) - abs(sec_capex.get(y, 0)) for y in all_years]
+                                            
+                                    api_success = True
+                        except:
+                            pass
+
+                    # --- 3. 최후의 보루: yfinance 연동 (API 실패 기업 및 ADR 기업) ---
+                    if not api_success:
+                        inc = stk.income_stmt if stk else None
+                        cf = stk.cash_flow if stk else None
+                        if inc is not None and not inc.empty:
+                            cols = inc.columns[:10]
+                            years = [str(c)[:4] for c in cols][::-1]
+                            
+                            rev = inc.loc['Total Revenue'].iloc[:len(cols)].values[::-1] if 'Total Revenue' in inc.index else []
+                            ni = inc.loc['Net Income'].iloc[:len(cols)].values[::-1] if 'Net Income' in inc.index else []
+                            
+                            if cf is not None and not cf.empty:
+                                cf_cols = cf.columns[:10]
+                                fcf_years = [str(c)[:4] for c in cf_cols][::-1]
+                                if 'Free Cash Flow' in cf.index:
+                                    fcf_chart = cf.loc['Free Cash Flow'].iloc[:len(cf_cols)].values[::-1]
+                                elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
+                                    fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:len(cf_cols)].values[::-1]
+
+                    # --- 차트 렌더링 엔진 ---
+                    def scale_vals(data_lists, is_kr):
+                        all_v = []
+                        for lst in data_lists: all_v.extend([abs(x) for x in lst if pd.notna(x) and x != 0])
+                        mv = max(all_v) if all_v else 0
                         
-                        with c_v2:
-                            if is_financial:
-                                st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials..."))
-                            # [수정] 수익계산서와 FCF의 개수가 달라도 FCF 데이터가 있기만 하면 그려줍니다.
-                            elif len(fcf_chart) > 0:
-                                div_val, u_str = scale_vals([fcf_chart], kr)
-                                st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
-                                
-                                fig2 = go.Figure()
-                                fig2.add_trace(go.Bar(x=fcf_years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
-                                fig2.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), showlegend=False)
-                                st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
-                            else:
-                                st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
-                    else:
-                        st.caption(t("시각화 데이터를 불러오는 데 실패했습니다 (데이터 미제공).", "Visualization data not available."))
+                        if is_kr:
+                            if mv >= 1e12: return 1e12, t("(단위: 조 원)", "(Unit: Trillion KRW)")
+                            elif mv >= 1e8: return 1e8, t("(단위: 억 원)", "(Unit: 100M KRW)")
+                            else: return 1, t("(단위: 원)", "(Unit: KRW)")
+                        else:
+                            if mv >= 1e9: return 1e9, t("(단위: 10억 달러 [B])", "(Unit: Billion USD)")
+                            elif mv >= 1e6: return 1e6, t("(단위: 백만 달러 [M])", "(Unit: Million USD)")
+                            else: return 1, t("(단위: 달러)", "(Unit: USD)")
+
+                    c_v1, c_v2 = st.columns(2)
+                    with c_v1:
+                        if len(rev) > 0 and len(ni) > 0:
+                            div_val, u_str = scale_vals([rev, ni], kr)
+                            st.write(t(f"**[최근 매출 및 순이익]** {u_str}", f"**[Recent Rev & NI Trend]** {u_str}"))
+                            
+                            fig1 = go.Figure()
+                            fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
+                            fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
+                            fig1.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                            st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
+                        else:
+                            st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
+                    
+                    with c_v2:
+                        if is_financial:
+                            st.caption(t("※ 금융/증권/보험주는 고객 예치금 및 운용 자산 변동이 영업현금흐름에 포함되어 현금흐름 분석이 무의미하므로 FCF 차트를 생략합니다.", "※ FCF chart is omitted for financials..."))
+                        elif len(fcf_chart) > 0:
+                            div_val, u_str = scale_vals([fcf_chart], kr)
+                            st.write(t(f"**[최근 잉여현금흐름(FCF)]** {u_str}", f"**[Recent FCF Trend]** {u_str}"))
+                            
+                            fig2 = go.Figure()
+                            fig2.add_trace(go.Bar(x=fcf_years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
+                            fig2.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), showlegend=False)
+                            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
+                        else:
+                            st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                 except Exception as e:
                     st.caption(t("시각화 데이터를 불러오는 데 실패했습니다.", "Failed to load visualization data."))
+                # ▲▲▲ 여기까지 교체 ▲▲▲
                 st.divider()
 
                 st.subheader(t("4. 질적 분석 및 리스크 스크리닝", "4. Qualitative Analysis & Risk Screening"))
