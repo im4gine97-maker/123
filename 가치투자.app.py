@@ -3991,10 +3991,11 @@ with tab1:
                     if marker_pos < 2: marker_pos = 2
                     if marker_pos > 98: marker_pos = 98
 
+                    # ▼▼▼ 기존 [AI 종합 투자의견] 렌더링 HTML 전체를 이걸로 교체하세요 ▼▼▼
                     st.markdown(f"""<div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
 <h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
                         
-<div style="position: relative; width: 100%; height: 16px; margin: 35px 0 15px 0; background: linear-gradient(to right, #c23616 0%, #c23616 25%, #ff4757 25%, #ff4757 32.5%, #e15f41 32.5%, #e15f41 40%, #fa8231 40%, #fa8231 47.5%, #fdcb6e 47.5%, #fdcb6e 55%, #f1c40f 55%, #f1c40f 62.5%, #2ecc71 62.5%, #2ecc71 70%, #10ac84 70%, #10ac84 77.5%, #00b894 77.5%, #00b894 85%, #0984e3 85%, #0984e3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+<div style="position: relative; width: 100%; height: 16px; margin: 35px 0 15px 0; background: linear-gradient(to right, #8c14fc 0%, #8c14fc 15%, #c23616 15%, #c23616 20%, #eb2f06 20%, #eb2f06 25%, #ff4757 25%, #ff4757 30%, #e15f41 30%, #e15f41 35%, #fa8231 35%, #fa8231 40%, #fab1a0 40%, #fab1a0 45%, #fdcb6e 45%, #fdcb6e 50%, #f39c12 50%, #f39c12 55%, #f1c40f 55%, #f1c40f 60%, #55efc4 60%, #55efc4 65%, #2ecc71 65%, #2ecc71 70%, #10ac84 70%, #10ac84 75%, #00b894 75%, #00b894 80%, #0097e6 80%, #0097e6 85%, #0984e3 85%, #0984e3 90%, #0050b3 90%, #0050b3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
     <div style="position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center; z-index: 10;">
         <div style="background-color: {op_color}; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
             {total_score_val}점
@@ -4005,12 +4006,13 @@ with tab1:
                         
 <div style="position: relative; width: 100%; height: 20px; font-size: 0.75rem; color: #8892b0; font-weight: 600;">
     <span style="position: absolute; left: 0;">극단적 고평가 (-100)</span>
-    <span style="position: absolute; left: 55%; transform: translateX(-50%);">적정 가치 (10)</span>
+    <span style="position: absolute; left: 50%; transform: translateX(-50%);">적정 가치 (0)</span>
     <span style="position: absolute; right: 0;">압도적 저평가 (+100)</span>
 </div>
 
 <span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 25px; line-height: 1.6;">{op_reason}</span>
 </div>""", unsafe_allow_html=True)
+                    # ▲▲▲ 여기까지 교체 ▲▲▲
 
                     with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
                         breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
