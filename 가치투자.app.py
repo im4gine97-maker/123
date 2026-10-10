@@ -2435,37 +2435,59 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score = raw_total / avg_w if avg_w > 0 else 0
     score = round(score)
     
-    # 11. 최종 결과 매핑
-    if score >= 70:
-        title, color = t(f"압도적 저평가 구간 ({score}점)", f"Deeply Undervalued ({score} pts)"), "#0984e3"
-        reason = t("모든 가치평가 지표가 완벽에 가까우며, 내재가치 대비 주가가 극단적으로 할인되어 있습니다.", "Flawless fundamentals and deeply discounted to intrinsic value.")
-    elif score >= 55:
+    # ▼▼▼ 기존 '# 11. 최종 결과 매핑' 아래의 if/elif/else 전체를 이걸로 교체하세요 ▼▼▼
+    # 11. 최종 결과 매핑 (10점 단위 세분화)
+    if score >= 80:
+        title, color = t(f"역사적 바닥 / 극단적 저평가 ({score}점)", f"Historical Bottom / Extremely Undervalued ({score} pts)"), "#0050b3"
+        reason = t("평생에 몇 번 오지 않을 극단적 저평가 상태입니다. 모든 지표가 압도적인 안전마진을 가리킵니다.", "Once-in-a-lifetime discount. All metrics indicate massive margin of safety.")
+    elif score >= 70:
+        title, color = t(f"압도적 저평가 ({score}점)", f"Deeply Undervalued ({score} pts)"), "#0984e3"
+        reason = t("모든 가치평가 지표가 완벽에 가까우며, 내재가치 대비 주가가 훌륭하게 할인되어 있습니다.", "Flawless fundamentals and deeply discounted to intrinsic value.")
+    elif score >= 60:
+        title, color = t(f"적극 매수 구간 ({score}점)", f"Strong Buy Zone ({score} pts)"), "#0097e6"
+        reason = t("펀더멘털이 강력하고 주가도 충분히 싸서, 비중 확대를 적극적으로 고려할 만한 매력적인 구간입니다.", "Strong fundamentals and very cheap price. Highly attractive zone to increase weight.")
+    elif score >= 50:
         title, color = t(f"현저한 저평가 ({score}점)", f"Significantly Undervalued ({score} pts)"), "#00b894"
-        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있습니다.", "Excellent fundamentals with a clear margin of safety.")
+        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있어 투자의 하방 리스크가 굳건히 방어됩니다.", "Excellent fundamentals with a clear margin of safety. Downside risk is well protected.")
     elif score >= 40:
-        title, color = t(f"가치 대비 할인 ({score}점)", f"Discounted to Value ({score} pts)"), "#10ac84"
-        reason = t("위대한 기업의 주가가 시장의 오해나 일시적 요인으로 충분히 저렴해진 상태로 분석됩니다.", "A great business trading at a discount due to market noise or temporary factors.")
-    elif score >= 25:
-        title, color = t(f"합리적 가격 ({score}점)", f"Reasonable Price ({score} pts)"), "#2ecc71"
+        title, color = t(f"가치 대비 충분한 할인 ({score}점)", f"Well Discounted ({score} pts)"), "#10ac84"
+        reason = t("위대한 기업의 주가가 시장의 오해나 일시적 요인으로 꽤 저렴해진 상태로 분석됩니다.", "A great business trading at a good discount due to market noise or temporary factors.")
+    elif score >= 30:
+        title, color = t(f"매력적인 가격 ({score}점)", f"Attractive Price ({score} pts)"), "#2ecc71"
+        reason = t("비즈니스 해자가 유지되는 가운데 주가도 적정 가치 아래로 내려와 매수 매력도가 높습니다.", "Moat is intact and price is below fair value. High buying attractiveness.")
+    elif score >= 20:
+        title, color = t(f"합리적 가격 ({score}점)", f"Reasonable Price ({score} pts)"), "#55efc4"
         reason = t("기업의 퀄리티가 우수하며 가격 또한 내재가치에 부합하는 합리적인 수준에 도달했습니다.", "High-quality business trading at a reasonable price.")
     elif score >= 10:
-        title, color = t(f"적정 가치 ({score}점)", f"Fair Value ({score} pts)"), "#f1c40f"
-        reason = t("시장의 기대치와 내재가치가 거의 완벽하게 일치하는 적정 가격(Fair Price) 구간입니다.", "Market expectations perfectly match intrinsic value.")
+        title, color = t(f"가치 부합 / 편안한 보유 ({score}점)", f"Fair Value / Comfort Hold ({score} pts)"), "#f1c40f"
+        reason = t("시장의 기대치와 내재가치가 거의 완벽하게 일치합니다. 신규 매수보다는 편안하게 보유할 구간입니다.", "Market expectations perfectly match intrinsic value. Better to hold comfortably than initiate new buys.")
+    elif score >= 0:
+        title, color = t(f"완벽한 적정 가치 ({score}점)", f"Perfectly Fair Value ({score} pts)"), "#f39c12"
+        reason = t("할인도, 할증도 없는 100% 제값입니다. 이 구간부터는 기업의 향후 이익 성장이 곧 주가 수익률이 됩니다.", "Priced exactly at fair value. Future stock returns will perfectly mirror earnings growth.")
     elif score >= -10:
-        title, color = t(f"가치 대비 할증 ({score}점)", f"Premium to Value ({score} pts)"), "#fdcb6e"
-        reason = t("펀더멘털 대비 주가가 다소 비싸게 형성되어 있습니다. 추가적인 성장 기대감이 주가에 선반영된 상태입니다.", "Trading at a slight premium to fundamentals.")
+        title, color = t(f"가치 대비 약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#fdcb6e"
+        reason = t("펀더멘털 대비 주가가 다소 비싸게 형성되어 있습니다. 훌륭한 기업의 프리미엄이 붙은 상태입니다.", "Trading at a slight premium to fundamentals. Paying for high quality.")
+    elif score >= -20:
+        title, color = t(f"미래 성장 선반영 ({score}점)", f"Growth Priced In ({score} pts)"), "#fab1a0"
+        reason = t("향후 1~2년 치의 이익 성장이 이미 주가에 반영되어 있어 뚜렷한 안전마진이 부족합니다.", "1-2 years of future growth are already priced in. Lacking margin of safety.")
     elif score >= -30:
-        title, color = t(f"고평가 경계 ({score}점)", f"Overvaluation Warning ({score} pts)"), "#fa8231"
-        reason = t("기업의 실제 이익 창출 능력 대비 주가가 다소 빠르게 상승했습니다. 밸류에이션 부담이 점차 커집니다.", "Price has outpaced actual earnings power.")
+        title, color = t(f"고평가 경계 진입 ({score}점)", f"Entering Overvaluation ({score} pts)"), "#fa8231"
+        reason = t("기업의 실제 이익 창출 능력 대비 주가가 너무 빠르게 상승했습니다. 밸류에이션 부담이 큽니다.", "Price has outpaced actual earnings power too quickly. High valuation burden.")
+    elif score >= -40:
+        title, color = t(f"밸류에이션 부담 가중 ({score}점)", f"Heavy Valuation Burden ({score} pts)"), "#e15f41"
+        reason = t("단기적인 과열 양상을 보입니다. 이익 성장이 조금만 꺾여도 주가가 크게 하락할 수 있는 리스크가 있습니다.", "Short-term overheating. High risk of sharp correction if earnings stumble.")
     elif score >= -50:
-        title, color = t(f"현저한 고평가 ({score}점)", f"Significantly Overvalued ({score} pts)"), "#e15f41"
-        reason = t("미래 수년 치의 낙관적인 성장이 이미 주가에 100% 선반영되어 있습니다.", "Years of optimistic growth are fully priced in. No margin of safety exists.")
+        title, color = t(f"현저한 고평가 ({score}점)", f"Significantly Overvalued ({score} pts)"), "#ff4757"
+        reason = t("미래 수년 치의 낙관적인 성장이 주가에 100% 선반영되어 있어 신규 진입이 매우 위험합니다.", "Years of highly optimistic growth are fully priced in. Very dangerous to enter.")
+    elif score >= -60:
+        title, color = t(f"강력한 매도 경고 ({score}점)", f"Strong Sell Warning ({score} pts)"), "#eb2f06"
+        reason = t("대다수의 가치평가 지표가 심각한 수준의 고평가를 가리킵니다. 이익 실현을 강력히 고려하세요.", "Most valuation metrics point to severe overvaluation. Strongly consider taking profits.")
     elif score >= -70:
-        title, color = t(f"밸류에이션 한계 ({score}점)", f"Valuation Limit Reached ({score} pts)"), "#ff4757"
-        reason = t("대다수의 가치평가 지표가 심각한 고평가 수준을 가리키고 있습니다. 주의가 필요합니다.", "Most valuation metrics point to severe overvaluation.")
+        title, color = t(f"밸류에이션 한계 초과 ({score}점)", f"Valuation Limit Exceeded ({score} pts)"), "#c23616"
+        reason = t("비정상적인 거품 상태입니다. 가격이 기업의 내재가치와 완전히 괴리되어 폭락의 전조가 될 수 있습니다.", "Abnormal bubble. Price is completely detached from value, signaling a potential crash.")
     else:
-        title, color = t(f"극단적 버블 / 펀더멘털 훼손 ({score}점)", f"Extreme Bubble / Impaired ({score} pts)"), "#c23616"
-        reason = t("비정상적인 거품 상태이거나 기업의 펀더멘털(거버넌스/비즈니스) 훼손이 심각합니다.", "In an extreme bubble or suffering from severe fundamental damage.")
+        title, color = t(f"극단적 버블 / 펀더멘털 파탄 ({score}점)", f"Extreme Bubble / Impaired ({score} pts)"), "#8c14fc"
+        reason = t("시장의 광기가 절정에 달했거나, 기업의 펀더멘털 및 거버넌스 훼손이 돌이킬 수 없는 지경입니다.", "Market mania at its peak, or fundamental/governance damage is irreversible.")
 
     if kr: reason += t(" (코리아 디스카운트 -15점 적용)", " (Korea Discount -15 Applied)")
     elif is_china_hk: reason += t(" (차이나/홍콩 디스카운트 -20점 적용)", " (China/HK Discount -20 Applied)")
@@ -2474,6 +2496,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     if is_financial: reason += t(" (금융/보험주 PBR 방어 로직 적용됨)", " (Financial Mode Active)")
 
     return title, color, reason, score_details
+    # ▲▲▲ 여기까지 ▲▲▲
     
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#2ecc71"
@@ -4249,19 +4272,25 @@ with tab1:
                     fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
                 lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
-                # ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------
+               # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 easy_summary_msg = ""
-                if total_score_val >= 70:
-                    easy_summary_msg = "💰 돈을 아주 잘 버는데 주가는 헐값인 '바겐세일' 구간입니다."
-                elif total_score_val >= 30:
+                if total_score_val >= 60:
+                    easy_summary_msg = "💰 돈을 아주 잘 버는데 주가는 헐값인 '절대적 바겐세일' 구간입니다."
+                elif total_score_val >= 40:
+                    easy_summary_msg = "🛒 내재가치 대비 충분히 저렴합니다. 비중 확대를 적극 고려할 만합니다."
+                elif total_score_val >= 20:
                     easy_summary_msg = "✅ 튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
                 elif total_score_val >= 0:
-                    easy_summary_msg = "⚖️ 비싸지도 싸지도 않은 '딱 제값'입니다. 신규 투자는 천천히 결정하세요."
-                elif total_score_val >= -90:
-                    easy_summary_msg = "⚠️ 좋은 회사라도 현재 주가에는 기대감(거품)이 꽤 껴있습니다."
+                    easy_summary_msg = "⚖️ 비싸지도 싸지도 않은 '딱 제값'입니다. 편안하게 보유하기 좋은 구간입니다."
+                elif total_score_val >= -20:
+                    easy_summary_msg = "🤔 기업은 훌륭하지만 미래 성장 기대감이 선반영되어 프리미엄이 붙어 있습니다."
+                elif total_score_val >= -40:
+                    easy_summary_msg = "⚠️ 좋은 회사라도 현재 주가에는 거품이 꽤 껴있습니다. 밸류에이션 부담 주의!"
+                elif total_score_val >= -60:
+                    easy_summary_msg = "🚨 실속 대비 주가가 너무 비쌉니다. 신규 진입을 피하고 이익 실현을 고려하세요."
                 else:
-                    easy_summary_msg = "🚨 실속이 부족하거나 거품이 너무 심합니다. 투자를 피하는 것이 좋습니다."
-                # ------------------------------------------------------------------
+                    easy_summary_msg = "💥 비정상적인 광기 수준의 거품이거나 심각한 펀더멘털 결함이 있습니다."
+                # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
