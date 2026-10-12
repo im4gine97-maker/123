@@ -3078,6 +3078,14 @@ def generate_quick_ai_preview(tk):
     elif base_bv > 0:
         f_pbr = reg_p / base_bv
 
+    # [수정] 카스피(KSPI) 등 ADR 환율/통화 불일치 주식 왜곡(0.00/0.01) 방어 (< 1.0, < 0.1 적용)
+    is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
+    if is_kaspi_like:
+        if f_pe < 1.0 or f_pe <= 0.0:
+            f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
+        if f_pbr < 0.1 or f_pbr <= 0.0:
+            f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
+
     # 3. 할인율/할증률 및 ERP 계산
     if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
@@ -3732,12 +3740,15 @@ with tab1:
                 elif base_bv > 0:
                     f_pbr = reg_p / base_bv
 
-                # [추가] 카스피(KSPI) 같은 주식(ADR이면서 시클/한국/대만/홍콩 제외) f_pe, f_pbr 0.00 표출 오류 수정
+                if 'multiplier' in locals() and multiplier != 1.0:
+                    f_pbr = f_pbr * multiplier
+
+                # [추가] 카스피(KSPI) 등 ADR 환율/통화 불일치 주식 왜곡(0.00/0.01) 방어
                 is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
                 if is_kaspi_like:
-                    if f_pe <= 0.0:
-                        f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 15.0)
-                    if f_pbr <= 0.0:
+                    if f_pe < 1.0 or f_pe <= 0.0:
+                        f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
+                    if f_pbr < 0.1 or f_pbr <= 0.0:
                         f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
 
                 # 3. 할인율/할증률 및 ERP 계산
