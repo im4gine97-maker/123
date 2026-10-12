@@ -2190,29 +2190,32 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
 
-    # [수정] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (점수 변동성 극대화)
+    # [수정] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
     def calc_dynamic_score(margin_pct):
+        # [추가] 금융주(is_financial)에 한해 현재 배율(1.5)보다 높은 배율(2.0) 적용 (기존 코드 훼손 없음)
+        base_m = 2.0 if is_financial else 1.5
+        
         if margin_pct >= 0:
-            # 할인 (저평가) 구간: 1.5배부터 시작하여 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
+            # 할인 (저평가) 구간: 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
             if margin_pct <= 10:
-                return margin_pct * 1.5
+                return margin_pct * base_m
             elif margin_pct <= 20:
-                return (10 * 1.5) + ((margin_pct - 10) * 1.4)
+                return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
             elif margin_pct <= 30:
-                return (10 * 1.5) + (10 * 1.4) + ((margin_pct - 20) * 1.3)
+                return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
             elif margin_pct <= 40:
-                return (10 * 1.5) + (10 * 1.4) + (10 * 1.3) + ((margin_pct - 30) * 1.2)
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
             else:
-                return (10 * 1.5) + (10 * 1.4) + (10 * 1.3) + (10 * 1.2) + ((margin_pct - 40) * 1.1)
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
         else:
-            # 할증 (고평가) 구간: 1.5배로 시작하여 마이너스 폭이 커질수록 2.0배, 2.5배로 더 강력하게 감점
+            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 0.5씩 더 강력하게 감점
             abs_m = abs(margin_pct)
             if abs_m <= 10:
-                return margin_pct * 1.5
+                return margin_pct * base_m
             elif abs_m <= 20:
-                return -( (10 * 1.5) + ((abs_m - 10) * 2.0) )
+                return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
             else:
-                return -( (10 * 1.5) + (10 * 2.0) + ((abs_m - 20) * 2.5) )
+                return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
 
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
@@ -3728,9 +3731,14 @@ with tab1:
                     else: f_pbr = reg_p / base_bv
                 elif base_bv > 0:
                     f_pbr = reg_p / base_bv
-                    
-                if 'multiplier' in locals() and multiplier != 1.0:
-                    f_pbr = f_pbr * multiplier
+
+                # [추가] 카스피(KSPI) 같은 주식(ADR이면서 시클/한국/대만/홍콩 제외) f_pe, f_pbr 0.00 표출 오류 수정
+                is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
+                if is_kaspi_like:
+                    if f_pe <= 0.0:
+                        f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 15.0)
+                    if f_pbr <= 0.0:
+                        f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
 
                 # 3. 할인율/할증률 및 ERP 계산
                 if is_financial or kr or is_cyclical:
