@@ -2680,6 +2680,116 @@ def fetch_global_marketcap_top100_free(country_mode="usa"):
                     })
     except: pass
     return items if items else (us_top30 if country_mode == "usa" else global_top30)
+
+# =========================================================================
+# [신규 기능 1, 2, 3] 미스터 마켓, 내부자 매수, 자본 배분 스캐너 (100% 무료)
+# =========================================================================
+@st.cache_data(ttl=3600)
+def fetch_fear_and_greed_free():
+    # CNN의 Fear & Greed Index 실시간 JSON 데이터를 무료로 긁어옵니다.
+    url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        data = r.json()
+        score = int(data['fear_and_greed']['score'])
+        rating = data['fear_and_greed']['rating']
+        
+        rating_map = {
+            "extreme fear": "🥶 극단적 공포 (최적의 매수 기회 / 바겐세일)",
+            "fear": "😨 공포 (분할 매수 접근)",
+            "neutral": "😐 중립 (내재가치 팩트 체크 철저히)",
+            "greed": "😏 탐욕 (신규 매수 보수적 접근)",
+            "extreme greed": "🔥 극단적 탐욕 (과열 및 버블 / 이익 실현 고려)"
+        }
+        return score, rating_map.get(rating, rating)
+    except:
+        return 50, "😐 중립 (데이터 지연)"
+
+@st.cache_data(ttl=43200) # 12시간마다 갱신
+def fetch_openinsider_free():
+    # 미국 OpenInsider 사이트의 '경영진 다수 동시 매수(Cluster Buys)' 무료 스크래핑
+    url = "http://openinsider.com/latest-cluster-buys"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    items = []
+    try:
+        r = requests.get(url, headers=headers, timeout=7)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        table = soup.find('table', {'class': 'tinytable'})
+        if table and table.find('tbody'):
+            for tr in table.find('tbody').find_all('tr')[:20]:
+                cols = tr.find_all('td')
+                if len(cols) >= 12:
+                    filing_date = cols[1].text.strip()
+                    tk = cols[3].text.strip()
+                    company = cols[4].text.strip()
+                    insider = cols[5].text.strip()
+                    title = cols[6].text.strip()
+                    price = cols[8].text.strip()
+                    qty = cols[9].text.strip()
+                    value = cols[11].text.strip()
+                    
+                    items.append({
+                        "공시일": filing_date[:10],
+                        "티커": tk,
+                        "기업명": company,
+                        "내부자 이름": insider,
+                        "직책": title,
+                        "매수단가": price,
+                        "수량": qty,
+                        "매수금액": value
+                    })
+    except: pass
+    return items
+
+@st.cache_data(ttl=86400)
+def scan_value_stocks_free():
+    # 앱에 등록된 우량주 리스트(tmap)를 백그라운드에서 실시간 스캔하여 
+    # 52주 신저가 및 찰리 멍거형 '컴파운더(고ROE, 저PER)'를 자동 발굴합니다.
+    bargains = []
+    compounders = []
+    target_tickers = list(tmap.values())[:80] # 속도를 위해 상위 핵심 80개만 검사
+    
+    def check_stock(tk):
+        try:
+            stk = yf.Ticker(tk)
+            info = stk.info
+            p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
+            low52 = safe_float(info.get('fiftyTwoWeekLow'))
+            high52 = safe_float(info.get('fiftyTwoWeekHigh'))
+            roe = safe_float(info.get('returnOnEquity', 0)) * 100
+            fpe = safe_float(info.get('forwardPE', 0))
+            
+            if p > 0 and low52 > 0 and high52 > 0:
+                drop_from_high = ((high52 - p) / high52) * 100
+                diff_from_low = ((p - low52) / low52) * 100
+                
+                data = {
+                    "티커": tk,
+                    "기업명": primary_names.get(tk, tk),
+                    "현재가": f"${p:.2f}" if not tk.endswith(".KS") and not tk.endswith(".KQ") else f"{int(p):,}원",
+                    "고점대비 하락폭": f"-{drop_from_high:.1f}%",
+                    "저점대비 상승폭": f"+{diff_from_low:.1f}%",
+                    "자본수익률(ROE)": f"{roe:.1f}%",
+                    "예상PER": f"{fpe:.1f}배" if fpe > 0 else "N/A"
+                }
+                return tk, drop_from_high, diff_from_low, roe, fpe, data
+        except: pass
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(check_stock, target_tickers))
+        valid_res = [r for r in results if r is not None]
+        
+        # 1. 바겐세일: 52주 최저가에 15% 이내로 근접한 주식
+        bargains_sorted = sorted([r for r in valid_res if r[2] < 15], key=lambda x: x[2])
+        bargains = [r[5] for r in bargains_sorted[:15]]
+        
+        # 2. 컴파운더: ROE 15% 이상이면서 PER이 25배 이하인 훌륭한 주식
+        compounders_sorted = sorted([r for r in valid_res if r[3] > 15 and 0 < r[4] < 25], key=lambda x: x[3], reverse=True)
+        compounders = [r[5] for r in compounders_sorted[:15]]
+        
+    return bargains, compounders
 # =========================================================================
 # [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
 # =========================================================================
@@ -3490,13 +3600,16 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
-    t("개별 기업 가치분석", "Company Value Analysis"), 
-    t("유명 투자자 13F", "Guru 13F Portfolios"),
-    t("시가총액 랭킹", "Market Cap Top 100"),
-    t("경영진 평가 순위", "Management Ranking"),
-    t("주식 용어 사전", "Stock Glossary"),
-    t("AGIE 철학", "About AGIE")
+tab1, tab_mr, tab_insider, tab_capital, tab2, tab3, tab6, tab4, tab5 = st.tabs([
+    t("1. 개별 기업 가치분석", "Company Value Analysis"), 
+    t("2. 마켓 심리 & 신저가", "Mr. Market & Bargains"),
+    t("3. 내부자 대규모 매수", "Insider Buying Tracker"),
+    t("4. 위대한 자본 배분", "Capital Allocation"),
+    t("5. 유명 투자자 13F", "Guru 13F Portfolios"),
+    t("6. 시가총액 랭킹", "Market Cap Top 100"),
+    t("7. 경영진 거버넌스", "Management Ranking"),
+    t("8. 주식 용어 사전", "Stock Glossary"),
+    t("9. AGIE 철학", "About AGIE")
 ])
 
 # ==========================================
@@ -5073,6 +5186,62 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if not sec_success:
                             fallback_yfinance()
                             
+# ==========================================
+# 신규 탭: 미스터 마켓 심리 지표 & 바겐세일 스캐너
+# ==========================================
+with tab_mr:
+    st.subheader(t("😱 미스터 마켓 심리 지표 & 바겐세일 스캐너", "Mr. Market Fear & Greed / Bargain Scanner"))
+    st.write(t("**버핏의 철학:** '남들이 탐욕스러울 때 공포를 느끼고, 남들이 공포를 느낄 때 탐욕스러워져라.'", "**Buffett's Philosophy:** 'Be fearful when others are greedy, and greedy when others are fearful.'"))
+    
+    score, rating = fetch_fear_and_greed_free()
+    
+    color = "#ff4757" if score >= 75 else "#ffa502" if score >= 55 else "#2ed573" if score <= 25 else "#1e90ff" if score <= 45 else "#a4b0be"
+    
+    st.markdown(f"""
+    <div style="text-align:center; padding:30px; background:rgba(255,255,255,0.03); border-radius:16px; border:1px solid rgba(255,255,255,0.1); margin-bottom:30px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="font-size:1.1rem; color:#8892b0; margin-bottom:10px; font-weight:bold;">현재 글로벌 시장 심리 (CNN Fear & Greed Index)</div>
+        <div style="font-size:4.5rem; font-weight:900; color:{color}; line-height:1.2;">{score}</div>
+        <div style="font-size:1.6rem; font-weight:bold; color:{color};">{rating}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.subheader(t("📉 52주 신저가 근접 우량주 (안전마진 1차 후보군)", "📉 52-Week Low Blue Chips (Margin of Safety Candidates)"))
+    st.caption(t("※ 앱에 등록된 훌륭한 기업들 중 현재 가격이 52주 최저가에 15% 이내로 떨어져 있는 바겐세일 리스트입니다. 일시적 악재인지 구조적 훼손인지 탭 1에서 심층 분석해 보세요.", "※ Excellent companies currently trading within 15% of their 52-week lows."))
+    
+    with st.spinner("AI가 등록된 기업들의 가격 데이터를 실시간 스캔 중입니다..."):
+        bargains, compounders = scan_value_stocks_free()
+        if bargains:
+            st.dataframe(pd.DataFrame(bargains), use_container_width=True, hide_index=True)
+        else:
+            st.info(t("현재 시장에 52주 신저가에 근접한 우량주가 거의 없습니다. (시장 과열 상태)", "No blue chips near 52-week lows. The market may be overheating."))
+
+# ==========================================
+# 신규 탭: 내부자 매수 추적
+# ==========================================
+with tab_insider:
+    st.subheader(t("🕵️‍♂️ 내부자 대규모 매수 추적 (Insider Buying Tracker)", "🕵️‍♂️ Insider Buying Tracker"))
+    st.write(t("**피터 린치의 철학:** '내부자가 주식을 파는 이유는 다양하지만, 자기 돈을 들여 사는 이유는 단 하나(오를 것이라 믿기 때문)입니다.'", "**Peter Lynch's Philosophy:** 'Insiders might sell their shares for any number of reasons, but they buy them for only one: they think the price will rise.'"))
+    st.caption(t("※ 미국 시장(OpenInsider) 공시 기준, 최근 CEO, CFO 등 복수의 경영진이 자기 돈으로 자사주를 대규모 매수한(Cluster Buys) 강력한 매수 신호 리스트입니다.", "※ SEC filings showing massive cluster buys by executives with their own money."))
+    
+    with st.spinner("미국 SEC 공시 기반 내부자 매수 내역을 긁어오는 중..."):
+        insider_data = fetch_openinsider_free()
+        if insider_data:
+            st.dataframe(pd.DataFrame(insider_data), use_container_width=True, hide_index=True)
+        else:
+            st.info(t("현재 수집된 대규모 내부자 매수 공시가 없거나 서버 응답이 지연되고 있습니다.", "No massive insider buys detected recently or server delayed."))
+
+# ==========================================
+# 신규 탭: 자본 배분 랭킹
+# ==========================================
+with tab_capital:
+    st.subheader(t("👑 위대한 자본 배분 랭킹 (Compounders)", "👑 Great Capital Allocation Ranking"))
+    st.write(t("**찰리 멍거의 철학:** '장기적으로 주식의 수익률은 그 기업의 자본수익률(ROE)에 수렴하게 되어 있습니다.'", "**Charlie Munger's Philosophy:** 'Over the long term, it's hard for a stock to earn a much better return than the business which underlies it earns on its capital.'"))
+    st.caption(t("※ 앱에 등록된 우량주 중, ROE가 15% 이상으로 자본을 폭발적으로 굴리면서도 현재 예상 PER이 25배 이하로 합리적인 가격인 기업(컴파운더)들만 추려낸 리스트입니다.", "※ High-quality compounders with ROE > 15% trading at reasonable Fwd PE < 25x."))
+    
+    if compounders:
+        st.dataframe(pd.DataFrame(compounders), use_container_width=True, hide_index=True)
+    else:
+        st.info(t("현재 시장 가격이 전반적으로 비싸서, PER 25배 이하의 고수익성(ROE 15% 이상) 기업이 부족합니다.", "Lack of high-ROE businesses trading at reasonable PE (<25x) due to overall market overvaluation."))
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
