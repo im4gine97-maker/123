@@ -2745,11 +2745,9 @@ def fetch_openinsider_free():
 @st.cache_data(ttl=86400)
 def scan_value_stocks_free():
     # 앱에 등록된 우량주 리스트(tmap)를 백그라운드에서 실시간 스캔하여 
-    # 52주 신저가 및 찰리 멍거형 '컴파운더(고ROE, 저PER)'를 자동 발굴합니다.
+    # 52주 신저가 및 찰리 멍거형 '컴파운더(고ROIC, 저PER)'를 자동 발굴합니다.
     bargains = []
     compounders = []
-    
-    # [핵심 수정] 중복 티커를 제거하고, 미국/한국/글로벌 전체 기업을 스캔하도록 제한 해제!
     target_tickers = list(set(tmap.values())) 
     
     def check_stock(tk):
@@ -2759,9 +2757,14 @@ def scan_value_stocks_free():
             p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
             low52 = safe_float(info.get('fiftyTwoWeekLow'))
             high52 = safe_float(info.get('fiftyTwoWeekHigh'))
-            roe = safe_float(info.get('returnOnEquity', 0)) * 100
             fpe = safe_float(info.get('forwardPE', 0))
             
+            # [핵심 수정] ROE 대신 가치투자 철학에 맞는 ROIC를 최우선으로 추출/계산합니다.
+            roic = get_real_roic(stk, info)
+            if roic is None or roic <= 0:
+                # ROIC 계산이 불가한 경우(금융주 등) ROE로 보수적 대체
+                roic = safe_float(info.get('returnOnEquity', 0)) * 100
+                
             if p > 0 and low52 > 0 and high52 > 0:
                 drop_from_high = ((high52 - p) / high52) * 100
                 diff_from_low = ((p - low52) / low52) * 100
@@ -2772,14 +2775,13 @@ def scan_value_stocks_free():
                     "현재가": f"${p:.2f}" if not tk.endswith(".KS") and not tk.endswith(".KQ") else f"{int(p):,}원",
                     "고점대비 하락폭": f"-{drop_from_high:.1f}%",
                     "저점대비 상승폭": f"+{diff_from_low:.1f}%",
-                    "자본수익률(ROE)": f"{roe:.1f}%",
+                    "투하자본수익률(ROIC)": f"{roic:.1f}%",  # [수정] 텍스트 및 데이터 ROIC로 변경
                     "예상PER": f"{fpe:.1f}배" if fpe > 0 else "N/A"
                 }
-                return tk, drop_from_high, diff_from_low, roe, fpe, data
+                return tk, drop_from_high, diff_from_low, roic, fpe, data
         except: pass
         return None
 
-    # [핵심 수정] 전체 스캔을 위해 작업자(스레드)를 20개로 2배 늘려 속도 최적화
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         results = list(executor.map(check_stock, target_tickers))
         valid_res = [r for r in results if r is not None]
@@ -2788,7 +2790,7 @@ def scan_value_stocks_free():
         bargains_sorted = sorted([r for r in valid_res if r[2] < 15], key=lambda x: x[2])
         bargains = [r[5] for r in bargains_sorted[:15]]
         
-        # 2. 컴파운더: ROE 15% 이상이면서 PER이 25배 이하인 훌륭한 주식
+        # 2. 컴파운더: ROIC 15% 이상이면서 PER이 25배 이하인 훌륭한 주식
         compounders_sorted = sorted([r for r in valid_res if r[3] > 15 and 0 < r[4] < 25], key=lambda x: x[3], reverse=True)
         compounders = [r[5] for r in compounders_sorted[:15]]
         
@@ -5299,8 +5301,8 @@ with tab_insider:
 # ==========================================
 with tab_capital:
     st.subheader(t("👑 위대한 자본 배분 랭킹 (Compounders)", "👑 Great Capital Allocation Ranking"))
-    st.write(t("**찰리 멍거의 철학:** '장기적으로 주식의 수익률은 그 기업의 자본수익률(ROE)에 수렴하게 되어 있습니다.'", "**Charlie Munger's Philosophy:** 'Over the long term, it's hard for a stock to earn a much better return than the business which underlies it earns on its capital.'"))
-    st.caption(t("※ 앱에 등록된 우량주 중, ROE가 15% 이상으로 자본을 폭발적으로 굴리면서도 현재 예상 PER이 25배 이하로 합리적인 가격인 기업(컴파운더)들만 추려낸 리스트입니다.", "※ High-quality compounders with ROE > 15% trading at reasonable Fwd PE < 25x."))
+    st.write(t("**찰리 멍거의 철학:** '장기적으로 주식의 수익률은 그 기업의 투하자본수익률(ROIC)에 수렴하게 되어 있습니다.'", "**Charlie Munger's Philosophy:** 'Over the long term, it's hard for a stock to earn a much better return than the business which underlies it earns on its capital.'"))
+    st.caption(t("※ 앱에 등록된 우량주 중, 부채 왜곡을 뺀 진짜 수익률(ROIC)이 15% 이상으로 자본을 폭발적으로 굴리면서도 현재 예상 PER이 25배 이하로 합리적인 가격인 기업(컴파운더)들만 추려낸 리스트입니다.", "※ High-quality compounders with ROIC > 15% trading at reasonable Fwd PE < 25x."))
     
     if compounders:
         df_compounders = pd.DataFrame(compounders)
@@ -5335,7 +5337,7 @@ with tab_capital:
                     st.session_state.sync_tk = st.session_state["preview_tk_tab_cap"]
                     st.rerun()
     else:
-        st.info(t("현재 시장 가격이 전반적으로 비싸서, PER 25배 이하의 고수익성(ROE 15% 이상) 기업이 부족합니다.", "Lack of high-ROE businesses trading at reasonable PE (<25x) due to overall market overvaluation."))
+        st.info(t("현재 시장 가격이 전반적으로 비싸서, PER 25배 이하의 고수익성(ROIC 15% 이상) 기업이 부족합니다.", "Lack of high-ROIC businesses trading at reasonable PE (<25x) due to overall market overvaluation."))
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
 # ==========================================
