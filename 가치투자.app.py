@@ -2748,7 +2748,9 @@ def scan_value_stocks_free():
     # 52주 신저가 및 찰리 멍거형 '컴파운더(고ROE, 저PER)'를 자동 발굴합니다.
     bargains = []
     compounders = []
-    target_tickers = list(tmap.values())[:80] # 속도를 위해 상위 핵심 80개만 검사
+    
+    # [핵심 수정] 중복 티커를 제거하고, 미국/한국/글로벌 전체 기업을 스캔하도록 제한 해제!
+    target_tickers = list(set(tmap.values())) 
     
     def check_stock(tk):
         try:
@@ -2777,7 +2779,8 @@ def scan_value_stocks_free():
         except: pass
         return None
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    # [핵심 수정] 전체 스캔을 위해 작업자(스레드)를 20개로 2배 늘려 속도 최적화
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         results = list(executor.map(check_stock, target_tickers))
         valid_res = [r for r in results if r is not None]
         
