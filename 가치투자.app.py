@@ -2542,6 +2542,98 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
     elif is_rate: p_str = f"{p:.3f}%"
     else: p_str = f"{p:,.2f}"
     return p_str, c, pct
+
+# =========================================================================
+# [100% 무료 자동화] 13F 포트폴리오 및 글로벌/한국 시가총액 실시간 웹 크롤링
+# =========================================================================
+@st.cache_data(ttl=86400 * 7) # 13F는 분기 공시이므로 7일에 한 번만 새로고침 (서버 부하/차단 방지)
+def fetch_dataroma_13f_free(guru_code):
+    dataroma_map = {
+        "BRK": "BRK", "DALIO": "BRW", "DRUCK": "DC", "MARKS": "OC", 
+        "TEPPER": "AM", "BRK_PER": "PSC", "BAU": "BAU", "HC": "HC", 
+        "TSMITH": "FS", "AKRE": "AC", "PI": "PI", "AQUA": "AQ"
+    }
+    m_code = dataroma_map.get(guru_code)
+    if not m_code: return fallback_13f_data.get(guru_code, [])
+
+    url = f"https://www.dataroma.com/m/holdings.php?m={m_code}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    try:
+        r = requests.get(url, headers=headers, timeout=7)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, 'html.parser')
+            table = soup.find('table', {'id': 'grid'})
+            if table:
+                rows = table.find('tbody').find_all('tr')
+                holdings = []
+                for row in rows[:20]: # 상위 20개 종목만 추출
+                    cols = row.find_all('td')
+                    if len(cols) >= 4:
+                        tk = cols[1].text.strip()
+                        name = cols[2].text.strip()
+                        pct_str = cols[3].text.strip().replace('%', '')
+                        holdings.append({
+                            "티커": tk, 
+                            "기업명": primary_names.get(tk, name), 
+                            "비중(%)": safe_float(pct_str)
+                        })
+                if holdings: return holdings
+    except: pass
+    return fallback_13f_data.get(guru_code, []) # 인터넷 끊기면 기존 내장 데이터로 방어
+
+@st.cache_data(ttl=86400) # 시가총액은 매일 1회 갱신
+def fetch_kr_top100_free():
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    items = []
+    rank = 1
+    # 네이버 금융 시가총액 1~2페이지 (1위~100위) 무료 스크래핑
+    for page in [1, 2]:
+        url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
+        try:
+            r = requests.get(url, headers=headers, timeout=5)
+            r.encoding = 'euc-kr'
+            soup = BeautifulSoup(r.text, 'html.parser')
+            table = soup.find('table', {'class': 'type_2'})
+            if not table: continue
+            for tr in table.find_all('tr'):
+                td_name = tr.find('a', {'class': 'tltle'})
+                td_mcap = tr.find_all('td', {'class': 'number'})
+                if td_name and len(td_mcap) >= 5:
+                    code = td_name['href'].split('code=')[-1] + ".KS" # AI 스캔 호환을 위해 .KS 부착
+                    name = td_name.text.strip()
+                    mcap_val = safe_float(td_mcap[4].text)
+                    mcap_str = f"{mcap_val/10000:.1f}조 원" if mcap_val >= 10000 else f"{int(mcap_val):,}억 원"
+                    items.append({"순위": rank, "티커": code, "기업명": name, "시가총액": mcap_str})
+                    rank += 1
+        except: pass
+    return items if len(items) >= 50 else kr_top30
+
+@st.cache_data(ttl=86400)
+def fetch_global_marketcap_top100_free(country_mode="usa"):
+    # CompaniesMarketCap 무료 웹사이트 스크래핑
+    url = "https://companiesmarketcap.com/usa/largest-companies-in-the-usa-by-market-cap/" if country_mode == "usa" else "https://companiesmarketcap.com/largest-companies-by-market-cap/"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    items = []
+    try:
+        r = requests.get(url, headers=headers, timeout=7)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, 'html.parser')
+            rows = soup.select('div.table-container tbody tr')
+            for idx, tr in enumerate(rows[:100]):
+                tk_el = tr.select_one('div.company-code')
+                name_el = tr.select_one('div.company-name')
+                mcap_el = tr.select_one('td:nth-child(3)')
+                if tk_el and name_el and mcap_el:
+                    tk = tk_el.text.strip()
+                    name = name_el.text.strip()
+                    items.append({
+                        "순위": idx + 1, 
+                        "티커": tk, 
+                        "기업명": primary_names.get(tk, name), 
+                        "시가총액": mcap_el.text.strip()
+                    })
+    except: pass
+    return items if items else (us_top30 if country_mode == "usa" else global_top30)
 # =========================================================================
 # [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
 # =========================================================================
@@ -4986,7 +5078,7 @@ with tab2:
 
     with st.spinner(t("최신 포트폴리오 데이터 연동 중...", "Fetching latest portfolio data...")):
         code = guru_map[guru_option]
-        scraped_data = get_13f_portfolio(code)
+        scraped_data = fetch_dataroma_13f_free(code)
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
@@ -5048,11 +5140,11 @@ with tab3:
     mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 (US)", "US"), t("한국 (KR)", "KR"), t("유럽/아시아 (EU/Asia)", "EU/Asia")], horizontal=True, label_visibility="collapsed")
     
     if "US" in mkt or "미국" in mkt:
-        df_mkt = pd.DataFrame(us_top30)
+        df_mkt = pd.DataFrame(fetch_global_marketcap_top100_free("usa"))
     elif "KR" in mkt or "한국" in mkt:
-        df_mkt = pd.DataFrame(kr_top30)
+        df_mkt = pd.DataFrame(fetch_kr_top100_free())
     else:
-        df_mkt = pd.DataFrame(global_top30)
+        df_mkt = pd.DataFrame(fetch_global_marketcap_top100_free("all"))
         
     # ▼▼ 교체할 탭 3 코드 ▼▼
     st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
