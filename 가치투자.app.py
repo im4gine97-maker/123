@@ -2557,9 +2557,13 @@ def fetch_dataroma_13f_free(guru_code):
     if not m_code: return fallback_13f_data.get(guru_code, [])
 
     url = f"https://www.dataroma.com/m/holdings.php?m={m_code}"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    # 봇 차단 우회를 위한 정밀 헤더
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    }
     try:
-        r = requests.get(url, headers=headers, timeout=7)
+        r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, 'html.parser')
             table = soup.find('table', {'id': 'grid'})
@@ -2568,10 +2572,19 @@ def fetch_dataroma_13f_free(guru_code):
                 holdings = []
                 for row in rows[:20]: # 상위 20개 종목만 추출
                     cols = row.find_all('td')
-                    if len(cols) >= 4:
-                        tk = cols[1].text.strip()
-                        name = cols[2].text.strip()
-                        pct_str = cols[3].text.strip().replace('%', '')
+                    # [핵심 수정] Dataroma의 변경된 웹사이트 열 구조에 완벽 대응 (인덱스 에러 원천 차단)
+                    if len(cols) >= 3:
+                        raw_tk_name = cols[1].text.strip()
+                        if " - " in raw_tk_name:
+                            tk_parts = raw_tk_name.split(" - ", 1)
+                            tk = tk_parts[0].strip()
+                            name = tk_parts[1].strip()
+                        else:
+                            tk = raw_tk_name
+                            name = raw_tk_name
+                            
+                        pct_str = cols[2].text.strip().replace('%', '')
+                        
                         holdings.append({
                             "티커": tk, 
                             "기업명": primary_names.get(tk, name), 
@@ -2586,7 +2599,6 @@ def fetch_kr_top100_free():
     headers = {'User-Agent': 'Mozilla/5.0'}
     items = []
     rank = 1
-    # 네이버 금융 시가총액 1~2페이지 (1위~100위) 무료 스크래핑
     for page in [1, 2]:
         url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
         try:
@@ -2599,7 +2611,7 @@ def fetch_kr_top100_free():
                 td_name = tr.find('a', {'class': 'tltle'})
                 td_mcap = tr.find_all('td', {'class': 'number'})
                 if td_name and len(td_mcap) >= 5:
-                    code = td_name['href'].split('code=')[-1] + ".KS" # AI 스캔 호환을 위해 .KS 부착
+                    code = td_name['href'].split('code=')[-1] + ".KS"
                     name = td_name.text.strip()
                     mcap_val = safe_float(td_mcap[4].text)
                     mcap_str = f"{mcap_val/10000:.1f}조 원" if mcap_val >= 10000 else f"{int(mcap_val):,}억 원"
@@ -2607,6 +2619,40 @@ def fetch_kr_top100_free():
                     rank += 1
         except: pass
     return items if len(items) >= 50 else kr_top30
+
+@st.cache_data(ttl=86400)
+def fetch_global_marketcap_top100_free(country_mode="usa"):
+    url = "https://companiesmarketcap.com/usa/largest-companies-in-the-usa-by-market-cap/" if country_mode == "usa" else "https://companiesmarketcap.com/largest-companies-by-market-cap/"
+    # [핵심 수정] 글로벌 시총 사이트의 크롤링 봇 차단을 우회하는 매우 정밀한 브라우저 위장 헤더 적용
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://www.google.com/'
+    }
+    items = []
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, 'html.parser')
+            rows = soup.select('div.table-container tbody tr')
+            for idx, tr in enumerate(rows[:100]):
+                tk_el = tr.select_one('div.company-code')
+                name_el = tr.select_one('div.company-name')
+                tds = tr.find_all('td') # [수정] nth-child 에러를 피하기 위해 리스트 인덱스로 직접 안전하게 추출
+                
+                if tk_el and name_el and len(tds) >= 3:
+                    tk = tk_el.text.strip()
+                    name = name_el.text.strip()
+                    mcap = tds[2].text.strip()
+                    
+                    items.append({
+                        "순위": idx + 1, 
+                        "티커": tk, 
+                        "기업명": primary_names.get(tk, name), 
+                        "시가총액": mcap
+                    })
+    except: pass
+    return items if items else (us_top30 if country_mode == "usa" else global_top30)
 
 @st.cache_data(ttl=86400)
 def fetch_global_marketcap_top100_free(country_mode="usa"):
