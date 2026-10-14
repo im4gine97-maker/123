@@ -23,6 +23,26 @@ except:
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
+
+# ==========================================
+# [추가] 야후 파이낸스 401 차단 및 Invalid Crumb 우회용 공용 세션
+# ==========================================
+@st.cache_resource
+def get_yf_session():
+    try:
+        from curl_cffi import requests as cffi_requests
+        return cffi_requests.Session(impersonate="chrome")
+    except ImportError:
+        s = requests.Session()
+        s.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        })
+        return s
+
+def get_yf_ticker(tk):
+    return yf.Ticker(tk, session=get_yf_session())
 # ==========================================
 # [1] 세션 상태 초기화 및 글로벌 유틸리티
 # ==========================================
@@ -974,20 +994,16 @@ global_top30 = [
 # ==========================================
 def fetch_single_macro(name, tk):
     try:
-        stk = yf.Ticker(tk)
-        info = stk.info if isinstance(stk.info, dict) else {}
-        
-        last_p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
-        prev_p = safe_float(info.get('previousClose', info.get('regularMarketPreviousClose')))
-        
-        if last_p == 0.0 or prev_p == 0.0:
-            hist = stk.history(period="5d")
-            if hist is not None and not hist.empty:
-                hist = hist.dropna(subset=['Close'])
-                if len(hist) >= 1:
-                    last_p = safe_float(hist['Close'].iloc[-1])
-                if len(hist) >= 2:
-                    prev_p = safe_float(hist['Close'].iloc[-2])
+        stk = get_yf_ticker(tk)
+        # 401 에러 주범인 stk.info 대신 차단이 없는 history를 우선 호출합니다.
+        hist = stk.history(period="5d")
+        last_p, prev_p = 0.0, 0.0
+        if hist is not None and not hist.empty:
+            hist = hist.dropna(subset=['Close'])
+            if len(hist) >= 1:
+                last_p = safe_float(hist['Close'].iloc[-1])
+            if len(hist) >= 2:
+                prev_p = safe_float(hist['Close'].iloc[-2])
 
         if prev_p != 0:
             change = last_p - prev_p
@@ -1000,7 +1016,7 @@ def fetch_single_macro(name, tk):
 
 def fetch_single_pe(tk, default_pe):
     try:
-        info = yf.Ticker(tk).info
+        info = get_yf_ticker(tk).info
         return safe_float(info.get("trailingPE", info.get("forwardPE", default_pe)), default_pe)
     except:
         return default_pe
@@ -1473,11 +1489,28 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "성공"
 
 def get_yf_info(stk):
+    res = {}
     try:
-        res = stk.info
-        return res if isinstance(res, dict) else {}
+        raw = stk.info
+        if isinstance(raw, dict):
+            res = raw.copy()
     except:
-        return {}
+        pass
+    
+    # 401 차단 시 fast_info로 핵심 데이터 긴급 복구
+    if not res:
+        try:
+            fi = stk.fast_info
+            res['currentPrice'] = safe_float(fi.last_price)
+            res['previousClose'] = safe_float(fi.previous_close)
+            res['marketCap'] = safe_float(fi.market_cap)
+            res['sharesOutstanding'] = safe_float(fi.shares)
+            res['fiftyTwoWeekHigh'] = safe_float(fi.year_high)
+            res['fiftyTwoWeekLow'] = safe_float(fi.year_low)
+            res['currency'] = getattr(fi, 'currency', 'USD')
+        except:
+            pass
+    return res
 
 def get_finviz_data(cd):
     res = {}
@@ -1609,7 +1642,7 @@ def get_naver_finance(cd):
 
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
-    stk = yf.Ticker(tk)
+    stk = get_yf_ticker(tk)
     i = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         future_info = executor.submit(get_yf_info, stk)
@@ -1679,7 +1712,7 @@ def get_data(tk):
         
         if tk_raw.isdigit() and len(tk_raw) == 6:
             test_tk = tk_raw + ".KS"
-            stk_test = yf.Ticker(test_tk)
+            stk_test = get_yf_ticker(test_tk)
             try:
                 _ = stk_test.fast_info.last_price
                 tk = test_tk 
@@ -1688,7 +1721,7 @@ def get_data(tk):
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
         cd = tk.split('.')[0] if kr else tk
         
-        stk = yf.Ticker(tk)
+        stk = get_yf_ticker(tk)
         i = fetch_cached_info(tk, kr, cd).copy()
         
         p = 0.0
@@ -2412,7 +2445,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         hist_roe = []
         hist_roic = []
         try:
-            stk_temp = yf.Ticker(tk)
+            stk_temp = get_yf_ticker(tk)
             inc = stk_temp.income_stmt
             bs = stk_temp.balance_sheet
             if inc is not None and not inc.empty and bs is not None and not bs.empty:
@@ -2876,8 +2909,12 @@ def scan_value_stocks_free():
     
     def check_stock(tk):
         try:
-            stk = yf.Ticker(tk)
-            info = stk.info
+            time.sleep(0.15)  # 401 Rate Limit 차단 방지용 딜레이
+            kr = tk.endswith(".KS") or tk.endswith(".KQ")
+            cd = tk.split('.')[0] if kr else tk
+            stk = get_yf_ticker(tk)
+            info = fetch_cached_info(tk, kr, cd)
+            
             p = safe_float(info.get('currentPrice', info.get('regularMarketPrice')))
             low52 = safe_float(info.get('fiftyTwoWeekLow'))
             high52 = safe_float(info.get('fiftyTwoWeekHigh'))
@@ -2894,7 +2931,7 @@ def scan_value_stocks_free():
                 data = {
                     "티커": tk,
                     "기업명": primary_names.get(tk, tk),
-                    "현재가": f"${p:.2f}" if not tk.endswith(".KS") and not tk.endswith(".KQ") else f"{int(p):,}원",
+                    "현재가": f"${p:.2f}" if not kr else f"{int(p):,}원",
                     "고점대비 하락폭": f"-{drop_from_high:.1f}%",
                     "저점대비 상승폭": f"+{diff_from_low:.1f}%",
                     "투하자본수익률(ROIC)": f"{roic:.1f}%",
@@ -2904,7 +2941,8 @@ def scan_value_stocks_free():
         except: pass
         return None
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+    # 동시 요청 수를 20 -> 4로 줄여 야후 서버의 봇 차단(401) 방지
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         results = list(executor.map(check_stock, target_tickers))
         valid_res = [r for r in results if r is not None]
         
@@ -2920,6 +2958,7 @@ def scan_value_stocks_free():
 # [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
 # =========================================================================
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
+    i = fetch_cached_info(tk, kr, cd)  # <-- [여기 1줄 추가!] 이미 캐시된 데이터를 가져옴
     a_pe_10y = 0.0
     a_pbr_10y = 0.0
     final_g_10y = 0.05
@@ -2937,17 +2976,17 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
         return safe_float(y_prices.mean()) if not y_prices.empty else 0.0
 
-    mcap = safe_float(stk.info.get('marketCap'))
+    mcap = safe_float(i.get('marketCap'))  # <-- stk.info 대신 i 로 변경!
     if mcap > 0 and reg_p > 0:
         sh_out = mcap / reg_p
     else:
-        sh_out = safe_float(stk.info.get('impliedSharesOutstanding'))
+        sh_out = safe_float(i.get('impliedSharesOutstanding'))  # <-- stk.info 대신 i 로 변경!
         if sh_out <= 0:
-            sh_out = safe_float(stk.info.get('sharesOutstanding', 1))
+            sh_out = safe_float(i.get('sharesOutstanding', 1))  # <-- stk.info 대신 i 로 변경!
 
     # 1. ADR 기업
     if is_adr:
-        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
+        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, i)
         try:
             _inc = stk.income_stmt
             bs = stk.balance_sheet
@@ -3173,7 +3212,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             pass
 
     # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
-    base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
+    base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, i)
 
     if not hist_roe_10y or not hist_roic_10y:
         try:
@@ -3214,7 +3253,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
         
         if a_pe_10y <= 0:
-            t_pe_fallback = safe_float(stk.info.get('trailingPE'))
+            t_pe_fallback = safe_float(i.get('trailingPE'))
             if t_pe_fallback > 0: a_pe_10y = t_pe_fallback
             else: a_pe_10y = 15.0
 
@@ -3234,7 +3273,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
 
     if a_pbr_10y <= 0:
-        a_pbr_10y = safe_float(stk.info.get('priceToBook', 1.0))
+        a_pbr_10y = safe_float(i.get('priceToBook', 1.0))
 
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
@@ -5257,9 +5296,15 @@ with tab_mr:
     st.subheader(t("📉 52주 신저가 근접 우량주 (안전마진 1차 후보군)", "📉 52-Week Low Blue Chips (Margin of Safety Candidates)"))
     st.caption(t("※ 앱에 등록된 훌륭한 기업들 중 현재 가격이 52주 최저가에 15% 이내로 떨어져 있는 바겐세일 리스트입니다. 일시적 악재인지 구조적 훼손인지 탭 1에서 심층 분석해 보세요.", "※ Excellent companies currently trading within 15% of their 52-week lows."))
     
-    with st.spinner("AI가 등록된 기업들의 가격 데이터를 실시간 스캔 중입니다..."):
-        bargains, compounders = scan_value_stocks_free()
-        if bargains:
+    if st.button("🚀 실시간 52주 신저가 & 컴파운더 스캔 시작 (클릭)", key="btn_run_mr_scan", type="primary"):
+        with st.spinner("AI가 등록된 기업들의 가격 데이터를 실시간 스캔 중입니다..."):
+            b_list, c_list = scan_value_stocks_free()
+            st.session_state["saved_bargains"] = b_list
+            st.session_state["saved_compounders"] = c_list
+
+    bargains = st.session_state.get("saved_bargains", [])
+    compounders = st.session_state.get("saved_compounders", [])
+    if bargains:
             df_bargains = pd.DataFrame(bargains)
             st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
             
@@ -5347,6 +5392,14 @@ with tab_capital:
     st.write(t("**찰리 멍거의 철학:** '장기적으로 주식의 수익률은 그 기업의 투하자본수익률(ROIC)에 수렴하게 되어 있습니다.'", "**Charlie Munger's Philosophy:** 'Over the long term, it's hard for a stock to earn a much better return than the business which underlies it earns on its capital.'"))
     st.caption(t("※ 앱에 등록된 우량주 중, 부채 왜곡을 뺀 진짜 수익률(ROIC)이 15% 이상으로 자본을 폭발적으로 굴리면서도 현재 예상 PER이 25배 이하로 합리적인 가격인 기업(컴파운더)들만 추려낸 리스트입니다.", "※ High-quality compounders with ROIC > 15% trading at reasonable Fwd PE < 25x."))
     
+    if not compounders:
+        if st.button("🚀 위대한 자본 배분(컴파운더) 스캔 시작 (클릭)", key="btn_run_cap_scan", type="primary"):
+            with st.spinner("AI가 고수익(ROIC 15% 이상) 우량주를 스캔 중입니다..."):
+                b_list, c_list = scan_value_stocks_free()
+                st.session_state["saved_bargains"] = b_list
+                st.session_state["saved_compounders"] = c_list
+                st.rerun()
+    compounders = st.session_state.get("saved_compounders", [])
     if compounders:
         df_compounders = pd.DataFrame(compounders)
         st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
