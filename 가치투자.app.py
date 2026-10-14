@@ -2074,7 +2074,294 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 
-def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None):
+# =========================================================================
+# [신규 추가 엔진 1] 자사주 순매입수익률(Buyback Yield) 산출 함수
+# =========================================================================
+def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
+    if stk is None or p <= 0:
+        return 0.0
+    try:
+        sh = safe_float(i.get('sharesOutstanding'))
+        if sh <= 0:
+            sh = safe_float(i.get('impliedSharesOutstanding'))
+        mcap = p * sh if sh > 0 else safe_float(i.get('marketCap'))
+        if mcap <= 0:
+            return 0.0
+
+        cf = stk.cash_flow
+        if cf is not None and not cf.empty:
+            rep_val, iss_val = 0.0, 0.0
+            for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments']:
+                if rk in cf.index and pd.notna(cf.loc[rk].iloc[0]):
+                    rep_val = abs(safe_float(cf.loc[rk].iloc[0]))
+                    break
+            for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance']:
+                if ik in cf.index and pd.notna(cf.loc[ik].iloc[0]):
+                    iss_val = abs(safe_float(cf.loc[ik].iloc[0]))
+                    break
+            net_bb = rep_val - iss_val
+            if net_bb != 0:
+                if is_adr and adr_fx_ratio != 1.0 and sh > 0:
+                    net_bb_usd = (net_bb * adr_fx_ratio) * sh
+                    by = (net_bb_usd / mcap) * 100
+                else:
+                    by = (net_bb / mcap) * 100
+                return max(-50.0, min(30.0, by))
+
+        # 현금흐름표 항목이 비어있을 경우 발행주식수 감소율로 역산 (폴백)
+        inc = stk.income_stmt
+        if inc is not None and not inc.empty:
+            for sk in ['Diluted Average Shares', 'Basic Average Shares']:
+                if sk in inc.index:
+                    s_vals = inc.loc[sk].dropna().values
+                    if len(s_vals) >= 2 and s_vals[1] > 0:
+                        sh_chg_pct = ((s_vals[1] - s_vals[0]) / s_vals[1]) * 100
+                        return max(-50.0, min(30.0, sh_chg_pct))
+    except:
+        pass
+    return 0.0
+
+# =========================================================================
+# [신규 추가 엔진 2] 이익의 질(OCF/NI) 및 SBC 차감 보수적 FCF 분석 함수
+# =========================================================================
+def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
+    if is_financial:
+        return f"<span style='color:#8892b0'>{t('금융주 평가 제외', 'N/A (Financial)')}</span>"
+    if stk is None:
+        return f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
+    try:
+        inc = stk.income_stmt
+        cf = stk.cash_flow
+        ni, ocf, sbc, fcf_curr = 0.0, 0.0, 0.0, safe_float(base_fcf)
+
+        if inc is not None and not inc.empty and 'Net Income' in inc.index:
+            ni = safe_float(inc.loc['Net Income'].dropna().iloc[0]) if not inc.loc['Net Income'].dropna().empty else 0.0
+
+        if cf is not None and not cf.empty:
+            for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
+                if ok in cf.index and not cf.loc[ok].dropna().empty:
+                    ocf = safe_float(cf.loc[ok].dropna().iloc[0])
+                    break
+            for sk in ['Stock Based Compensation', 'Share Based Compensation']:
+                if sk in cf.index and not cf.loc[sk].dropna().empty:
+                    sbc = abs(safe_float(cf.loc[sk].dropna().iloc[0]))
+                    break
+            if 'Free Cash Flow' in cf.index and not cf.loc['Free Cash Flow'].dropna().empty:
+                fcf_curr = safe_float(cf.loc['Free Cash Flow'].dropna().iloc[0])
+
+        if ni > 0 and ocf > 0:
+            eq_ratio = ocf / ni
+            if eq_ratio >= 1.2:
+                eq_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 이익의 질 우수 ({eq_ratio:.2f}배)</span>"
+            elif eq_ratio >= 0.8:
+                eq_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] 이익의 질 양호 ({eq_ratio:.2f}배)</span>"
+            else:
+                eq_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 현금 유입 부족 ({eq_ratio:.2f}배)</span>"
+        elif ni > 0 and ocf <= 0:
+            eq_str = f"<span style='color:#ff7675; font-weight:bold;'>[위험] 흑자이나 영업현금 적자 (분식/운전자본 악화 주의)</span>"
+        elif ni <= 0 and ocf > 0:
+            eq_str = f"<span style='color:#74b9ff; font-weight:bold;'>[양호] 회계상 적자이나 영업현금 유입(+)</span>"
+        else:
+            eq_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] 순이익 및 영업현금 동반 적자</span>"
+
+        real_fcf = fcf_curr - sbc
+        mv = max(abs(fcf_curr), abs(real_fcf), abs(sbc), 1)
+        if kr:
+            div_v, u = (1e12, "조원") if mv >= 1e12 else ((1e8, "억원") if mv >= 1e8 else (1, "원"))
+        else:
+            div_v, u = (1e9, "B") if mv >= 1e9 else ((1e6, "M") if mv >= 1e6 else (1, "$"))
+
+        if sbc > 0 and fcf_curr > 0:
+            sbc_pct = (sbc / fcf_curr) * 100
+            sbc_col = "#ff7675" if sbc_pct >= 30 else ("#fdcb6e" if sbc_pct >= 15 else "#2ecc71")
+            sbc_str = f"실질 FCF(SBC 차감): <b>{real_fcf/div_v:.1f}{u}</b> <span style='color:{sbc_col}; font-size:0.9em;'>(SBC가 FCF의 {sbc_pct:.1f}% 잠식)</span>"
+        elif sbc > 0:
+            sbc_str = f"실질 FCF(SBC 차감): <b>{real_fcf/div_v:.1f}{u}</b> <span style='color:#ff7675; font-size:0.9em;'>(SBC: {sbc/div_v:.1f}{u})</span>"
+        else:
+            sbc_str = f"실질 FCF: <b>{fcf_curr/div_v:.1f}{u}</b> <span style='color:#8892b0; font-size:0.9em;'>(SBC 지출 없음/미공시)</span>"
+
+        return f"{eq_str}<br><span style='font-size:0.9em; color:var(--text-color); opacity:0.85;'>{sbc_str}</span>"
+    except:
+        return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+
+# =========================================================================
+# [신규 추가 엔진 3] 피오트로스키 F-Score (9점 만점 재무 건전성 판독기)
+# =========================================================================
+def calc_piotroski_f_score(stk, is_financial=False):
+    if is_financial:
+        return None, f"<span style='color:#8892b0'>{t('금융주 평가 제외', 'N/A (Financial)')}</span>"
+    if stk is None:
+        return None, f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+    try:
+        inc = stk.income_stmt
+        bs = stk.balance_sheet
+        cf = stk.cash_flow
+        if inc is None or inc.empty or bs is None or bs.empty or cf is None or cf.empty:
+            return None, f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+        if len(inc.columns) < 2 or len(bs.columns) < 2:
+            return None, f"<span style='color:#8892b0'>{t('연속 데이터 부족', 'N/A')}</span>"
+
+        c0, c1 = inc.columns[0], inc.columns[1]
+        b0, b1 = bs.columns[0], bs.columns[1]
+        cf0 = cf.columns[0]
+
+        def g_val(df, keys, col):
+            for k in keys:
+                if k in df.index and col in df.columns and pd.notna(df.loc[k, col]):
+                    return safe_float(df.loc[k, col])
+            return 0.0
+
+        ni0 = g_val(inc, ['Net Income', 'Net Income Common Stockholders'], c0)
+        ni1 = g_val(inc, ['Net Income', 'Net Income Common Stockholders'], c1)
+        ta0 = g_val(bs, ['Total Assets'], b0)
+        ta1 = g_val(bs, ['Total Assets'], b1)
+        ocf0 = g_val(cf, ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities'], cf0)
+
+        ltd0 = g_val(bs, ['Long Term Debt', 'Long Term Debt And Capital Lease Obligation', 'Total Debt'], b0)
+        ltd1 = g_val(bs, ['Long Term Debt', 'Long Term Debt And Capital Lease Obligation', 'Total Debt'], b1)
+        ca0 = g_val(bs, ['Current Assets'], b0)
+        ca1 = g_val(bs, ['Current Assets'], b1)
+        cl0 = g_val(bs, ['Current Liabilities'], b0)
+        cl1 = g_val(bs, ['Current Liabilities'], b1)
+        sh0 = g_val(inc, ['Basic Average Shares', 'Diluted Average Shares'], c0)
+        sh1 = g_val(inc, ['Basic Average Shares', 'Diluted Average Shares'], c1)
+        if sh0 == 0: sh0 = g_val(bs, ['Ordinary Shares Number', 'Share Issued'], b0)
+        if sh1 == 0: sh1 = g_val(bs, ['Ordinary Shares Number', 'Share Issued'], b1)
+
+        gp0 = g_val(inc, ['Gross Profit'], c0)
+        gp1 = g_val(inc, ['Gross Profit'], c1)
+        rev0 = g_val(inc, ['Total Revenue', 'Operating Revenue'], c0)
+        rev1 = g_val(inc, ['Total Revenue', 'Operating Revenue'], c1)
+
+        f_score = 0
+        passed = []
+
+        roa0 = (ni0 / ta0) if ta0 > 0 else 0
+        roa1 = (ni1 / ta1) if ta1 > 0 else 0
+        # 1. 수익성 (4점)
+        if roa0 > 0: f_score += 1; passed.append("ROA 흑자")
+        if ocf0 > 0: f_score += 1; passed.append("영업현금 흑자")
+        if roa0 > roa1: f_score += 1; passed.append("ROA 개선")
+        if ocf0 > ni0: f_score += 1; passed.append("영업현금>순이익")
+
+        # 2. 레버리지 및 유동성 (3점)
+        lev0 = (ltd0 / ta0) if ta0 > 0 else 0
+        lev1 = (ltd1 / ta1) if ta1 > 0 else 0
+        if lev0 <= lev1: f_score += 1; passed.append("부채비율 감소/유지")
+
+        cr0 = (ca0 / cl0) if cl0 > 0 else 0
+        cr1 = (ca1 / cl1) if cl1 > 0 else 0
+        if cr0 > cr1: f_score += 1; passed.append("유동비율 개선")
+
+        if sh0 > 0 and sh1 > 0 and sh0 <= sh1 * 1.005:
+            f_score += 1; passed.append("주식 희석 없음")
+
+        # 3. 영업 효율성 (2점)
+        gm0 = (gp0 / rev0) if rev0 > 0 else 0
+        gm1 = (gp1 / rev1) if rev1 > 0 else 0
+        if gm0 > gm1: f_score += 1; passed.append("매출총이익률 개선")
+
+        ato0 = (rev0 / ta0) if ta0 > 0 else 0
+        ato1 = (rev1 / ta1) if ta1 > 0 else 0
+        if ato0 > ato1: f_score += 1; passed.append("자산회전율 개선")
+
+        if f_score >= 7:
+            f_html = f"<span style='color:#2ecc71; font-weight:bold;'>[강력 합격] {f_score} / 9점 (초우량 건전성)</span>"
+        elif f_score >= 4:
+            f_html = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {f_score} / 9점 (무난한 건전성)</span>"
+        else:
+            f_html = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {f_score} / 9점 (재무 체력 약화)</span>"
+
+        detail_txt = ", ".join(passed[:5]) + (" 외" if len(passed) > 5 else "")
+        return f_score, f"{f_html}<br><span style='font-size:0.85em; color:#8892b0;'>통과: {detail_txt}</span>"
+    except:
+        return None, f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+
+# =========================================================================
+# [신규 추가 엔진 4] 발행주식수 증감률 (주식 희석 vs 소각 판독기)
+# =========================================================================
+def analyze_share_dilution(stk, cd, kr):
+    if stk is None:
+        return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+    try:
+        shares_series = {}
+        # 미국 주식인 경우 SEC EDGAR에서 10년치 발행주식수 우선 조회
+        if not kr:
+            try:
+                sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
+                tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=4).json()
+                cik = next((str(v['cik_str']).zfill(10) for k, v in tickers_res.items() if v['ticker'].upper() == cd.upper()), None)
+                if cik:
+                    facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=5).json()
+                    us_gaap = facts.get('facts', {}).get('us-gaap', {})
+                    for tag in ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic', 'CommonStockSharesOutstanding']:
+                        if tag in us_gaap:
+                            for item in us_gaap[tag].get('units', {}).get('shares', []):
+                                if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
+                                    fy = int(item.get('fy'))
+                                    val = safe_float(item.get('val'))
+                                    if val > 0 and (fy not in shares_series or val > shares_series[fy]):
+                                        shares_series[fy] = val
+                            if len(shares_series) >= 3:
+                                break
+                    if shares_series:
+                        try:
+                            splits_data = stk.splits
+                            if not splits_data.empty:
+                                for y_k in list(shares_series.keys()):
+                                    sf = 1.0
+                                    for s_date, s_ratio in splits_data.items():
+                                        if s_date.year > y_k:
+                                            sf *= s_ratio
+                                    shares_series[y_k] *= sf
+                        except:
+                            pass
+            except:
+                pass
+
+        # SEC 데이터가 없거나 한국 주식인 경우 yfinance 4~5년치 데이터 활용
+        if len(shares_series) < 2:
+            inc = stk.income_stmt
+            bs = stk.balance_sheet
+            if inc is not None and not inc.empty:
+                for sk in ['Diluted Average Shares', 'Basic Average Shares']:
+                    if sk in inc.index:
+                        for c_date, val in inc.loc[sk].dropna().items():
+                            y_k = int(str(c_date)[:4])
+                            if safe_float(val) > 0:
+                                shares_series[y_k] = safe_float(val)
+                        if len(shares_series) >= 2:
+                            break
+            if len(shares_series) < 2 and bs is not None and not bs.empty:
+                for sk in ['Ordinary Shares Number', 'Share Issued']:
+                    if sk in bs.index:
+                        for c_date, val in bs.loc[sk].dropna().items():
+                            y_k = int(str(c_date)[:4])
+                            if safe_float(val) > 0:
+                                shares_series[y_k] = safe_float(val)
+                        if len(shares_series) >= 2:
+                            break
+
+        if len(shares_series) >= 2:
+            sorted_y = sorted(shares_series.keys())[-10:]
+            oldest_y, latest_y = sorted_y[0], sorted_y[-1]
+            oldest_sh, latest_sh = shares_series[oldest_y], shares_series[latest_y]
+            span = latest_y - oldest_y if latest_y > oldest_y else (len(sorted_y) - 1)
+            if oldest_sh > 0:
+                chg_pct = ((latest_sh - oldest_sh) / oldest_sh) * 100
+                ann_pct = chg_pct / max(1, span)
+                if chg_pct <= -3.0:
+                    return f"<span style='color:#2ecc71; font-weight:bold;'>[소각 우수] {span}년간 총 {chg_pct:.1f}% 감소</span><br><span style='font-size:0.85em; color:#8892b0;'>연평균 {ann_pct:.1f}% 주식 소각 (주당가치 극대화)</span>"
+                elif chg_pct < 0:
+                    return f"<span style='color:#2ecc71; font-weight:bold;'>[소각 진행] {span}년간 총 {chg_pct:.1f}% 감소</span><br><span style='font-size:0.85em; color:#8892b0;'>주주친화적 주식수 감축 중</span>"
+                elif chg_pct <= 2.0:
+                    return f"<span style='color:#fdcb6e; font-weight:bold;'>[유지] {span}년간 변동 미미 ({chg_pct:+.1f}%)</span><br><span style='font-size:0.85em; color:#8892b0;'>유상증자 및 희석 없음</span>"
+                else:
+                    return f"<span style='color:#ff7675; font-weight:bold;'>[희석 주의] {span}년간 총 +{chg_pct:.1f}% 증가</span><br><span style='font-size:0.85em; color:#8892b0;'>유상증자/스톡옵션 발행을 통한 주주가치 희석</span>"
+    except:
+        pass
+    return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None, buyback_yield_pct=0.0):
     score_details = {}
     score = 0  
 
@@ -2159,63 +2446,40 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
-    # 2. 배당 매력도
+    # 2. 총주주환원율 (배당수익률 + 자사주 순매입수익률 합산)
+    tsy_pct = div_yield_pct + buyback_yield_pct
     div_score = 0
-    if div_yield_pct >= 5.0: div_score = 20
-    elif div_yield_pct >= 4.8: div_score = 19
-    elif div_yield_pct >= 4.6: div_score = 18
-    elif div_yield_pct >= 4.4: div_score = 17
-    elif div_yield_pct >= 4.2: div_score = 16
-    elif div_yield_pct >= 4.0: div_score = 15
-    elif div_yield_pct >= 3.8: div_score = 14
-    elif div_yield_pct >= 3.6: div_score = 13
-    elif div_yield_pct >= 3.4: div_score = 12
-    elif div_yield_pct >= 3.2: div_score = 11
-    elif div_yield_pct >= 3.0: div_score = 10
-    elif div_yield_pct >= 2.7: div_score = 9
-    elif div_yield_pct >= 2.4: div_score = 8
-    elif div_yield_pct >= 2.1: div_score = 7
-    elif div_yield_pct >= 1.8: div_score = 6
-    elif div_yield_pct >= 1.5: div_score = 5
-    elif div_yield_pct >= 1.2: div_score = 4
-    elif div_yield_pct >= 0.9: div_score = 3
-    elif div_yield_pct >= 0.5: div_score = 2
-    elif div_yield_pct > 0.0: div_score = 1
+    if tsy_pct >= 5.0: div_score = 20
+    elif tsy_pct >= 4.8: div_score = 19
+    elif tsy_pct >= 4.6: div_score = 18
+    elif tsy_pct >= 4.4: div_score = 17
+    elif tsy_pct >= 4.2: div_score = 16
+    elif tsy_pct >= 4.0: div_score = 15
+    elif tsy_pct >= 3.8: div_score = 14
+    elif tsy_pct >= 3.6: div_score = 13
+    elif tsy_pct >= 3.4: div_score = 12
+    elif tsy_pct >= 3.2: div_score = 11
+    elif tsy_pct >= 3.0: div_score = 10
+    elif tsy_pct >= 2.7: div_score = 9
+    elif tsy_pct >= 2.4: div_score = 8
+    elif tsy_pct >= 2.1: div_score = 7
+    elif tsy_pct >= 1.8: div_score = 6
+    elif tsy_pct >= 1.5: div_score = 5
+    elif tsy_pct >= 1.2: div_score = 4
+    elif tsy_pct >= 0.9: div_score = 3
+    elif tsy_pct >= 0.5: div_score = 2
+    elif tsy_pct > 0.0: div_score = 1
+    elif tsy_pct < -2.0: div_score = -5  # 유상증자 등으로 주주가치를 심각하게 희석할 경우 감점
     else: div_score = 0
 
-    if div_yield_pct > 0:
-        div_reason = t(f"현재 배당수익률 {div_yield_pct:.2f}% 반영 ", f"Current dividend yield {div_yield_pct:.2f}% (+{div_score} pts)")
+    if tsy_pct > 0:
+        div_reason = t(f"총주주환원율 {tsy_pct:.2f}% (배당 {div_yield_pct:.2f}% + 자사주순매입 {buyback_yield_pct:+.2f}%)", f"Total Shareholder Yield {tsy_pct:.2f}% (Div {div_yield_pct:.2f}% + Buyback {buyback_yield_pct:+.2f}%)")
+    elif tsy_pct < -2.0:
+        div_reason = t(f"주식 순발행(희석) 경고: 총주주환원율 {tsy_pct:.2f}% (배당 {div_yield_pct:.2f}% / 증자 {buyback_yield_pct:+.2f}%)", f"Share Dilution Warning: TSY {tsy_pct:.2f}%")
     else:
-        div_reason = t("배당 없음 (성장 투자 혹은 감점 없음)", "No dividend (No penalty)")
+        div_reason = t("배당 및 자사주 매입 없음 (성장 재투자 혹은 중립)", "No dividend or buyback (Neutral)")
         
-    score_details[t("배당 매력도 (주주환원)", "Dividend Attractiveness")] = (div_score, div_reason)
-
-    # [수정] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
-    def calc_dynamic_score(margin_pct):
-        # [추가] 금융주(is_financial)에 한해 현재 배율(1.5)보다 높은 배율(2.0) 적용 (기존 코드 훼손 없음)
-        base_m = 2.0 if is_financial else 1.5
-        
-        if margin_pct >= 0:
-            # 할인 (저평가) 구간: 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
-            if margin_pct <= 10:
-                return margin_pct * base_m
-            elif margin_pct <= 20:
-                return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
-            elif margin_pct <= 30:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
-            elif margin_pct <= 40:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
-            else:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
-        else:
-            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 0.5씩 더 강력하게 감점
-            abs_m = abs(margin_pct)
-            if abs_m <= 10:
-                return margin_pct * base_m
-            elif abs_m <= 20:
-                return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
-            else:
-                return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
+    score_details[t("총주주환원 매력도 (배당+자사주)", "Total Shareholder Yield (Div+Buyback)")] = (div_score, div_reason)
 
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
@@ -2417,7 +2681,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
         w = 1.0
         if "경영진" in k or "Management" in k: w = weights['mgmt']
-        elif "배당" in k or "Dividend" in k: w = weights['div']
+        elif "배당" in k or "총주주환원" in k or "Dividend" in k or "Shareholder" in k: w = weights['div']
         elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k: w = weights['val']
         elif "자본" in k or "해자" in k or "레버리지" in k or "Moat" in k or "Trend" in k: w = weights['biz']
         elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
@@ -3111,13 +3375,15 @@ def generate_quick_ai_preview(tk):
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
-    # [수정] TypeError를 유발하던 use_pbr 변수를 삭제하고, is_cyclical을 파라미터로 넘깁니다.
-    # [아래처럼 변경]
+    # [추가] 자사주 순매입수익률 계산 후 투자의견 함수에 전달
+    bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
+    
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
         f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
-        hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y
+        hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
+        buyback_yield_pct=bb_yield  # <--- 이 줄 추가!
     )
     # =================================================================
 
@@ -3230,7 +3496,7 @@ with st.sidebar:
     st.caption("항목별 점수 비중(배수)을 내 취향대로 조절하세요. (1.0배 = 기본값, 0배 = 점수 반영 안함)")
     
     w_mgmt = st.slider(" 경영진/거버넌스 비중", 0.0, 3.0, 1.0, 0.1)
-    w_div = st.slider(" 배당 (주주환원) 비중", 0.0, 3.0, 1.0, 0.1)
+    w_div = st.slider(" 총주주환원 (배당+자사주) 비중", 0.0, 3.0, 1.0, 0.1)
     w_val = st.slider(" 가격 매력도 (PER/DCF) 비중", 0.0, 3.0, 1.0, 0.1)
     w_biz = st.slider(" 비즈니스 해자 (ROE/ROIC) 비중", 0.0, 3.0, 1.0, 0.1)
     w_macro = st.slider(" 거시경제 및 성장성 비중", 0.0, 3.0, 1.0, 0.1)
@@ -3352,8 +3618,10 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab6, tab4, tab5 = st.tabs([
+# [변경 후 코드]
+tab1, tab_vs, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
+    t("종목 1:1 맞대결", "1:1 Stock Battle"),
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 100"),
     t("경영진 평가 순위", "Management Ranking"),
@@ -3763,6 +4031,13 @@ with tab1:
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
+                # ▼▼▼ [신규 추가] 총주주환원율 및 3대 신규 심층 지표 계산 ▼▼▼
+                bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
+                tsy_total = div + bb_yield
+                eq_sbc_html = analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr)
+                f_score_val, f_score_html = calc_piotroski_f_score(stk, is_financial)
+                dilution_html = analyze_share_dilution(stk, cd, kr)
+                # ▲▲▲ 여기까지 추가 ▲▲▲
                 
                 has_eps_g = False
                 eps_g_val = 0.0
@@ -3987,13 +4262,12 @@ with tab1:
 
                 roic_val = real_roic if real_roic is not None else 0
                 spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                # [수정] 탭1에서도 투자의견 함수와 차트 함수에 is_cyclical 신호를 넘겨줍니다.
-                # [아래처럼 변경]
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
                     f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
-                    hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y
+                    hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
+                    buyback_yield_pct=bb_yield  # <--- 추가!
                 )
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
@@ -4159,8 +4433,9 @@ with tab1:
 
                 ext_str_clean = ext_str
                 
-                div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
-                div_str = f"<span style='color:{div_color}; font-weight:600;'>배당률: {div:.1f}%</span>"
+                # [교체] 배당률 표기를 총주주환원율(배당+자사주)로 업그레이드
+                div_color = "#2ecc71" if tsy_total >= 3.0 else ("#fdcb6e" if tsy_total > 0 else "var(--text-color)")
+                div_str = f"<span style='color:{div_color}; font-weight:600;'>총주주환원: {tsy_total:.1f}% <span style='font-size:0.85em; opacity:0.85;'>(배당 {div:.1f}% / 자사주 {bb_yield:+.1f}%)</span></span>"
 
                 gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
                 opm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 탁월한 비즈니스', 'Excellent')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 평균 수익', 'Average')}</span>" if op_m >= 8 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 수익성 경고', 'Poor')}</span>")
@@ -4320,7 +4595,7 @@ with tab1:
                     f"<div style='grid-column: 1 / -1; font-weight: 800; font-size: 1.2rem; color: #fff; background: {op_color}; padding: 15px 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>"
                     f"{easy_summary_msg}</div>"
 
-                    f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 총주주환원율</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
@@ -4333,6 +4608,11 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>위기 대처 현금력 (유동비율)</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
                     f"{rnd_block}"
+
+                    # ▼▼▼ [신규 추가 카드 3종] 이익의 질 & 실질 FCF / 피오트로스키 F-Score / 발행주식수 증감률 ▼▼▼
+                    f"<div style='{item_style}'><div style='{lbl_style}'>이익의 질 (OCF/NI) & 실질 FCF</div><div style='{desc_style} margin-top:5px;'>{eq_sbc_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>피오트로스키 F-Score (9점 만점)</div><div style='{desc_style} margin-top:5px;'>{f_score_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
@@ -5387,6 +5667,245 @@ with tab6:
             if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
+# ==========================================
+# [신규 탭] 종목 1:1 맞대결 비교 (1:1 Stock Battle)
+# ==========================================
+def resolve_input_ticker(raw_str):
+    if not raw_str:
+        return None
+    q = raw_str.strip().replace(" ", "").upper()
+    if q in tmap:
+        return tmap[q]
+    for k, v in tmap.items():
+        if raw_str.strip().upper() in k.upper() or raw_str.strip() in k:
+            return v
+    return q
+
+def get_full_battle_profile(tk):
+    stk, p, i, kr = get_data(tk)
+    if not p or stk is None:
+        return None
+    ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
+    if ty == 0: ty = 4.4
+
+    sector_str = str(i.get('sector', '')).lower()
+    industry_str = str(i.get('industry', '')).lower()
+    summary_str = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
+    eng_fin_keywords = ['financial', 'bank', 'insurance', 'capital market', 'credit service', 'securities', 'asset management', 'investment']
+    kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
+    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A", "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF", "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"]
+    kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
+    tk_upper = str(tk).upper()
+    is_financial = any(kw in sector_str or kw in industry_str for kw in eng_fin_keywords) or any(kw in summary_str for kw in kor_fin_keywords) or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+
+    cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
+    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
+    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
+    taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
+    is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
+    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or is_china_tw
+
+    reg_p = safe_float(i.get('regularMarketPrice', p))
+    if reg_p == 0: reg_p = p
+
+    t_pe_raw = safe_float(i.get('trailingPE'))
+    f_pe_raw = safe_float(i.get('forwardPE'))
+    t_eps = safe_float(i.get('trailingEps'))
+    f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+    if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
+    if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
+
+    t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
+    f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
+    if f_pe <= 0 and t_pe > 0: f_pe = t_pe
+
+    pbr = safe_float(i.get('priceToBook'))
+    bv = safe_float(i.get('bookValue'))
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+    is_adr = (currency_trade != currency_fin) and not kr
+    adr_fx_ratio = 1.0
+    if is_adr:
+        try:
+            inc_temp = stk.income_stmt
+            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
+                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
+                eps_curr = safe_float(i.get('trailingEps'))
+                if ni_curr != 0 and eps_curr != 0:
+                    adr_fx_ratio = abs(eps_curr / ni_curr)
+        except: pass
+
+    if pbr <= 0.0 and bv > 0 and p > 0: pbr = p / bv
+
+    roe = safe_float(i.get('returnOnEquity')) * 100
+    real_roic = get_real_roic(stk, i)
+    roic_val = real_roic if real_roic is not None else 0.0
+
+    cd = tk.split('.')[0] if kr else tk
+    a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
+        stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
+    )
+
+    f_pbr = pbr
+    if bv > 0 and f_eps != 0 and tk not in ["BRK-B", "BRK-A"]:
+        f_bps = bv + f_eps - safe_float(i.get('dividendRate', 0))
+        if f_bps > 0: f_pbr = reg_p / f_bps
+
+    pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if (is_financial or kr or is_cyclical) and f_pbr > 0 and a_pbr > 0 else (((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0)
+    ey = (1 / f_pe * 100) if f_pe > 0 else 0
+    erp = ey - ty
+    sh_dcf = safe_float(i.get('sharesOutstanding'))
+    iv, mos_val, _ = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
+    mos_val = safe_float(mos_val)
+
+    div_yield = safe_float(i.get('dividendYield'))
+    div_rate = safe_float(i.get('dividendRate'))
+    div = (div_rate / p) * 100 if (div_rate > 0 and p > 0 and (div_rate / p) * 100 < 50.0) else (div_yield if div_yield > 1.0 else div_yield * 100)
+    bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
+    tsy_val = div + bb_yield
+
+    criticism_text = fetch_governance_criticism(tk, cd, "CEO")
+    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+
+    op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text,
+        is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+        f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
+        hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
+        buyback_yield_pct=bb_yield
+    )
+    total_score = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
+    f_score_num, _ = calc_piotroski_f_score(stk, is_financial)
+
+    # 오각형 차트용 0~100 정규화 값 산출
+    weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
+    def get_s(subs):
+        for k, v in score_breakdown.items():
+            if any(s in k for s in subs): return v[0] if isinstance(v, tuple) else v
+        return 0
+    def norm_v(val, mn, mx):
+        return max(0, min(100, (val - mn) / (mx - mn) * 100)) if mx > mn else 0
+
+    r_vals = [
+        norm_v(get_s(["경영진", "Management"]), -15.0 * weights['mgmt'], 15.0 * weights['mgmt']),
+        norm_v(get_s(["비즈니스 해자", "Moat", "Profitability"]), -15.0 * weights['biz'], 15.0 * weights['biz']),
+        norm_v(get_s(["가격 매력도", "Price Attractiveness"]), -20.0 * weights['val'], 20.0 * weights['val']),
+        norm_v(get_s(["장기 복리", "Compounding"]), -15.0 * weights['macro'], 7.5 * weights['macro']),
+        norm_v(get_s(["거시 매력도", "Macro"]) if is_financial else get_s(["내재가치", "DCF"]), -15.0 * (weights['macro'] if is_financial else weights['val']), 10.0 * (weights['macro'] if is_financial else weights['val']))
+    ]
+
+    return {
+        "tk": tk,
+        "name": primary_names.get(tk, i.get('shortName', tk)),
+        "p_str": f"{int(p):,}원" if kr else f"${p:,.2f}",
+        "iv_str": (f"{int(iv):,}원" if kr else f"${iv:,.2f}") if (iv and not is_financial) else "N/A",
+        "score": total_score,
+        "op_title": op_title,
+        "op_color": op_color,
+        "f_pe": f_pe,
+        "a_pe": a_pe,
+        "f_pbr": f_pbr,
+        "a_pbr": a_pbr,
+        "roe": roe,
+        "roic": roic_val,
+        "is_fin": is_financial,
+        "mos": mos_val if not is_financial else pmos_val,
+        "tsy": tsy_val,
+        "div": div,
+        "bb": bb_yield,
+        "f_score": f"{f_score_num} / 9점" if f_score_num is not None else "N/A",
+        "radar": r_vals
+    }
+
+with tab_vs:
+    st.subheader(t("⚔️ 종목 1:1 맞대결 비교 (AI 멀티 스캐너)", "⚔️ 1:1 Stock Battle Comparison"))
+    st.caption(t("두 기업을 입력하면 오각형 레이더 차트를 겹쳐 비교하고, 핵심 밸류에이션·해자·총주주환원율·AI 총점을 나란히 대결시킵니다.", "Compare two companies side-by-side with overlaid radar charts and core value metrics."))
+
+    c_vs1, c_vs2, c_vs_btn = st.columns([2, 2, 1])
+    with c_vs1:
+        vs_in1 = st.text_input(t("첫 번째 종목 (A)", "First Stock (A)"), value="삼성전자", key="vs_input_1")
+    with c_vs2:
+        vs_in2 = st.text_input(t("두 번째 종목 (B)", "Second Stock (B)"), value="SK하이닉스", key="vs_input_2")
+    with c_vs_btn:
+        st.write("")
+        run_vs = st.button(t("⚔️ 맞대결 시작", "⚔️ Compare"), use_container_width=True, type="primary")
+
+    if run_vs or ("vs_res_a" in st.session_state and "vs_res_b" in st.session_state):
+        if run_vs:
+            tk_a = resolve_input_ticker(vs_in1)
+            tk_b = resolve_input_ticker(vs_in2)
+            with st.spinner(t(f"[{tk_a}] vs [{tk_b}] 정밀 비교 데이터를 연산 중입니다...", "Calculating battle metrics...")):
+                st.session_state["vs_res_a"] = get_full_battle_profile(tk_a)
+                st.session_state["vs_res_b"] = get_full_battle_profile(tk_b)
+
+        res_a = st.session_state.get("vs_res_a")
+        res_b = st.session_state.get("vs_res_b")
+
+        if res_a and res_b:
+            col_card_a, col_radar_vs, col_card_b = st.columns([1, 1.3, 1])
+            with col_card_a:
+                st.markdown(f"""
+                <div style="padding:20px; border-radius:16px; border:2px solid #74b9ff; background:rgba(116,185,255,0.06); text-align:center;">
+                    <h3 style="margin:0; color:#74b9ff;">🟦 {res_a['name']} ({res_a['tk']})</h3>
+                    <div style="font-size:2.0rem; font-weight:900; margin:10px 0; color:{res_a['op_color']};">{res_a['score']}점</div>
+                    <div style="font-size:0.95rem; color:var(--text-color); font-weight:600;">{res_a['op_title']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_card_b:
+                st.markdown(f"""
+                <div style="padding:20px; border-radius:16px; border:2px solid #ff7675; background:rgba(255,118,117,0.06); text-align:center;">
+                    <h3 style="margin:0; color:#ff7675;">🟥 {res_b['name']} ({res_b['tk']})</h3>
+                    <div style="font-size:2.0rem; font-weight:900; margin:10px 0; color:{res_b['op_color']};">{res_b['score']}점</div>
+                    <div style="font-size:0.95rem; color:var(--text-color); font-weight:600;">{res_b['op_title']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_radar_vs:
+                cats = [t('경영진/거버넌스', 'Mgmt'), t('해자(10년 수익성)', 'Moat'), t('가격 매력도', 'Value'), t('미래 성장성', 'Growth'), t('안전마진(DCF/ERP)', 'Safety')]
+                cats_loop = cats + [cats[0]]
+                va_loop = res_a['radar'] + [res_a['radar'][0]]
+                vb_loop = res_b['radar'] + [res_b['radar'][0]]
+
+                fig_vs = go.Figure()
+                fig_vs.add_trace(go.Scatterpolar(
+                    r=va_loop, theta=cats_loop, fill='toself',
+                    name=f"{res_a['name']} ({res_a['tk']})",
+                    fillcolor='rgba(116, 185, 255, 0.25)', line=dict(color='#74b9ff', width=2.5)
+                ))
+                fig_vs.add_trace(go.Scatterpolar(
+                    r=vb_loop, theta=cats_loop, fill='toself',
+                    name=f"{res_b['name']} ({res_b['tk']})",
+                    fillcolor='rgba(255, 118, 117, 0.25)', line=dict(color='#ff7675', width=2.5)
+                ))
+                fig_vs.update_layout(
+                    polar=dict(
+                        radialaxis=dict(visible=True, range=[0, 105], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
+                        angularaxis=dict(tickfont=dict(size=12, color='#8892b0'), gridcolor='rgba(128,128,128,0.2)'),
+                        bgcolor='rgba(0,0,0,0)'
+                    ),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    legend=dict(orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5, font=dict(color='#8892b0')),
+                    margin=dict(l=60, r=60, t=50, b=30), height=360
+                )
+                st.plotly_chart(fig_vs, use_container_width=True, config={'staticPlot': True})
+
+            st.markdown("#### 📋 핵심 지표 1:1 비교 판정표")
+            comp_rows = [
+                {"지표": "AI 종합 점수", res_a['name']: f"{res_a['score']}점", res_b['name']: f"{res_b['score']}점", "우위 판정": f"🟦 {res_a['name']}" if res_a['score'] > res_b['score'] else (f"🟥 {res_b['name']}" if res_b['score'] > res_a['score'] else "무승부")},
+                {"지표": "현재 주가", res_a['name']: res_a['p_str'], res_b['name']: res_b['p_str'], "우위 판정": "-"},
+                {"지표": "DCF 적정가", res_a['name']: res_a['iv_str'], res_b['name']: res_b['iv_str'], "우위 판정": "-"},
+                {"지표": "핵심 안전마진 (%)", res_a['name']: f"{res_a['mos']:+.1f}%", res_b['name']: f"{res_b['mos']:+.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['mos'] > res_b['mos'] else f"🟥 {res_b['name']}"},
+                {"지표": "선행 PER (10년 평균)", res_a['name']: f"{res_a['f_pe']:.1f}배 ({res_a['a_pe']:.1f}배)", res_b['name']: f"{res_b['f_pe']:.1f}배 ({res_b['a_pe']:.1f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pe'] < res_b['f_pe']) else f"🟥 {res_b['name']}"},
+                {"지표": "선행 PBR (10년 평균)", res_a['name']: f"{res_a['f_pbr']:.2f}배 ({res_a['a_pbr']:.2f}배)", res_b['name']: f"{res_b['f_pbr']:.2f}배 ({res_b['a_pbr']:.2f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pbr'] < res_b['f_pbr']) else f"🟥 {res_b['name']}"},
+                {"지표": "자본수익률 (ROE)", res_a['name']: f"{res_a['roe']:.1f}%", res_b['name']: f"{res_b['roe']:.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['roe'] > res_b['roe'] else f"🟥 {res_b['name']}"},
+                {"지표": "투하자본수익률 (ROIC)", res_a['name']: ("금융주 제외" if res_a['is_fin'] else f"{res_a['roic']:.1f}%"), res_b['name']: ("금융주 제외" if res_b['is_fin'] else f"{res_b['roic']:.1f}%"), "우위 판정": f"🟦 {res_a['name']}" if res_a['roic'] > res_b['roic'] else f"🟥 {res_b['name']}"},
+                {"지표": "총주주환원율 (배당+자사주)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"},
+                {"지표": "피오트로스키 F-Score", res_a['name']: res_a['f_score'], res_b['name']: res_b['f_score'], "우위 판정": "-"}
+            ]
+            st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
+        else:
+            st.error(t("종목 데이터를 불러오지 못했습니다. 티커나 종목명을 다시 확인해 주세요.", "Failed to load stock data. Please check the ticker."))
 # 하단 면책 조항 및 카피라이트 
 st.divider()
 lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
