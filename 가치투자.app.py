@@ -2481,6 +2481,32 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("총주주환원 매력도 (배당+자사주)", "Total Shareholder Yield (Div+Buyback)")] = (div_score, div_reason)
 
+    # [필수 복구] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
+    def calc_dynamic_score(margin_pct):
+        base_m = 2.0 if is_financial else 1.5
+        
+        if margin_pct >= 0:
+            # 할인 (저평가) 구간: 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
+            if margin_pct <= 10:
+                return margin_pct * base_m
+            elif margin_pct <= 20:
+                return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
+            elif margin_pct <= 30:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
+            elif margin_pct <= 40:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
+            else:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
+        else:
+            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 0.5씩 더 강력하게 감점
+            abs_m = abs(margin_pct)
+            if abs_m <= 10:
+                return margin_pct * base_m
+            elif abs_m <= 20:
+                return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
+            else:
+                return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
+
     # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
     if is_financial or kr or is_cyclical:
