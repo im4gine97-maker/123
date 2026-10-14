@@ -3587,7 +3587,7 @@ def generate_quick_ai_preview(tk):
     kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
     is_kor_fin = any(kw in summary_str for kw in kor_fin_keywords)
     is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
-    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A", "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF", "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"]
+    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "BRK-B", "BRK-A", "CB", "PGR", "DFS", "COF", "SYF", "MET", "PRU", "AFL", "TRV", "ALL", "AIG"]
     kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
