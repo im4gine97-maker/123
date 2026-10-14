@@ -3035,19 +3035,23 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     lev_score = 0
     if not is_financial and w_roic > 0 and w_roe > 0:
         gap = w_roe - w_roic
-        if gap <= -5: lev_score = 15
-        elif gap >= 20: lev_score = -20
+        # [핵심 보정] ROIC 자체가 22% 이상인 초우량 컴파운더(MA, V, MCO, AAPL 등)가 자사주 소각으로 자본이 줄어 ROE가 극대화된 경우 부채 왜곡 감점 면제!
+        if w_roic >= 22.0 and gap > 10 and (buyback_yield_pct > 0 or w_roic >= 28.0):
+            lev_score = 10
+            lev_reason = t(f"자사주 소각형 고효율 구조: ROIC({w_roic:.1f}%) 자체가 탁월하며 자사주 매입으로 ROE({w_roe:.1f}%) 극대화", "High ROIC with buyback-driven ROE expansion")
         else:
-            if gap > 4: lev_score = int(round(0 - (gap - 4) * 1.25))  
-            else: lev_score = int(round(15 - (gap + 5) * 1.66))       
+            if gap <= -5: lev_score = 15
+            elif gap >= 20: lev_score = -20
+            else:
+                if gap > 4: lev_score = int(round(0 - (gap - 4) * 1.25))  
+                else: lev_score = int(round(15 - (gap + 5) * 1.66))        
 
-        if lev_score <= -15: lev_reason = t(f"과도한 레버리지: ROE({w_roe:.1f}%)가 ROIC({w_roic:.1f}%)보다 비정상적으로 높음", f"Excessive Leverage")
-        elif lev_score < 0: lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음", f"Leverage Warning")
-        elif lev_score == 0: lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p", f"Normal Leverage")
-        else: lev_reason = t(f"우량한 자본 구조: ROIC({w_roic:.1f}%)가 방어됨 (부채 적음)", f"Healthy Capital (Low debt)")
+            if lev_score <= -15: lev_reason = t(f"과도한 레버리지: ROE({w_roe:.1f}%)가 ROIC({w_roic:.1f}%)보다 비정상적으로 높음", f"Excessive Leverage")
+            elif lev_score < 0: lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음", f"Leverage Warning")
+            elif lev_score == 0: lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p", f"Normal Leverage")
+            else: lev_reason = t(f"우량한 자본 구조: ROIC({w_roic:.1f}%)가 방어됨 (부채 적음)", f"Healthy Capital (Low debt)")
             
         score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
-
     # --- [가상자산 테마주 공통 판독기] ---
     tk_upper = str(tk).upper()
     crypto_proxies = ["MSTR", "COIN", "MARA", "RIOT", "IBIT", "MSTY"]
