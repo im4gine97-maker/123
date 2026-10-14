@@ -3731,10 +3731,10 @@ with c_title:
 with c_lang:
     st.write("")
     if st.session_state.lang == "ko":
-        if st.button("EN", use_container_width=True):
+        if st.button("EN", width="stretch"):
             st.session_state.lang = "en"; st.rerun()
     else:
-        if st.button("KO", use_container_width=True):
+        if st.button("KO", width="stretch"):
             st.session_state.lang = "ko"; st.rerun()
 
 k_p, k_c, k_pct = get_safe_macro("KOSPI")
@@ -3797,7 +3797,7 @@ with tab1:
         )
         st.caption(t("[안내] 초성이나 일부분만 쳐도 스마트하게 찾아냅니다. (예: '마소' -> 마이크로소프트, '엔비' -> 엔비디아, '버크셔' -> 버크셔해서웨이)", "[Info] Smart partial match supported."))
     with col_btn:
-        if st.button(t("가치 분석 스캔", "Start Value Scan"), use_container_width=True, type="primary"):
+        if st.button(t("가치 분석 스캔", "Start Value Scan"), width="stretch", type="primary"):
             trigger_scan(); st.rerun() 
 
     if st.session_state.suggestions:
@@ -3805,7 +3805,7 @@ with tab1:
         sug_cols = st.columns(4)
         for idx, (s_tk, s_name) in enumerate(st.session_state.suggestions[:12]):
             with sug_cols[idx % 4]:
-                if st.button(f"{s_name}", key=f"sug_btn_{s_tk}", use_container_width=True):
+                if st.button(f"{s_name}", key=f"sug_btn_{s_tk}", width="stretch"):
                     st.session_state.search_tk = s_tk
                     st.session_state.suggestions = []
                     st.rerun()
@@ -3904,7 +3904,7 @@ with tab1:
                 with col_bm_btn:
                     is_in_bm = tk in st.session_state.bookmarks
                     bm_label = t("★ 내 관심종목에서 해제", "★ Remove from Watchlist") if is_in_bm else t("☆ 내 관심종목에 추가", "☆ Add to Watchlist")
-                    if st.button(bm_label, key=f"bm_toggle_{tk}", use_container_width=True):
+                    if st.button(bm_label, key=f"bm_toggle_{tk}", width="stretch"):
                         if is_in_bm:
                             st.session_state.bookmarks.remove(tk)
                         else:
@@ -4273,7 +4273,7 @@ with tab1:
 
                 with col_op2:
                     fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr, is_cyclical=is_cyclical)
-                    st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
+                    st.plotly_chart(fig_radar, width="stretch", config={'staticPlot': True})
                 st.divider()
 
                 if is_financial:
@@ -4780,7 +4780,7 @@ with tab1:
                             fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in rev], name=t('매출액', 'Revenue'), marker_color='#A0C4FF'))
                             fig1.add_trace(go.Bar(x=years, y=[x/div_val for x in ni], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                             fig1.update_layout(barmode='group', height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                            st.plotly_chart(fig1, use_container_width=True, config={'staticPlot': True})
+                            st.plotly_chart(fig1, width="stretch", config={'staticPlot': True})
                         else:
                             st.caption(t("매출/순이익 시각화 데이터가 부족합니다.", "Insufficient Revenue/Net Income data for visualization."))
                     
@@ -4794,7 +4794,7 @@ with tab1:
                             fig2 = go.Figure()
                             fig2.add_trace(go.Bar(x=fcf_years, y=[x/div_val for x in fcf_chart], name='FCF', marker_color='#fdcb6e'))
                             fig2.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), showlegend=False)
-                            st.plotly_chart(fig2, use_container_width=True, config={'staticPlot': True})
+                            st.plotly_chart(fig2, width="stretch", config={'staticPlot': True})
                         else:
                             st.caption(t("FCF 시각화 데이터가 부족합니다.", "Insufficient FCF data for visualization."))
                 except Exception as e:
@@ -4945,7 +4945,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                         
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
+                        st.plotly_chart(fig, width="stretch", config={'staticPlot': True})
 
                     def append_shares(df, stk_obj, is_kr):
                         if df is None or df.empty or stk_obj is None: return df
@@ -5006,7 +5006,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 
                                 try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                st.dataframe(formatted_yf, use_container_width=True)
+                                st.dataframe(formatted_yf, width="stretch")
                             else:
                                 st.warning("재무제표 데이터를 가져올 수 없습니다.")
                         except Exception as e:
@@ -5025,7 +5025,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     
                                     try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                     except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                    st.dataframe(formatted_dart, use_container_width=True)
+                                    st.dataframe(formatted_dart, width="stretch")
                                     dart_success = True
                                 else:
                                     st.error(f"DART에서 데이터를 찾을 수 없습니다. ({debug_msg})")
@@ -5110,7 +5110,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         
                                         try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
                                         except: formatted_sec = sec_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
-                                        st.dataframe(formatted_sec, use_container_width=True)
+                                        st.dataframe(formatted_sec, width="stretch")
                                         sec_success = True
                             except Exception: pass
                         
@@ -5140,7 +5140,7 @@ with tab_comp:
         comp_in_b = st.text_input(t("두 번째 종목 (B)", "Stock B"), value="SK하이닉스", key="comp_input_b")
     with c_comp_btn:
         st.write("")
-        run_comp = st.button(t("1:1 맞대결 시작", "Compare Now"), use_container_width=True, type="primary", key="btn_run_comp")
+        run_comp = st.button(t("1:1 맞대결 시작", "Compare Now"), width="stretch", type="primary", key="btn_run_comp")
 
     if run_comp or ("comp_res_a" in st.session_state and "comp_res_b" in st.session_state):
         if run_comp:
@@ -5177,7 +5177,7 @@ with tab_comp:
                 st.markdown(f"<div style='padding:18px; border-radius:14px; border:2px solid #ff7675; text-align:center; background:rgba(255,118,117,0.05);'><h4 style='margin:0; color:#ff7675;'>🟥 {res_b['name']} ({res_b['tk']})</h4><div style='font-size:1.4rem; font-weight:800; margin:8px 0; color:{res_b['op_color']};'>{res_b['op_title']}</div><div style='font-size:0.9rem; color:#8892b0;'>현재가: {res_b['p_str']} | DCF 적정가: {res_b['iv_str']}</div></div>", unsafe_allow_html=True)
 
             fig_dual = create_dual_radar_chart(res_a, res_b)
-            st.plotly_chart(fig_dual, use_container_width=True, config={'staticPlot': True})
+            st.plotly_chart(fig_dual, width="stretch", config={'staticPlot': True})
 
             comp_rows = [
                 {"비교 지표": t("AI 종합 점수", "AI Total Score"), f"{res_a['name']} ({res_a['tk']})": f"{res_a['total_score']}점", f"{res_b['name']} ({res_b['tk']})": f"{res_b['total_score']}점"},
@@ -5191,7 +5191,7 @@ with tab_comp:
                 {"비교 지표": t("총주주환원율 (배당+자사주)", "Total Shareholder Yield"), f"{res_a['name']} ({res_a['tk']})": f"{res_a['total_sh_yield']:+.2f}% (배당 {res_a['div']:.2f}% / 자사주 {res_a['buyback']:+.2f}%)", f"{res_b['name']} ({res_b['tk']})": f"{res_b['total_sh_yield']:+.2f}% (배당 {res_b['div']:.2f}% / 자사주 {res_b['buyback']:+.2f}%)"},
                 {"비교 지표": t("피오트로스키 F-Score", "Piotroski F-Score"), f"{res_a['name']} ({res_a['tk']})": f"{res_a['f_score']} / 9점", f"{res_b['name']} ({res_b['tk']})": f"{res_b['f_score']} / 9점"}
             ]
-            st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(comp_rows), width="stretch", hide_index=True)
         else:
             st.warning(t("두 종목 중 데이터를 불러올 수 없는 티커가 있습니다. 정확한 종목명이나 티커를 입력해 주세요.", "Could not load data for one of the tickers."))
 
@@ -5206,13 +5206,13 @@ with tab_bm:
     with c_bm_in:
         bm_quick_in = st.text_input(t("관심종목 빠른 추가 (종목명 또는 티커)", "Quick Add Ticker/Name"), placeholder=t("예: 애플, 브로드컴, 메리츠금융, 삼성전자", "e.g., AAPL, AVGO"), label_visibility="collapsed", key="bm_quick_input")
     with c_bm_add:
-        if st.button(t("➕ 관심종목 추가", "➕ Add Stock"), use_container_width=True, type="primary", key="btn_bm_add"):
+        if st.button(t("➕ 관심종목 추가", "➕ Add Stock"), width="stretch", type="primary", key="btn_bm_add"):
             resolved_bm = resolve_tk_input(bm_quick_in)
             if resolved_bm and resolved_bm not in st.session_state.bookmarks:
                 st.session_state.bookmarks.append(resolved_bm)
                 st.rerun()
     with c_bm_clr:
-        if st.button(t("🗑️ 전체 비우기", "🗑️ Clear All"), use_container_width=True, key="btn_bm_clear"):
+        if st.button(t("🗑️ 전체 비우기", "🗑️ Clear All"), width="stretch", key="btn_bm_clear"):
             st.session_state.bookmarks = []
             st.rerun()
 
@@ -5254,7 +5254,7 @@ with tab_bm:
             st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 탭 1로 즉시 연동하여 상세 분석을 볼 수 있습니다!**")
             event_bm = st.dataframe(
                 df_bm,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 on_select="rerun",
                 selection_mode="single-row"
@@ -5263,11 +5263,11 @@ with tab_bm:
                 sel_bm_tk = df_bm.iloc[event_bm.selection.rows[0]]["티커"]
                 c_pin_bm, c_del_bm = st.columns([3, 1])
                 with c_pin_bm:
-                    if st.button(t(f"🔍 [{sel_bm_tk}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"Pin [{sel_bm_tk}] to Tab 1"), key="btn_fix_bm", use_container_width=True, type="primary"):
+                    if st.button(t(f"🔍 [{sel_bm_tk}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f"Pin [{sel_bm_tk}] to Tab 1"), key="btn_fix_bm", width="stretch", type="primary"):
                         st.session_state.sync_tk = sel_bm_tk
                         st.rerun()
                 with c_del_bm:
-                    if st.button(t(f"❌ [{sel_bm_tk}] 북마크 삭제", f"Remove [{sel_bm_tk}]"), key="btn_del_single_bm", use_container_width=True):
+                    if st.button(t(f"❌ [{sel_bm_tk}] 북마크 삭제", f"Remove [{sel_bm_tk}]"), key="btn_del_single_bm", width="stretch"):
                         if sel_bm_tk in st.session_state.bookmarks:
                             st.session_state.bookmarks.remove(sel_bm_tk)
                             st.rerun()
@@ -5311,7 +5311,7 @@ with tab_mr:
         
         event_mr = st.dataframe(
             df_bargains, 
-            use_container_width=True, 
+            width="stretch", 
             hide_index=True,
             on_select="rerun",
             selection_mode="single-row"
@@ -5334,7 +5334,7 @@ with tab_mr:
         if "preview_tab_mr" in st.session_state:
             st.markdown(st.session_state["preview_tab_mr"], unsafe_allow_html=True)
             if "preview_tk_tab_mr" in st.session_state:
-                if st.button(t(f" [{st.session_state['preview_tk_tab_mr']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_mr']}] to Tab 1"), key="btn_fix_tab_mr", use_container_width=True, type="primary"):
+                if st.button(t(f" [{st.session_state['preview_tk_tab_mr']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_mr']}] to Tab 1"), key="btn_fix_tab_mr", width="stretch", type="primary"):
                     st.session_state.sync_tk = st.session_state["preview_tk_tab_mr"]
                     st.rerun()
     else:
@@ -5356,7 +5356,7 @@ with tab_insider:
             
             event_insider = st.dataframe(
                 df_insider, 
-                use_container_width=True, 
+                width="stretch", 
                 hide_index=True,
                 on_select="rerun",
                 selection_mode="single-row"
@@ -5379,7 +5379,7 @@ with tab_insider:
             if "preview_tab_in" in st.session_state:
                 st.markdown(st.session_state["preview_tab_in"], unsafe_allow_html=True)
                 if "preview_tk_tab_in" in st.session_state:
-                    if st.button(t(f" [{st.session_state['preview_tk_tab_in']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_in']}] to Tab 1"), key="btn_fix_tab_in", use_container_width=True, type="primary"):
+                    if st.button(t(f" [{st.session_state['preview_tk_tab_in']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_in']}] to Tab 1"), key="btn_fix_tab_in", width="stretch", type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab_in"]
                         st.rerun()
         else:
@@ -5407,7 +5407,7 @@ with tab_capital:
         
         event_cap = st.dataframe(
             df_compounders, 
-            use_container_width=True, 
+            width="stretch", 
             hide_index=True,
             on_select="rerun",
             selection_mode="single-row"
@@ -5430,7 +5430,7 @@ with tab_capital:
         if "preview_tab_cap" in st.session_state:
             st.markdown(st.session_state["preview_tab_cap"], unsafe_allow_html=True)
             if "preview_tk_tab_cap" in st.session_state:
-                if st.button(t(f" [{st.session_state['preview_tk_tab_cap']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_cap']}] to Tab 1"), key="btn_fix_tab_cap", use_container_width=True, type="primary"):
+                if st.button(t(f" [{st.session_state['preview_tk_tab_cap']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_cap']}] to Tab 1"), key="btn_fix_tab_cap", width="stretch", type="primary"):
                     st.session_state.sync_tk = st.session_state["preview_tk_tab_cap"]
                     st.rerun()
     else:
@@ -5503,7 +5503,7 @@ with tab2:
                     "기업명": st.column_config.TextColumn("Company Name"), 
                     "비중(%)": st.column_config.ProgressColumn("Weight (%)", format="%.2f%%", min_value=0, max_value=max(df["비중(%)"]) + 5)
                 }, 
-                use_container_width=True,
+                width="stretch",
                 on_select="rerun",
                 selection_mode="single-row"
             )
@@ -5528,7 +5528,7 @@ with tab2:
             if "preview_tab2" in st.session_state:
                 st.markdown(st.session_state["preview_tab2"], unsafe_allow_html=True)
                 if "preview_tk_tab2" in st.session_state:
-                    if st.button(t(f" [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", use_container_width=True, type="primary"):
+                    if st.button(t(f" [{st.session_state['preview_tk_tab2']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab2']}] to Tab 1"), key="btn_fix_tab2", width="stretch", type="primary"):
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                         st.rerun()
 
@@ -5553,7 +5553,7 @@ with tab3:
     event_mkt = st.dataframe(
         df_mkt, 
         height=1200, 
-        use_container_width=True, 
+        width="stretch", 
         hide_index=True, 
         column_config={
             "순위": st.column_config.NumberColumn(t("순위", "Rank")),
@@ -5582,7 +5582,7 @@ with tab3:
     if "preview_tab3" in st.session_state:
         st.markdown(st.session_state["preview_tab3"], unsafe_allow_html=True)
         if "preview_tk_tab3" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
+            if st.button(t(f" [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", width="stretch", type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
                 st.rerun()
 
@@ -5847,7 +5847,7 @@ with tab6:
     event_gov = st.dataframe(
         gov_df, 
         height=800, 
-        use_container_width=True, 
+        width="stretch", 
         hide_index=True, 
         column_order=["순위", "등급", "티커", "기업명"], 
         column_config={
@@ -5877,7 +5877,7 @@ with tab6:
     if "preview_tab6" in st.session_state:
         st.markdown(st.session_state["preview_tab6"], unsafe_allow_html=True)
         if "preview_tk_tab6" in st.session_state:
-            if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", use_container_width=True, type="primary"):
+            if st.button(t(f" [{st.session_state['preview_tk_tab6']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab6']}] to Tab 1"), key="btn_fix_tab6", width="stretch", type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab6"]
                 st.rerun()
 
