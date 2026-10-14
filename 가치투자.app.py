@@ -5823,25 +5823,102 @@ def get_full_battle_profile(tk):
     stk, p, i, kr = get_data(tk)
     if not p or stk is None:
         return None
-    ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
-    if ty == 0: ty = 4.4
+    try:
+        ty = safe_float(macro_data["10Y Treasury"]["p"], 4.4)
+    except:
+        ty = 4.4
+    if ty == 0.0:
+        ty = 4.4
+    if i is None:
+        i = {}
 
+    # 1. 탭 1과 100% 동일한 금융주 및 시클리컬 판독 로직
     sector_str = str(i.get('sector', '')).lower()
     industry_str = str(i.get('industry', '')).lower()
     summary_str = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
-    eng_fin_keywords = ['financial', 'bank', 'insurance', 'capital market', 'credit service', 'securities', 'asset management', 'investment']
-    kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
-    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A", "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF", "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"]
-    kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
-    tk_upper = str(tk).upper()
-    is_financial = any(kw in sector_str or kw in industry_str for kw in eng_fin_keywords) or any(kw in summary_str for kw in kor_fin_keywords) or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
 
-    cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
-    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
+    eng_fin_keywords = ['financial', 'bank', 'insurance', 'capital market', 'credit service', 'securities', 'asset management', 'investment']
+    is_eng_fin = any(kw in sector_str or kw in industry_str for kw in eng_fin_keywords)
+    kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
+    is_kor_fin = any(kw in summary_str for kw in kor_fin_keywords)
+    is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
+
+    us_fin_tickers = [
+        "JPM", "BAC", "WFC", "C", "GS", "MS", "AXP", "V", "MA", "BRK-B", "BRK-A",
+        "CB", "PGR", "MMC", "AON", "CME", "ICE", "SPGI", "MCO", "DFS", "COF", "SYF",
+        "BLK", "BX", "KKR", "APO", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "SCHW"
+    ]
+    kr_fin_tickers = [
+        "105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", 
+        "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", 
+        "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS",
+        "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"
+    ]
+    tk_upper = str(tk).upper()
+    is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+
+    cyclical_eng_kw = [
+        'semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 
+        'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 
+        'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs',
+        'aerospace', 'semiconductor equipment', 'defense', 'conglomerates'
+    ]
+    cyclical_kor_kw = [
+        '메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', 
+        '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지',
+        '방산', '반도체 장비', '종합상사'
+    ]
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
-    is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
-    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or is_china_tw
+    is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or \
+                  any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
+
+    cyclical_tickers = [
+        "MU", "WDC", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", 
+        "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", 
+        "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", 
+        "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE", "SKHY",
+        "BA", "GE", "RTX", "LMT", "GD", "NOC", "INTC", "AMAT", "LRCX", "KLAC", 
+        "BHP", "RIO", "VALE", "BP", "LIN", "SONY", "KYO",
+        "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY", "HITC", "CAJ", "FANUY",
+        "EADSY", "SIEGY", "BASFY", "STLA", "NEM", "GOLD", "SCCO", "GFS", "STM", "PCAR", "CMI", "LUV", "MPC",
+        "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS",
+        "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", 
+        "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", 
+        "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", 
+        "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"
+    ]
+    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or \
+                  any(kw in summary_str for kw in cyclical_kor_kw) or \
+                  (tk_upper in cyclical_tickers) or is_china_tw
+
+    # 2. 탭 1과 100% 동일한 경영진 추출 및 실시간 주가/시뮬레이터 동기화
+    off = i.get('companyOfficers', [])
+    ceo_raw = '누락'
+    if isinstance(off, list) and len(off) > 0:
+        ceo_raw = off[0].get('name', '누락') if isinstance(off[0], dict) else str(off[0])
+    elif isinstance(off, dict):
+        ceo_raw = off.get('name', '누락')
+    elif isinstance(off, str):
+        ceo_raw = off
+    ceo_cleaned = clean_ceo_name(ceo_raw)
+    criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
+
+    try:
+        fast_p = safe_float(stk.fast_info.last_price)
+        if fast_p > 0: p = fast_p
+    except: pass
+
+    if kr and 'live_p' in i and i['live_p'] > 0:
+        p = safe_float(i['live_p'])
+
+    if not kr:
+        pre_p = safe_float(i.get('preMarketPrice', 0.0))
+        post_p = safe_float(i.get('postMarketPrice', 0.0))
+        if pre_p > 0 and pre_p != p:
+            p = pre_p
+        elif post_p > 0 and post_p != p:
+            p = post_p
 
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
@@ -5850,13 +5927,30 @@ def get_full_battle_profile(tk):
     f_pe_raw = safe_float(i.get('forwardPE'))
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
+
+    try:
+        _inc = stk.income_stmt
+        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+            _ni = safe_float(_inc.loc['Net Income'].iloc[0])
+            _sh = safe_float(i.get('sharesOutstanding'))
+            if t_eps == 0 and _sh > 0 and _ni != 0:
+                t_eps = _ni / _sh
+    except: pass
+
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
+    sim_pct = st.session_state.get('price_adj_pct', 0)
+    multiplier = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
+    if sim_pct != 0:
+        p = p * multiplier
+
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-    if f_pe <= 0 and t_pe > 0: f_pe = t_pe
+    if f_pe <= 0 and t_pe > 0:
+        f_pe = t_pe
 
+    # 3. 탭 1과 100% 동일한 PBR / BPS(bv) 대차대조표 역산 및 ADR 보정
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
     currency_trade = str(i.get('currency', 'USD')).upper()
@@ -5873,11 +5967,63 @@ def get_full_battle_profile(tk):
                     adr_fx_ratio = abs(eps_curr / ni_curr)
         except: pass
 
-    if pbr <= 0.0 and bv > 0 and p > 0: pbr = p / bv
+    if pbr > 100.0: pbr = 0.0
 
+    if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
+        try:
+            bs = stk.balance_sheet
+            if bs is not None and not bs.empty:
+                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
+                    if eq_key in bs.index:
+                        eq = safe_float(bs.loc[eq_key].iloc[0])
+                        sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                        if tk == "BRK-B": sh_proxy = 2160000000.0
+                        elif tk == "BRK-A": sh_proxy = 1440000.0
+                        
+                        if eq > 0 and sh_proxy > 0:
+                            if is_adr and adr_fx_ratio != 1.0:
+                                bv = eq * adr_fx_ratio
+                            else:
+                                bv = eq / sh_proxy
+                            if bv > 0: pbr = reg_p / bv
+                        break
+        except: pass
+
+    if pbr <= 0.0 and bv > 0 and p > 0:
+        pbr = p / bv
+
+    if pbr > 0:
+        if multiplier != 1.0:
+            pbr = pbr * multiplier
+        elif reg_p > 0 and p != reg_p:
+            pbr = pbr * (p / reg_p)
+
+    # 4. 탭 1과 100% 동일한 ROE / ROIC / 배당률 / 10년 지표 산출
     roe = safe_float(i.get('returnOnEquity')) * 100
+    if roe <= 0.0 or roe > 300.0:
+        try:
+            inc = stk.income_stmt
+            bs = stk.balance_sheet
+            if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
+                    ni = safe_float(inc.loc['Net Income'].iloc[0])
+                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                    if eq > 0:
+                        roe = (ni / eq) * 100
+        except: pass
+
     real_roic = get_real_roic(stk, i)
     roic_val = real_roic if real_roic is not None else 0.0
+
+    div_yield = safe_float(i.get('dividendYield'))
+    div_rate = safe_float(i.get('dividendRate'))
+    div = 0.0
+    if div_rate > 0 and p > 0:
+        calc_div = (div_rate / p) * 100
+        if calc_div < 50.0: div = calc_div
+    if div == 0.0 and div_yield > 0:
+        div = div_yield if div_yield > 1.0 else div_yield * 100
+        if sim_pct != 0: div = div / multiplier
 
     cd = tk.split('.')[0] if kr else tk
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
@@ -5885,28 +6031,68 @@ def get_full_battle_profile(tk):
     )
 
     f_pbr = pbr
-    if bv > 0 and f_eps != 0 and tk not in ["BRK-B", "BRK-A"]:
-        f_bps = bv + f_eps - safe_float(i.get('dividendRate', 0))
+    base_bv = bv
+    if tk in ["BRK-B", "BRK-A"]:
+        f_pbr = pbr
+    elif base_bv > 0 and f_eps != 0:
+        div_r_val = safe_float(i.get('dividendRate', 0))
+        f_bps = base_bv + f_eps - div_r_val
         if f_bps > 0: f_pbr = reg_p / f_bps
+        else: f_pbr = reg_p / base_bv
+    elif base_bv > 0:
+        f_pbr = reg_p / base_bv
 
-    pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if (is_financial or kr or is_cyclical) and f_pbr > 0 and a_pbr > 0 else (((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0)
+    if multiplier != 1.0:
+        f_pbr = f_pbr * multiplier
+
+    is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
+    if is_kaspi_like:
+        if f_pe < 1.0 or f_pe <= 0.0:
+            f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
+        if f_pbr < 0.1 or f_pbr <= 0.0:
+            f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
+
+    if is_financial or kr or is_cyclical:
+        pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+    else:
+        pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+
     ey = (1 / f_pe * 100) if f_pe > 0 else 0
     erp = ey - ty
-    sh_dcf = safe_float(i.get('sharesOutstanding'))
-    iv, mos_val, _ = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
-    mos_val = safe_float(mos_val)
-
-    div_yield = safe_float(i.get('dividendYield'))
-    div_rate = safe_float(i.get('dividendRate'))
-    div = (div_rate / p) * 100 if (div_rate > 0 and p > 0 and (div_rate / p) * 100 < 50.0) else (div_yield if div_yield > 1.0 else div_yield * 100)
+    sh = safe_float(i.get('sharesOutstanding'))
     bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
     tsy_val = div + bb_yield
 
-    criticism_text = fetch_governance_criticism(tk, cd, "CEO")
-    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+    # 5. 탭 1과 100% 동일한 DCF 및 커스텀 시뮬레이터 연동
+    iv, mos_val, _ = calc_custom_dcf(base_fcf, sh, p, ty, final_g, is_financial)
+    mos_val = safe_float(mos_val)
 
+    ai_final_g = final_g
+    sim_g_default = float(ai_final_g * 100) if not is_financial else 10.0
+    sim_dr_default = 9.0
+    user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
+    user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
+    user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
+
+    if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+        u_dr = user_dr_val / 100
+        u_g = user_g_val / 100
+        u_tg = user_tg_val / 100
+        if u_dr > u_tg:
+            cv = base_fcf
+            fut = []
+            for y in range(1, 11):
+                cv *= (1 + u_g)
+                fut.append(cv / ((1 + u_dr) ** y))
+            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+            dtv = tv / ((1 + u_dr) ** 10)
+            iv = (sum(fut) + dtv) / sh
+            mos_val = ((iv - p) / iv) * 100 if iv > 0 else 0
+            final_g = u_g
+
+    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text,
+        mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
         f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
         hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
@@ -5915,7 +6101,6 @@ def get_full_battle_profile(tk):
     total_score = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
     f_score_num, _ = calc_piotroski_f_score(stk, is_financial)
 
-    # 오각형 차트용 0~100 정규화 값 산출
     weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
     def get_s(subs):
         for k, v in score_breakdown.items():
@@ -5954,7 +6139,6 @@ def get_full_battle_profile(tk):
         "f_score": f"{f_score_num} / 9점" if f_score_num is not None else "N/A",
         "radar": r_vals
     }
-
 with tab_vs:
     st.subheader(t("⚔️ 종목 1:1 맞대결 비교 (AI 멀티 스캐너)", "⚔️ 1:1 Stock Battle Comparison"))
     st.caption(t("두 기업을 입력하면 오각형 레이더 차트를 겹쳐 비교하고, 핵심 밸류에이션·해자·총주주환원율·AI 총점을 나란히 대결시킵니다.", "Compare two companies side-by-side with overlaid radar charts and core value metrics."))
