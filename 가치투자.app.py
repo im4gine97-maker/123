@@ -2339,7 +2339,96 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
     except:
         pass
     return 0.0
+# =========================================================================
+# [예상 PBR 왜곡 완벽 교정] 자사주 매입(자본차감) 및 소각(주식수 감소) 반영 Fwd PBR 산출 엔진
+# =========================================================================
+def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr, adr_fx_ratio=1.0, is_adr=False, multiplier=1.0):
+    if tk in ["BRK-B", "BRK-A"] or base_bv <= 0:
+        return pbr
 
+    if f_eps == 0:
+        raw_fpbr = reg_p / base_bv
+        return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
+
+    # 적자 예상 기업은 자본 감소분 그대로 반영
+    if f_eps < 0:
+        f_bps = base_bv + f_eps - div_r_val
+        if f_bps > 0:
+            raw_fpbr = reg_p / f_bps
+            return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
+        return pbr
+
+    # 흑자 예상 기업: 현금흐름표 기반 실제 내부유보율(Retention Ratio) 및 자사주 소각률 산출
+    retention_ratio = None
+    try:
+        inc = stk.income_stmt
+        cf = stk.cash_flow
+        if inc is not None and not inc.empty and cf is not None and not cf.empty:
+            ni_sum, div_sum, bb_sum, sbc_sum = 0.0, 0.0, 0.0, 0.0
+            cols = inc.columns[:3]  # 최근 3개년 누적 기준으로 일시적 변동성 평탄화
+            for col in cols:
+                ni_v = safe_float(inc.loc['Net Income', col]) if ('Net Income' in inc.index and col in inc.columns) else 0.0
+                if ni_v <= 0:
+                    continue
+                ni_sum += ni_v
+
+                if col in cf.columns:
+                    # 1) 현금배당 유출액
+                    for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
+                        if dk in cf.index and pd.notna(cf.loc[dk, col]):
+                            div_sum += abs(safe_float(cf.loc[dk, col]))
+                            break
+                    # 2) 자사주 순매입 유출액 (자본총계 차감 항목)
+                    rep_v, iss_v = 0.0, 0.0
+                    for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments']:
+                        if rk in cf.index and pd.notna(cf.loc[rk, col]):
+                            rep_v = abs(safe_float(cf.loc[rk, col]))
+                            break
+                    for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance']:
+                        if ik in cf.index and pd.notna(cf.loc[ik, col]):
+                            iss_v = abs(safe_float(cf.loc[ik, col]))
+                            break
+                    bb_sum += max(0.0, rep_v - iss_v)
+
+                    # 3) 주식보상비용(SBC) 자본잉여금 전입액
+                    for sk in ['Stock Based Compensation', 'Share Based Compensation']:
+                        if sk in cf.index and pd.notna(cf.loc[sk, col]):
+                            sbc_sum += abs(safe_float(cf.loc[sk, col]))
+                            break
+
+            if ni_sum > 0 and (div_sum + bb_sum) > 0:
+                net_outflow = max(0.0, div_sum + bb_sum - sbc_sum)
+                retention_ratio = max(0.0, min(1.0, 1.0 - (net_outflow / ni_sum)))
+    except Exception:
+        pass
+
+    # 자사주 소각으로 인한 분모(발행주식수) 감소율 반영
+    bb_yield_pct = calc_buyback_yield(stk, i, reg_p, kr, adr_fx_ratio, is_adr)
+    share_reduction_rate = max(0.0, min(0.12, bb_yield_pct / 100.0))
+
+    # 고ROE/고PBR 기업(마스터카드, 비자, 무디스 등 자사주 매입으로 자본이 축소된 기업)의 안전장치
+    implied_f_roe = f_eps / base_bv
+    if implied_f_roe > 0.35:
+        if retention_ratio is None or retention_ratio > 0.25:
+            retention_ratio = 0.20  # 고ROE 자사주 소각 기업의 평균 실질 자본유보율(15~20%) 적용
+        elif retention_ratio < 0.10:
+            retention_ratio = 0.12
+
+    if retention_ratio is not None:
+        retained_eps = f_eps * retention_ratio
+    else:
+        # 현금흐름표 데이터가 없는 일반 기업은 기존처럼 배당금과 추정 자사주 매입액 차감
+        bb_per_share = reg_p * share_reduction_rate
+        retained_eps = max(0.0, f_eps - div_r_val - bb_per_share)
+
+    # 최종 예상 BPS = (현재 BPS + 주당 순내부유보이익) ÷ (1 - 자사주 소각률)
+    f_bps = (base_bv + retained_eps) / (1.0 - share_reduction_rate)
+    if f_bps > 0:
+        raw_fpbr = reg_p / f_bps
+    else:
+        raw_fpbr = reg_p / base_bv
+
+    return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
 # =========================================================================
 # [신규 추가 엔진 2] 이익의 질(OCF/NI) 및 SBC 차감 보수적 FCF 분석 함수
 # =========================================================================
@@ -3556,17 +3645,9 @@ def generate_quick_ai_preview(tk):
     )
 
     # 2. 예상 PBR (f_pbr) 계산 유지
-    f_pbr = pbr
-    base_bv = bv
-    if tk in ["BRK-B", "BRK-A"]:
-        f_pbr = pbr
-    elif base_bv > 0 and f_eps != 0:
-        div_r_val = safe_float(i.get('dividendRate', 0))
-        f_bps = base_bv + f_eps - div_r_val
-        if f_bps > 0: f_pbr = reg_p / f_bps
-        else: f_pbr = reg_p / base_bv
-    elif base_bv > 0:
-        f_pbr = reg_p / base_bv
+    # [변경 후 코드 (2줄로 교체)]
+    div_r_val = safe_float(i.get('dividendRate', 0))
+    f_pbr = calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, bv, f_eps, div_r_val, kr, adr_fx_ratio, is_adr, 1.0)
 
     # [수정] 카스피(KSPI) 등 ADR 환율/통화 불일치 주식 왜곡(0.00/0.01) 방어 (< 1.0, < 0.1 적용)
     is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
@@ -4209,20 +4290,10 @@ with tab1:
                 )
 
                 # 2. 예상 PBR (f_pbr) 계산 유지
-                f_pbr = pbr
-                base_bv = bv
-                if tk in ["BRK-B", "BRK-A"]:
-                    f_pbr = pbr
-                elif base_bv > 0 and f_eps != 0:
-                    div_r_val = safe_float(i.get('dividendRate', 0))
-                    f_bps = base_bv + f_eps - div_r_val
-                    if f_bps > 0: f_pbr = reg_p / f_bps
-                    else: f_pbr = reg_p / base_bv
-                elif base_bv > 0:
-                    f_pbr = reg_p / base_bv
-
-                if 'multiplier' in locals() and multiplier != 1.0:
-                    f_pbr = f_pbr * multiplier
+                # [변경 후 코드 (3줄로 교체)]
+                div_r_val = safe_float(i.get('dividendRate', 0))
+                mult_val = multiplier if 'multiplier' in locals() else 1.0
+                f_pbr = calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, bv, f_eps, div_r_val, kr, adr_fx_ratio, is_adr, mult_val)
 
                 # [추가] 카스피(KSPI) 등 ADR 환율/통화 불일치 주식 왜곡(0.00/0.01) 방어
                 is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
@@ -6098,17 +6169,9 @@ def get_full_battle_profile(tk):
         stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
     )
 
-    f_pbr = pbr
-    base_bv = bv
-    if tk in ["BRK-B", "BRK-A"]:
-        f_pbr = pbr
-    elif base_bv > 0 and f_eps != 0:
-        div_r_val = safe_float(i.get('dividendRate', 0))
-        f_bps = base_bv + f_eps - div_r_val
-        if f_bps > 0: f_pbr = reg_p / f_bps
-        else: f_pbr = reg_p / base_bv
-    elif base_bv > 0:
-        f_pbr = reg_p / base_bv
+    # [변경 후 코드 (2줄로 교체)]
+    div_r_val = safe_float(i.get('dividendRate', 0))
+    f_pbr = calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, bv, f_eps, div_r_val, kr, adr_fx_ratio, is_adr, multiplier)
 
     if multiplier != 1.0:
         f_pbr = f_pbr * multiplier
