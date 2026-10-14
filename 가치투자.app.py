@@ -5304,40 +5304,41 @@ with tab_mr:
 
     bargains = st.session_state.get("saved_bargains", [])
     compounders = st.session_state.get("saved_compounders", [])
+
     if bargains:
-            df_bargains = pd.DataFrame(bargains)
-            st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
+        df_bargains = pd.DataFrame(bargains)
+        st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
+        
+        event_mr = st.dataframe(
+            df_bargains, 
+            use_container_width=True, 
+            hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row"
+        )
+        
+        if event_mr and len(event_mr.selection.rows) > 0:
+            selected_idx = event_mr.selection.rows[0]
+            matched_ticker_mr = df_bargains.iloc[selected_idx]["티커"]
             
-            event_mr = st.dataframe(
-                df_bargains, 
-                use_container_width=True, 
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row"
-            )
-            
-            if event_mr and len(event_mr.selection.rows) > 0:
-                selected_idx = event_mr.selection.rows[0]
-                matched_ticker_mr = df_bargains.iloc[selected_idx]["티커"]
-                
-                if st.session_state.get("preview_tk_tab_mr") != matched_ticker_mr:
-                    select_ticker(matched_ticker_mr)
-                    with st.spinner(f"AI가 {matched_ticker_mr} 데이터를 스캔 중입니다..."):
-                        st.session_state["preview_tab_mr"] = generate_quick_ai_preview(matched_ticker_mr)
-                        st.session_state["preview_tk_tab_mr"] = matched_ticker_mr
-            else:
-                if "preview_tab_mr" in st.session_state:
-                    del st.session_state["preview_tab_mr"]
-                    del st.session_state["preview_tk_tab_mr"]
-                    
-            if "preview_tab_mr" in st.session_state:
-                st.markdown(st.session_state["preview_tab_mr"], unsafe_allow_html=True)
-                if "preview_tk_tab_mr" in st.session_state:
-                    if st.button(t(f" [{st.session_state['preview_tk_tab_mr']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_mr']}] to Tab 1"), key="btn_fix_tab_mr", use_container_width=True, type="primary"):
-                        st.session_state.sync_tk = st.session_state["preview_tk_tab_mr"]
-                        st.rerun()
+            if st.session_state.get("preview_tk_tab_mr") != matched_ticker_mr:
+                select_ticker(matched_ticker_mr)
+                with st.spinner(f"AI가 {matched_ticker_mr} 데이터를 스캔 중입니다..."):
+                    st.session_state["preview_tab_mr"] = generate_quick_ai_preview(matched_ticker_mr)
+                    st.session_state["preview_tk_tab_mr"] = matched_ticker_mr
         else:
-            st.info(t("현재 시장에 52주 신저가에 근접한 우량주가 거의 없습니다. (시장 과열 상태)", "No blue chips near 52-week lows. The market may be overheating."))
+            if "preview_tab_mr" in st.session_state:
+                del st.session_state["preview_tab_mr"]
+                del st.session_state["preview_tk_tab_mr"]
+                
+        if "preview_tab_mr" in st.session_state:
+            st.markdown(st.session_state["preview_tab_mr"], unsafe_allow_html=True)
+            if "preview_tk_tab_mr" in st.session_state:
+                if st.button(t(f" [{st.session_state['preview_tk_tab_mr']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab_mr']}] to Tab 1"), key="btn_fix_tab_mr", use_container_width=True, type="primary"):
+                    st.session_state.sync_tk = st.session_state["preview_tk_tab_mr"]
+                    st.rerun()
+    else:
+        st.info(t("위 '🚀 스캔 시작' 버튼을 누르면 실시간으로 52주 신저가 근접 우량주를 탐색합니다.", "Click the scan button above to search for 52-week low blue chips."))
 
 # ==========================================
 # 탭 5: 내부자 매수 추적
@@ -5392,14 +5393,14 @@ with tab_capital:
     st.write(t("**찰리 멍거의 철학:** '장기적으로 주식의 수익률은 그 기업의 투하자본수익률(ROIC)에 수렴하게 되어 있습니다.'", "**Charlie Munger's Philosophy:** 'Over the long term, it's hard for a stock to earn a much better return than the business which underlies it earns on its capital.'"))
     st.caption(t("※ 앱에 등록된 우량주 중, 부채 왜곡을 뺀 진짜 수익률(ROIC)이 15% 이상으로 자본을 폭발적으로 굴리면서도 현재 예상 PER이 25배 이하로 합리적인 가격인 기업(컴파운더)들만 추려낸 리스트입니다.", "※ High-quality compounders with ROIC > 15% trading at reasonable Fwd PE < 25x."))
     
-    if not compounders:
-        if st.button("🚀 위대한 자본 배분(컴파운더) 스캔 시작 (클릭)", key="btn_run_cap_scan", type="primary"):
-            with st.spinner("AI가 고수익(ROIC 15% 이상) 우량주를 스캔 중입니다..."):
-                b_list, c_list = scan_value_stocks_free()
-                st.session_state["saved_bargains"] = b_list
-                st.session_state["saved_compounders"] = c_list
-                st.rerun()
+    if st.button("🚀 위대한 자본 배분(컴파운더) 스캔 시작 (클릭)", key="btn_run_cap_scan", type="primary"):
+        with st.spinner("AI가 고수익(ROIC 15% 이상) 우량주를 스캔 중입니다..."):
+            b_list, c_list = scan_value_stocks_free()
+            st.session_state["saved_bargains"] = b_list
+            st.session_state["saved_compounders"] = c_list
+
     compounders = st.session_state.get("saved_compounders", [])
+
     if compounders:
         df_compounders = pd.DataFrame(compounders)
         st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
@@ -5433,8 +5434,7 @@ with tab_capital:
                     st.session_state.sync_tk = st.session_state["preview_tk_tab_cap"]
                     st.rerun()
     else:
-        st.info(t("현재 시장 가격이 전반적으로 비싸서, PER 25배 이하의 고수익성(ROIC 15% 이상) 기업이 부족합니다.", "Lack of high-ROIC businesses trading at reasonable PE (<25x) due to overall market overvaluation."))
-
+        st.info(t("위 '🚀 스캔 시작' 버튼을 누르면 ROIC 15% 이상·PER 25배 이하의 컴파운더 기업을 탐색합니다.", "Click the scan button above to search for high-ROIC compounders."))
 # ==========================================
 # 탭 7: 유명 투자자 13F 포트폴리오
 # ==========================================
