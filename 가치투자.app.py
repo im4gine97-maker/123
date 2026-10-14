@@ -2294,91 +2294,179 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
 
     return 0.0
 # =========================================================================
-# [신규 추가 엔진 1] 자사주 순매입수익률(Buyback Yield) 산출 함수
+# [글로벌/한국/중국/대만/시클리컬 통합] 무오차 자사주 순매입·소각 수익률 산출 엔진
 # =========================================================================
 def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
-    if stk is None or p <= 0:
+    if stk is None or p <= 0 or not isinstance(i, dict):
         return 0.0
     try:
-        sh = safe_float(i.get('sharesOutstanding'))
-        if sh <= 0:
-            sh = safe_float(i.get('impliedSharesOutstanding'))
-        mcap = p * sh if sh > 0 else safe_float(i.get('marketCap'))
-        if mcap <= 0:
-            return 0.0
-
         cf = stk.cash_flow
+        inc = stk.income_stmt
+        bs = stk.balance_sheet
+
+        # 1. 유통주식수(발행주식수 - 자기주식수) 실제 증감률 산출 (통화 단위와 무관한 순수 비율)
+        sh_reduction_yield = None
+        try:
+            sh_hist = []
+            if bs is not None and not bs.empty:
+                for sk in ['Ordinary Shares Number', 'Share Issued']:
+                    if sk in bs.index:
+                        vals = [safe_float(v) for v in bs.loc[sk].dropna().values[:2] if safe_float(v) > 0]
+                        if len(vals) >= 2:
+                            sh_hist = vals
+                            break
+            if len(sh_hist) < 2 and inc is not None and not inc.empty:
+                for sk in ['Diluted Average Shares', 'Basic Average Shares']:
+                    if sk in inc.index:
+                        vals = [safe_float(v) for v in inc.loc[sk].dropna().values[:2] if safe_float(v) > 0]
+                        if len(vals) >= 2:
+                            sh_hist = vals
+                            break
+            if len(sh_hist) >= 2 and sh_hist[1] > 0:
+                # 최근 1년 내 액면분할/병합 여부 확인 후 보정
+                split_ratio = 1.0
+                try:
+                    sp = stk.splits
+                    if sp is not None and not sp.empty:
+                        recent_year = int(str(bs.columns[0])[:4]) if (bs is not None and not bs.empty) else datetime.now().year
+                        for s_date, s_val in sp.items():
+                            if s_date.year >= recent_year - 1 and s_val > 0:
+                                split_ratio *= s_val
+                except Exception:
+                    pass
+                adj_curr_sh = sh_hist[0] / split_ratio if split_ratio != 1.0 else sh_hist[0]
+                raw_sh_chg = ((sh_hist[1] - adj_curr_sh) / sh_hist[1]) * 100.0
+                if abs(raw_sh_chg) < 25.0:  # 비정상적 데이터 오류 필터링
+                    sh_reduction_yield = raw_sh_chg
+        except Exception:
+            pass
+
+        # 2. 현금흐름표 기반 자사주 순매입액(매입 - 발행) 산출
+        cf_bb_yield = None
         if cf is not None and not cf.empty:
             rep_val, iss_val = 0.0, 0.0
-            for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments']:
+            for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments', 'Payments For Repurchase Of Common Stock']:
                 if rk in cf.index and pd.notna(cf.loc[rk].iloc[0]):
                     rep_val = abs(safe_float(cf.loc[rk].iloc[0]))
                     break
-            for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance']:
+            for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance', 'Proceeds From Issuance Of Common Stock']:
                 if ik in cf.index and pd.notna(cf.loc[ik].iloc[0]):
                     iss_val = abs(safe_float(cf.loc[ik].iloc[0]))
                     break
-            net_bb = rep_val - iss_val
-            if net_bb != 0:
-                if is_adr and adr_fx_ratio != 1.0 and sh > 0:
-                    net_bb_usd = (net_bb * adr_fx_ratio) * sh
-                    by = (net_bb_usd / mcap) * 100
-                else:
-                    by = (net_bb / mcap) * 100
-                return max(-50.0, min(30.0, by))
+            net_bb_fin = rep_val - iss_val  # 재무제표 통화(KRW, USD, CNY, TWD, JPY 등) 기준 금액
 
-        # 현금흐름표 항목이 비어있을 경우 발행주식수 감소율로 역산 (폴백)
-        inc = stk.income_stmt
-        if inc is not None and not inc.empty:
-            for sk in ['Diluted Average Shares', 'Basic Average Shares']:
-                if sk in inc.index:
-                    s_vals = inc.loc[sk].dropna().values
-                    if len(s_vals) >= 2 and s_vals[1] > 0:
-                        sh_chg_pct = ((s_vals[1] - s_vals[0]) / s_vals[1]) * 100
-                        return max(-50.0, min(30.0, sh_chg_pct))
-    except:
-        pass
-    return 0.0
+            if net_bb_fin != 0:
+                currency_trade = str(i.get('currency', 'USD')).upper()
+                currency_fin = str(i.get('financialCurrency', currency_trade)).upper()
+                same_currency = (currency_trade == currency_fin) or kr
+
+                mcap_in_fin_curr = 0.0
+                # (A) 거래통화와 재무통화가 같을 때 (미국 본토 주식, 한국 주식)
+                if same_currency:
+                    sh = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
+                    mcap_in_fin_curr = (p * sh) if sh > 0 else safe_float(i.get('marketCap'))
+
+                # (B) 거래통화와 재무통화가 다를 때 (중국·대만·홍콩·일본·유럽 ADR: BABA, PDD, TSM, ITOCY 등)
+                # 재무제표 내 자본총계(현지통화) * PBR 또는 순이익(현지통화) * PER로 현지통화 시가총액을 정확히 역산!
+                if mcap_in_fin_curr <= 0:
+                    pbr_now = safe_float(i.get('priceToBook'))
+                    if bs is not None and not bs.empty and 0 < pbr_now < 150:
+                        for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                            if eq_k in bs.index and pd.notna(bs.loc[eq_k].iloc[0]):
+                                eq_fin = safe_float(bs.loc[eq_k].iloc[0])
+                                if eq_fin > 0:
+                                    mcap_in_fin_curr = eq_fin * pbr_now
+                                    break
+                if mcap_in_fin_curr <= 0:
+                    pe_now = safe_float(i.get('trailingPE', i.get('forwardPE')))
+                    if inc is not None and not inc.empty and 0 < pe_now < 200 and 'Net Income' in inc.index:
+                        ni_fin = safe_float(inc.loc['Net Income'].iloc[0])
+                        if ni_fin > 0:
+                            mcap_in_fin_curr = ni_fin * pe_now
+                if mcap_in_fin_curr <= 0 and is_adr and adr_fx_ratio != 1.0 and adr_fx_ratio > 0:
+                    # adr_fx_ratio를 통한 달러 주당 매입액 역산
+                    cf_bb_yield = ((net_bb_fin * adr_fx_ratio) / p) * 100.0
+
+                if mcap_in_fin_curr > 0:
+                    cf_bb_yield = (net_bb_fin / mcap_in_fin_curr) * 100.0
+
+        # 3. 한국/글로벌 교차 판정: 현금흐름표 매입률과 실제 유통주식수 감소율 결합
+        if cf_bb_yield is not None and sh_reduction_yield is not None:
+            # 한국 기업이 기보유 자사주를 소각했거나 신탁 취득한 경우 유통주식수 감소율을 적극 반영
+            if kr and sh_reduction_yield > cf_bb_yield and sh_reduction_yield > 0:
+                final_by = (cf_bb_yield + sh_reduction_yield) / 2.0 if cf_bb_yield > 0 else sh_reduction_yield
+            else:
+                final_by = cf_bb_yield
+        elif cf_bb_yield is not None:
+            final_by = cf_bb_yield
+        elif sh_reduction_yield is not None:
+            final_by = sh_reduction_yield
+        else:
+            final_by = 0.0
+
+        return max(-30.0, min(20.0, final_by))
+    except Exception:
+        return 0.0
+
+
 # =========================================================================
-# [예상 PBR 왜곡 완벽 교정] 자사주 매입(자본차감) 및 소각(주식수 감소) 반영 Fwd PBR 산출 엔진
+# [한국/중국/대만/홍콩/시클리컬/금융 완벽 대응] 무오차 Forward PBR 산출 엔진
 # =========================================================================
 def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr, adr_fx_ratio=1.0, is_adr=False, multiplier=1.0):
-    if tk in ["BRK-B", "BRK-A"] or base_bv <= 0:
-        return pbr
+    if tk in ["BRK-B", "BRK-A"] or (pbr <= 0 and base_bv <= 0) or reg_p <= 0:
+        return pbr * multiplier if (pbr > 0 and multiplier != 1.0) else pbr
 
-    if f_eps == 0:
-        raw_fpbr = reg_p / base_bv
-        return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
+    # 1. 통화 단위가 100% 일치하는 기준 PBR0 및 BPS0 확정
+    pbr_0 = (reg_p / base_bv) if (pbr <= 0 and base_bv > 0) else pbr
+    if pbr_0 <= 0:
+        return 0.0
+    eff_bv = reg_p / pbr_0  # reg_p와 동일한 통화(USD 또는 KRW)로 정렬된 현재 BPS
 
-    # 적자 예상 기업은 자본 감소분 그대로 반영
-    if f_eps < 0:
-        f_bps = base_bv + f_eps - div_r_val
-        if f_bps > 0:
-            raw_fpbr = reg_p / f_bps
-            return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
-        return pbr
+    # 2. 통화 단위가 100% 일치하는 예상 EPS(eff_f_eps) 및 예상 ROE(f_roe) 산출
+    # ADR(TSMC, 알리바바, 핀둬둬 등)에서 f_eps가 현지통화(TWD/CNY)로 들어오는 오류를 막기 위해 f_pe 비율을 우선 활용
+    f_pe_raw = safe_float(i.get('forwardPE', i.get('trailingPE')))
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', currency_trade)).upper()
+    same_currency = (currency_trade == currency_fin) or kr
 
-    # 흑자 예상 기업: 현금흐름표 기반 실제 내부유보율(Retention Ratio) 및 자사주 소각률 산출
-    retention_ratio = None
+    if not same_currency and is_adr and adr_fx_ratio != 1.0 and f_eps > 0:
+        # ADR의 f_eps가 현지 통화로 과대 계상되어 있을 경우 f_pe로 역산하여 달러 기준 정렬
+        if f_pe_raw > 0 and (reg_p / f_eps) < 1.0:
+            eff_f_eps = reg_p / f_pe_raw
+        else:
+            eff_f_eps = f_eps
+    elif f_eps != 0:
+        eff_f_eps = f_eps
+    elif f_pe_raw > 0:
+        eff_f_eps = reg_p / f_pe_raw
+    else:
+        eff_f_eps = 0.0
+
+    f_roe = eff_f_eps / eff_bv if eff_bv > 0 else 0.0  # 1년 선행 ROE (무차원 비율)
+
+    # 3. 정확한 배당수익률(y_div) 및 자사주 순매입·소각률(y_bb) 추출
+    div_pct = calc_accurate_div_yield(stk, i, reg_p, kr)
+    bb_pct = calc_buyback_yield(stk, i, reg_p, kr, adr_fx_ratio, is_adr)
+    y_div = max(0.0, min(0.25, div_pct / 100.0))
+    y_bb = max(-0.25, min(0.15, bb_pct / 100.0))
+
+    # 4. 현금흐름표 기반 최근 3개년 실제 내부유보율(Retention Ratio) 교차 산출
+    cf_retention = None
     try:
         inc = stk.income_stmt
         cf = stk.cash_flow
         if inc is not None and not inc.empty and cf is not None and not cf.empty:
             ni_sum, div_sum, bb_sum, sbc_sum = 0.0, 0.0, 0.0, 0.0
-            cols = inc.columns[:3]  # 최근 3개년 누적 기준으로 일시적 변동성 평탄화
-            for col in cols:
+            for col in inc.columns[:3]:
                 ni_v = safe_float(inc.loc['Net Income', col]) if ('Net Income' in inc.index and col in inc.columns) else 0.0
                 if ni_v <= 0:
                     continue
                 ni_sum += ni_v
-
                 if col in cf.columns:
-                    # 1) 현금배당 유출액
                     for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
                         if dk in cf.index and pd.notna(cf.loc[dk, col]):
                             div_sum += abs(safe_float(cf.loc[dk, col]))
                             break
-                    # 2) 자사주 순매입 유출액 (자본총계 차감 항목)
                     rep_v, iss_v = 0.0, 0.0
                     for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments']:
                         if rk in cf.index and pd.notna(cf.loc[rk, col]):
@@ -2389,44 +2477,63 @@ def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr
                             iss_v = abs(safe_float(cf.loc[ik, col]))
                             break
                     bb_sum += max(0.0, rep_v - iss_v)
-
-                    # 3) 주식보상비용(SBC) 자본잉여금 전입액
                     for sk in ['Stock Based Compensation', 'Share Based Compensation']:
                         if sk in cf.index and pd.notna(cf.loc[sk, col]):
                             sbc_sum += abs(safe_float(cf.loc[sk, col]))
                             break
-
             if ni_sum > 0 and (div_sum + bb_sum) > 0:
-                net_outflow = max(0.0, div_sum + bb_sum - sbc_sum)
-                retention_ratio = max(0.0, min(1.0, 1.0 - (net_outflow / ni_sum)))
+                net_out = max(0.0, div_sum + bb_sum - sbc_sum)
+                cf_retention = max(0.05, min(1.0, 1.0 - (net_out / ni_sum)))
     except Exception:
         pass
 
-    # 자사주 소각으로 인한 분모(발행주식수) 감소율 반영
-    bb_yield_pct = calc_buyback_yield(stk, i, reg_p, kr, adr_fx_ratio, is_adr)
-    share_reduction_rate = max(0.0, min(0.12, bb_yield_pct / 100.0))
-
-    # 고ROE/고PBR 기업(마스터카드, 비자, 무디스 등 자사주 매입으로 자본이 축소된 기업)의 안전장치
-    implied_f_roe = f_eps / base_bv
-    if implied_f_roe > 0.35:
-        if retention_ratio is None or retention_ratio > 0.25:
-            retention_ratio = 0.20  # 고ROE 자사주 소각 기업의 평균 실질 자본유보율(15~20%) 적용
-        elif retention_ratio < 0.10:
-            retention_ratio = 0.12
-
-    if retention_ratio is not None:
-        retained_eps = f_eps * retention_ratio
+    # 5. 기업 유형별 1년 뒤 자본총계 변화율(equity_growth_rate) 및 유통주식수 변화율(share_factor) 정밀 계산
+    if f_roe < 0:
+        # (A) 적자 예상 기업: 적자만큼 자본 감소 + 배당 유출
+        equity_growth_rate = f_roe - (pbr_0 * y_div)
+        if y_bb < 0:  # 적자 기업이 유상증자(y_bb < 0)까지 한 경우
+            d = abs(y_bb)
+            equity_growth_rate += (pbr_0 * d)
+            share_factor = 1.0 + d
+        else:
+            share_factor = 1.0 - max(0.0, y_bb)
     else:
-        # 현금흐름표 데이터가 없는 일반 기업은 기존처럼 배당금과 추정 자사주 매입액 차감
-        bb_per_share = reg_p * share_reduction_rate
-        retained_eps = max(0.0, f_eps - div_r_val - bb_per_share)
+        # (B) 흑자 예상 기업 (한국/중국/대만/홍콩/시클리컬/금융/미국 전체 통합)
+        if y_bb >= 0:
+            # 자사주 순매입·소각 기업 (또는 변동 없음)
+            # 주당 현금유출에 따른 자본 차감률 = PBR_0 * (배당률 + 자사주매입률)
+            direct_equity_growth = f_roe - (pbr_0 * (y_div + y_bb))
 
-    # 최종 예상 BPS = (현재 BPS + 주당 순내부유보이익) ÷ (1 - 자사주 소각률)
-    f_bps = (base_bv + retained_eps) / (1.0 - share_reduction_rate)
-    if f_bps > 0:
-        raw_fpbr = reg_p / f_bps
+            # 고PBR/고ROE 기업(PBR > 6 또는 ROE > 35%: 마스터카드, 비자, 무디스, TSMC 등)은
+            # 주가 급등에 따른 y_bb 과소계상 왜곡을 막기 위해 현금흐름표 내부유보율(cf_retention)과 교차 제어
+            if pbr_0 > 6.0 or f_roe > 0.35:
+                eff_ret = cf_retention if cf_retention is not None else 0.25
+                if f_roe > 0.40:
+                    eff_ret = min(eff_ret, 0.22)
+                cf_based_growth = f_roe * eff_ret
+                equity_growth_rate = min(direct_equity_growth, cf_based_growth) if direct_equity_growth > 0 else cf_based_growth
+            else:
+                # 일반 및 저PBR 기업(한국 주식, 시클리컬, 은행/보험, 중국 가치주 등):
+                # PBR < 1.0 구간에서 자사주 매입 시 자본 차감(PBR_0 * y_bb)보다 주식수 감소(y_bb)가 더 커서 BPS가 점프하는 효과를 100% 반영!
+                if direct_equity_growth < 0 and cf_retention is not None:
+                    equity_growth_rate = f_roe * cf_retention
+                else:
+                    equity_growth_rate = max(-0.20, direct_equity_growth)
+
+            share_factor = max(0.85, 1.0 - y_bb)  # 자사주 소각으로 분모(유통주식수) 감소
+        else:
+            # 유상증자·전환사채 등으로 주식수가 늘어난 기업 (y_bb < 0, 희석 발생)
+            d = abs(y_bb)  # 신주 발행률
+            # 신주 발행으로 유입된 자본(PBR_0 * d)을 더하더라도 분모(1 + d)가 커져 저PBR 기업은 BPS가 깎임(희석 페널티)!
+            equity_growth_rate = f_roe - (pbr_0 * y_div) + (pbr_0 * d)
+            share_factor = 1.0 + d
+
+    # 6. 최종 예상 PBR(f_pbr) 도출: PBR_0 * (유통주식수 비율) / (자본총계 비율)
+    denom = 1.0 + equity_growth_rate
+    if denom > 0.1:
+        raw_fpbr = pbr_0 * (share_factor / denom)
     else:
-        raw_fpbr = reg_p / base_bv
+        raw_fpbr = pbr_0
 
     return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
 # =========================================================================
