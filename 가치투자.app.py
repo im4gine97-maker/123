@@ -1462,9 +1462,8 @@ def fetch_governance_criticism(tk, cd, ceo_name):
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
 # =========================================================================
-# [완벽 방어] DART 타임아웃 원천 차단 엔진 (고유번호 내장 + 재시도 + 네이버 백업)
+# [초고속 방어] DART 무한로딩 원천 차단 엔진 (Circuit Breaker + 0초 패스)
 # =========================================================================
-# 1. 주요 한국 상장사 DART 고유번호(corp_code) 내장 (corpCode.xml 3MB 다운로드 생략!)
 DART_CORP_MAP_BUILTIN = {
     "005930": "00126380", "000660": "00164779", "373220": "01515323", "207940": "00877059",
     "005380": "00164742", "000270": "00106641", "068270": "00421045", "105560": "00688996",
@@ -1496,121 +1495,138 @@ DART_CORP_MAP_BUILTIN = {
     "010140": "00126353", "005935": "00126380"
 }
 
-@st.cache_data(ttl=86400*30, show_spinner=False)
-def _fetch_dart_xml_online(api_key):
-    """성공했을 때만 30일 캐싱되도록 분리 (실패 시 예외를 발생시켜 에러가 캐싱되는 현상 원천 차단)"""
-    from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
+def get_dart_corp_codes(api_key, target_code=None):
+    # [핵심 1] 내장 사전에 있는 종목이면 외부 인터넷 통신을 아예 하지 않고 0.001초 만에 반환!
+    if target_code and target_code in DART_CORP_MAP_BUILTIN:
+        return DART_CORP_MAP_BUILTIN
 
-    url = f"https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key={api_key}"
-    mapping = {}
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Connection': 'keep-alive'
-    }
-    session = requests.Session()
-    retries = Retry(total=2, backoff_factor=1.0, status_forcelist=[500, 502, 503, 504])
-    session.mount('https://', HTTPAdapter(max_retries=retries))
+    # 이미 DART 서버가 해외 IP를 차단한 상태라면 대기 없이 즉시 내장 사전 반환
+    if st.session_state.get("dart_ip_blocked", False):
+        return DART_CORP_MAP_BUILTIN
 
-    res = session.get(url, headers=headers, timeout=20)
-    res.raise_for_status()
-    with zipfile.ZipFile(io.BytesIO(res.content)) as z:
-        with z.open('CORPCODE.xml') as f:
-            tree = ET.parse(f)
-            root = tree.getroot()
-            for list_node in root.findall('list'):
-                stock_code = list_node.find('stock_code').text
-                if stock_code and stock_code.strip():
-                    mapping[stock_code.strip()] = list_node.find('corp_code').text
-    if not mapping:
-        raise ValueError("Empty DART mapping")
-    return mapping
-
-def get_dart_corp_codes(api_key):
     mapping = DART_CORP_MAP_BUILTIN.copy()
+    url = f"https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key={api_key}"
     try:
-        online_map = _fetch_dart_xml_online(api_key)
-        mapping.update(online_map)
+        # 타임아웃을 3초로 짧게 제한 (무한 로딩 원천 방지)
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3)
+        if res.status_code == 200:
+            with zipfile.ZipFile(io.BytesIO(res.content)) as z:
+                with z.open('CORPCODE.xml') as f:
+                    tree = ET.parse(f)
+                    for list_node in tree.getroot().findall('list'):
+                        sc = list_node.find('stock_code').text
+                        if sc and sc.strip():
+                            mapping[sc.strip()] = list_node.find('corp_code').text
     except Exception:
-        # 해외 IP 타임아웃 시에도 에러를 뱉지 않고 내장된 DART_CORP_MAP_BUILTIN을 즉시 반환!
-        pass
+        # 타임아웃 발생 시 차단기(Circuit Breaker) 작동 기록
+        st.session_state["dart_ip_blocked"] = True
     return mapping
 
-def _fallback_naver_annual_financials(stock_code):
-    """DART 서버가 해외 클라우드 IP를 완전히 차단했을 때 작동하는 네이버 금융 연간 장부 백업 엔진"""
+def _fallback_naver_and_yf_financials(stock_code):
+    """DART가 해외 IP를 차단했을 때 0.8초 만에 작동하는 초고속 네이버 + yfinance 결합 장부 엔진"""
+    data_dict = {}
+    # 1. 네이버 금융에서 최근 4년 매출액, 영업이익, 당기순이익 즉시 추출 (한국 서버라 빠르고 정확함)
     try:
         url = f"https://finance.naver.com/item/main.naver?code={stock_code}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        r = requests.get(url, headers=headers, timeout=7)
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3)
         r.encoding = 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
         cop = s.select_one('div.section.cop_analysis div.sub_section table')
-        if not cop:
-            return pd.DataFrame()
-
-        thead_trs = cop.select('thead tr')
-        if len(thead_trs) < 2:
-            return pd.DataFrame()
-        raw_years = [th.text.strip() for th in thead_trs[1].select('th')[:4]]
-        years = [re.sub(r'[^\d]', '', y)[:4] for y in raw_years]
-
-        row_map = {
-            '매출액': '1. 매출액',
-            '영업이익': '3. 영업이익',
-            '당기순이익': '4. 당기순이익'
-        }
-        data_dict = {}
-        for tr in cop.select('tbody tr'):
-            th = tr.select_one('th')
-            if not th: continue
-            title = th.text.strip()
-            for k, std_nm in row_map.items():
-                if title == k:
-                    tds = tr.select('td')[:4]
-                    vals = {}
-                    for y, td in zip(years, tds):
-                        if y and len(y) == 4:
-                            clean_v = re.sub(r'[^\d\.\-]', '', td.text)
-                            if clean_v and clean_v != '-':
-                                vals[y] = safe_float(clean_v)
-                    if vals:
-                        data_dict[std_nm] = vals
-        if data_dict:
-            df = pd.DataFrame(data_dict).T
-            df = df[sorted(df.columns, reverse=True)]
-            return df
+        if cop:
+            thead_trs = cop.select('thead tr')
+            if len(thead_trs) >= 2:
+                raw_years = [th.text.strip() for th in thead_trs[1].select('th')[:4]]
+                years = [re.sub(r'[^\d]', '', y)[:4] for y in raw_years]
+                row_map = {'매출액': '1. 매출액', '영업이익': '3. 영업이익', '당기순이익': '4. 당기순이익'}
+                for tr in cop.select('tbody tr'):
+                    th = tr.select_one('th')
+                    if not th: continue
+                    title = th.text.strip()
+                    if title in row_map:
+                        vals = {}
+                        for y, td in zip(years, tr.select('td')[:4]):
+                            if y and len(y) == 4:
+                                clean_v = re.sub(r'[^\d\.\-]', '', td.text)
+                                if clean_v and clean_v != '-':
+                                    vals[y] = safe_float(clean_v)
+                        if vals:
+                            data_dict[row_map[title]] = vals
     except Exception:
         pass
+
+    # 2. yfinance에서 자산, 부채, 자본, 현금흐름 보충
+    try:
+        stk_kr = yf.Ticker(f"{stock_code}.KS")
+        inc = stk_kr.income_stmt
+        if inc is None or inc.empty:
+            stk_kr = yf.Ticker(f"{stock_code}.KQ")
+            inc = stk_kr.income_stmt
+        bs = stk_kr.balance_sheet
+        cf = stk_kr.cash_flow
+
+        def pull_yf(df_src, keys, std_label):
+            if df_src is None or df_src.empty: return
+            for k in keys:
+                if k in df_src.index:
+                    vals = {}
+                    for col in df_src.columns[:4]:
+                        y_str = str(col)[:4]
+                        v = safe_float(df_src.loc[k, col])
+                        if v != 0:
+                            vals[y_str] = v / 100000000.0  # 억 원 단위로 맞춤
+                    if vals:
+                        if std_label not in data_dict:
+                            data_dict[std_label] = vals
+                        else:
+                            for y_k, v_k in vals.items():
+                                if y_k not in data_dict[std_label]:
+                                    data_dict[std_label][y_k] = v_k
+                    break
+
+        pull_yf(inc, ['Total Revenue'], '1. 매출액')
+        pull_yf(inc, ['Gross Profit'], '2. 매출총이익')
+        pull_yf(inc, ['Operating Income'], '3. 영업이익')
+        pull_yf(inc, ['Net Income'], '4. 당기순이익')
+        pull_yf(bs, ['Total Assets'], '5. 자산총계')
+        pull_yf(bs, ['Current Assets'], '6. 유동자산')
+        pull_yf(bs, ['Total Liabilities Net Minority Interest', 'Total Liabilities'], '7. 부채총계')
+        pull_yf(bs, ['Stockholders Equity', 'Total Equity Gross Minority Interest'], '8. 자본총계')
+        pull_yf(cf, ['Operating Cash Flow'], '9. 영업현금흐름')
+        pull_yf(cf, ['Investing Cash Flow'], '10. 투자현금흐름')
+        pull_yf(cf, ['Financing Cash Flow'], '11. 재무현금흐름')
+    except Exception:
+        pass
+
+    if data_dict:
+        df = pd.DataFrame(data_dict).T
+        df = df[sorted(df.columns, reverse=True)]
+        final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
+        return df.reindex([i for i in final_idx if i in df.index])
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_10yr_dart_financials_v2(stock_code, api_key):
-    # 우선주(예: 005935 삼성전자우)일 경우 본주(005930) 재무제표를 조회하도록 자동 매핑
     clean_code = str(stock_code).strip()
     if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
         clean_code = clean_code[:-1] + "0"
 
-    mapping = get_dart_corp_codes(api_key)
-    corp_code = mapping.get(clean_code)
+    # 이미 DART IP 차단이 확인된 세션이면 대기 시간 0초로 즉시 백업 엔진 가동!
+    if st.session_state.get("dart_ip_blocked", False):
+        fb_df = _fallback_naver_and_yf_financials(clean_code)
+        return fb_df, "네이버/yfinance 고속 백업 연동"
 
+    mapping = get_dart_corp_codes(api_key, target_code=clean_code)
+    corp_code = mapping.get(clean_code)
     if not corp_code:
-        nv_df = _fallback_naver_annual_financials(clean_code)
-        if not nv_df.empty:
-            return nv_df, "네이버 금융 대체 연동 성공"
-        return pd.DataFrame(), "기업 고유번호를 찾을 수 없습니다."
-    
+        fb_df = _fallback_naver_and_yf_financials(clean_code)
+        return fb_df, "네이버/yfinance 고속 백업 연동"
+
     current_year = datetime.now().year
     base_year = current_year - 1
     years = [base_year, base_year - 3, base_year - 6, base_year - 9]
-    
     all_data = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Connection': 'keep-alive'
-    }
-    
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
     std_mapping = {
         'ifrs-full_Revenue': '1. 매출액',
         'ifrs-full_GrossProfit': '2. 매출총이익',
@@ -1624,23 +1640,24 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
         'ifrs-full_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
         'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
     }
-    
+
+    dart_unreachable = False
     for y in years:
-        for fs_div in ['CFS', 'OFS']: # 연결 재무제표 우선, 없으면 개별
+        if dart_unreachable:
+            break
+        for fs_div in ['CFS', 'OFS']:
             url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
             try:
-                r = requests.get(url, headers=headers, timeout=12)
+                # [핵심 2] 타임아웃을 2.5초로 설정하고, 단 1번이라도 타임아웃 나면 즉시 루프 전체 탈출!
+                r = requests.get(url, headers=headers, timeout=2.5)
                 if r.status_code == 200:
                     data = r.json()
                     if data.get('status') == '000':
                         for item in data.get('list', []):
                             acct_id = item.get('account_id', '')
                             raw_nm = item.get('account_nm', '').replace(' ', '')
-                            std_nm = None
-                            
-                            if acct_id in std_mapping:
-                                std_nm = std_mapping[acct_id]
-                            elif not std_nm:
+                            std_nm = std_mapping.get(acct_id)
+                            if not std_nm:
                                 if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
                                 elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
                                 elif raw_nm in ['영업이익(손실)', '영업이익']: std_nm = '3. 영업이익'
@@ -1652,29 +1669,26 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
                                 elif '영업활동현금흐름' in raw_nm or '영업활동으로인한현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
                                 elif '투자활동현금흐름' in raw_nm or '투자활동으로인한현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
                                 elif '재무활동현금흐름' in raw_nm or '재무활동으로인한현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
-                            
                             if std_nm:
                                 all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
                                 all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
                                 all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
-                        break 
+                        break
             except Exception:
-                pass
-            
+                # 첫 요청이 타임아웃 나면 나머지 7번은 시도조차 하지 않고 즉시 탈출!
+                dart_unreachable = True
+                st.session_state["dart_ip_blocked"] = True
+                break
+
     if not all_data:
-        # DART API 서버 자체가 해외 IP를 일시 차단했을 경우 네이버 금융 장부로 즉시 백업
-        nv_df = _fallback_naver_annual_financials(clean_code)
-        if not nv_df.empty:
-            return nv_df, "네이버 금융 백업 연동"
-        return pd.DataFrame(), "DART 서버 응답 지연 (yfinance 대체 가동)"
-    
+        fb_df = _fallback_naver_and_yf_financials(clean_code)
+        return fb_df, "네이버/yfinance 고속 백업 연동"
+
     df = pd.DataFrame(all_data)
     df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
     df = df.dropna().drop_duplicates(subset=['연도', '계정'])
-    
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
-    
     final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "성공"
 def get_yf_info(stk):
@@ -3033,30 +3047,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # 2. 한국 기업 (DART 10년 재무제표 우선 수집 및 PyKRX 보완)
+    # 2. 한국 기업 (DART 10년 재무제표 및 고속 백업 수집)
     elif kr:
         pe_list, pbr_list, fcf_list = [], [], []
         
-        # (1) PyKRX 시도 (설치되어 있을 경우 정확한 과거 PER, PBR 수집)
-        try:
-            from pykrx import stock as krx_stock
-            current_y = datetime.now().year
-            for y in range(current_y - 10, current_y):
-                try:
-                    df_fund = krx_stock.get_market_fundamental_by_date(f"{y}1220", f"{y}1231", cd)
-                    if df_fund is not None and not df_fund.empty:
-                        last_row = df_fund.iloc[-1]
-                        val_pe = safe_float(last_row.get('PER', 0.0))
-                        val_pbr = safe_float(last_row.get('PBR', 0.0))
-                        if val_pe > 0: pe_list.append(val_pe)
-                        if val_pbr > 0: pbr_list.append(val_pbr)
-                except: pass
-        except Exception:
-            pass
-
-        if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
-        if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
-
+        # [속도 최적화] 해외 IP에서 무한 대기를 유발하는 PyKRX 10년 직렬 루프를 제거하고 아래 장부 역산으로 직행합니다.
         # (2) DART 10년치 재무제표 파싱 (PyKRX 실패와 무관하게 무조건 실행)
         try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
