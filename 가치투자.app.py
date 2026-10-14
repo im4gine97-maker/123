@@ -2430,7 +2430,60 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         pass
         
     return rnd_trend
+# =========================================================================
+# [배당 뻥튀기 버그 완벽 차단] 한국/미국/ETF 배당수익률 정밀 산출 함수
+# =========================================================================
+def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
+    if p <= 0 or not isinstance(i, dict):
+        return 0.0
 
+    div_yield = safe_float(i.get('dividendYield'))
+    div_rate = safe_float(i.get('dividendRate'))
+    trailing_rate = safe_float(i.get('trailingAnnualDividendRate'))
+    trailing_yield = safe_float(i.get('trailingAnnualDividendYield'))
+
+    # 1. 한국 주식 (네이버 금융에서 #_dvr 퍼센트를 100으로 나누어 저장한 값 복원)
+    if kr:
+        if div_rate > 0:
+            calc_d = (div_rate / p) * 100
+            if calc_d < 30.0:
+                return calc_d
+        if div_yield > 0:
+            base_d = div_yield if div_yield > 1.0 else div_yield * 100
+            return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
+        return 0.0
+
+    # 2. 미국 및 글로벌 주식
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
+    same_currency = (currency_trade == currency_fin)
+
+    # (1순위) 주당 배당금(달러) ÷ 현재 주가(달러) 직접 계산
+    if div_rate > 0:
+        calc_d = (div_rate / p) * 100
+        if calc_d < 30.0:
+            return calc_d
+    if same_currency and trailing_rate > 0:
+        calc_d = (trailing_rate / p) * 100
+        if calc_d < 30.0:
+            return calc_d
+
+    # (2순위) trailingAnnualDividendYield (항상 순수 소수점 비율: 0.0025 -> 0.25%)
+    if 0 < trailing_yield < 0.30:
+        base_d = trailing_yield * 100
+        return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
+
+    # (3순위) dividendYield (최신 yfinance는 이미 % 단위이므로 0.25는 그대로 0.25%로 사용!)
+    if div_yield > 0:
+        # 단, ETF의 'yield' 키에서 넘어온 경우만 소수점(0.035 -> 3.5%) 변환
+        etf_y = safe_float(i.get('yield'))
+        if etf_y > 0 and div_yield == etf_y and div_yield < 0.50:
+            base_d = div_yield * 100
+        else:
+            base_d = div_yield
+        return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
+
+    return 0.0
 # =========================================================================
 # [신규 추가 엔진 1] 자사주 순매입수익률(Buyback Yield) 산출 함수
 # =========================================================================
@@ -3728,14 +3781,8 @@ def generate_quick_ai_preview(tk):
     
     roic_val = real_roic if real_roic is not None else 0
     
-    div_yield = safe_float(i.get('dividendYield'))
-    div_rate = safe_float(i.get('dividendRate'))
-    div = 0.0
-    if div_rate > 0 and p > 0:
-        calc_div = (div_rate / p) * 100
-        if calc_div < 50.0: div = calc_div
-    if div == 0.0 and div_yield > 0:
-        div = div_yield if div_yield > 1.0 else div_yield * 100
+    # [변경 후 코드 (1줄로 교체)]
+    div = calc_accurate_div_yield(stk, i, p, kr)
 
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     
@@ -4328,15 +4375,8 @@ with tab1:
                     if real_roic is not None: roic_str = f"{real_roic:.2f}%"
                     else: roic_str = "데이터 부족" if is_ko else "N/A"
 
-                div_yield = safe_float(i.get('dividendYield'))
-                div_rate = safe_float(i.get('dividendRate'))
-                div = 0.0
-                if div_rate > 0 and p > 0:
-                    calc_div = (div_rate / p) * 100
-                    if calc_div < 50.0: div = calc_div
-                if div == 0.0 and div_yield > 0:
-                    div = div_yield if div_yield > 1.0 else div_yield * 100
-                    if sim_pct != 0: div = div / multiplier
+                # [변경 후 코드 (1줄로 교체)]
+                div = calc_accurate_div_yield(stk, i, p, kr, sim_pct, multiplier)
 
                 div_trend = "확인 불가" if is_ko else "N/A"
                 try:
@@ -6241,15 +6281,8 @@ def get_full_battle_profile(tk):
     real_roic = get_real_roic(stk, i)
     roic_val = real_roic if real_roic is not None else 0.0
 
-    div_yield = safe_float(i.get('dividendYield'))
-    div_rate = safe_float(i.get('dividendRate'))
-    div = 0.0
-    if div_rate > 0 and p > 0:
-        calc_div = (div_rate / p) * 100
-        if calc_div < 50.0: div = calc_div
-    if div == 0.0 and div_yield > 0:
-        div = div_yield if div_yield > 1.0 else div_yield * 100
-        if sim_pct != 0: div = div / multiplier
+    # [변경 후 코드 (1줄로 교체)]
+    div = calc_accurate_div_yield(stk, i, p, kr, sim_pct, multiplier)
 
     cd = tk.split('.')[0] if kr else tk
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
