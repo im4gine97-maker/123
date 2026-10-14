@@ -3589,8 +3589,15 @@ def generate_quick_ai_preview(tk):
     is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
     us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "BRK-B", "BRK-A", "CB", "PGR", "DFS", "COF", "SYF", "MET", "PRU", "AFL", "TRV", "ALL", "AIG"]
     kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
+    # [기존 코드]
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+
+    # ▼▼▼ [여기에 아래 3줄 추가] ▼▼▼
+    per_eval_fin_tickers = ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]
+    if tk_upper in per_eval_fin_tickers:
+        is_financial = False
+    # ▲▲▲ 여기까지 추가 ▲▲▲
     
     # [추가] 미리보기 함수용 시클리컬 판독 로직
     cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
@@ -4109,8 +4116,15 @@ with tab1:
                     "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"
                 ]
 
+                # [기존 코드]
                 tk_upper = str(tk).upper()
                 is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+            
+                # ▼▼▼ [여기에 아래 3줄 추가] ▼▼▼
+                per_eval_fin_tickers = ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]
+                if tk_upper in per_eval_fin_tickers:
+                    is_financial = False
+                # ▲▲▲ 여기까지 추가 ▲▲▲
                 
                 # =====================================================================
                 # [금융/보험주 강력 탐지 로직 바로 아래에 위치한 시클리컬 판독 변수 교체]
@@ -6107,8 +6121,15 @@ def get_full_battle_profile(tk):
         "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS",
         "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"
     ]
+    # [기존 코드]
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
+
+    # ▼▼▼ [여기에 아래 3줄 추가] ▼▼▼
+    per_eval_fin_tickers = ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]
+    if tk_upper in per_eval_fin_tickers:
+        is_financial = False
+    # ▲▲▲ 여기까지 추가 ▲▲▲
 
     cyclical_eng_kw = [
         'semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 
