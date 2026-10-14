@@ -1462,7 +1462,7 @@ def fetch_governance_criticism(tk, cd, ceo_name):
             
     return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
 # =========================================================================
-# [초고속 방어] DART 무한로딩 원천 차단 엔진 (Circuit Breaker + 0초 패스)
+# [한국 주식 10년치 완벽 수집] 4중 다중화 엔진 (DART 병렬 + 세종 10년 + FMP 10년 + 네이버/YF)
 # =========================================================================
 DART_CORP_MAP_BUILTIN = {
     "005930": "00126380", "000660": "00164779", "373220": "01515323", "207940": "00877059",
@@ -1496,19 +1496,12 @@ DART_CORP_MAP_BUILTIN = {
 }
 
 def get_dart_corp_codes(api_key, target_code=None):
-    # [핵심 1] 내장 사전에 있는 종목이면 외부 인터넷 통신을 아예 하지 않고 0.001초 만에 반환!
     if target_code and target_code in DART_CORP_MAP_BUILTIN:
         return DART_CORP_MAP_BUILTIN
-
-    # 이미 DART 서버가 해외 IP를 차단한 상태라면 대기 없이 즉시 내장 사전 반환
-    if st.session_state.get("dart_ip_blocked", False):
-        return DART_CORP_MAP_BUILTIN
-
     mapping = DART_CORP_MAP_BUILTIN.copy()
     url = f"https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key={api_key}"
     try:
-        # 타임아웃을 3초로 짧게 제한 (무한 로딩 원천 방지)
-        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3)
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3.5)
         if res.status_code == 200:
             with zipfile.ZipFile(io.BytesIO(res.content)) as z:
                 with z.open('CORPCODE.xml') as f:
@@ -1518,14 +1511,146 @@ def get_dart_corp_codes(api_key, target_code=None):
                         if sc and sc.strip():
                             mapping[sc.strip()] = list_node.find('corp_code').text
     except Exception:
-        # 타임아웃 발생 시 차단기(Circuit Breaker) 작동 기록
-        st.session_state["dart_ip_blocked"] = True
+        pass
     return mapping
 
-def _fallback_naver_and_yf_financials(stock_code):
-    """DART가 해외 IP를 차단했을 때 0.8초 만에 작동하는 초고속 네이버 + yfinance 결합 장부 엔진"""
+def _fetch_sejong_10yr_kr(stock_code):
+    """[백업 1순위] 해외 IP 차단이 없는 세종기업데이터에서 최근 5년(gubun=1) + 과거 5년(gubun=2) = 총 10년치 K-IFRS 장부 추출"""
     data_dict = {}
-    # 1. 네이버 금융에서 최근 4년 매출액, 영업이익, 당기순이익 즉시 추출 (한국 서버라 빠르고 정확함)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    row_map = {
+        '매출액': '1. 매출액', '영업수익': '1. 매출액', '이자수익': '1. 매출액', '보험료수익': '1. 매출액',
+        '매출총이익': '2. 매출총이익',
+        '영업이익': '3. 영업이익', '영업이익(손실)': '3. 영업이익',
+        '당기순이익': '4. 당기순이익', '당기순이익(손실)': '4. 당기순이익', '연결당기순이익': '4. 당기순이익',
+        '자산총계': '5. 자산총계',
+        '유동자산': '6. 유동자산',
+        '부채총계': '7. 부채총계',
+        '자본총계': '8. 자본총계',
+        '영업활동으로인한현금흐름': '9. 영업현금흐름', '영업활동현금흐름': '9. 영업현금흐름',
+        '투자활동으로인한현금흐름': '10. 투자현금흐름', '투자활동현금흐름': '10. 투자현금흐름',
+        '재무활동으로인한현금흐름': '11. 재무현금흐름', '재무활동현금흐름': '11. 재무현금흐름'
+    }
+
+    def fetch_page(url):
+        try:
+            r = requests.get(url, headers=headers, timeout=4)
+            if r.status_code != 200:
+                return
+            r.encoding = r.apparent_encoding if r.apparent_encoding else 'utf-8'
+            soup = BeautifulSoup(r.text, 'html.parser')
+            for tbl in soup.find_all('table'):
+                trs = tbl.find_all('tr')
+                if len(trs) < 4:
+                    continue
+                header_cells = [c.get_text(strip=True) for c in trs[0].find_all(['td', 'th'])]
+                years_idx = {}
+                for idx, h_txt in enumerate(header_cells):
+                    m = re.search(r'(20\d{2})\.\d{2}', h_txt)
+                    if m:
+                        years_idx[idx] = m.group(1)
+                if not years_idx:
+                    continue
+
+                for tr in trs[1:]:
+                    cells = [c.get_text(strip=True) for c in tr.find_all(['td', 'th'])]
+                    if not cells:
+                        continue
+                    acct_raw = cells[0].replace(' ', '').replace(' ', '')
+                    std_nm = row_map.get(acct_raw)
+                    if not std_nm:
+                        for k_nm, v_nm in row_map.items():
+                            if acct_raw.startswith(k_nm):
+                                std_nm = v_nm
+                                break
+                    if std_nm:
+                        if std_nm not in data_dict:
+                            data_dict[std_nm] = {}
+                        for c_idx, y_str in years_idx.items():
+                            if c_idx < len(cells):
+                                val_str = re.sub(r'[^\d\.\-]', '', cells[c_idx])
+                                if val_str and val_str not in ['-', '.']:
+                                    data_dict[std_nm][y_str] = safe_float(val_str)
+        except Exception:
+            pass
+
+    urls = [
+        f"http://www.sejongdata.com/business_include_fr/table_main0_bus_01.html?no={stock_code}&gubun=1",
+        f"http://www.sejongdata.com/business_include_fr/table_main0_bus_01.html?no={stock_code}&gubun=2"
+    ]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        list(ex.map(fetch_page, urls))
+    return data_dict
+
+def _fetch_fmp_10yr_kr(stock_code, fmp_key):
+    """[백업 2순위] FMP_API_KEY를 활용하여 글로벌 서버에서 한국 주식 10년치 재무제표 추출"""
+    data_dict = {}
+    if not fmp_key:
+        return data_dict
+
+    for suffix in ['.KS', '.KQ']:
+        sym = f"{stock_code}{suffix}"
+        try:
+            urls = {
+                'inc': f"https://financialmodelingprep.com/api/v3/income-statement/{sym}?limit=10&apikey={fmp_key}",
+                'bs': f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{sym}?limit=10&apikey={fmp_key}",
+                'cf': f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{sym}?limit=10&apikey={fmp_key}"
+            }
+            res_map = {}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+                fut_map = {ex.submit(requests.get, u, timeout=4): k for k, u in urls.items()}
+                for fut in concurrent.futures.as_completed(fut_map):
+                    k = fut_map[fut]
+                    try:
+                        r = fut.result()
+                        if r.status_code == 200:
+                            res_map[k] = r.json()
+                    except Exception:
+                        res_map[k] = []
+
+            inc_list = res_map.get('inc', [])
+            if not isinstance(inc_list, list) or len(inc_list) == 0:
+                continue
+
+            def add_val(std_nm, yr, val):
+                if val is None or val == 0:
+                    return
+                if std_nm not in data_dict:
+                    data_dict[std_nm] = {}
+                data_dict[std_nm][yr] = safe_float(val) / 100000000.0  # 억 원 단위 변환
+
+            for item in inc_list:
+                yr = str(item.get('calendarYear') or item.get('date', '')[:4])
+                if len(yr) == 4:
+                    add_val('1. 매출액', yr, item.get('revenue'))
+                    add_val('2. 매출총이익', yr, item.get('grossProfit'))
+                    add_val('3. 영업이익', yr, item.get('operatingIncome'))
+                    add_val('4. 당기순이익', yr, item.get('netIncome'))
+
+            for item in res_map.get('bs', []):
+                if not isinstance(item, dict): continue
+                yr = str(item.get('calendarYear') or item.get('date', '')[:4])
+                if len(yr) == 4:
+                    add_val('5. 자산총계', yr, item.get('totalAssets'))
+                    add_val('6. 유동자산', yr, item.get('totalCurrentAssets'))
+                    add_val('7. 부채총계', yr, item.get('totalLiabilities'))
+                    add_val('8. 자본총계', yr, item.get('totalStockholdersEquity') or item.get('totalEquity'))
+
+            for item in res_map.get('cf', []):
+                if not isinstance(item, dict): continue
+                yr = str(item.get('calendarYear') or item.get('date', '')[:4])
+                if len(yr) == 4:
+                    add_val('9. 영업현금흐름', yr, item.get('operatingCashFlow'))
+                    add_val('10. 투자현금흐름', yr, item.get('netCashUsedForInvestingActivites'))
+                    add_val('11. 재무현금흐름', yr, item.get('netCashUsedProvidedByFinancingActivities'))
+            break
+        except Exception:
+            pass
+    return data_dict
+
+def _fetch_naver_and_yf_recent(stock_code):
+    """[보강 엔진] 가장 최신 결산연도 데이터를 네이버 금융과 yfinance에서 추출"""
+    data_dict = {}
     try:
         url = f"https://finance.naver.com/item/main.naver?code={stock_code}"
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=3)
@@ -1543,18 +1668,16 @@ def _fallback_naver_and_yf_financials(stock_code):
                     if not th: continue
                     title = th.text.strip()
                     if title in row_map:
-                        vals = {}
+                        std_nm = row_map[title]
+                        if std_nm not in data_dict: data_dict[std_nm] = {}
                         for y, td in zip(years, tr.select('td')[:4]):
                             if y and len(y) == 4:
                                 clean_v = re.sub(r'[^\d\.\-]', '', td.text)
                                 if clean_v and clean_v != '-':
-                                    vals[y] = safe_float(clean_v)
-                        if vals:
-                            data_dict[row_map[title]] = vals
+                                    data_dict[std_nm][y] = safe_float(clean_v)
     except Exception:
         pass
 
-    # 2. yfinance에서 자산, 부채, 자본, 현금흐름 보충
     try:
         stk_kr = yf.Ticker(f"{stock_code}.KS")
         inc = stk_kr.income_stmt
@@ -1568,19 +1691,12 @@ def _fallback_naver_and_yf_financials(stock_code):
             if df_src is None or df_src.empty: return
             for k in keys:
                 if k in df_src.index:
-                    vals = {}
-                    for col in df_src.columns[:4]:
+                    if std_label not in data_dict: data_dict[std_label] = {}
+                    for col in df_src.columns[:5]:
                         y_str = str(col)[:4]
                         v = safe_float(df_src.loc[k, col])
-                        if v != 0:
-                            vals[y_str] = v / 100000000.0  # 억 원 단위로 맞춤
-                    if vals:
-                        if std_label not in data_dict:
-                            data_dict[std_label] = vals
-                        else:
-                            for y_k, v_k in vals.items():
-                                if y_k not in data_dict[std_label]:
-                                    data_dict[std_label][y_k] = v_k
+                        if v != 0 and y_str not in data_dict[std_label]:
+                            data_dict[std_label][y_str] = v / 100000000.0
                     break
 
         pull_yf(inc, ['Total Revenue'], '1. 매출액')
@@ -1596,13 +1712,123 @@ def _fallback_naver_and_yf_financials(stock_code):
         pull_yf(cf, ['Financing Cash Flow'], '11. 재무현금흐름')
     except Exception:
         pass
+    return data_dict
 
-    if data_dict:
-        df = pd.DataFrame(data_dict).T
-        df = df[sorted(df.columns, reverse=True)]
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_10yr_dart_financials_v2(stock_code, api_key):
+    clean_code = str(stock_code).strip()
+    if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
+        clean_code = clean_code[:-1] + "0"
+
+    mapping = get_dart_corp_codes(api_key, target_code=clean_code)
+    corp_code = mapping.get(clean_code)
+
+    current_year = datetime.now().year
+    base_year = current_year - 1
+    years = [base_year, base_year - 3, base_year - 6, base_year - 9]
+    all_data = []
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    std_mapping = {
+        'ifrs-full_Revenue': '1. 매출액',
+        'ifrs-full_GrossProfit': '2. 매출총이익',
+        'ifrs-full_OperatingIncome': '3. 영업이익',
+        'ifrs-full_ProfitLoss': '4. 당기순이익',
+        'ifrs-full_Assets': '5. 자산총계',
+        'ifrs-full_CurrentAssets': '6. 유동자산',
+        'ifrs-full_Liabilities': '7. 부채총계',
+        'ifrs-full_Equity': '8. 자본총계',
+        'ifrs-full_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
+        'ifrs-full_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
+        'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
+    }
+
+    # 1단계: OpenDART 4개 구간 동시 병렬 호출 (전체장부 API + 경량 주요계정 API 2중 시도)
+    def fetch_dart_year(y):
+        yr_items = []
+        if not corp_code:
+            return yr_items
+        for endpoint in ['fnlttSinglAcntAll.json', 'fnlttSinglAcnt.json']:
+            if yr_items:
+                break
+            for fs_div in ['CFS', 'OFS']:
+                url = f"https://opendart.fss.or.kr/api/{endpoint}?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
+                try:
+                    r = requests.get(url, headers=headers, timeout=3.5)
+                    if r.status_code == 200:
+                        data = r.json()
+                        if data.get('status') == '000':
+                            for item in data.get('list', []):
+                                if endpoint == 'fnlttSinglAcnt.json' and item.get('fs_div') != fs_div:
+                                    continue
+                                acct_id = item.get('account_id', '')
+                                raw_nm = item.get('account_nm', '').replace(' ', '')
+                                std_nm = std_mapping.get(acct_id)
+                                if not std_nm:
+                                    if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
+                                    elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
+                                    elif raw_nm in ['영업이익(손실)', '영업이익']: std_nm = '3. 영업이익'
+                                    elif raw_nm in ['당기순이익(손실)', '당기순이익', '연결당기순이익']: std_nm = '4. 당기순이익'
+                                    elif '자산총계' in raw_nm: std_nm = '5. 자산총계'
+                                    elif '유동자산' == raw_nm: std_nm = '6. 유동자산'
+                                    elif '부채총계' in raw_nm: std_nm = '7. 부채총계'
+                                    elif '자본총계' in raw_nm: std_nm = '8. 자본총계'
+                                    elif '영업활동현금흐름' in raw_nm or '영업활동으로인한현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
+                                    elif '투자활동현금흐름' in raw_nm or '투자활동으로인한현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
+                                    elif '재무활동현금흐름' in raw_nm or '재무활동으로인한현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
+                                if std_nm:
+                                    yr_items.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
+                                    yr_items.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
+                                    yr_items.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                            if yr_items:
+                                break
+                except Exception:
+                    break
+        return yr_items
+
+    if corp_code:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            results = list(ex.map(fetch_dart_year, years))
+            for r_list in results:
+                all_data.extend(r_list)
+
+    if all_data:
+        df = pd.DataFrame(all_data)
+        df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
+        df = df.dropna().drop_duplicates(subset=['연도', '계정'])
+        pivot_df = df.pivot(index='계정', columns='연도', values='금액')
+        pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000.0
         final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
-        return df.reindex([i for i in final_idx if i in df.index])
-    return pd.DataFrame()
+        return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "DART 10년 API 연동 성공"
+
+    # 2단계: 해외 IP로 인해 DART가 차단된 경우 -> 세종데이터(10년) + FMP API(10년) + 네이버/YF 동시 병합!
+    fmp_key = globals().get('FMP_API_KEY', '')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+        fut_sj = ex.submit(_fetch_sejong_10yr_kr, clean_code)
+        fut_fmp = ex.submit(_fetch_fmp_10yr_kr, clean_code, fmp_key)
+        fut_nv = ex.submit(_fetch_naver_and_yf_recent, clean_code)
+        sj_dict = fut_sj.result()
+        fmp_dict = fut_fmp.result()
+        nv_dict = fut_nv.result()
+
+    merged_dict = {}
+    # 우선순위: 세종 10년 K-IFRS -> FMP 10년 API -> 네이버/yfinance 최신 연도 보강
+    for src_dict in [fmp_dict, sj_dict, nv_dict]:
+        for std_nm, yr_map in src_dict.items():
+            if std_nm not in merged_dict:
+                merged_dict[std_nm] = {}
+            for yr, val in yr_map.items():
+                if val is not None and not pd.isna(val) and val != 0:
+                    merged_dict[std_nm][yr] = val
+
+    if merged_dict:
+        df_merged = pd.DataFrame(merged_dict).T
+        valid_cols = sorted([c for c in df_merged.columns if str(c).isdigit() and len(str(c)) == 4], reverse=True)[:10]
+        df_merged = df_merged[valid_cols]
+        final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
+        return df_merged.reindex([i for i in final_idx if i in df_merged.index]), "10년 재무 다중화 엔진 연동 성공"
+
+    return pd.DataFrame(), "데이터 없음"
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_10yr_dart_financials_v2(stock_code, api_key):
