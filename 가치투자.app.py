@@ -995,7 +995,98 @@ global_top30 = [
 for k, v in tmap.items():
     if v not in primary_names:
         primary_names[v] = k
-# ==========================================
+# ▼▼▼ fetch_macro_realtime_v6() 함수 바로 위에 아래 함수를 새로 추가하고, fetch_macro_realtime_v6()를 교체하세요 ▼▼▼
+def fetch_cnn_fear_and_greed():
+    """CNN 공포·탐욕 지수 실시간 호출 (차단 시 VIX 기반 정밀 폴백)"""
+    url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Referer': 'https://edition.cnn.com/markets/fear-and-greed',
+        'Origin': 'https://edition.cnn.com'
+    }
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            data = r.json().get("fear_and_greed", {})
+            score = safe_float(data.get("score"))
+            prev = safe_float(data.get("previous_close"), score)
+            rating_raw = str(data.get("rating", "")).lower()
+            
+            rating_map = {
+                "extreme fear": ("극단적 공포", "Extreme Fear"),
+                "fear": ("공포", "Fear"),
+                "neutral": ("중립", "Neutral"),
+                "greed": ("탐욕", "Greed"),
+                "extreme greed": ("극단적 탐욕", "Extreme Greed")
+            }
+            ko_lbl, en_lbl = rating_map.get(rating_raw, ("중립", "Neutral"))
+            if score > 0:
+                return {
+                    "p": score,
+                    "c": score - prev,
+                    "pct": score - prev,
+                    "ko_lbl": ko_lbl,
+                    "en_lbl": en_lbl,
+                    "is_fallback": False
+                }
+    except Exception:
+        pass
+
+    # [폴백 엔진] CNN 서버 차단 시 VIX(^VIX) 지수를 기반으로 공포·탐욕 상태 산출
+    try:
+        vix_stk = yf.Ticker("^VIX")
+        hist = vix_stk.history(period="5d")
+        if hist is not None and not hist.empty:
+            vix_now = safe_float(hist['Close'].iloc[-1], 20.0)
+            vix_prev = safe_float(hist['Close'].iloc[-2], vix_now) if len(hist) >= 2 else vix_now
+            # VIX 12(극단적 탐욕 ~85점) ~ VIX 35(극단적 공포 ~10점) 선형 변환
+            proxy_score = max(5.0, min(95.0, 100.0 - ((vix_now - 10.0) * 3.2)))
+            proxy_prev = max(5.0, min(95.0, 100.0 - ((vix_prev - 10.0) * 3.2)))
+            if proxy_score <= 25: ko_lbl, en_lbl = "극단적 공포(VIX추정)", "Extreme Fear(Est.)"
+            elif proxy_score <= 45: ko_lbl, en_lbl = "공포(VIX추정)", "Fear(Est.)"
+            elif proxy_score <= 55: ko_lbl, en_lbl = "중립(VIX추정)", "Neutral(Est.)"
+            elif proxy_score <= 75: ko_lbl, en_lbl = "탐욕(VIX추정)", "Greed(Est.)"
+            else: ko_lbl, en_lbl = "극단적 탐욕(VIX추정)", "Extreme Greed(Est.)"
+            return {
+                "p": proxy_score,
+                "c": proxy_score - proxy_prev,
+                "pct": proxy_score - proxy_prev,
+                "ko_lbl": ko_lbl,
+                "en_lbl": en_lbl,
+                "is_fallback": True
+            }
+    except Exception:
+        pass
+
+    return {"p": 50.0, "c": 0.0, "pct": 0.0, "ko_lbl": "데이터 확인 필요", "en_lbl": "Check Needed", "is_fallback": True}
+
+@st.cache_data(ttl=60) 
+def fetch_macro_realtime_v6():
+    macro_symbols = {
+        "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
+        "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
+        "USD/KRW": "KRW=X", "WTI Crude": "CL=F", "10Y Treasury": "^TNX"
+    }
+    res = {}
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
+        futures = [executor.submit(fetch_single_macro, name, tk) for name, tk in macro_symbols.items()]
+        spy_future = executor.submit(fetch_single_pe, "SPY", 22.0)
+        qqq_future = executor.submit(fetch_single_pe, "QQQ", 30.0)
+        fng_future = executor.submit(fetch_cnn_fear_and_greed)
+        
+        for future in concurrent.futures.as_completed(futures):
+            name, data = future.result()
+            res[name] = data
+            
+        res["SPY_PE"] = spy_future.result()
+        res["QQQ_PE"] = qqq_future.result()
+        res["CNN_FNG"] = fng_future.result()
+        
+    return res
+# ▲▲▲ 여기까지 교체 ▲▲▲
+    # ==========================================
 # [3] 데이터 가져오기 엔진
 # ==========================================
 def fetch_single_macro(name, tk):
@@ -1454,13 +1545,42 @@ def fetch_governance_criticism(tk, cd, ceo_name):
     }
     db.update(new_gov_db)
     # ▲▲▲ 여기까지 ▲▲▲
-    
+
+    # [법적 리스크 필터] 명예훼손·모욕 소지가 있는 단어를 출력 직전에 중립 용어로 자동 변환
+    legal_filter = {
+        "최악의 주주가치 훼손의 원흉입니다": "주주가치 희석 논란이 발생한 주요 사례입니다",
+        "원흉입니다": "주요 사례로 지적됩니다",
+        "뒤통수를 치는": "주주 이해상충 논란을 야기한",
+        "뒤통수를 친": "주주 이해상충 논란을 야기한",
+        "먹튀": "대량 지분 매도",
+        "치졸한 경영권 분쟁 이전투구": "장기화된 경영권 분쟁",
+        "흉악한 도덕적 파탄": "심각한 거버넌스 논란",
+        "도덕성 파탄": "내부통제 및 거버넌스 논란",
+        "거버넌스 붕괴": "거버넌스 리스크 부각",
+        "사기 유죄 판결": "법적 제재 및 합의 판결",
+        "대국민 사기 혐의": "정보 비공개 관련 소송 혐의",
+        "사기 비리": "불완전판매 및 내부통제 논란",
+        "사기 혐의": "규제 위반 혐의",
+        "사기 흑역사": "대규모 소송 이력",
+        "꼼수 파산": "파산 보호 신청 절차 논란",
+        "부도덕한 이력": "법적·규제적 제재 이력",
+        "부도덕한 오점": "규제 제재 이력",
+        "부도덕한": "내부통제 미흡 관련",
+        "파탄": "훼손 논란"
+    }
+
+    target_text = None
     if cd_clean in db:
-        return db[cd_clean]
-    if tk_clean in db:
-        return db[tk_clean]
+        target_text = db[cd_clean]
+    elif tk_clean in db:
+        target_text = db[tk_clean]
+
+    if target_text:
+        for bad_word, safe_word in legal_filter.items():
+            target_text = target_text.replace(bad_word, safe_word)
+        return target_text
             
-    return f"{ceo_name} 경영진 - 위키 및 공공 기록 스크리닝 결과, 해당 경영진에 대한 사법적 리스크나 중범죄 이력은 두드러지지 않습니다. 다만 가치투자 관점에서 경영자의 정직성과 과도한 자본 배분 오류, 노사 갈등(상생 여부)에 대한 철저한 팩트 체크가 선행되어야 합니다."
+    return f"{ceo_name} 경영진 - 공개 공시 및 공공 기록 스크리닝 결과, 현재 두드러진 법적 제재 이력은 확인되지 않습니다. 다만 가치투자 프레임워크 관점에서 경영자의 자본 배분 효율성과 주주환원 일관성에 대한 지속적인 팩트 체크가 필요합니다."
 # =========================================================================
 # [정통 DART API 10년치 완벽 복원] corpCode 병목만 제거하고 순수 DART API 끝까지 호출
 # =========================================================================
@@ -2792,7 +2912,14 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
         kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
         
-        kw_fatal = ["구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", "거버넌스 붕괴", "파탄", "먹튀", "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"]
+        # ▼▼▼ get_comprehensive_investment_opinion 함수 내부의 kw_fatal 부분과 '# 11. 최종 결과 매핑' 아래를 교체하세요 ▼▼▼
+
+        # (함수 상단 kw_fatal 리스트에 중립화 대체어도 함께 인식되도록 보강)
+        kw_fatal = [
+            "구속", "횡령", "배임", "분식회계", "사기", "은폐", "조작", "부품 바꿔치기", 
+            "거버넌스 붕괴", "거버넌스 리스크 부각", "파탄", "훼손 논란", "먹튀", "대량 지분 매도", 
+            "사망 참사", "부당대출", "비리", "미공개 정보", "내부통제 부실", "압수수색"
+        ]
         kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
         kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
         kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
@@ -3147,59 +3274,59 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score = raw_total / avg_w if avg_w > 0 else 0
     score = round(score)
     
-    # ▼▼▼ 기존 '# 11. 최종 결과 매핑' 아래의 if/elif/else 전체를 이걸로 교체하세요 ▼▼▼
-    # 11. 최종 결과 매핑 (10점 단위 세분화)
+    # ▼▼▼ 기존 '# 11. 최종 결과 매핑 (10점 단위 세분화)' 아래의 if/elif/else 전체를 이걸로 교체하세요 ▼▼▼
+    # [법적 준수 패치] 매수/매도/보유/진입/익절 등 일체의 투자 행위 지시어를 배제하고 정량적 밸류에이션 상태만 기술
     if score >= 80:
-        title, color = t(f"역사적 바닥 / 극단적 저평가 ({score}점)", f"Historical Bottom / Extremely Undervalued ({score} pts)"), "#0050b3"
-        reason = t("평생에 몇 번 오지 않을 극단적 저평가 상태입니다. 모든 지표가 압도적인 안전마진을 가리킵니다.", "Once-in-a-lifetime discount. All metrics indicate massive margin of safety.")
+        title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
+        reason = t("역사적 멀티플 및 현금흐름 할인(DCF) 모델 대비 현저한 할인 구간에 위치해 있습니다.", "Positioned at a deep discount relative to historical multiples and DCF models.")
     elif score >= 70:
-        title, color = t(f"압도적 저평가 ({score}점)", f"Deeply Undervalued ({score} pts)"), "#0984e3"
-        reason = t("모든 가치평가 지표가 완벽에 가까우며, 내재가치 대비 주가가 훌륭하게 할인되어 있습니다.", "Flawless fundamentals and deeply discounted to intrinsic value.")
+        title, color = t(f"심층 저평가 구간 ({score}점)", f"Deeply Discounted Zone ({score} pts)"), "#0984e3"
+        reason = t("주요 정량적 가치평가 지표가 모두 우호적이며, 추정 내재가치 대비 높은 할인율을 보입니다.", "Quantitative valuation metrics are highly favorable with a large discount to estimated intrinsic value.")
     elif score >= 60:
-        title, color = t(f"적극 매수 구간 ({score}점)", f"Strong Buy Zone ({score} pts)"), "#0097e6"
-        reason = t("펀더멘털이 강력하고 주가도 충분히 싸서, 비중 확대를 적극적으로 고려할 만한 매력적인 구간입니다.", "Strong fundamentals and very cheap price. Highly attractive zone to increase weight.")
+        title, color = t(f"높은 안전마진 구간 ({score}점)", f"High Margin of Safety ({score} pts)"), "#0097e6"
+        reason = t("펀더멘털 지표가 견고하며 정량적 밸류에이션 프레임워크상 안전마진이 충분한 구간입니다.", "Solid fundamentals with a wide margin of safety under the quantitative framework.")
     elif score >= 50:
-        title, color = t(f"현저한 저평가 ({score}점)", f"Significantly Undervalued ({score} pts)"), "#00b894"
-        reason = t("우수한 펀더멘털과 뚜렷한 안전마진을 갖추고 있어 투자의 하방 리스크가 굳건히 방어됩니다.", "Excellent fundamentals with a clear margin of safety. Downside risk is well protected.")
+        title, color = t(f"유의미한 저평가 구간 ({score}점)", f"Significantly Discounted ({score} pts)"), "#00b894"
+        reason = t("양호한 자본수익률(ROE/ROIC)과 내재가치 대비 뚜렷한 안전마진 지표를 동시에 충족합니다.", "Meets both solid capital returns and clear margin of safety criteria.")
     elif score >= 40:
         title, color = t(f"가치 대비 충분한 할인 ({score}점)", f"Well Discounted ({score} pts)"), "#10ac84"
-        reason = t("위대한 기업의 주가가 시장의 오해나 일시적 요인으로 꽤 저렴해진 상태로 분석됩니다.", "A great business trading at a good discount due to market noise or temporary factors.")
+        reason = t("비즈니스 수익성 대비 현재 시장 가격이 과거 평균 멀티플 하단에 형성되어 있습니다.", "Current market price is below historical average multiples relative to business profitability.")
     elif score >= 30:
-        title, color = t(f"매력적인 가격 ({score}점)", f"Attractive Price ({score} pts)"), "#2ecc71"
-        reason = t("비즈니스 해자가 유지되는 가운데 주가도 적정 가치 아래로 내려와 매수 매력도가 높습니다.", "Moat is intact and price is below fair value. High buying attractiveness.")
+        title, color = t(f"양호한 밸류에이션 할인 ({score}점)", f"Favorable Valuation Discount ({score} pts)"), "#2ecc71"
+        reason = t("비즈니스 해자 지표가 유지되는 가운데 모델상 추정 적정가치 아래에 위치해 있습니다.", "Moat metrics remain intact while trading below model-estimated fair value.")
     elif score >= 20:
-        title, color = t(f"합리적 가격 ({score}점)", f"Reasonable Price ({score} pts)"), "#55efc4"
-        reason = t("기업의 퀄리티가 우수하며 가격 또한 내재가치에 부합하는 합리적인 수준에 도달했습니다.", "High-quality business trading at a reasonable price.")
+        title, color = t(f"합리적 밸류에이션 구간 ({score}점)", f"Reasonable Valuation ({score} pts)"), "#55efc4"
+        reason = t("기업의 자본 효율성이 우수하며 가격 또한 내재가치 산출 범위에 부합하는 합리적 수준입니다.", "High capital efficiency with price aligned with the intrinsic value range.")
     elif score >= 10:
-        title, color = t(f"가치 부합 / 편안한 보유 ({score}점)", f"Fair Value / Comfort Hold ({score} pts)"), "#f1c40f"
-        reason = t("시장의 기대치와 내재가치가 거의 완벽하게 일치합니다. 신규 매수보다는 편안하게 보유할 구간입니다.", "Market expectations perfectly match intrinsic value. Better to hold comfortably than initiate new buys.")
+        title, color = t(f"적정 가치 부합 구간 ({score}점)", f"Aligned with Fair Value ({score} pts)"), "#f1c40f"
+        reason = t("시장의 기대치와 정량 모델의 내재가치 추정치가 대체로 일치하는 균형 구간입니다.", "Market expectations and quantitative intrinsic value estimates are largely in balance.")
     elif score >= 0:
-        title, color = t(f"완벽한 적정 가치 ({score}점)", f"Perfectly Fair Value ({score} pts)"), "#f39c12"
-        reason = t("할인도, 할증도 없는 100% 제값입니다. 이 구간부터는 기업의 향후 이익 성장이 곧 주가 수익률이 됩니다.", "Priced exactly at fair value. Future stock returns will perfectly mirror earnings growth.")
+        title, color = t(f"모델상 중립 적정가치 ({score}점)", f"Neutral Fair Value ({score} pts)"), "#f39c12"
+        reason = t("할인도 할증도 없는 중립 구간입니다. 향후 주가 흐름은 기업의 실질 이익 성장률에 연동될 가능성이 높습니다.", "Neutral zone without discount or premium. Future value depends directly on earnings growth.")
     elif score >= -10:
-        title, color = t(f"가치 대비 약간 할증 ({score}점)", f"Slight Premium ({score} pts)"), "#fdcb6e"
-        reason = t("펀더멘털 대비 주가가 다소 비싸게 형성되어 있습니다. 훌륭한 기업의 프리미엄이 붙은 상태입니다.", "Trading at a slight premium to fundamentals. Paying for high quality.")
+        title, color = t(f"가치 대비 소폭 할증 ({score}점)", f"Slight Valuation Premium ({score} pts)"), "#fdcb6e"
+        reason = t("과거 평균 멀티플 및 현금흐름 모델 대비 소폭의 프리미엄이 가격에 반영된 상태입니다.", "Trading at a slight premium relative to historical multiples and cash flow models.")
     elif score >= -20:
-        title, color = t(f"미래 성장 선반영 ({score}점)", f"Growth Priced In ({score} pts)"), "#fab1a0"
-        reason = t("향후 1~2년 치의 이익 성장이 이미 주가에 반영되어 있어 뚜렷한 안전마진이 부족합니다.", "1-2 years of future growth are already priced in. Lacking margin of safety.")
+        title, color = t(f"미래 성장 기대 선반영 ({score}점)", f"Future Growth Priced In ({score} pts)"), "#fab1a0"
+        reason = t("향후 1~2년 치의 이익 성장 컨센서스가 이미 현재 가격에 반영되어 모델상 안전마진이 낮습니다.", "1-2 years of consensus earnings growth are already reflected in the current price.")
     elif score >= -30:
-        title, color = t(f"고평가 경계 진입 ({score}점)", f"Entering Overvaluation ({score} pts)"), "#fa8231"
-        reason = t("기업의 실제 이익 창출 능력 대비 주가가 너무 빠르게 상승했습니다. 밸류에이션 부담이 큽니다.", "Price has outpaced actual earnings power too quickly. High valuation burden.")
+        title, color = t(f"밸류에이션 할증 진입 ({score}점)", f"Entering Valuation Premium ({score} pts)"), "#fa8231"
+        reason = t("실제 이익 창출 속도보다 멀티플 확장 속도가 빨라 정량적 밸류에이션 부담이 존재하는 구간입니다.", "Multiple expansion has outpaced actual earnings growth, creating valuation burden.")
     elif score >= -40:
         title, color = t(f"밸류에이션 부담 가중 ({score}점)", f"Heavy Valuation Burden ({score} pts)"), "#e15f41"
-        reason = t("단기적인 과열 양상을 보입니다. 이익 성장이 조금만 꺾여도 주가가 크게 하락할 수 있는 리스크가 있습니다.", "Short-term overheating. High risk of sharp correction if earnings stumble.")
+        reason = t("역사적 평균 대비 높은 프리미엄이 적용되어 있어 성장률 둔화 시 멀티플 수축 리스크가 있습니다.", "High premium vs historical average; vulnerable to multiple contraction if growth slows.")
     elif score >= -50:
-        title, color = t(f"현저한 고평가 ({score}점)", f"Significantly Overvalued ({score} pts)"), "#ff4757"
-        reason = t("미래 수년 치의 낙관적인 성장이 주가에 100% 선반영되어 있어 신규 진입이 매우 위험합니다.", "Years of highly optimistic growth are fully priced in. Very dangerous to enter.")
+        title, color = t(f"현저한 고평가 구간 ({score}점)", f"Significantly Overvalued ({score} pts)"), "#ff4757"
+        reason = t("향후 수년간의 낙관적인 성장 가정이 가격에 선반영되어 있어 정량 모델상 안전마진이 부재합니다.", "Years of optimistic growth assumptions are priced in, leaving no quantitative margin of safety.")
     elif score >= -60:
-        title, color = t(f"강력한 매도 경고 ({score}점)", f"Strong Sell Warning ({score} pts)"), "#eb2f06"
-        reason = t("대다수의 가치평가 지표가 심각한 수준의 고평가를 가리킵니다. 이익 실현을 강력히 고려하세요.", "Most valuation metrics point to severe overvaluation. Strongly consider taking profits.")
+        title, color = t(f"심각한 밸류에이션 과열 ({score}점)", f"Severe Valuation Overheating ({score} pts)"), "#eb2f06"
+        reason = t("대다수의 정량적 가치평가 지표가 역사적 상단 및 심각한 할증 구간을 가리키고 있습니다.", "Most quantitative valuation metrics indicate historical upper bounds and severe premium.")
     elif score >= -70:
-        title, color = t(f"밸류에이션 한계 초과 ({score}점)", f"Valuation Limit Exceeded ({score} pts)"), "#c23616"
-        reason = t("비정상적인 거품 상태입니다. 가격이 기업의 내재가치와 완전히 괴리되어 폭락의 전조가 될 수 있습니다.", "Abnormal bubble. Price is completely detached from value, signaling a potential crash.")
+        title, color = t(f"밸류에이션 모델 한계 초과 ({score}점)", f"Valuation Model Limit Exceeded ({score} pts)"), "#c23616"
+        reason = t("현재 가격이 정량적 내재가치 산출 프레임워크의 설명 범위를 크게 초과하여 괴리된 상태입니다.", "Current price significantly exceeds the explanatory range of the quantitative valuation framework.")
     else:
-        title, color = t(f"극단적 버블 / 펀더멘털 파탄 ({score}점)", f"Extreme Bubble / Impaired ({score} pts)"), "#8c14fc"
-        reason = t("시장의 광기가 절정에 달했거나, 기업의 펀더멘털 및 거버넌스 훼손이 돌이킬 수 없는 지경입니다.", "Market mania at its peak, or fundamental/governance damage is irreversible.")
+        title, color = t(f"극단적 할증 / 펀더멘털 훼손 ({score}점)", f"Extreme Premium / Fundamental Impairment ({score} pts)"), "#8c14fc"
+        reason = t("정량 지표상 극단적인 멀티플 할증 상태이거나, 현금흐름 및 거버넌스 지표가 크게 훼손된 상태입니다.", "Extreme multiple premium or severe impairment in cash flow and governance metrics.")
 
     if kr: reason += t(" (코리아 디스카운트 -15점 적용)", " (Korea Discount -15 Applied)")
     elif is_china_hk: reason += t(" (차이나/홍콩 디스카운트 -20점 적용)", " (China/HK Discount -20 Applied)")
@@ -3208,7 +3335,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     if is_financial: reason += t(" (금융/보험주 PBR 방어 로직 적용됨)", " (Financial Mode Active)")
 
     return title, color, reason, score_details
-    # ▲▲▲ 여기까지 ▲▲▲
+    # ▲▲▲ 여기까지 교체 ▲▲▲
     
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#2ecc71"
@@ -3988,13 +4115,13 @@ div[data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; border: 
 </style>
 """, unsafe_allow_html=True)
 
-# --- 헤더 및 언어 토글 ---
+# ▼▼▼ "--- 헤더 및 언어 토글 ---" 부분부터 "macro_html += ..." 출력 부분까지 아래 코드로 교체하세요 ▼▼▼
 c_empty, c_title, c_lang = st.columns([1, 8, 1])
 with c_title:
     st.markdown("""
     <div style="padding-top: 10px; padding-bottom: 15px; text-align: center;">
         <span style="font-size: 3.5rem; font-weight: 900; background: linear-gradient(45deg, #A0C4FF, #FFC6FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px;">AGIE</span>
-        <div style="font-size: 1rem; color: #8892b0; margin-top: -10px; font-weight: 600;">똑똑하고 친절한 나만의 AI 가치투자 비서</div>
+        <div style="font-size: 1rem; color: #8892b0; margin-top: -10px; font-weight: 600;">기업 비즈니스 모델 해부 · 산업 분석 · 정량적 밸류에이션 프레임워크</div>
     </div>
     """, unsafe_allow_html=True)
 with c_lang:
@@ -4015,6 +4142,20 @@ krw_p, krw_c, krw_pct = get_safe_macro("USD/KRW")
 wti_p, wti_c, wti_pct = get_safe_macro("WTI Crude", is_currency=True)
 tnx_p, tnx_c, tnx_pct = get_safe_macro("10Y Treasury", is_rate=True)
 
+# [신규] CNN 공포·탐욕 지수 파싱 및 전용 카드 렌더링
+fng_data = macro_data.get("CNN_FNG", {"p": 50.0, "c": 0.0, "ko_lbl": "중립", "en_lbl": "Neutral"})
+fng_score = safe_float(fng_data.get("p"), 50.0)
+fng_chg = safe_float(fng_data.get("c"), 0.0)
+fng_lbl = fng_data.get("ko_lbl", "중립") if is_ko else fng_data.get("en_lbl", "Neutral")
+
+if fng_score <= 25: fng_color = "#ff4757"      # 극단적 공포 (적색)
+elif fng_score <= 45: fng_color = "#ffa502"    # 공포 (주황)
+elif fng_score <= 55: fng_color = "#a4b0be"    # 중립 (회색)
+elif fng_score <= 75: fng_color = "#2ed573"    # 탐욕 (녹색)
+else: fng_color = "#1e90ff"                    # 극단적 탐욕 (청색)
+
+fng_sign = "+" if fng_chg > 0 else ""
+
 macro_items = [
     (t("환율(KRW/USD)", "USD/KRW"), krw_p, krw_pct, "%"),
     (t("10년물 국채", "10Y Treasury"), tnx_p, tnx_c, " bp"),
@@ -4027,6 +4168,16 @@ macro_items = [
 ]
 
 macro_html = "<div class='macro-ticker' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
+
+# 1번째 카드로 CNN 공포·탐욕 지수 고정 배치
+macro_html += (
+    f"<div style='flex: 0 0 auto; background: rgba(255,255,255,0.05); padding: 18px 22px; border-radius: 16px; border: 1.5px solid {fng_color}; min-width: 165px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>"
+    f"<div style='font-size: 0.85rem; color: #8892b0; margin-bottom: 8px; font-weight: 700;'>{t('CNN 공포·탐욕', 'CNN Fear & Greed')}</div>"
+    f"<div style='font-size: 1.4rem; font-weight: 900; color: {fng_color}; letter-spacing: -0.5px;'>{fng_score:.0f} <span style='font-size:0.85rem;'>({fng_lbl})</span></div>"
+    f"<div style='font-size: 0.9rem; font-weight: bold; color: #8892b0; margin-top: 5px;'>{t('전일대비', 'Chg')} {fng_sign}{fng_chg:.1f}pt</div>"
+    f"</div>"
+)
+
 for name, val, chg, unit in macro_items:
     color = "#2ecc71" if chg > 0 else ("#ff7675" if chg < 0 else "#8892b0")
     sign = "+" if chg > 0 else ""
@@ -4034,6 +4185,7 @@ for name, val, chg, unit in macro_items:
     macro_html += f"<div style='flex: 0 0 auto; background: rgba(255,255,255,0.03); padding: 18px 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); min-width: 145px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'><div style='font-size: 0.85rem; color: #8892b0; margin-bottom: 8px; font-weight: 600;'>{name}</div><div style='font-size: 1.4rem; font-weight: 800; color: var(--text-color); letter-spacing: -0.5px;'>{val}</div><div style='font-size: 0.95rem; font-weight: bold; color: {color}; margin-top: 5px;'>{chg_str}</div></div>"
 macro_html += "</div>"
 st.markdown(macro_html, unsafe_allow_html=True)
+# ▲▲▲ 여기까지 교체 ▲▲▲
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
@@ -4695,7 +4847,7 @@ with tab1:
 
                     # ▼▼▼ 기존 [AI 종합 투자의견] 렌더링 HTML 전체를 이걸로 교체하세요 ▼▼▼
                     st.markdown(f"""<div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
-<h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[AI 종합 투자의견] : {op_title}</h3>
+<h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[정량적 밸류에이션 프레임워크 산출 결과] : {op_title}</h3>
                         
 <div style="position: relative; width: 100%; height: 16px; margin: 35px 0 15px 0; background: linear-gradient(to right, #8c14fc 0%, #8c14fc 15%, #c23616 15%, #c23616 20%, #eb2f06 20%, #eb2f06 25%, #ff4757 25%, #ff4757 30%, #e15f41 30%, #e15f41 35%, #fa8231 35%, #fa8231 40%, #fab1a0 40%, #fab1a0 45%, #fdcb6e 45%, #fdcb6e 50%, #f39c12 50%, #f39c12 55%, #f1c40f 55%, #f1c40f 60%, #55efc4 60%, #55efc4 65%, #2ecc71 65%, #2ecc71 70%, #10ac84 70%, #10ac84 75%, #00b894 75%, #00b894 80%, #0097e6 80%, #0097e6 85%, #0984e3 85%, #0984e3 90%, #0050b3 90%, #0050b3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
     <div style="position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center; z-index: 10;">
@@ -4978,23 +5130,24 @@ with tab1:
                 lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
+                # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
                 easy_summary_msg = ""
                 if total_score_val >= 60:
-                    easy_summary_msg = "💰 돈을 아주 잘 버는데 주가는 헐값인 '절대적 바겐세일' 구간입니다."
+                    easy_summary_msg = "📊 정량 모델 분석 결과: 현금창출력 및 자본수익률 대비 현저한 안전마진(할인)이 산출되는 구간입니다."
                 elif total_score_val >= 40:
-                    easy_summary_msg = "🛒 내재가치 대비 충분히 저렴합니다. 비중 확대를 적극 고려할 만합니다."
+                    easy_summary_msg = "📊 정량 모델 분석 결과: 역사적 평균 멀티플 및 추정 내재가치 대비 유의미하게 할인된 상태입니다."
                 elif total_score_val >= 20:
-                    easy_summary_msg = "✅ 튼튼한 우량주입니다. 분할해서 조금씩 사 모으기 괜찮은 가격대입니다."
+                    easy_summary_msg = "📊 정량 모델 분석 결과: 비즈니스 해자 지표가 양호하며 모델상 적정가치 하단에 위치한 구간입니다."
                 elif total_score_val >= 0:
-                    easy_summary_msg = "⚖️ 비싸지도 싸지도 않은 '딱 제값'입니다. 편안하게 보유하기 좋은 구간입니다."
+                    easy_summary_msg = "⚖️ 정량 모델 분석 결과: 현재 시장 가격과 모델상 추정 내재가치가 대체로 부합하는 중립 구간입니다."
                 elif total_score_val >= -20:
-                    easy_summary_msg = "🤔 기업은 훌륭하지만 미래 성장 기대감이 선반영되어 프리미엄이 붙어 있습니다."
+                    easy_summary_msg = "🤔 정량 모델 분석 결과: 기업 수익성은 양호하나 향후 성장 기대감이 현재 멀티플에 일부 선반영되어 있습니다."
                 elif total_score_val >= -40:
-                    easy_summary_msg = "⚠️ 좋은 회사라도 현재 주가에는 거품이 꽤 껴있습니다. 밸류에이션 부담 주의!"
+                    easy_summary_msg = "⚠️ 정량 모델 분석 결과: 과거 평균 및 DCF 모델 대비 할증되어 거래 중이므로 밸류에이션 부담 점검이 필요합니다."
                 elif total_score_val >= -60:
-                    easy_summary_msg = "🚨 실속 대비 주가가 너무 비쌉니다. 신규 진입을 피하고 이익 실현을 고려하세요."
+                    easy_summary_msg = "🚨 정량 모델 분석 결과: 실적 지표 대비 멀티플 할증 폭이 커서 모델상 안전마진이 확보되지 않는 구간입니다."
                 else:
-                    easy_summary_msg = "💥 비정상적인 광기 수준의 거품이거나 심각한 펀더멘털 결함이 있습니다."
+                    easy_summary_msg = "💥 정량 모델 분석 결과: 정량적 가치평가 모델의 설명 범위를 벗어난 극단적 할증 또는 펀더멘털 훼손 구간입니다."
                 # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 integrated_html = (
@@ -5407,6 +5560,216 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
+                # =====================================================================
+                # [신규 추가] 6. 유튜브 쇼츠(Shorts) 준법 대본 & TTS 자동 생성기
+                # (위치: 탭 1의 '5. 분석 결과 공유하기' expander 바로 아래에 붙여넣기)
+                # =====================================================================
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 준법 대본 & 자막 자동 생성기 (클릭하여 열기)", "🎬 6. YouTube Shorts Legal-Safe Script Generator"), expanded=False):
+                    st.info(t(
+                        "💡 **자본시장법(투자권유·선행매매 금지) 및 정보통신망법(명예훼손 방지) 가이드라인**이 적용된 쇼츠 대본 생성기입니다. 매수·매도 지시어를 배제하고 순수 정량 데이터와 비즈니스 모델 해부 관점으로 대본을 조립합니다.",
+                        "💡 Generates YouTube Shorts scripts strictly compliant with Korean Capital Markets Act and Defamation laws."
+                    ))
+
+                    col_sh_opt1, col_sh_opt2 = st.columns([2, 1])
+                    with col_sh_opt1:
+                        shorts_style = st.radio(
+                            t("대본 후킹(Hook) 스타일 선택", "Select Script Hook Style"),
+                            [
+                                "타입 A: 역산 DCF & 시장 기대치 검증형 (수학적 팩트 중심)",
+                                "타입 B: 비즈니스 해자(ROE·ROIC) & 주주환원 해부형 (소유권 관점)",
+                                "타입 C: 60초 퀀트 성적표 스피드 브리핑 (핵심 지표 요약)"
+                            ],
+                            key=f"shorts_style_{tk}",
+                            horizontal=False
+                        )
+                    with col_sh_opt2:
+                        st.markdown("**⚖️ 선행매매 방지 공시 설정**")
+                        creator_holds = st.checkbox(
+                            t("제작자 현재 해당 종목 보유 중", "Creator currently holds this stock"),
+                            value=False,
+                            key=f"shorts_hold_{tk}"
+                        )
+                        include_gov = st.checkbox(
+                            t("거버넌스 점검 포인트 포함", "Include Governance Checkpoints"),
+                            value=True,
+                            key=f"shorts_gov_{tk}"
+                        )
+
+                    # 1. 명예훼손 방지용 텍스트 중립화 함수
+                    def _clean_gov_for_shorts(raw_txt):
+                        if not raw_txt or "위키 및 공공 기록" in raw_txt or "공개 공시 및 공공 기록" in raw_txt:
+                            return "공개된 공시 기준 특별한 자본 배분 이상 징후는 포착되지 않았으나, 향후 주주환원 정책의 일관성을 지속 확인할 필요가 있습니다."
+                        
+                        # 법적 분쟁 소지가 있는 자극적 어휘를 중립적 학술/금융 용어로 치환
+                        legal_Swap = {
+                            "최악의 주주가치 훼손의 원흉입니다": "주주가치 희석 논란이 발생한 바 있습니다",
+                            "원흉입니다": "사례로 언급됩니다",
+                            "뒤통수를 치는": "주주 간 이해상충 논란이 제기된",
+                            "뒤통수를 친": "주주 간 이해상충 논란이 제기된",
+                            "먹튀": "대량 지분 매도",
+                            "치졸한 경영권 분쟁 이전투구": "장기화된 경영권 분쟁",
+                            "흉악한 도덕적 파탄": "내부통제 및 거버넌스 논란",
+                            "도덕성 파탄": "내부통제 관련 논란",
+                            "거버넌스 붕괴": "지배구조 리스크 부각",
+                            "사기 유죄 판결": "사법 제재 및 합의 판결",
+                            "대국민 사기 혐의": "정보 공시 관련 법적 분쟁",
+                            "사기 비리": "내부통제 관련 제재 이력",
+                            "사기 혐의": "규제 당국 조사 이력",
+                            "사기 흑역사": "과거 대규모 소송 이력",
+                            "사기": "법적 논란",
+                            "꼼수 파산": "파산 보호 신청 절차 논란",
+                            "부도덕한 이력": "규제 제재 이력",
+                            "부도덕한 오점": "과거 제재 이력",
+                            "부도덕한": "내부통제 미흡 관련",
+                            "횡령 및 배임": "자금 운용 관련 사법 리스크",
+                            "횡령 배임": "사법 리스크",
+                            "횡령": "내부통제 이슈",
+                            "배임": "경영 판단 관련 사법 이슈",
+                            "분식회계": "회계 감리 및 재무 공시 이슈",
+                            "파탄": "훼손 논란",
+                            "참사": "사고"
+                        }
+                        txt = raw_txt
+                        for bad_w, safe_w in legal_Swap.items():
+                            txt = txt.replace(bad_w, safe_w)
+                        
+                        # 장점/단점 분리 추출
+                        pros, cons = "", ""
+                        if "장점:" in txt and "단점:" in txt:
+                            parts = txt.split("단점:")
+                            pros = parts[0].split("장점:")[-1].strip()
+                            cons = parts[1].strip()
+                            return f"공시 및 시장 데이터상 강점으로는 {pros} 반면 리스크 요인으로는 {cons}"
+                        return txt
+
+                    # 2. 핵심 수치 데이터 정리 (결측치 방어)
+                    comp_name = primary_names.get(tk, i.get('shortName', tk))
+                    clean_tk = tk.split('.')[0] if kr else tk
+                    implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
+
+                    # PER / PBR 브리핑 문구 생성
+                    if is_financial or kr or is_cyclical:
+                        val_metric_Line = f"현재 선행 PBR은 {f_pbr:.2f}배로, 10년 역사적 평균 PBR인 {a_pbr:.2f}배 대비 약 {abs(pmos_val):.1f}% {'할인' if pmos_val >= 0 else '할증'}된 위치에 있습니다."
+                    else:
+                        if f_pe > 0 and a_pe > 0:
+                            val_metric_Line = f"현재 선행 PER은 {f_pe:.1f}배로, 10년 평균 PER인 {a_pe:.1f}배 대비 약 {abs(pmos_val):.1f}% {'낮은(할인)' if pmos_val >= 0 else '높은(할증)'} 멀티플을 적용받고 있습니다."
+                        else:
+                            val_metric_Line = f"현재 주가수익비율(PER) 산출이 제한적이므로 장부가치(PBR {pbr:.2f}배)와 현금흐름 추이를 중심으로 봐야 합니다."
+
+                    # 이익수익률(Earnings Yield) vs 10년물 미국채 금리 비교 문구
+                    if f_pe > 0:
+                        erp_Line = f"선행 PER을 역산한 기대 이익수익률은 연 {ey:.1f}% 수준으로, 무위험 자산인 10년물 미국채 금리({ty:.2f}%)와 비교하면 {erp:+.1f}%포인트의 격차를 보입니다."
+                    else:
+                        erp_Line = f"현재 컨센서스 이익 기준 이익수익률 산출이 어려워 국채 금리({ty:.2f}%)와의 직접 비교는 확인이 필요한 부분입니다."
+
+                    # DCF 및 역산 DCF 문구 생성
+                    if is_financial:
+                        dcf_Line = "금융 및 보험업 특성상 고객 예치금이 부채로 잡히는 회계 구조 때문에 현금흐름할인법(DCF) 대신 자기자본이익률(ROE)과 PBR을 핵심 척도로 삼았습니다."
+                    elif iv > 0 and implied_g_shorts is not None:
+                        iv_fmt = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
+                        dcf_Line = (
+                            f"역산 DCF 모델로 계산해 보면, 현재 주가({p_str})가 정당화되기 위해 시장이 요구하는 향후 10년 연평균 현금흐름 성장률은 연 {implied_g_shorts*100:.1f}%입니다. "
+                            f"과거 추세 성장률(연 {final_g*100:.1f}%)과 할인율 {max(ty, 9.0):.1f}%를 대입한 정량 모델 산출값은 {iv_fmt}(현재가 대비 {mos_val:+.1f}%)입니다."
+                        )
+                    else:
+                        dcf_Line = "현재 잉여현금흐름(FCF)이 마이너스이거나 변동폭이 커서, 보수적인 정량 DCF 모델상 내재가치 산출은 유보(확인 필요)로 판정되었습니다."
+
+                    # 해자 및 수익성 문구
+                    if is_financial:
+                        moat_Line = f"자본을 굴려 이익을 내는 자기자본이익률(ROE)은 {roe:.1f}%이며, 배당({div:.1f}%)과 자사주 매입·소각({bb_yield:+.1f}%)을 합친 총주주환원율은 연 {tsy_total:.1f}% 수준입니다."
+                    else:
+                        f_score_txt = f", 피오트로스키 재무건전성 점수는 9점 만점에 {f_score_val}점" if f_score_val is not None else ""
+                        moat_Line = (
+                            f"매출총이익률 {gross_m:.1f}%, 영업이익률 {op_m:.1f}%를 기록 중이며, "
+                            f"자기자본이익률(ROE)은 {roe:.1f}%, 부채 착시를 제거한 투하자본수익률(ROIC)은 {roic_val:.1f}%입니다{f_score_txt}. "
+                            f"배당과 자사주 소각을 합산한 총주주환원율은 연 {tsy_total:.1f}%입니다."
+                        )
+
+                    gov_Line = _clean_gov_for_shorts(criticism_text) if include_gov else ""
+
+                    # 3. 스타일별 오프닝 훅(0~5초) 분기
+                    if "타입 A" in shorts_style:
+                        if not is_financial and implied_g_shorts is not None:
+                            hook_Line = f"현재 주가 {p_str}인 {comp_name}, 과연 시장이 기대하는 미래 성장률은 몇 퍼센트일까요? 10년 공시 데이터로 역산해 봤습니다."
+                        else:
+                            hook_Line = f"현재 주가 {p_str}인 {comp_name}, 10년 평균 멀티플과 국채 금리 대비 어디에 위치해 있을까요? 정량 데이터로 해부해 봤습니다."
+                    elif "타입 B" in shorts_style:
+                        hook_Line = f"만약 {comp_name}의 지분 100%를 인수해 동업한다면 어떨까요? 비즈니스 해자와 자본수익률을 1분 만에 해부해 드립니다."
+                    else:
+                        hook_Line = f"10년 재무제표와 현금흐름 모델로 스캔한 {comp_name}의 정량적 밸류에이션 성적표, 지금 바로 공개합니다."
+
+                    # 클로징 문구 (매수/매도 권유 완전 배제, 능력 범위 질문으로 마무리)
+                    closing_Line = (
+                        f"종합 정량 스코어는 플러스·마이너스 100점 만점 중 {total_score_val}점({op_title.split('(')[0].strip()}) 구간에 위치해 있습니다. "
+                        f"과연 이 기업의 경제적 해자가 향후 10년 뒤에도 유지될지, 여러분의 능력 범위 안에서 어떻게 보시나요? "
+                        f"본 영상은 공시 데이터 기반의 정량 모델 시뮬레이션일 뿐 매수·매도 추천이 아닙니다."
+                    )
+
+                    # 4. 타임라인 대본 조립
+                    timeline_script = f"""[📌 쇼츠 화면 상단 고정 자막 (내내 띄워둘 문구)]
+⚠️ 본 영상은 DART·SEC 공시 기반의 정량적 밸류에이션 모델 시뮬레이션이며, 특정 종목의 매수·매도 추천이 아닙니다.
+{'(※ 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있으나 단기 매매 계획은 없습니다.)' if creator_holds else '(※ 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다.)'}
+
+--------------------------------------------------
+[⏱️ 00:00 ~ 00:06 | 오프닝 훅 (화면: AGIE 상단 종합 점수 게이지 & 레이더 차트)]
+🎙️ 나레이션: "{hook_Line}"
+
+[⏱️ 00:06 ~ 00:22 | 비즈니스 해자 & 수익성 해부 (화면: ROE/ROIC 및 이익률 카드)]
+🎙️ 나레이션: "먼저 비즈니스 퀄리티입니다. {moat_Line}"
+
+[⏱️ 00:22 ~ 00:42 | 멀티플 & 역산 DCF 밸류에이션 (화면: PER/PBR 및 역산 DCF 패널)]
+🎙️ 나레이션: "다음은 가격과 가치의 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line}"
+"""
+                    if include_gov and gov_Line:
+                        timeline_script += f"""
+[⏱️ 00:42 ~ 00:52 | 지배구조 & 자본배분 점검 (화면: 10년 재무 차트 및 거버넌스 패널)]
+🎙️ 나레이션: "자본 배분 및 지배구조 측면을 보면, {gov_Line}"
+"""
+                    timeline_script += f"""
+[⏱️ 00:52 ~ 01:00 | 클로징 & 능력 범위 질문 (화면: AGIE 전체 요약 화면)]
+🎙️ 나레이션: "{closing_Line}"
+"""
+
+                    # 5. TTS 프로그램(Vrew, 일레븐랩스 등) 바로 붙여넣기용 순수 대본
+                    tts_only_script = f"{hook_Line}\n\n먼저 비즈니스 퀄리티입니다. {moat_Line}\n\n다음은 가격과 가치의 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line}\n\n"
+                    if include_gov and gov_Line:
+                        tts_only_script += f"자본 배분 및 지배구조 측면을 보면, {gov_Line}\n\n"
+                    tts_only_script += closing_Line
+
+                    # 6. 유튜브 제목 / 설명란 / 고정댓글 법적 고지문 패키지
+                    hold_disclosure = "현재 제작자는 해당 종목을 장기 가치투자 관점에서 보유 중이며, 영상 업로드 전후 단기 매매(선행매매) 계획이 일절 없음을 밝힙니다." if creator_holds else "현재 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다."
+                    
+                    yt_metadata_package = f"""[추천 쇼츠 제목 (택 1)]
+1. {comp_name}({clean_tk}), 현재 주가에 반영된 미래 성장률은? (10년 재무·DCF 해부) #shorts
+2. 지분 100%를 인수한다면? {comp_name} ROE·ROIC·안전마진 정량 분석 #shorts
+3. [기업해부] {comp_name} 이익수익률 vs 10년물 국채금리 비교 시뮬레이션 #shorts
+
+[유튜브 설명란(더보기) & 고정 댓글 필수 고지문 (복사해서 고정하세요)]
+📊 {comp_name} ({tk}) 정량적 밸류에이션 프레임워크 요약
+• 현재 주가: {p_str}
+• ROE / ROIC: {roe:.1f}% / {roic_str}
+• 총주주환원율(배당+자사주): 연 {tsy_total:.1f}%
+• 선행 PER / 10년 평균 PER: {f_pe:.1f}배 / {a_pe:.1f}배
+• 선행 PBR / 10년 평균 PBR: {f_pbr:.2f}배 / {a_pbr:.2f}배
+
+⚠️ [법적 고지 및 면책 조항 - 필독]
+1. 본 채널과 영상은 기업 비즈니스 모델 해부 및 정량적 밸류에이션 프레임워크 연구를 위한 순수 학술·교육용 콘텐츠입니다. 자본시장법상 투자자문업이나 유사투자자문업에 해당하지 않으며, 특정 종목의 매수·매도 추천이나 유료 리딩을 일절 하지 않습니다.
+2. 자본시장법 준수를 위해 댓글 등을 통한 개별 종목의 매수·매도 타이밍 상담이나 1:1 투자 조언은 진행하지 않으니 양해 부탁드립니다.
+3. 영상에 표출된 수치와 DCF 내재가치는 공개된 공시 자료(DART, SEC)를 바탕으로 한 기계적 시뮬레이션 결과이며, 데이터 지연이나 오차가 있을 수 있어 정확성을 보증하지 않습니다.
+4. [이해상충 고지] {hold_disclosure} 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.
+
+#{comp_name.replace(' ', '')} #{clean_tk} #기업분석 #재무제표분석 #가치투자 #비즈니스모델 #ROE #ROIC #DCF시뮬레이션"""
+
+                    st.markdown("#### 1️⃣ 연출 가이드 포함 타임라인 대본")
+                    st.code(timeline_script, language="text")
+
+                    st.markdown("#### 2️⃣ TTS(인공지능 성우) 프로그램 입력용 순수 나레이션")
+                    st.caption("우측 상단 복사 버튼을 눌러 Vrew, 타입캐스트, 일레븐랩스 등에 바로 붙여넣으세요.")
+                    st.code(tts_only_script, language="text")
+
+                    st.markdown("#### 3️⃣ 유튜브 제목 · 설명란 · 댓글 1:1 상담 차단 고지문")
+                    st.caption("자본시장법 제101조(쌍방향 소통 금지) 및 제178조(이해상충 고지) 방어를 위해 설명란과 고정 댓글에 반드시 함께 등록하세요.")
+                    st.code(yt_metadata_package, language="text")
                 # =====================================================================
                 # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
                 # =====================================================================
@@ -6491,12 +6854,21 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
         else:
             st.error(t("종목 데이터를 불러오지 못했습니다. 티커나 종목명을 다시 확인해 주세요.", "Failed to load stock data. Please check the ticker."))
-# 하단 면책 조항 및 카피라이트 
+# ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
 st.divider()
-lbl_disc_title = t('[면책 조항 / Disclaimer]', '[Disclaimer]')
-lbl_disc_1 = t('본 애플리케이션은 가치투자 분석을 돕기 위한 단순 투자 보조 도구일 뿐입니다. 제공되는 재무 데이터, 13F 공시 정보, 분석 결과는 오류나 지연이 발생할 수 있습니다.', 'This application is a simple auxiliary tool to assist in value investing analysis. Provided financial data, 13F filings, and analysis results may contain errors or delays.')
-lbl_disc_2 = t('본 터미널의 결과만으로 실제 주식의 특정 종목 매수 및 매도를 권유하지 않으며, 최종 투자 결정 및 그로 인한 재무적 손실에 대한 모든 법적 책임은 전적으로 투자자 본인에게 있습니다.', 'The results of this terminal do not solicit the purchase or sale of specific stocks, and all legal responsibility for final investment decisions and resulting financial losses lies entirely with the investor.')
-lbl_copy = t('본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.', 'The analysis logic, formulas, and data display formats of this program are protected by copyright law, and unauthorized reproduction, distribution, or commercial use without permission is strictly prohibited.')
+lbl_disc_title = t('[법적 고지 및 면책 조항 / Legal Disclaimer]', '[Legal Disclaimer]')
+lbl_disc_1 = t(
+    '1. 본 웹 프로그램(AGIE)은 기업 비즈니스 모델 해부, 산업 분석 및 정량적 밸류에이션 프레임워크 연구를 위한 순수 학술·교육용 데이터 시각화 도구입니다. 자본시장과 금융투자업에 관한 법률상 투자자문업이나 유사투자자문업에 해당하지 않으며, 특정 종목의 매수·매도 추천이나 유료 리딩을 일절 제공하지 않습니다.',
+    '1. AGIE is an educational data visualization tool for business model dissection and quantitative valuation frameworks. It does not provide investment advice or buy/sell recommendations.'
+)
+lbl_disc_2 = t(
+    '2. 표출되는 모든 정량 스코어, DCF 시뮬레이션 및 거버넌스 요약은 공개된 공시 자료(DART, SEC)와 통계적 산식에 의해 기계적으로 산출된 참고 지표일 뿐이며, 정확성이나 완전성을 보장하지 않습니다. 모든 투자의 최종 판단과 책임은 전적으로 이용자 본인에게 있습니다.',
+    '2. All quantitative scores, DCF simulations, and governance summaries are mechanically derived from public filings (DART, SEC) and statistical formulas. Final investment decisions and responsibilities rest entirely with the user.'
+)
+lbl_copy = t(
+    '본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.',
+    'The analysis logic, formulas, and data display formats of this program are protected by copyright law.'
+)
 
 st.markdown(f"""
 <div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
@@ -6508,3 +6880,4 @@ st.markdown(f"""
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
+# ▲▲▲ 여기까지 교체 ▲▲▲
