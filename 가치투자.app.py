@@ -528,7 +528,7 @@ global_new_tickers = {
     "발레": "VALE", "VALE": "VALE",
     "BHP": "BHP",
     "리오틴토": "RIO", "RIO": "RIO",
-    "닌텐도": "NTDOY", "NTDOY": "NTDOY"
+    "닌텐도": "NTDOY", "NTDOY": "NTDOY", "벤딩스푼스": "BSP", "BENDING": "BSP"
 }
 tmap.update(global_new_tickers)
 
