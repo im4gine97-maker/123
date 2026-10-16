@@ -1646,141 +1646,74 @@ def get_dart_corp_codes(api_key, target_code=None):
     return mapping
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def get_10yr_dart_financials_v2(stock_code, api_key):
-    # 세션에 남아있던 차단 플래그 무조건 해제
-    if "dart_ip_blocked" in st.session_state:
-        del st.session_state["dart_ip_blocked"]
+# ▼▼▼ 기존 2번 중복된 get_10yr_dart_financials_v2 함수 두 개를 모두 지우고 아래 코드로 교체하세요 ▼▼▼
+def _fallback_naver_and_yf_financials(clean_code):
+    """DART API 응답 지연 또는 클라우드 IP 차단 시 yfinance 재무제표로 즉시 백업하는 엔진"""
+    for suffix in [".KS", ".KQ"]:
+        try:
+            stk = yf.Ticker(clean_code + suffix)
+            inc = stk.income_stmt
+            bs = stk.balance_sheet
+            cf = stk.cash_flow
+            if inc is None or inc.empty:
+                continue
 
-    clean_code = str(stock_code).strip()
-    if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
-        clean_code = clean_code[:-1] + "0"
+            combined = {}
+            if 'Total Revenue' in inc.index: combined['1. 매출액'] = inc.loc['Total Revenue']
+            if 'Gross Profit' in inc.index: combined['2. 매출총이익'] = inc.loc['Gross Profit']
+            if 'Operating Income' in inc.index: combined['3. 영업이익'] = inc.loc['Operating Income']
+            if 'Net Income' in inc.index: combined['4. 당기순이익'] = inc.loc['Net Income']
 
-    mapping = get_dart_corp_codes(api_key, target_code=clean_code)
-    corp_code = mapping.get(clean_code)
-    if not corp_code:
-        return pd.DataFrame(), "DART 기업 고유번호를 찾을 수 없습니다."
+            if bs is not None and not bs.empty:
+                if 'Total Assets' in bs.index: combined['5. 자산총계'] = bs.loc['Total Assets']
+                if 'Current Assets' in bs.index: combined['6. 유동자산'] = bs.loc['Current Assets']
+                if 'Total Liabilities Net Minority Interest' in bs.index:
+                    combined['7. 부채총계'] = bs.loc['Total Liabilities Net Minority Interest']
+                elif 'Total Debt' in bs.index:
+                    combined['7. 부채총계'] = bs.loc['Total Debt']
+                if 'Stockholders Equity' in bs.index: combined['8. 자본총계'] = bs.loc['Stockholders Equity']
 
-    current_year = datetime.now().year
-    base_year = current_year - 1
-    years = [base_year, base_year - 3, base_year - 6, base_year - 9]
+            if cf is not None and not cf.empty:
+                if 'Operating Cash Flow' in cf.index: combined['9. 영업현금흐름'] = cf.loc['Operating Cash Flow']
+                if 'Investing Cash Flow' in cf.index: combined['10. 투자현금흐름'] = cf.loc['Investing Cash Flow']
+                if 'Financing Cash Flow' in cf.index: combined['11. 재무현금흐름'] = cf.loc['Financing Cash Flow']
 
-    all_data = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            if combined:
+                df = pd.DataFrame(combined).T
+                df.columns = [str(col)[:4] for col in df.columns]
+                df = df.loc[:, ~df.columns.duplicated()]
+                df = df[sorted(df.columns, reverse=True)] / 100000000  # 억 원 단위 변환
+                final_idx = [
+                    '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
+                    '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
+                    '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
+                ]
+                return df.reindex([i for i in final_idx if i in df.index])
+        except Exception:
+            continue
+    return pd.DataFrame()
 
-    std_mapping = {
-        'ifrs-full_Revenue': '1. 매출액',
-        'ifrs-full_GrossProfit': '2. 매출총이익',
-        'ifrs-full_OperatingIncome': '3. 영업이익',
-        'ifrs-full_ProfitLoss': '4. 당기순이익',
-        'ifrs-full_Assets': '5. 자산총계',
-        'ifrs-full_CurrentAssets': '6. 유동자산',
-        'ifrs-full_Liabilities': '7. 부채총계',
-        'ifrs-full_Equity': '8. 자본총계',
-        'ifrs-full_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
-        'ifrs-full_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
-        'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
-    }
-
-    # [핵심 복원] 병렬 폭격이나 조기 포기 없이, 원래 잘 작동하던 순차 호출 + 넉넉한 timeout(12초) 적용!
-    for y in years:
-        year_fetched = False
-        for fs_div in ['CFS', 'OFS']:  # 연결 재무제표 우선, 없으면 별도(개별) 재무제표
-            url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
-            try:
-                r = requests.get(url, headers=headers, timeout=12)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('status') == '000':
-                        for item in data.get('list', []):
-                            acct_id = item.get('account_id', '')
-                            raw_nm = item.get('account_nm', '').replace(' ', '')
-                            std_nm = std_mapping.get(acct_id)
-
-                            if not std_nm:
-                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
-                                elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
-                                elif raw_nm in ['영업이익(손실)', '영업이익']: std_nm = '3. 영업이익'
-                                elif raw_nm in ['당기순이익(손실)', '당기순이익', '연결당기순이익', '분기순이익', '반기순이익']: std_nm = '4. 당기순이익'
-                                elif '자산총계' in raw_nm: std_nm = '5. 자산총계'
-                                elif '유동자산' == raw_nm: std_nm = '6. 유동자산'
-                                elif '부채총계' in raw_nm: std_nm = '7. 부채총계'
-                                elif '자본총계' in raw_nm: std_nm = '8. 자본총계'
-                                elif '영업활동현금흐름' in raw_nm or '영업활동으로인한현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
-                                elif '투자활동현금흐름' in raw_nm or '투자활동으로인한현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
-                                elif '재무활동현금흐름' in raw_nm or '재무활동으로인한현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
-
-                            if std_nm:
-                                all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
-                                all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
-                                all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
-                        year_fetched = True
-                        break
-            except Exception:
-                pass
-
-        # 만약 해당 연도의 전체장부(fnlttSinglAcntAll)가 무거워서 실패했다면, 가벼운 주요계정 DART API(fnlttSinglAcnt)로 한 번 더 DART에서 가져옴!
-        if not year_fetched:
-            url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
-            try:
-                r = requests.get(url_light, headers=headers, timeout=10)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('status') == '000':
-                        for fs_div in ['CFS', 'OFS']:
-                            div_items = [it for it in data.get('list', []) if it.get('fs_div') == fs_div]
-                            if div_items:
-                                for item in div_items:
-                                    raw_nm = item.get('account_nm', '').replace(' ', '')
-                                    std_nm = None
-                                    if raw_nm in ['매출액', '영업수익']: std_nm = '1. 매출액'
-                                    elif raw_nm in ['영업이익', '영업이익(손실)']: std_nm = '3. 영업이익'
-                                    elif raw_nm in ['당기순이익', '당기순이익(손실)']: std_nm = '4. 당기순이익'
-                                    elif '자산총계' in raw_nm: std_nm = '5. 자산총계'
-                                    elif '유동자산' == raw_nm: std_nm = '6. 유동자산'
-                                    elif '부채총계' in raw_nm: std_nm = '7. 부채총계'
-                                    elif '자본총계' in raw_nm: std_nm = '8. 자본총계'
-                                    if std_nm:
-                                        all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
-                                        all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
-                                        all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
-                                break
-            except Exception:
-                pass
-
-    if not all_data:
-        raise RuntimeError("DART API 일시 응답 없음")  # 빈 결과가 캐싱되지 않도록 예외 처리!
-
-    df = pd.DataFrame(all_data)
-    df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
-    df = df.dropna().drop_duplicates(subset=['연도', '계정'])
-
-    pivot_df = df.pivot(index='계정', columns='연도', values='금액')
-    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000
-
-    final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
-    return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "성공"
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_10yr_dart_financials_v2(stock_code, api_key):
     clean_code = str(stock_code).strip()
     if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
         clean_code = clean_code[:-1] + "0"
 
-    # 이미 DART IP 차단이 확인된 세션이면 대기 시간 0초로 즉시 백업 엔진 가동!
-    if st.session_state.get("dart_ip_blocked", False):
+    if not api_key:
         fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "네이버/yfinance 고속 백업 연동"
+        return fb_df, "API 키 미설정 (yfinance 백업 연동)"
 
     mapping = get_dart_corp_codes(api_key, target_code=clean_code)
     corp_code = mapping.get(clean_code)
     if not corp_code:
         fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "네이버/yfinance 고속 백업 연동"
+        return fb_df, "고유번호 미발견 (yfinance 백업 연동)"
 
     current_year = datetime.now().year
     base_year = current_year - 1
     years = [base_year, base_year - 3, base_year - 6, base_year - 9]
     all_data = []
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
     std_mapping = {
         'ifrs-full_Revenue': '1. 매출액',
@@ -1803,8 +1736,7 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
         for fs_div in ['CFS', 'OFS']:
             url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
             try:
-                # [핵심 2] 타임아웃을 2.5초로 설정하고, 단 1번이라도 타임아웃 나면 즉시 루프 전체 탈출!
-                r = requests.get(url, headers=headers, timeout=2.5)
+                r = requests.get(url, headers=headers, timeout=5)
                 if r.status_code == 200:
                     data = r.json()
                     if data.get('status') == '000':
@@ -1830,22 +1762,25 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
                                 all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
                         break
             except Exception:
-                # 첫 요청이 타임아웃 나면 나머지 7번은 시도조차 하지 않고 즉시 탈출!
                 dart_unreachable = True
-                st.session_state["dart_ip_blocked"] = True
                 break
 
     if not all_data:
         fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "네이버/yfinance 고속 백업 연동"
+        return fb_df, "yfinance 고속 백업 연동"
 
     df = pd.DataFrame(all_data)
     df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
     df = df.dropna().drop_duplicates(subset=['연도', '계정'])
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
-    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)] / 100000000
-    final_idx = ['1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익', '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계', '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름']
+    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000
+    final_idx = [
+        '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
+        '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
+        '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
+    ]
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "성공"
+# ▲▲▲ 여기까지 교체 (바로 아래에 def get_yf_info(stk): 가 이어지면 됩니다) ▲▲▲
 def get_yf_info(stk):
     try:
         res = stk.info
@@ -5650,18 +5585,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [올인원 업그레이드] 6. 유튜브 쇼츠(Shorts) 9:16 비주얼 카드 & MP3/MP4 생성 스튜디오
+                # [남성 성우 탑재 버전] 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오 (9:16 화면 + 음성·영상 생성)", "🎬 6. YouTube Shorts All-in-One Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오 (남성 성우 음성 + 9:16 영상 생성)", "🎬 6. YouTube Shorts All-in-One Studio"), expanded=False):
                     st.info(t(
-                        "💡 **텍스트 대본뿐만 아니라, 실제 9:16 세로형 쇼츠 카드 화면과 AI 음성(.mp3)·동영상(.mp4)을 앱 안에서 바로 생성**합니다. 자본시장법(매매권유 금지) 및 명예훼손 방지 필터가 100% 적용되어 있습니다.",
-                        "💡 Generates a 9:16 vertical visual card, AI voiceover (.mp3), and full video (.mp4) directly inside the app."
+                        "💡 **한국 유튜브 쇼츠에서 가장 많이 쓰이는 남성 신경망 성우('인준' / '현수') 목소리와 9:16 세로형 영상(.mp4)을 앱 안에서 바로 생성**합니다. 자본시장법 및 명예훼손 방지 필터가 적용되어 있습니다.",
+                        "💡 Generates popular Korean male neural voiceover and 9:16 vertical MP4 video directly inside the app."
                     ))
 
-                    col_sh_opt1, col_sh_opt2 = st.columns([2, 1])
+                    col_sh_opt1, col_sh_opt2 = st.columns([1.8, 1.2])
                     with col_sh_opt1:
                         shorts_style = st.radio(
-                            t("대본 후킹(Hook) 스타일 선택", "Select Script Hook Style"),
+                            t("1️⃣ 대본 후킹(Hook) 스타일 선택", "Select Script Hook Style"),
                             [
                                 "타입 A: 역산 DCF & 시장 기대치 검증형 (수학적 팩트 중심)",
                                 "타입 B: 비즈니스 해자(ROE·ROIC) & 주주환원 해부형 (소유권 관점)",
@@ -5670,9 +5605,22 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             key=f"shorts_style_{tk}"
                         )
                     with col_sh_opt2:
-                        st.markdown("**⚖️ 선행매매 방지 공시 설정**")
+                        voice_choice = st.selectbox(
+                            "2️⃣ 쇼츠 남성 성우 목소리 선택",
+                            [
+                                "🎙️ 인준 (InJoon) - 쇼츠 최다 사용 대표 남성 목소리",
+                                "🎙️ 현수 (Hyunsu) - 중후한 경제·다큐 전문 남성 목소리"
+                            ],
+                            key=f"shorts_voice_{tk}"
+                        )
+                        voice_speed = st.slider(
+                            "말하기 속도 배속 (쇼츠 황금배속: +15%)",
+                            min_value=0, max_value=35, value=15, step=5,
+                            format="+%d%%",
+                            key=f"shorts_spd_{tk}"
+                        )
                         creator_holds = st.checkbox(
-                            t("제작자 현재 해당 종목 보유 중", "Creator currently holds this stock"),
+                            t("제작자 현재 해당 종목 보유 중 (선행매매 방지 고지)", "Creator holds this stock"),
                             value=False,
                             key=f"shorts_hold_{tk}"
                         )
@@ -5736,7 +5684,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         val_metric_Line = f"현재 선행 PER은 {f_pe:.1f}배로, 10년 평균 PER인 {a_pe:.1f}배 대비 약 {abs(pmos_val):.1f}% {'낮은' if pmos_val >= 0 else '높은'} 멀티플 구간입니다." if (f_pe > 0 and a_pe > 0) else f"현재 PBR은 {pbr:.2f}배 수준입니다."
 
-                    erp_Line = f"선행 PER 역산 기대 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.2f}% 대비 {erp:+.1f}%포인트 차이를 보입니다." if f_pe > 0 else ""
+                    erp_Line = f"선행 PER을 역산한 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.2f}%와 비교하면 {erp:+.1f}%포인트 격차를 보입니다." if f_pe > 0 else ""
 
                     if is_financial:
                         dcf_Line = "금융업 특성상 현금흐름할인법 대신 자기자본이익률과 PBR을 핵심 척도로 평가했습니다."
@@ -5761,13 +5709,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         tts_only_script += f"지배구조 측면을 보면, {gov_Line} "
                     tts_only_script += closing_Line
 
+                    # 남성 성우 음성 파일 생성 전용 헬퍼 함수 (edge-tts 1순위, 미설치 시 gTTS 폴백)
+                    def _generate_male_voice_mp3(script_text, out_path):
+                        voice_id = "ko-KR-InJoonNeural" if "인준" in voice_choice else "ko-KR-HyunsuNeural"
+                        rate_str = f"+{voice_speed}%"
+                        try:
+                            import edge_tts
+                            import asyncio
+                            async def _run_tts():
+                                communicate = edge_tts.Communicate(script_text, voice=voice_id, rate=rate_str)
+                                await communicate.save(out_path)
+                            loop = asyncio.new_event_loop()
+                            try:
+                                loop.run_until_complete(_run_tts())
+                            finally:
+                                loop.close()
+                            return True, f"마이크로소프트 신경망 남성 성우 ({voice_id}, 속도 {rate_str}) 적용 완료"
+                        except ImportError:
+                            from gtts import gTTS
+                            tts_obj = gTTS(text=script_text, lang='ko', slow=False)
+                            tts_obj.save(out_path)
+                            return False, "⚠️ 현재 서버에 `edge-tts`가 설치되지 않아 기본 음성으로 대체되었습니다. `requirements.txt`에 `edge-tts`를 추가하시면 '인준/현수' 남성 성우 목소리로 즉시 전환됩니다!"
+
                     st.markdown("---")
                     col_studio_left, col_studio_right = st.columns([1.1, 1.3])
 
-                    # [좌측] 실제 9:16 스마트폰 비율 비주얼 쇼츠 카드 렌더링
+                    # [좌측] 9:16 스마트폰 비율 비주얼 쇼츠 카드
                     with col_studio_left:
                         st.markdown("#### 📱 1단계: 9:16 쇼츠 전용 비주얼 화면")
-                        st.caption("이 카드 화면을 그대로 캡처(`Win+Shift+S`)하거나 녹화해서 쇼츠 배경으로 바로 쓰세요!")
+                        st.caption("이 카드 화면을 캡처(`Win+Shift+S`)하거나 우측 버튼으로 MP4 영상을 바로 생성하세요.")
                         
                         hold_badge = "보유중(단기매매계획없음)" if creator_holds else "미보유"
                         shorts_card_html = f"""
@@ -5823,62 +5793,60 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         """
                         st.markdown(shorts_card_html, unsafe_allow_html=True)
 
-                    # [우측] 앱 내 원클릭 음성(.mp3) & 영상(.mp4) 생성기 + 대본 복사
+                    # [우측] 남성 성우 MP3 & 음성 결합 MP4 원클릭 생성
                     with col_studio_right:
-                        st.markdown("#### 🎥 2단계: 앱 안에서 음성(.mp3) & 영상(.mp4) 바로 뽑기")
+                        st.markdown("#### 🎥 2단계: 남성 성우 음성(.mp3) & 완성형 영상(.mp4) 뽑기")
                         
                         btn_col1, btn_col2 = st.columns(2)
                         with btn_col1:
-                            gen_mp3_btn = st.button("🔊 AI 나레이션 음성(.mp3) 생성", key=f"btn_mp3_{tk}", use_container_width=True)
+                            gen_mp3_btn = st.button("🔊 남성 성우 음성(.mp3) 생성", key=f"btn_mp3_{tk}", use_container_width=True)
                         with btn_col2:
-                            gen_mp4_btn = st.button("🎬 9:16 쇼츠 영상(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
+                            gen_mp4_btn = st.button("🎬 음성 포함 쇼츠 영상(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
 
                         if gen_mp3_btn:
-                            try:
-                                from gtts import gTTS
-                                with st.spinner("AI 성우 음성을 합성 중입니다..."):
-                                    tts_obj = gTTS(text=tts_only_script, lang='ko', slow=False)
-                                    mp3_buf = io.BytesIO()
-                                    tts_obj.write_to_fp(mp3_buf)
-                                    mp3_buf.seek(0)
-                                    st.audio(mp3_buf, format="audio/mp3")
-                                    st.download_button(
-                                        label="📥 AI 음성 파일(.mp3) 다운로드",
-                                        data=mp3_buf,
-                                        file_name=f"AGIE_{clean_tk}_shorts_voice.mp3",
-                                        mime="audio/mp3",
-                                        use_container_width=True
-                                    )
-                            except ImportError:
-                                st.warning("터미널 또는 requirements.txt에 `gTTS`를 추가하면 앱 내 음성 생성이 활성화됩니다. (`pip install gTTS`)")
+                            import tempfile, os
+                            with st.spinner("쇼츠 남성 성우 음성을 합성 중입니다..."):
+                                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_f:
+                                    tmp_mp3_path = tmp_f.name
+                                is_edge, msg = _generate_male_voice_mp3(tts_only_script, tmp_mp3_path)
+                                if is_edge:
+                                    st.success(msg)
+                                else:
+                                    st.warning(msg)
+                                with open(tmp_mp3_path, "rb") as af:
+                                    mp3_bytes = af.read()
+                                st.audio(mp3_bytes, format="audio/mp3")
+                                st.download_button(
+                                    label="📥 남성 성우 음성(.mp3) 다운로드",
+                                    data=mp3_bytes,
+                                    file_name=f"AGIE_{clean_tk}_male_voice.mp3",
+                                    mime="audio/mp3",
+                                    use_container_width=True
+                                )
+                                os.remove(tmp_mp3_path)
 
                         if gen_mp4_btn:
                             try:
-                                from gtts import gTTS
-                                from PIL import Image, ImageDraw, ImageFont
-                                import numpy as np
-                                import imageio
-                                import tempfile, os
+                                from PIL import Image, ImageDraw
+                                import imageio_ffmpeg
+                                import subprocess, tempfile, os
 
-                                with st.spinner("9:16 세로 쇼츠 영상(.mp4)과 음성을 렌더링 중입니다 (약 5~10초 소요)..."):
-                                    # 1) 음성 파일 임시 생성
-                                    tts_obj = gTTS(text=tts_only_script, lang='ko', slow=False)
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_mp3:
-                                        tts_obj.save(tmp_mp3.name)
-                                        mp3_path = tmp_mp3.name
+                                with st.spinner("남성 성우 음성과 9:16 쇼츠 화면을 결합하여 MP4 동영상을 렌더링 중입니다..."):
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_a:
+                                        mp3_path = tmp_a.name
+                                    is_edge, msg = _generate_male_voice_mp3(tts_only_script, mp3_path)
+                                    if not is_edge:
+                                        st.warning(msg)
 
-                                    # 2) 1080x1920 (9:16 FHD) 캔버스 이미지 생성
+                                    # 9:16 캔버스 생성
                                     W, H = 720, 1280
                                     img = Image.new("RGB", (W, H), color=(15, 23, 42))
                                     draw = ImageDraw.Draw(img)
-                                    
-                                    # 테두리 및 카드 박스 그리기
                                     draw.rectangle([20, 20, W-20, H-20], outline=(56, 189, 248), width=4)
                                     draw.rectangle([45, 120, W-45, 340], fill=(30, 41, 59))
                                     draw.rectangle([45, 370, W-45, 620], fill=(20, 30, 48))
                                     draw.rectangle([45, 650, W-45, 1080], fill=(30, 41, 59))
 
-                                    # 영문/숫자 기본 폰트 호환 텍스트 기입 (한글 폰트 미설치 서버 호환용 핵심 지표 표기)
                                     lines = [
                                         (60, 55, "AGIE QUANTITATIVE VALUATION REPORT (NOT FINANCIAL ADVICE)", (148, 163, 184)),
                                         (70, 150, f"TICKER : {tk}", (56, 189, 248)),
@@ -5896,31 +5864,41 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     for lx, ly, ltxt, lcol in lines:
                                         draw.text((lx, ly), ltxt, fill=lcol)
 
-                                    frame_np = np.array(img)
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_mp4:
-                                        mp4_path = tmp_mp4.name
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img:
+                                        img.save(tmp_img.name)
+                                        img_path = tmp_img.name
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_v:
+                                        mp4_path = tmp_v.name
 
-                                    # 5초 프리뷰 MP4 비디오 인코딩 후 음성 결합 시도
-                                    writer = imageio.get_writer(mp4_path, fps=10, codec="libx264", quality=8)
-                                    for _ in range(150):  # 15초 분량 비디오 트랙
-                                        writer.append_data(frame_np)
-                                    writer.close()
+                                    # FFmpeg로 정지 화면 + 남성 성우 MP3 오디오를 실제 유뷰브 업로드용 MP4로 합성!
+                                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                                    cmd = [
+                                        ffmpeg_exe, "-y",
+                                        "-loop", "1", "-i", img_path,
+                                        "-i", mp3_path,
+                                        "-c:v", "libx264", "-tune", "stillimage",
+                                        "-c:a", "aac", "-b:a", "192k",
+                                        "-pix_fmt", "yuv420p", "-shortest",
+                                        mp4_path
+                                    ]
+                                    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                     with open(mp4_path, "rb") as vf:
                                         mp4_bytes = vf.read()
+                                    st.video(mp4_bytes)
                                     st.download_button(
-                                        label="📥 9:16 쇼츠 배경 비디오(.mp4) 다운로드",
+                                        label="📥 남성 성우 음성 결합 쇼츠(.mp4) 다운로드",
                                         data=mp4_bytes,
-                                        file_name=f"AGIE_{clean_tk}_shorts_video.mp4",
+                                        file_name=f"AGIE_{clean_tk}_shorts_full.mp4",
                                         mime="video/mp4",
                                         use_container_width=True
                                     )
-                                    os.remove(mp3_path)
-                                    os.remove(mp4_path)
+                                    for p_rm in [mp3_path, img_path, mp4_path]:
+                                        if os.path.exists(p_rm): os.remove(p_rm)
                             except Exception as e:
-                                st.warning("앱 내 MP4 직접 인코딩을 위해서는 `pip install gTTS Pillow imageio imageio-ffmpeg numpy` 설치가 필요합니다. 왼쪽의 9:16 비주얼 카드를 캡처하여 Vrew/캡컷에 넣으시면 훨씬 더 예쁜 한글 폰트로 1분 만에 제작됩니다!")
+                                st.warning(f"완성형 MP4 합성을 위해 `requirements.txt`에 `edge-tts`, `Pillow`, `imageio-ffmpeg`를 추가해 주세요. (오류 상세: {e})")
 
-                        st.markdown("#### 📜 3단계: AI 성우(Vrew·캡컷) 붙여넣기용 대본")
+                        st.markdown("#### 📜 3단계: Vrew·캡컷 자동자막용 대본")
                         st.code(tts_only_script, language="text")
 
                         hold_disclosure = "현재 제작자는 해당 종목을 장기 투자 관점에서 보유 중이며 단기 매매 계획이 없습니다." if creator_holds else "현재 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다."
@@ -5930,7 +5908,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 [유튜브 설명란 & 고정 댓글 법적 고지문]
 ⚠️ 본 영상은 DART·SEC 공시 기반의 정량적 밸류에이션 프레임워크 시뮬레이션이며, 특정 종목의 매수·매도 추천이나 유료 리딩이 아닙니다. 자본시장법 준수를 위해 댓글을 통한 1:1 종목 상담은 진행하지 않습니다. (컨센서스 및 추정치는 확인이 필요한 부분입니다.)
 [이해상충 고지] {hold_disclosure}"""
-                        st.markdown("#### 📌 4단계: 유튜브 제목 & 고정댓글 (복사해서 바로 사용)")
+                        st.markdown("#### 📌 4단계: 유튜브 제목 & 고정댓글")
                         st.code(yt_metadata_package, language="text")
                 # =====================================================================
                 # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
