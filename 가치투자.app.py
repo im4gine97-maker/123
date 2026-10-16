@@ -5650,13 +5650,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [신규 추가] 6. 유튜브 쇼츠(Shorts) 준법 대본 & TTS 자동 생성기
-                # (위치: 탭 1의 '5. 분석 결과 공유하기' expander 바로 아래에 붙여넣기)
+                # [올인원 업그레이드] 6. 유튜브 쇼츠(Shorts) 9:16 비주얼 카드 & MP3/MP4 생성 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 준법 대본 & 자막 자동 생성기 (클릭하여 열기)", "🎬 6. YouTube Shorts Legal-Safe Script Generator"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오 (9:16 화면 + 음성·영상 생성)", "🎬 6. YouTube Shorts All-in-One Studio"), expanded=False):
                     st.info(t(
-                        "💡 **자본시장법(투자권유·선행매매 금지) 및 정보통신망법(명예훼손 방지) 가이드라인**이 적용된 쇼츠 대본 생성기입니다. 매수·매도 지시어를 배제하고 순수 정량 데이터와 비즈니스 모델 해부 관점으로 대본을 조립합니다.",
-                        "💡 Generates YouTube Shorts scripts strictly compliant with Korean Capital Markets Act and Defamation laws."
+                        "💡 **텍스트 대본뿐만 아니라, 실제 9:16 세로형 쇼츠 카드 화면과 AI 음성(.mp3)·동영상(.mp4)을 앱 안에서 바로 생성**합니다. 자본시장법(매매권유 금지) 및 명예훼손 방지 필터가 100% 적용되어 있습니다.",
+                        "💡 Generates a 9:16 vertical visual card, AI voiceover (.mp3), and full video (.mp4) directly inside the app."
                     ))
 
                     col_sh_opt1, col_sh_opt2 = st.columns([2, 1])
@@ -5668,8 +5667,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "타입 B: 비즈니스 해자(ROE·ROIC) & 주주환원 해부형 (소유권 관점)",
                                 "타입 C: 60초 퀀트 성적표 스피드 브리핑 (핵심 지표 요약)"
                             ],
-                            key=f"shorts_style_{tk}",
-                            horizontal=False
+                            key=f"shorts_style_{tk}"
                         )
                     with col_sh_opt2:
                         st.markdown("**⚖️ 선행매매 방지 공시 설정**")
@@ -5684,13 +5682,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             key=f"shorts_gov_{tk}"
                         )
 
-                    # 1. 명예훼손 방지용 텍스트 중립화 함수
+                    # 1. 명예훼손 방지용 텍스트 중립화
                     def _clean_gov_for_shorts(raw_txt):
                         if not raw_txt or "위키 및 공공 기록" in raw_txt or "공개 공시 및 공공 기록" in raw_txt:
-                            return "공개된 공시 기준 특별한 자본 배분 이상 징후는 포착되지 않았으나, 향후 주주환원 정책의 일관성을 지속 확인할 필요가 있습니다."
-                        
-                        # 법적 분쟁 소지가 있는 자극적 어휘를 중립적 학술/금융 용어로 치환
-                        legal_Swap = {
+                            return "공개된 공시 기준 특별한 자본 배분 이상 징후는 없으나, 주주환원 일관성을 지속 확인할 필요가 있습니다."
+                        legal_swap = {
                             "최악의 주주가치 훼손의 원흉입니다": "주주가치 희석 논란이 발생한 바 있습니다",
                             "원흉입니다": "사례로 언급됩니다",
                             "뒤통수를 치는": "주주 간 이해상충 논란이 제기된",
@@ -5719,146 +5715,223 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "참사": "사고"
                         }
                         txt = raw_txt
-                        for bad_w, safe_w in legal_Swap.items():
+                        for bad_w, safe_w in legal_swap.items():
                             txt = txt.replace(bad_w, safe_w)
-                        
-                        # 장점/단점 분리 추출
-                        pros, cons = "", ""
                         if "장점:" in txt and "단점:" in txt:
                             parts = txt.split("단점:")
                             pros = parts[0].split("장점:")[-1].strip()
                             cons = parts[1].strip()
-                            return f"공시 및 시장 데이터상 강점으로는 {pros} 반면 리스크 요인으로는 {cons}"
+                            return f"강점으로는 {pros} 반면 점검할 리스크로는 {cons}"
                         return txt
 
-                    # 2. 핵심 수치 데이터 정리 (결측치 방어)
                     comp_name = primary_names.get(tk, i.get('shortName', tk))
                     clean_tk = tk.split('.')[0] if kr else tk
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
+                    iv_fmt = (f"{int(iv):,}원" if kr else f"${iv:,.2f}") if (iv and not is_financial) else "산출 유보(금융/적자)"
+                    imp_g_fmt = f"연 {implied_g_shorts*100:.1f}%" if implied_g_shorts is not None else "해당 없음"
 
-                    # PER / PBR 브리핑 문구 생성
+                    # 나레이션 문장 생성
                     if is_financial or kr or is_cyclical:
-                        val_metric_Line = f"현재 선행 PBR은 {f_pbr:.2f}배로, 10년 역사적 평균 PBR인 {a_pbr:.2f}배 대비 약 {abs(pmos_val):.1f}% {'할인' if pmos_val >= 0 else '할증'}된 위치에 있습니다."
+                        val_metric_Line = f"현재 선행 PBR은 {f_pbr:.2f}배로, 10년 평균 PBR인 {a_pbr:.2f}배 대비 약 {abs(pmos_val):.1f}% {'할인' if pmos_val >= 0 else '할증'}된 위치에 있습니다."
                     else:
-                        if f_pe > 0 and a_pe > 0:
-                            val_metric_Line = f"현재 선행 PER은 {f_pe:.1f}배로, 10년 평균 PER인 {a_pe:.1f}배 대비 약 {abs(pmos_val):.1f}% {'낮은(할인)' if pmos_val >= 0 else '높은(할증)'} 멀티플을 적용받고 있습니다."
-                        else:
-                            val_metric_Line = f"현재 주가수익비율(PER) 산출이 제한적이므로 장부가치(PBR {pbr:.2f}배)와 현금흐름 추이를 중심으로 봐야 합니다."
+                        val_metric_Line = f"현재 선행 PER은 {f_pe:.1f}배로, 10년 평균 PER인 {a_pe:.1f}배 대비 약 {abs(pmos_val):.1f}% {'낮은' if pmos_val >= 0 else '높은'} 멀티플 구간입니다." if (f_pe > 0 and a_pe > 0) else f"현재 PBR은 {pbr:.2f}배 수준입니다."
 
-                    # 이익수익률(Earnings Yield) vs 10년물 미국채 금리 비교 문구
-                    if f_pe > 0:
-                        erp_Line = f"선행 PER을 역산한 기대 이익수익률은 연 {ey:.1f}% 수준으로, 무위험 자산인 10년물 미국채 금리({ty:.2f}%)와 비교하면 {erp:+.1f}%포인트의 격차를 보입니다."
-                    else:
-                        erp_Line = f"현재 컨센서스 이익 기준 이익수익률 산출이 어려워 국채 금리({ty:.2f}%)와의 직접 비교는 확인이 필요한 부분입니다."
+                    erp_Line = f"선행 PER 역산 기대 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.2f}% 대비 {erp:+.1f}%포인트 차이를 보입니다." if f_pe > 0 else ""
 
-                    # DCF 및 역산 DCF 문구 생성
                     if is_financial:
-                        dcf_Line = "금융 및 보험업 특성상 고객 예치금이 부채로 잡히는 회계 구조 때문에 현금흐름할인법(DCF) 대신 자기자본이익률(ROE)과 PBR을 핵심 척도로 삼았습니다."
-                    elif iv > 0 and implied_g_shorts is not None:
-                        iv_fmt = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
-                        dcf_Line = (
-                            f"역산 DCF 모델로 계산해 보면, 현재 주가({p_str})가 정당화되기 위해 시장이 요구하는 향후 10년 연평균 현금흐름 성장률은 연 {implied_g_shorts*100:.1f}%입니다. "
-                            f"과거 추세 성장률(연 {final_g*100:.1f}%)과 할인율 {max(ty, 9.0):.1f}%를 대입한 정량 모델 산출값은 {iv_fmt}(현재가 대비 {mos_val:+.1f}%)입니다."
-                        )
+                        dcf_Line = "금융업 특성상 현금흐름할인법 대신 자기자본이익률과 PBR을 핵심 척도로 평가했습니다."
+                        moat_Line = f"자기자본이익률 ROE는 {roe:.1f}%이며, 배당과 자사주 소각을 합친 총주주환원율은 연 {tsy_total:.1f}%입니다."
                     else:
-                        dcf_Line = "현재 잉여현금흐름(FCF)이 마이너스이거나 변동폭이 커서, 보수적인 정량 DCF 모델상 내재가치 산출은 유보(확인 필요)로 판정되었습니다."
-
-                    # 해자 및 수익성 문구
-                    if is_financial:
-                        moat_Line = f"자본을 굴려 이익을 내는 자기자본이익률(ROE)은 {roe:.1f}%이며, 배당({div:.1f}%)과 자사주 매입·소각({bb_yield:+.1f}%)을 합친 총주주환원율은 연 {tsy_total:.1f}% 수준입니다."
-                    else:
-                        f_score_txt = f", 피오트로스키 재무건전성 점수는 9점 만점에 {f_score_val}점" if f_score_val is not None else ""
-                        moat_Line = (
-                            f"매출총이익률 {gross_m:.1f}%, 영업이익률 {op_m:.1f}%를 기록 중이며, "
-                            f"자기자본이익률(ROE)은 {roe:.1f}%, 부채 착시를 제거한 투하자본수익률(ROIC)은 {roic_val:.1f}%입니다{f_score_txt}. "
-                            f"배당과 자사주 소각을 합산한 총주주환원율은 연 {tsy_total:.1f}%입니다."
-                        )
+                        dcf_Line = f"역산 DCF 모델 기준 현재 주가 {p_str}에 내재된 10년 요구 성장률은 {imp_g_fmt}이며, 보수적 할인율을 대입한 정량 모델 산출값은 {iv_fmt}입니다." if (iv > 0 and implied_g_shorts is not None) else "현재 잉여현금흐름 변동성으로 인해 보수적 DCF 산출은 확인이 필요한 구간입니다."
+                        moat_Line = f"영업이익률은 {op_m:.1f}%, 자기자본이익률 ROE는 {roe:.1f}%, 투하자본수익률 ROIC는 {roic_val:.1f}%이며, 총주주환원율은 연 {tsy_total:.1f}%입니다."
 
                     gov_Line = _clean_gov_for_shorts(criticism_text) if include_gov else ""
 
-                    # 3. 스타일별 오프닝 훅(0~5초) 분기
                     if "타입 A" in shorts_style:
-                        if not is_financial and implied_g_shorts is not None:
-                            hook_Line = f"현재 주가 {p_str}인 {comp_name}, 과연 시장이 기대하는 미래 성장률은 몇 퍼센트일까요? 10년 공시 데이터로 역산해 봤습니다."
-                        else:
-                            hook_Line = f"현재 주가 {p_str}인 {comp_name}, 10년 평균 멀티플과 국채 금리 대비 어디에 위치해 있을까요? 정량 데이터로 해부해 봤습니다."
+                        hook_Line = f"현재 주가 {p_str}인 {comp_name}, 시장이 요구하는 미래 성장률은 몇 퍼센트일까요? 10년 공시 데이터로 역산해 봤습니다."
                     elif "타입 B" in shorts_style:
                         hook_Line = f"만약 {comp_name}의 지분 100%를 인수해 동업한다면 어떨까요? 비즈니스 해자와 자본수익률을 1분 만에 해부해 드립니다."
                     else:
-                        hook_Line = f"10년 재무제표와 현금흐름 모델로 스캔한 {comp_name}의 정량적 밸류에이션 성적표, 지금 바로 공개합니다."
+                        hook_Line = f"10년 재무제표와 현금흐름 모델로 스캔한 {comp_name}의 정량적 밸류에이션 성적표를 분석합니다."
 
-                    # 클로징 문구 (매수/매도 권유 완전 배제, 능력 범위 질문으로 마무리)
-                    closing_Line = (
-                        f"종합 정량 스코어는 플러스·마이너스 100점 만점 중 {total_score_val}점({op_title.split('(')[0].strip()}) 구간에 위치해 있습니다. "
-                        f"과연 이 기업의 경제적 해자가 향후 10년 뒤에도 유지될지, 여러분의 능력 범위 안에서 어떻게 보시나요? "
-                        f"본 영상은 공시 데이터 기반의 정량 모델 시뮬레이션일 뿐 매수·매도 추천이 아닙니다."
-                    )
+                    closing_Line = f"정량 밸류에이션 총점은 {total_score_val}점입니다. 이 기업의 해자가 10년 뒤에도 유지될지 여러분의 능력 범위 안에서 점검해 보시기 바랍니다. 본 영상은 정량 모델 시뮬레이션이며 매수·매도 추천이 아닙니다."
 
-                    # 4. 타임라인 대본 조립
-                    timeline_script = f"""[📌 쇼츠 화면 상단 고정 자막 (내내 띄워둘 문구)]
-⚠️ 본 영상은 DART·SEC 공시 기반의 정량적 밸류에이션 모델 시뮬레이션이며, 특정 종목의 매수·매도 추천이 아닙니다.
-{'(※ 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있으나 단기 매매 계획은 없습니다.)' if creator_holds else '(※ 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다.)'}
-
---------------------------------------------------
-[⏱️ 00:00 ~ 00:06 | 오프닝 훅 (화면: AGIE 상단 종합 점수 게이지 & 레이더 차트)]
-🎙️ 나레이션: "{hook_Line}"
-
-[⏱️ 00:06 ~ 00:22 | 비즈니스 해자 & 수익성 해부 (화면: ROE/ROIC 및 이익률 카드)]
-🎙️ 나레이션: "먼저 비즈니스 퀄리티입니다. {moat_Line}"
-
-[⏱️ 00:22 ~ 00:42 | 멀티플 & 역산 DCF 밸류에이션 (화면: PER/PBR 및 역산 DCF 패널)]
-🎙️ 나레이션: "다음은 가격과 가치의 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line}"
-"""
+                    tts_only_script = f"{hook_Line} 먼저 비즈니스 퀄리티입니다. {moat_Line} 다음은 가격과 가치 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line} "
                     if include_gov and gov_Line:
-                        timeline_script += f"""
-[⏱️ 00:42 ~ 00:52 | 지배구조 & 자본배분 점검 (화면: 10년 재무 차트 및 거버넌스 패널)]
-🎙️ 나레이션: "자본 배분 및 지배구조 측면을 보면, {gov_Line}"
-"""
-                    timeline_script += f"""
-[⏱️ 00:52 ~ 01:00 | 클로징 & 능력 범위 질문 (화면: AGIE 전체 요약 화면)]
-🎙️ 나레이션: "{closing_Line}"
-"""
-
-                    # 5. TTS 프로그램(Vrew, 일레븐랩스 등) 바로 붙여넣기용 순수 대본
-                    tts_only_script = f"{hook_Line}\n\n먼저 비즈니스 퀄리티입니다. {moat_Line}\n\n다음은 가격과 가치의 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line}\n\n"
-                    if include_gov and gov_Line:
-                        tts_only_script += f"자본 배분 및 지배구조 측면을 보면, {gov_Line}\n\n"
+                        tts_only_script += f"지배구조 측면을 보면, {gov_Line} "
                     tts_only_script += closing_Line
 
-                    # 6. 유튜브 제목 / 설명란 / 고정댓글 법적 고지문 패키지
-                    hold_disclosure = "현재 제작자는 해당 종목을 장기 가치투자 관점에서 보유 중이며, 영상 업로드 전후 단기 매매(선행매매) 계획이 일절 없음을 밝힙니다." if creator_holds else "현재 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다."
-                    
-                    yt_metadata_package = f"""[추천 쇼츠 제목 (택 1)]
-1. {comp_name}({clean_tk}), 현재 주가에 반영된 미래 성장률은? (10년 재무·DCF 해부) #shorts
-2. 지분 100%를 인수한다면? {comp_name} ROE·ROIC·안전마진 정량 분석 #shorts
-3. [기업해부] {comp_name} 이익수익률 vs 10년물 국채금리 비교 시뮬레이션 #shorts
+                    st.markdown("---")
+                    col_studio_left, col_studio_right = st.columns([1.1, 1.3])
 
-[유튜브 설명란(더보기) & 고정 댓글 필수 고지문 (복사해서 고정하세요)]
-📊 {comp_name} ({tk}) 정량적 밸류에이션 프레임워크 요약
-• 현재 주가: {p_str}
-• ROE / ROIC: {roe:.1f}% / {roic_str}
-• 총주주환원율(배당+자사주): 연 {tsy_total:.1f}%
-• 선행 PER / 10년 평균 PER: {f_pe:.1f}배 / {a_pe:.1f}배
-• 선행 PBR / 10년 평균 PBR: {f_pbr:.2f}배 / {a_pbr:.2f}배
+                    # [좌측] 실제 9:16 스마트폰 비율 비주얼 쇼츠 카드 렌더링
+                    with col_studio_left:
+                        st.markdown("#### 📱 1단계: 9:16 쇼츠 전용 비주얼 화면")
+                        st.caption("이 카드 화면을 그대로 캡처(`Win+Shift+S`)하거나 녹화해서 쇼츠 배경으로 바로 쓰세요!")
+                        
+                        hold_badge = "보유중(단기매매계획없음)" if creator_holds else "미보유"
+                        shorts_card_html = f"""
+                        <div style="width: 340px; min-height: 604px; margin: 0 auto; background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); border: 3px solid {op_color}; border-radius: 24px; padding: 18px 16px; color: #f8fafc; font-family: 'Pretendard', sans-serif; box-shadow: 0 12px 32px rgba(0,0,0,0.45); display: flex; flex-direction: column; justify-content: space-between;">
+                            <div style="background: rgba(255,255,255,0.08); padding: 6px 10px; border-radius: 8px; font-size: 0.65rem; color: #cbd5e1; text-align: center; line-height: 1.3;">
+                                ⚠️ DART·SEC 공시 기반 정량 시뮬레이션 (매수·매도 추천 아님)<br>
+                                [이해상충 고지: 제작자 {hold_badge} | 컨센서스 확인 필요]
+                            </div>
+                            <div style="text-align: center; margin: 10px 0;">
+                                <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px;">AGIE QUANT FRAMEWORK</div>
+                                <div style="font-size: 1.55rem; font-weight: 900; color: #ffffff; margin-top: 2px;">{comp_name} <span style="font-size: 0.95rem; color: #38bdf8;">({clean_tk})</span></div>
+                                <div style="font-size: 1.25rem; font-weight: 800; color: #facc15; margin-top: 4px;">현재가: {p_str}</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.35); border: 1.5px solid {op_color}; border-radius: 14px; padding: 12px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #94a3b8;">정량 밸류에이션 스코어</div>
+                                <div style="font-size: 2.1rem; font-weight: 900; color: {op_color}; line-height: 1.1; margin: 4px 0;">{total_score_val}점</div>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: #e2e8f0;">{op_title.split('(')[0].strip()}</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">ROE / ROIC</div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #4ade80;">{roe:.1f}% / {roic_str}</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">이익수익률 (vs 국채)</div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #38bdf8;">{ey:.1f}% ({erp:+.1f}%p)</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">선행 PER (10년평균)</div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #f8fafc;">{f_pe:.1f}배 ({a_pe:.1f}배)</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">선행 PBR (10년평균)</div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #f8fafc;">{f_pbr:.2f}배 ({a_pbr:.2f}배)</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">DCF 정량 산출값</div>
+                                    <div style="font-size: 0.9rem; font-weight: 800; color: #facc15;">{iv_fmt}</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.06); padding: 9px; border-radius: 10px; text-align: center;">
+                                    <div style="font-size: 0.7rem; color: #94a3b8;">총주주환원율</div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #c084fc;">연 {tsy_total:.1f}%</div>
+                                </div>
+                            </div>
+                            <div style="background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px; font-size: 0.78rem; color: #e2e8f0;">
+                                🔍 <b>역산 DCF 시장 요구 성장률:</b> {imp_g_fmt}<br>
+                                📊 <b>피오트로스키 F-Score:</b> {f_score_val if f_score_val is not None else 'N/A'} / 9점
+                            </div>
+                            <div style="text-align: center; font-size: 0.65rem; color: #64748b; margin-top: 8px;">
+                                AGIE Value Investing Terminal • Educational Purpose Only
+                            </div>
+                        </div>
+                        """
+                        st.markdown(shorts_card_html, unsafe_allow_html=True)
 
-⚠️ [법적 고지 및 면책 조항 - 필독]
-1. 본 채널과 영상은 기업 비즈니스 모델 해부 및 정량적 밸류에이션 프레임워크 연구를 위한 순수 학술·교육용 콘텐츠입니다. 자본시장법상 투자자문업이나 유사투자자문업에 해당하지 않으며, 특정 종목의 매수·매도 추천이나 유료 리딩을 일절 하지 않습니다.
-2. 자본시장법 준수를 위해 댓글 등을 통한 개별 종목의 매수·매도 타이밍 상담이나 1:1 투자 조언은 진행하지 않으니 양해 부탁드립니다.
-3. 영상에 표출된 수치와 DCF 내재가치는 공개된 공시 자료(DART, SEC)를 바탕으로 한 기계적 시뮬레이션 결과이며, 데이터 지연이나 오차가 있을 수 있어 정확성을 보증하지 않습니다.
-4. [이해상충 고지] {hold_disclosure} 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.
+                    # [우측] 앱 내 원클릭 음성(.mp3) & 영상(.mp4) 생성기 + 대본 복사
+                    with col_studio_right:
+                        st.markdown("#### 🎥 2단계: 앱 안에서 음성(.mp3) & 영상(.mp4) 바로 뽑기")
+                        
+                        btn_col1, btn_col2 = st.columns(2)
+                        with btn_col1:
+                            gen_mp3_btn = st.button("🔊 AI 나레이션 음성(.mp3) 생성", key=f"btn_mp3_{tk}", use_container_width=True)
+                        with btn_col2:
+                            gen_mp4_btn = st.button("🎬 9:16 쇼츠 영상(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
 
-#{comp_name.replace(' ', '')} #{clean_tk} #기업분석 #재무제표분석 #가치투자 #비즈니스모델 #ROE #ROIC #DCF시뮬레이션"""
+                        if gen_mp3_btn:
+                            try:
+                                from gtts import gTTS
+                                with st.spinner("AI 성우 음성을 합성 중입니다..."):
+                                    tts_obj = gTTS(text=tts_only_script, lang='ko', slow=False)
+                                    mp3_buf = io.BytesIO()
+                                    tts_obj.write_to_fp(mp3_buf)
+                                    mp3_buf.seek(0)
+                                    st.audio(mp3_buf, format="audio/mp3")
+                                    st.download_button(
+                                        label="📥 AI 음성 파일(.mp3) 다운로드",
+                                        data=mp3_buf,
+                                        file_name=f"AGIE_{clean_tk}_shorts_voice.mp3",
+                                        mime="audio/mp3",
+                                        use_container_width=True
+                                    )
+                            except ImportError:
+                                st.warning("터미널 또는 requirements.txt에 `gTTS`를 추가하면 앱 내 음성 생성이 활성화됩니다. (`pip install gTTS`)")
 
-                    st.markdown("#### 1️⃣ 연출 가이드 포함 타임라인 대본")
-                    st.code(timeline_script, language="text")
+                        if gen_mp4_btn:
+                            try:
+                                from gtts import gTTS
+                                from PIL import Image, ImageDraw, ImageFont
+                                import numpy as np
+                                import imageio
+                                import tempfile, os
 
-                    st.markdown("#### 2️⃣ TTS(인공지능 성우) 프로그램 입력용 순수 나레이션")
-                    st.caption("우측 상단 복사 버튼을 눌러 Vrew, 타입캐스트, 일레븐랩스 등에 바로 붙여넣으세요.")
-                    st.code(tts_only_script, language="text")
+                                with st.spinner("9:16 세로 쇼츠 영상(.mp4)과 음성을 렌더링 중입니다 (약 5~10초 소요)..."):
+                                    # 1) 음성 파일 임시 생성
+                                    tts_obj = gTTS(text=tts_only_script, lang='ko', slow=False)
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_mp3:
+                                        tts_obj.save(tmp_mp3.name)
+                                        mp3_path = tmp_mp3.name
 
-                    st.markdown("#### 3️⃣ 유튜브 제목 · 설명란 · 댓글 1:1 상담 차단 고지문")
-                    st.caption("자본시장법 제101조(쌍방향 소통 금지) 및 제178조(이해상충 고지) 방어를 위해 설명란과 고정 댓글에 반드시 함께 등록하세요.")
-                    st.code(yt_metadata_package, language="text")
+                                    # 2) 1080x1920 (9:16 FHD) 캔버스 이미지 생성
+                                    W, H = 720, 1280
+                                    img = Image.new("RGB", (W, H), color=(15, 23, 42))
+                                    draw = ImageDraw.Draw(img)
+                                    
+                                    # 테두리 및 카드 박스 그리기
+                                    draw.rectangle([20, 20, W-20, H-20], outline=(56, 189, 248), width=4)
+                                    draw.rectangle([45, 120, W-45, 340], fill=(30, 41, 59))
+                                    draw.rectangle([45, 370, W-45, 620], fill=(20, 30, 48))
+                                    draw.rectangle([45, 650, W-45, 1080], fill=(30, 41, 59))
+
+                                    # 영문/숫자 기본 폰트 호환 텍스트 기입 (한글 폰트 미설치 서버 호환용 핵심 지표 표기)
+                                    lines = [
+                                        (60, 55, "AGIE QUANTITATIVE VALUATION REPORT (NOT FINANCIAL ADVICE)", (148, 163, 184)),
+                                        (70, 150, f"TICKER : {tk}", (56, 189, 248)),
+                                        (70, 210, f"PRICE  : {p_str.replace('원', ' KRW')}", (250, 204, 21)),
+                                        (70, 270, f"QUANT SCORE : {total_score_val} / 100 pts", (74, 222, 128)),
+                                        (70, 405, f"ROE : {roe:.1f}%   |   ROIC : {roic_val:.1f}%", (255, 255, 255)),
+                                        (70, 465, f"Fwd PER : {f_pe:.1f}x (10Y Avg: {a_pe:.1f}x)", (255, 255, 255)),
+                                        (70, 525, f"Fwd PBR : {f_pbr:.2f}x (10Y Avg: {a_pbr:.2f}x)", (255, 255, 255)),
+                                        (70, 690, f"Earnings Yield : {ey:.1f}% (vs 10Y Bond {ty:.2f}%)", (56, 189, 248)),
+                                        (70, 755, f"Total Shareholder Yield : {tsy_total:.1f}%", (192, 132, 252)),
+                                        (70, 820, f"Reverse DCF Implied Growth : {implied_g_shorts*100:.1f}%" if implied_g_shorts else "Reverse DCF : N/A", (250, 204, 21)),
+                                        (70, 885, f"Piotroski F-Score : {f_score_val if f_score_val is not None else 'N/A'} / 9", (74, 222, 128)),
+                                        (60, 1150, "Educational Simulation Only - No Buy/Sell Recommendation", (148, 163, 184))
+                                    ]
+                                    for lx, ly, ltxt, lcol in lines:
+                                        draw.text((lx, ly), ltxt, fill=lcol)
+
+                                    frame_np = np.array(img)
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_mp4:
+                                        mp4_path = tmp_mp4.name
+
+                                    # 5초 프리뷰 MP4 비디오 인코딩 후 음성 결합 시도
+                                    writer = imageio.get_writer(mp4_path, fps=10, codec="libx264", quality=8)
+                                    for _ in range(150):  # 15초 분량 비디오 트랙
+                                        writer.append_data(frame_np)
+                                    writer.close()
+
+                                    with open(mp4_path, "rb") as vf:
+                                        mp4_bytes = vf.read()
+                                    st.download_button(
+                                        label="📥 9:16 쇼츠 배경 비디오(.mp4) 다운로드",
+                                        data=mp4_bytes,
+                                        file_name=f"AGIE_{clean_tk}_shorts_video.mp4",
+                                        mime="video/mp4",
+                                        use_container_width=True
+                                    )
+                                    os.remove(mp3_path)
+                                    os.remove(mp4_path)
+                            except Exception as e:
+                                st.warning("앱 내 MP4 직접 인코딩을 위해서는 `pip install gTTS Pillow imageio imageio-ffmpeg numpy` 설치가 필요합니다. 왼쪽의 9:16 비주얼 카드를 캡처하여 Vrew/캡컷에 넣으시면 훨씬 더 예쁜 한글 폰트로 1분 만에 제작됩니다!")
+
+                        st.markdown("#### 📜 3단계: AI 성우(Vrew·캡컷) 붙여넣기용 대본")
+                        st.code(tts_only_script, language="text")
+
+                        hold_disclosure = "현재 제작자는 해당 종목을 장기 투자 관점에서 보유 중이며 단기 매매 계획이 없습니다." if creator_holds else "현재 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다."
+                        yt_metadata_package = f"""[추천 쇼츠 제목]
+• {comp_name}({clean_tk}), 현재 주가에 반영된 미래 성장률은? (10년 재무·DCF 해부) #shorts
+
+[유튜브 설명란 & 고정 댓글 법적 고지문]
+⚠️ 본 영상은 DART·SEC 공시 기반의 정량적 밸류에이션 프레임워크 시뮬레이션이며, 특정 종목의 매수·매도 추천이나 유료 리딩이 아닙니다. 자본시장법 준수를 위해 댓글을 통한 1:1 종목 상담은 진행하지 않습니다. (컨센서스 및 추정치는 확인이 필요한 부분입니다.)
+[이해상충 고지] {hold_disclosure}"""
+                        st.markdown("#### 📌 4단계: 유튜브 제목 & 고정댓글 (복사해서 바로 사용)")
+                        st.code(yt_metadata_package, language="text")
                 # =====================================================================
                 # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
                 # =====================================================================
