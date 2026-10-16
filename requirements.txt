@@ -8,6 +8,7 @@ plotly
 OpenDartReader
 pykrx
 setuptools
+edge-tts
 gTTS
 Pillow
 imageio
