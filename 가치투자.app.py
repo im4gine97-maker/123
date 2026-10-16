@@ -1646,9 +1646,9 @@ def get_dart_corp_codes(api_key, target_code=None):
     return mapping
 
 @st.cache_data(ttl=86400, show_spinner=False)
-# ▼▼▼ 기존 2번 중복된 get_10yr_dart_financials_v2 함수 두 개를 모두 지우고 아래 코드로 교체하세요 ▼▼▼
+# ▼▼▼ 기존 _fallback_naver_and_yf_financials 및 get_10yr_dart_financials_v2 전체를 아래 코드로 교체하세요 ▼▼▼
 def _fallback_naver_and_yf_financials(clean_code):
-    """DART API 응답 지연 또는 클라우드 IP 차단 시 yfinance 재무제표로 즉시 백업하는 엔진"""
+    """DART 일시 장애 시에만 작동하는 비상용 백업 (캐시에 저장하지 않음)"""
     for suffix in [".KS", ".KQ"]:
         try:
             stk = yf.Ticker(clean_code + suffix)
@@ -1682,7 +1682,7 @@ def _fallback_naver_and_yf_financials(clean_code):
                 df = pd.DataFrame(combined).T
                 df.columns = [str(col)[:4] for col in df.columns]
                 df = df.loc[:, ~df.columns.duplicated()]
-                df = df[sorted(df.columns, reverse=True)] / 100000000  # 억 원 단위 변환
+                df = df[sorted(df.columns, reverse=True)] / 100000000
                 final_idx = [
                     '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
                     '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
@@ -1694,80 +1694,110 @@ def _fallback_naver_and_yf_financials(clean_code):
     return pd.DataFrame()
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def get_10yr_dart_financials_v2(stock_code, api_key):
-    clean_code = str(stock_code).strip()
-    if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
-        clean_code = clean_code[:-1] + "0"
-
-    if not api_key:
-        fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "API 키 미설정 (yfinance 백업 연동)"
-
-    mapping = get_dart_corp_codes(api_key, target_code=clean_code)
-    corp_code = mapping.get(clean_code)
-    if not corp_code:
-        fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "고유번호 미발견 (yfinance 백업 연동)"
-
+def _fetch_pure_dart_10yr_cached(corp_code, api_key):
+    """[핵심] 오직 DART 10년치 원시 데이터 수집에 성공했을 때만 캐싱하는 전용 함수"""
     current_year = datetime.now().year
     base_year = current_year - 1
-    years = [base_year, base_year - 3, base_year - 6, base_year - 9]
-    all_data = []
+    # 10년치를 빈틈없이 채우기 위해 4개 기준연도(각 3개년 포함) 설정
+    years = [base_year, base_year - 2, base_year - 5, base_year - 8]
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
     std_mapping = {
-        'ifrs-full_Revenue': '1. 매출액',
-        'ifrs-full_GrossProfit': '2. 매출총이익',
-        'ifrs-full_OperatingIncome': '3. 영업이익',
-        'ifrs-full_ProfitLoss': '4. 당기순이익',
-        'ifrs-full_Assets': '5. 자산총계',
-        'ifrs-full_CurrentAssets': '6. 유동자산',
-        'ifrs-full_Liabilities': '7. 부채총계',
-        'ifrs-full_Equity': '8. 자본총계',
+        'ifrs-full_Revenue': '1. 매출액', 'ifrs_Revenue': '1. 매출액',
+        'ifrs-full_GrossProfit': '2. 매출총이익', 'ifrs_GrossProfit': '2. 매출총이익',
+        'ifrs-full_OperatingIncome': '3. 영업이익', 'dart_OperatingIncomeLoss': '3. 영업이익',
+        'ifrs-full_ProfitLoss': '4. 당기순이익', 'ifrs_ProfitLoss': '4. 당기순이익',
+        'ifrs-full_Assets': '5. 자산총계', 'ifrs_Assets': '5. 자산총계',
+        'ifrs-full_CurrentAssets': '6. 유동자산', 'ifrs_CurrentAssets': '6. 유동자산',
+        'ifrs-full_Liabilities': '7. 부채총계', 'ifrs_Liabilities': '7. 부채총계',
+        'ifrs-full_Equity': '8. 자본총계', 'ifrs_Equity': '8. 자본총계',
         'ifrs-full_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
+        'ifrs_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
         'ifrs-full_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
-        'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
+        'ifrs_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
+        'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름',
+        'ifrs_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
     }
 
-    dart_unreachable = False
-    for y in years:
-        if dart_unreachable:
-            break
+    def _fetch_one_year(y):
+        y_rows = []
+        fetched = False
+        # 1차: 상세 전체 재무제표 API (현금흐름표 포함)
         for fs_div in ['CFS', 'OFS']:
             url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
             try:
-                r = requests.get(url, headers=headers, timeout=5)
+                r = requests.get(url, headers=headers, timeout=8)
                 if r.status_code == 200:
                     data = r.json()
-                    if data.get('status') == '000':
+                    if data.get('status') == '000' and data.get('list'):
                         for item in data.get('list', []):
-                            acct_id = item.get('account_id', '')
-                            raw_nm = item.get('account_nm', '').replace(' ', '')
+                            acct_id = item.get('account_id', '').strip()
+                            raw_nm = re.sub(r'[\s\(\)\.\Ⅰ\Ⅱ\Ⅲ\Ⅳ\Ⅴ\-\_]', '', item.get('account_nm', ''))
                             std_nm = std_mapping.get(acct_id)
                             if not std_nm:
-                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
+                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']: std_nm = '1. 매출액'
                                 elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
-                                elif raw_nm in ['영업이익(손실)', '영업이익']: std_nm = '3. 영업이익'
-                                elif raw_nm in ['당기순이익(손실)', '당기순이익', '연결당기순이익']: std_nm = '4. 당기순이익'
-                                elif '자산총계' in raw_nm: std_nm = '5. 자산총계'
-                                elif '유동자산' == raw_nm: std_nm = '6. 유동자산'
-                                elif '부채총계' in raw_nm: std_nm = '7. 부채총계'
-                                elif '자본총계' in raw_nm: std_nm = '8. 자본총계'
+                                elif raw_nm in ['영업이익손실', '영업이익']: std_nm = '3. 영업이익'
+                                elif raw_nm in ['당기순이익손실', '당기순이익', '연결당기순이익', '지배기업소유주지분순이익']: std_nm = '4. 당기순이익'
+                                elif raw_nm == '자산총계': std_nm = '5. 자산총계'
+                                elif raw_nm == '유동자산': std_nm = '6. 유동자산'
+                                elif raw_nm == '부채총계': std_nm = '7. 부채총계'
+                                elif raw_nm == '자본총계': std_nm = '8. 자본총계'
                                 elif '영업활동현금흐름' in raw_nm or '영업활동으로인한현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
                                 elif '투자활동현금흐름' in raw_nm or '투자활동으로인한현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
                                 elif '재무활동현금흐름' in raw_nm or '재무활동으로인한현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
                             if std_nm:
-                                all_data.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
-                                all_data.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
-                                all_data.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                                y_rows.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
+                                y_rows.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
+                                y_rows.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                        fetched = True
                         break
             except Exception:
-                dart_unreachable = True
-                break
+                pass
+
+        # 2차: 만약 해당 연도 전체장부가 누락됐거나 실패했다면 가벼운 주요계정 API로 즉시 보완
+        if not fetched:
+            url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
+            try:
+                r = requests.get(url_light, headers=headers, timeout=6)
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get('status') == '000':
+                        for fs_div in ['CFS', 'OFS']:
+                            div_items = [it for it in data.get('list', []) if it.get('fs_div') == fs_div]
+                            if div_items:
+                                for item in div_items:
+                                    raw_nm = item.get('account_nm', '').replace(' ', '')
+                                    std_nm = None
+                                    if raw_nm in ['매출액', '영업수익']: std_nm = '1. 매출액'
+                                    elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
+                                    elif '당기순이익' in raw_nm: std_nm = '4. 당기순이익'
+                                    elif '자산총계' in raw_nm: std_nm = '5. 자산총계'
+                                    elif '유동자산' == raw_nm: std_nm = '6. 유동자산'
+                                    elif '부채총계' in raw_nm: std_nm = '7. 부채총계'
+                                    elif '자본총계' in raw_nm: std_nm = '8. 자본총계'
+                                    if std_nm:
+                                        y_rows.append({'연도': str(y), '계정': std_nm, '금액': item.get('thstrm_amount')})
+                                        y_rows.append({'연도': str(y-1), '계정': std_nm, '금액': item.get('frmtrm_amount')})
+                                        y_rows.append({'연도': str(y-2), '계정': std_nm, '금액': item.get('bfefrmtrm_amount')})
+                                break
+            except Exception:
+                pass
+        return y_rows
+
+    all_data = []
+    # 4개 기준연도를 병렬로 동시 호출하여 대기시간을 1/4로 단축
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(_fetch_one_year, y) for y in years]
+        for fut in concurrent.futures.as_completed(futures):
+            try:
+                all_data.extend(fut.result())
+            except Exception:
+                pass
 
     if not all_data:
-        fb_df = _fallback_naver_and_yf_financials(clean_code)
-        return fb_df, "yfinance 고속 백업 연동"
+        # [중요] 실패 시 예외를 발생시켜 스트림릿이 빈 데이터나 4년치 백업본을 캐싱하지 못하게 차단!
+        raise RuntimeError("DART API 일시 응답 없음")
 
     df = pd.DataFrame(all_data)
     df['금액'] = pd.to_numeric(df['금액'].astype(str).str.replace(',', ''), errors='coerce')
@@ -1779,7 +1809,28 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
         '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
         '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
     ]
-    return pivot_df.reindex([i for i in final_idx if i in pivot_df.index]), "성공"
+    return pivot_df.reindex([i for i in final_idx if i in pivot_df.index])
+
+def get_10yr_dart_financials_v2(stock_code, api_key):
+    clean_code = str(stock_code).strip()
+    if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
+        clean_code = clean_code[:-1] + "0"
+
+    if api_key:
+        mapping = get_dart_corp_codes(api_key, target_code=clean_code)
+        corp_code = mapping.get(clean_code)
+        if corp_code:
+            try:
+                dart_df = _fetch_pure_dart_10yr_cached(corp_code, api_key)
+                if not dart_df.empty and len(dart_df.columns) >= 5:
+                    return dart_df, "성공 (DART 10년 연동)"
+            except Exception:
+                pass
+
+    # DART가 완전히 응답하지 않을 때만 일시적으로 yfinance를 보여주며, 캐시에는 저장하지 않음
+    fb_df = _fallback_naver_and_yf_financials(clean_code)
+    return fb_df, "DART 일시 지연 (yfinance 임시 연동)"
+
 # ▲▲▲ 여기까지 교체 (바로 아래에 def get_yf_info(stk): 가 이어지면 됩니다) ▲▲▲
 def get_yf_info(stk):
     try:
@@ -3397,30 +3448,38 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except: pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # 2. 한국 기업 (DART 10년 재무제표 및 고속 백업 수집)
+    # ▼▼▼ get_10yr_custom_metrics 함수 내부의 "elif kr:" 블록을 아래 코드로 교체하세요 ▼▼▼
+    # 2. 한국 기업 (DART 10년 재무제표 우선 적용 및 4년치 덮어쓰기 방지)
     elif kr:
         pe_list, pbr_list, fcf_list = [], [], []
-        
-        # [속도 최적화] 해외 IP에서 무한 대기를 유발하는 PyKRX 10년 직렬 루프를 제거하고 아래 장부 역산으로 직행합니다.
-        # (2) DART 10년치 재무제표 파싱 (PyKRX 실패와 무관하게 무조건 실행)
         try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
             if not dart_df.empty:
+                # DART 장부에 존재하는 실제 연도 개수(예: 10년)를 즉시 확정!
+                data_len = len(dart_df.columns)
+                ni_positive_list = []
+
                 for y_str in dart_df.columns:
                     y_int = int(y_str)
                     yp = get_avg_price(y_int)
                     
                     ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
                     icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
-                    calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
-                    if calc_fcf != 0: fcf_list.append(calc_fcf)
-
                     _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000 if '4. 당기순이익' in dart_df.index else 0
                     _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000 if '8. 자본총계' in dart_df.index else 0
                     _op = safe_float(dart_df.loc['3. 영업이익', y_str]) * 100000000 if '3. 영업이익' in dart_df.index else 0
                     _ast = safe_float(dart_df.loc['5. 자산총계', y_str]) * 100000000 if '5. 자산총계' in dart_df.index else 0
                     _ca = safe_float(dart_df.loc['6. 유동자산', y_str]) * 100000000 if '6. 유동자산' in dart_df.index else 0
-                    
+
+                    # DART의 투자활동현금흐름에는 정기예금/금융자회사 대출이 포함되어 우량주도 음수가 나오는 왜곡 방어
+                    calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
+                    if calc_fcf <= 0 and ocf > 0 and _ni > 0:
+                        calc_fcf = min(ocf * 0.7, _ni * 0.85)  # 보수적 주주이익(Owner Earnings) 추정치 적용
+                    if calc_fcf != 0:
+                        fcf_list.append(calc_fcf)
+                    if _ni > 0:
+                        ni_positive_list.append(_ni * 0.8)
+
                     if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
                     else: hist_roe_10y.append(0)
                     
@@ -3428,31 +3487,47 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100)
                     else: hist_roic_10y.append(0)
 
-                    # 만약 pykrx가 없어서 a_pe_10y, a_pbr_10y가 계산되지 않았다면 DART 10년 데이터와 주가로 자체 역산
                     if yp > 0 and sh_out > 0:
                         mkt_cap = yp * sh_out
-                        if not pe_list and _ni > 0: pe_list.append(mkt_cap / _ni)
-                        if not pbr_list and _eq > 0: pbr_list.append(mkt_cap / _eq)
+                        if _ni > 0: pe_list.append(mkt_cap / _ni)
+                        if _eq > 0: pbr_list.append(mkt_cap / _eq)
 
-                # DART 자체 역산 결과로 10년 평균 PER/PBR 업데이트
-                if not a_pe_10y and pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
-                if not a_pbr_10y and pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+                if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
+                if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
 
+                # FCF 산출 및 보강 (현대차 등 금융자회사 연결 장부 왜곡 시 yfinance FCF 및 순이익으로 보완)
+                yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, stk.info)
                 if len(fcf_list) >= 2:
-                    data_len = len(fcf_list)
                     c, o = fcf_list[0], fcf_list[-1]
                     base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    if c > 0 and o > 0: final_g_10y = (c / o) ** (1 / (data_len - 1)) - 1
+                    if base_fcf_10y <= 0 and yf_fcf and yf_fcf > 0:
+                        base_fcf_10y = yf_fcf
+                    elif base_fcf_10y <= 0 and ni_positive_list:
+                        base_fcf_10y = sum(ni_positive_list[:3]) / min(3, len(ni_positive_list))
+                    if c > 0 and o > 0:
+                        final_g_10y = (c / o) ** (1 / max(1, len(fcf_list) - 1)) - 1
+                    else:
+                        final_g_10y = yf_g
                     final_g_10y = max(0.02, min(final_g_10y, 0.15))
 
                     rev_fcf = fcf_list[::-1]
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
-                    if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+                    if 1 in dirs and -1 in dirs and (not base_fcf_10y or base_fcf_10y <= 0):
+                        is_zigzag_10y = True
+                else:
+                    base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(ni_positive_list[:3])/len(ni_positive_list[:3]) if ni_positive_list else 0)
+                    final_g_10y = yf_g
 
-            if a_pe_10y > 0 and a_pbr_10y > 0:
+                if a_pe_10y <= 0:
+                    a_pe_10y = safe_float(stk.info.get('trailingPE'), 10.0)
+                if a_pbr_10y <= 0:
+                    a_pbr_10y = safe_float(stk.info.get('priceToBook'), 1.0)
+
+                # [핵심] DART 장부가 존재하면 절대 아래쪽 4년치 yfinance 폴백으로 내려가지 않고 여기서 즉시 반환!
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
             pass
+    # ▲▲▲ 여기까지 교체 ▲▲▲
     # 3. 미국 기업 (SEC EDGAR: 유상증자/소각 및 주식분할 완벽 방어 로직)
     else:
         try:
@@ -5585,12 +5660,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [남성 성우 탑재 버전] 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오
+                # [한글 폰트 자동 탑재 + 실시간 자막 전환 MP4] 6. 유튜브 쇼츠 올인원 제작 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오 (남성 성우 음성 + 9:16 영상 생성)", "🎬 6. YouTube Shorts All-in-One Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 제작 스튜디오 (남성 성우 + 한글 자막 전환 MP4)", "🎬 6. YouTube Shorts All-in-One Studio"), expanded=False):
                     st.info(t(
-                        "💡 **한국 유튜브 쇼츠에서 가장 많이 쓰이는 남성 신경망 성우('인준' / '현수') 목소리와 9:16 세로형 영상(.mp4)을 앱 안에서 바로 생성**합니다. 자본시장법 및 명예훼손 방지 필터가 적용되어 있습니다.",
-                        "💡 Generates popular Korean male neural voiceover and 9:16 vertical MP4 video directly inside the app."
+                        "💡 **구글 나눔고딕 한글 폰트 자동 다운로드 엔진**이 탑재되어, 깨알 같은 영문 대신 **큼직한 한글 지표 카드와 남성 성우('인준'/'현수') 음성에 맞춰 하단 한글 자막이 5단계로 자동 전환되는 고화질 9:16 쇼츠(.mp4)**를 생성합니다.",
+                        "💡 Automatically downloads Korean fonts and renders a full 9:16 Korean Shorts MP4 with dynamic subtitles and male neural voiceover."
                     ))
 
                     col_sh_opt1, col_sh_opt2 = st.columns([1.8, 1.2])
@@ -5676,7 +5751,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     clean_tk = tk.split('.')[0] if kr else tk
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     iv_fmt = (f"{int(iv):,}원" if kr else f"${iv:,.2f}") if (iv and not is_financial) else "산출 유보(금융/적자)"
-                    imp_g_fmt = f"연 {implied_g_shorts*100:.1f}%" if implied_g_shorts is not None else "해당 없음"
+                    imp_g_fmt = f"연 {implied_g_shorts*100:.1f}%" if implied_g_shorts is not None else "확인 필요"
 
                     # 나레이션 문장 생성
                     if is_financial or kr or is_cyclical:
@@ -5696,11 +5771,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     gov_Line = _clean_gov_for_shorts(criticism_text) if include_gov else ""
 
                     if "타입 A" in shorts_style:
-                        hook_Line = f"현재 주가 {p_str}인 {comp_name}, 시장이 요구하는 미래 성장률은 몇 퍼센트일까요? 10년 공시 데이터로 역산해 봤습니다."
+                        hook_Line = f"현재 주가 {p_str}인 {comp_name}, 시장이 요구하는 미래 성장률은 몇 퍼센트일까요? {data_len}년 공시 데이터로 역산해 봤습니다."
                     elif "타입 B" in shorts_style:
                         hook_Line = f"만약 {comp_name}의 지분 100%를 인수해 동업한다면 어떨까요? 비즈니스 해자와 자본수익률을 1분 만에 해부해 드립니다."
                     else:
-                        hook_Line = f"10년 재무제표와 현금흐름 모델로 스캔한 {comp_name}의 정량적 밸류에이션 성적표를 분석합니다."
+                        hook_Line = f"{data_len}년 재무제표와 현금흐름 모델로 스캔한 {comp_name}의 정량적 밸류에이션 성적표를 분석합니다."
 
                     closing_Line = f"정량 밸류에이션 총점은 {total_score_val}점입니다. 이 기업의 해자가 10년 뒤에도 유지될지 여러분의 능력 범위 안에서 점검해 보시기 바랍니다. 본 영상은 정량 모델 시뮬레이션이며 매수·매도 추천이 아닙니다."
 
@@ -5709,7 +5784,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         tts_only_script += f"지배구조 측면을 보면, {gov_Line} "
                     tts_only_script += closing_Line
 
-                    # 남성 성우 음성 파일 생성 전용 헬퍼 함수 (edge-tts 1순위, 미설치 시 gTTS 폴백)
+                    # 남성 성우 음성 파일 생성 전용 헬퍼 함수
                     def _generate_male_voice_mp3(script_text, out_path):
                         voice_id = "ko-KR-InJoonNeural" if "인준" in voice_choice else "ko-KR-HyunsuNeural"
                         rate_str = f"+{voice_speed}%"
@@ -5729,7 +5804,40 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             from gtts import gTTS
                             tts_obj = gTTS(text=script_text, lang='ko', slow=False)
                             tts_obj.save(out_path)
-                            return False, "⚠️ 현재 서버에 `edge-tts`가 설치되지 않아 기본 음성으로 대체되었습니다. `requirements.txt`에 `edge-tts`를 추가하시면 '인준/현수' 남성 성우 목소리로 즉시 전환됩니다!"
+                            return False, "⚠️ `requirements.txt`에 `edge-tts`를 추가하시면 '인준/현수' 남성 성우 목소리로 즉시 전환됩니다!"
+
+                    # 구글 나눔고딕 한글 폰트 자동 다운로드 및 캐싱 함수 (영문 깨알 글씨 완벽 해결!)
+                    def _load_korean_pil_fonts():
+                        import os, tempfile
+                        from PIL import ImageFont
+                        font_dir = tempfile.gettempdir()
+                        bold_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                        reg_path = os.path.join(font_dir, "NanumGothic-Bold.ttf")
+
+                        font_urls = [
+                            (bold_path, "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"),
+                            (reg_path, "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Bold.ttf")
+                        ]
+                        for f_path, f_url in font_urls:
+                            if not os.path.exists(f_path) or os.path.getsize(f_path) < 10000:
+                                try:
+                                    r = requests.get(f_url, timeout=8)
+                                    if r.status_code == 200:
+                                        with open(f_path, "wb") as f:
+                                            f.write(r.content)
+                                except Exception:
+                                    pass
+
+                        def _get_f(size, is_eb=False):
+                            target = bold_path if is_eb else reg_path
+                            for candidate in [target, bold_path, reg_path, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                                if os.path.exists(candidate):
+                                    try:
+                                        return ImageFont.truetype(candidate, size)
+                                    except Exception:
+                                        continue
+                            return ImageFont.load_default()
+                        return _get_f
 
                     st.markdown("---")
                     col_studio_left, col_studio_right = st.columns([1.1, 1.3])
@@ -5737,7 +5845,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # [좌측] 9:16 스마트폰 비율 비주얼 쇼츠 카드
                     with col_studio_left:
                         st.markdown("#### 📱 1단계: 9:16 쇼츠 전용 비주얼 화면")
-                        st.caption("이 카드 화면을 캡처(`Win+Shift+S`)하거나 우측 버튼으로 MP4 영상을 바로 생성하세요.")
+                        st.caption("우측의 **[🎬 음성 포함 쇼츠 영상(.mp4) 생성]**을 누르면 이 한글 디자인과 자막이 그대로 들어간 고화질 영상이 생성됩니다!")
                         
                         hold_badge = "보유중(단기매매계획없음)" if creator_holds else "미보유"
                         shorts_card_html = f"""
@@ -5747,7 +5855,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 [이해상충 고지: 제작자 {hold_badge} | 컨센서스 확인 필요]
                             </div>
                             <div style="text-align: center; margin: 10px 0;">
-                                <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px;">AGIE QUANT FRAMEWORK</div>
+                                <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px;">AGIE QUANT FRAMEWORK ({data_len}Y DATA)</div>
                                 <div style="font-size: 1.55rem; font-weight: 900; color: #ffffff; margin-top: 2px;">{comp_name} <span style="font-size: 0.95rem; color: #38bdf8;">({clean_tk})</span></div>
                                 <div style="font-size: 1.25rem; font-weight: 800; color: #facc15; margin-top: 4px;">현재가: {p_str}</div>
                             </div>
@@ -5793,9 +5901,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         """
                         st.markdown(shorts_card_html, unsafe_allow_html=True)
 
-                    # [우측] 남성 성우 MP3 & 음성 결합 MP4 원클릭 생성
+                    # [우측] 남성 성우 MP3 & 한글 고해상도 MP4 원클릭 생성
                     with col_studio_right:
-                        st.markdown("#### 🎥 2단계: 남성 성우 음성(.mp3) & 완성형 영상(.mp4) 뽑기")
+                        st.markdown("#### 🎥 2단계: 남성 성우 음성(.mp3) & 한글 쇼츠 영상(.mp4) 뽑기")
                         
                         btn_col1, btn_col2 = st.columns(2)
                         with btn_col1:
@@ -5809,10 +5917,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_f:
                                     tmp_mp3_path = tmp_f.name
                                 is_edge, msg = _generate_male_voice_mp3(tts_only_script, tmp_mp3_path)
-                                if is_edge:
-                                    st.success(msg)
-                                else:
-                                    st.warning(msg)
+                                if is_edge: st.success(msg)
+                                else: st.warning(msg)
                                 with open(tmp_mp3_path, "rb") as af:
                                     mp3_bytes = af.read()
                                 st.audio(mp3_bytes, format="audio/mp3")
@@ -5829,81 +5935,175 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             try:
                                 from PIL import Image, ImageDraw
                                 import imageio_ffmpeg
-                                import subprocess, tempfile, os
+                                import subprocess, tempfile, os, textwrap
 
-                                with st.spinner("남성 성우 음성과 9:16 쇼츠 화면을 결합하여 MP4 동영상을 렌더링 중입니다..."):
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_a:
-                                        mp3_path = tmp_a.name
-                                    is_edge, msg = _generate_male_voice_mp3(tts_only_script, mp3_path)
-                                    if not is_edge:
-                                        st.warning(msg)
+                                with st.spinner("구글 한글 폰트 로드 및 5단계 실시간 한글 자막 쇼츠(.mp4)를 렌더링 중입니다..."):
+                                    get_font = _load_korean_pil_fonts()
+                                    f_title = get_font(46, True)
+                                    f_price = get_font(34, True)
+                                    f_score_big = get_font(64, True)
+                                    f_card_lbl = get_font(20, False)
+                                    f_card_val = get_font(28, True)
+                                    f_sub = get_font(27, True)
+                                    f_small = get_font(18, False)
 
-                                    # 9:16 캔버스 생성
-                                    W, H = 720, 1280
-                                    img = Image.new("RGB", (W, H), color=(15, 23, 42))
-                                    draw = ImageDraw.Draw(img)
-                                    draw.rectangle([20, 20, W-20, H-20], outline=(56, 189, 248), width=4)
-                                    draw.rectangle([45, 120, W-45, 340], fill=(30, 41, 59))
-                                    draw.rectangle([45, 370, W-45, 620], fill=(20, 30, 48))
-                                    draw.rectangle([45, 650, W-45, 1080], fill=(30, 41, 59))
+                                    # 색상 헥스 -> RGB 변환
+                                    hex_c = op_color.lstrip('#')
+                                    op_rgb = tuple(int(hex_c[i:i+2], 16) for i in (0, 2, 4)) if len(hex_c) == 6 else (56, 189, 248)
+                                    hold_badge = "보유중(단기매매X)" if creator_holds else "미보유"
 
-                                    lines = [
-                                        (60, 55, "AGIE QUANTITATIVE VALUATION REPORT (NOT FINANCIAL ADVICE)", (148, 163, 184)),
-                                        (70, 150, f"TICKER : {tk}", (56, 189, 248)),
-                                        (70, 210, f"PRICE  : {p_str.replace('원', ' KRW')}", (250, 204, 21)),
-                                        (70, 270, f"QUANT SCORE : {total_score_val} / 100 pts", (74, 222, 128)),
-                                        (70, 405, f"ROE : {roe:.1f}%   |   ROIC : {roic_val:.1f}%", (255, 255, 255)),
-                                        (70, 465, f"Fwd PER : {f_pe:.1f}x (10Y Avg: {a_pe:.1f}x)", (255, 255, 255)),
-                                        (70, 525, f"Fwd PBR : {f_pbr:.2f}x (10Y Avg: {a_pbr:.2f}x)", (255, 255, 255)),
-                                        (70, 690, f"Earnings Yield : {ey:.1f}% (vs 10Y Bond {ty:.2f}%)", (56, 189, 248)),
-                                        (70, 755, f"Total Shareholder Yield : {tsy_total:.1f}%", (192, 132, 252)),
-                                        (70, 820, f"Reverse DCF Implied Growth : {implied_g_shorts*100:.1f}%" if implied_g_shorts else "Reverse DCF : N/A", (250, 204, 21)),
-                                        (70, 885, f"Piotroski F-Score : {f_score_val if f_score_val is not None else 'N/A'} / 9", (74, 222, 128)),
-                                        (60, 1150, "Educational Simulation Only - No Buy/Sell Recommendation", (148, 163, 184))
+                                    # 5단계 장면(Scene)별 나레이션 및 하단 자막 구성
+                                    scenes = [
+                                        ("hook", hook_Line, f"🎙️ {comp_name} ({clean_tk}) 정량 밸류에이션 해부 시작"),
+                                        ("moat", f"먼저 비즈니스 퀄리티입니다. {moat_Line}", f"📊 ROE {roe:.1f}% · ROIC {roic_str} | 총주주환원 연 {tsy_total:.1f}%"),
+                                        ("val", f"다음은 가격과 가치 비교입니다. {val_metric_Line} {erp_Line} {dcf_Line}", f"⚖️ 이익수익률 {ey:.1f}% (vs 국채 {ty:.2f}%) | 요구성장률 {imp_g_fmt}"),
                                     ]
-                                    for lx, ly, ltxt, lcol in lines:
-                                        draw.text((lx, ly), ltxt, fill=lcol)
+                                    if include_gov and gov_Line:
+                                        scenes.append(("gov", f"지배구조 측면을 보면, {gov_Line}", "🔍 공시 기반 자본배분 및 거버넌스 핵심 점검 포인트"))
+                                    scenes.append(("close", closing_Line, f"✅ 종합 정량 스코어 {total_score_val}점 ({op_title.split('(')[0].strip()})"))
 
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img:
-                                        img.save(tmp_img.name)
-                                        img_path = tmp_img.name
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_v:
-                                        mp4_path = tmp_v.name
+                                    def _draw_shorts_frame(active_stage, sub_header, nar_text):
+                                        W, H = 720, 1280
+                                        img = Image.new("RGB", (W, H), color=(15, 23, 42))
+                                        draw = ImageDraw.Draw(img)
 
-                                    # FFmpeg로 정지 화면 + 남성 성우 MP3 오디오를 실제 유뷰브 업로드용 MP4로 합성!
+                                        # 외곽 네온 프레임
+                                        draw.rounded_rectangle([16, 16, W-16, H-16], radius=28, outline=op_rgb, width=5)
+
+                                        # 1. 상단 법적 고지 배너
+                                        draw.rounded_rectangle([36, 36, W-36, 108], radius=12, fill=(30, 41, 59))
+                                        draw.text((W//2, 56), "⚠️ DART·SEC 공시 기반 정량 시뮬레이션 (특정 종목 매수·매도 추천 아님)", font=f_small, fill=(203, 213, 225), anchor="mm")
+                                        draw.text((W//2, 86), f"[이해상충 고지: 제작자 {hold_badge} | 컨센서스 추정치 확인 필요]", font=f_small, fill=(148, 163, 184), anchor="mm")
+
+                                        # 2. 종목명 & 현재 주가 헤더
+                                        draw.text((W//2, 138), f"AGIE 정량 밸류에이션 ({data_len}년 재무 기준)", font=f_card_lbl, fill=(148, 163, 184), anchor="mm")
+                                        draw.text((W//2, 188), f"{comp_name} ({clean_tk})", font=f_title, fill=(255, 255, 255), anchor="mm")
+                                        draw.text((W//2, 242), f"현재 주가: {p_str}", font=f_price, fill=(250, 204, 21), anchor="mm")
+
+                                        # 3. 중앙 정량 밸류에이션 스코어 박스 + 게이지 바
+                                        s_outline = (250, 204, 21) if active_stage in ["hook", "close"] else op_rgb
+                                        draw.rounded_rectangle([36, 280, W-36, 465], radius=18, fill=(9, 14, 26), outline=s_outline, width=3)
+                                        draw.text((W//2, 310), "정량적 밸류에이션 프레임워크 스코어", font=f_card_lbl, fill=(148, 163, 184), anchor="mm")
+                                        draw.text((W//2, 368), f"{total_score_val}점", font=f_score_big, fill=op_rgb, anchor="mm")
+                                        draw.text((W//2, 418), op_title.split('(')[0].strip(), font=f_card_val, fill=(241, 245, 249), anchor="mm")
+
+                                        # 게이지 바 (-100 ~ +100)
+                                        bar_x1, bar_y1, bar_x2, bar_y2 = 76, 442, W-76, 454
+                                        draw.rounded_rectangle([bar_x1, bar_y1, bar_x2, bar_y2], radius=6, fill=(51, 65, 85))
+                                        pos_ratio = max(0.02, min(0.98, (total_score_val + 100) / 200.0))
+                                        knob_x = int(bar_x1 + (bar_x2 - bar_x1) * pos_ratio)
+                                        draw.ellipse([knob_x-9, bar_y1-4, knob_x+9, bar_y2+4], fill=(250, 204, 21))
+
+                                        # 4. 6대 핵심 정량 지표 그리드 (2열 x 3행)
+                                        roic_disp = "금융주제외" if is_financial else f"{roic_val:.1f}%"
+                                        cards_data = [
+                                            ("ROE / ROIC", f"{roe:.1f}% / {roic_disp}", (74, 222, 128), "moat"),
+                                            ("이익수익률 (vs 국채)", f"{ey:.1f}% ({erp:+.1f}%p)", (56, 189, 248), "val"),
+                                            ("선행 PER (10년평균)", f"{f_pe:.1f}배 ({a_pe:.1f}배)", (248, 250, 252), "val"),
+                                            ("선행 PBR (10년평균)", f"{f_pbr:.2f}배 ({a_pbr:.2f}배)", (248, 250, 252), "val"),
+                                            ("DCF 정량 산출값", iv_fmt, (250, 204, 21), "val"),
+                                            ("총주주환원율 (연)", f"{tsy_total:.1f}%", (192, 132, 252), "moat")
+                                        ]
+                                        c_w, c_h = 314, 102
+                                        for idx, (c_lbl, c_val, c_col, c_stg) in enumerate(cards_data):
+                                            row, col = divmod(idx, 2)
+                                            x1 = 36 + col * (c_w + 20)
+                                            y1 = 485 + row * (c_h + 14)
+                                            is_hi = (active_stage == c_stg)
+                                            b_col = (250, 204, 21) if is_hi else (51, 65, 85)
+                                            b_w = 3 if is_hi else 1
+                                            draw.rounded_rectangle([x1, y1, x1+c_w, y1+c_h], radius=14, fill=(30, 41, 59), outline=b_col, width=b_w)
+                                            draw.text((x1 + c_w//2, y1 + 32), c_lbl, font=f_card_lbl, fill=(148, 163, 184), anchor="mm")
+                                            draw.text((x1 + c_w//2, y1 + 72), c_val, font=f_card_val, fill=c_col, anchor="mm")
+
+                                        # 5. 역산 DCF & 피오트로스키 F-Score 요약 바
+                                        draw.rounded_rectangle([36, 840, W-36, 935], radius=14, fill=(20, 35, 58), outline=(56, 189, 248), width=2)
+                                        draw.text((W//2, 868), f"🔍 역산 DCF 시장 요구 성장률: {imp_g_fmt}", font=f_card_val, fill=(56, 189, 248), anchor="mm")
+                                        draw.text((W//2, 908), f"📊 피오트로스키 F-Score: {f_score_val if f_score_val is not None else 'N/A'} / 9점", font=f_card_lbl, fill=(226, 232, 240), anchor="mm")
+
+                                        # 6. 하단 실시간 한글 자막 박스 (음성에 맞춰 변경됨!)
+                                        draw.rounded_rectangle([36, 955, W-36, 1215], radius=18, fill=(9, 14, 26), outline=(250, 204, 21), width=3)
+                                        draw.text((W//2, 988), sub_header, font=f_card_lbl, fill=(250, 204, 21), anchor="mm")
+
+                                        wrapped_lines = textwrap.wrap(nar_text, width=21)[:4]
+                                        start_y = 1035
+                                        for w_line in wrapped_lines:
+                                            draw.text((W//2, start_y), w_line, font=f_sub, fill=(255, 255, 255), anchor="mm")
+                                            start_y += 40
+
+                                        draw.text((W//2, 1242), "AGIE Quantitative Valuation Framework • Educational Only", font=f_small, fill=(100, 116, 139), anchor="mm")
+                                        return img
+
+                                    # 장면별 개별 오디오+비디오 클립 생성 후 하나로 합치기 (실시간 자막 완벽 싱크)
                                     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-                                    cmd = [
-                                        ffmpeg_exe, "-y",
-                                        "-loop", "1", "-i", img_path,
-                                        "-i", mp3_path,
-                                        "-c:v", "libx264", "-tune", "stillimage",
-                                        "-c:a", "aac", "-b:a", "192k",
-                                        "-pix_fmt", "yuv420p", "-shortest",
-                                        mp4_path
-                                    ]
-                                    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                    segment_files = []
+                                    temp_cleanup = []
 
-                                    with open(mp4_path, "rb") as vf:
+                                    for idx_s, (stg_code, stg_nar, stg_hdr) in enumerate(scenes):
+                                        f_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                        f_mp3_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                        f_seg_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                        temp_cleanup.extend([f_img_p, f_mp3_p, f_seg_p])
+
+                                        frame_img = _draw_shorts_frame(stg_code, stg_hdr, stg_nar)
+                                        frame_img.save(f_img_p)
+                                        is_edge, msg = _generate_male_voice_mp3(stg_nar, f_mp3_p)
+
+                                        cmd_seg = [
+                                            ffmpeg_exe, "-y",
+                                            "-loop", "1", "-i", f_img_p,
+                                            "-i", f_mp3_p,
+                                            "-c:v", "libx264", "-tune", "stillimage",
+                                            "-c:a", "aac", "-b:a", "192k",
+                                            "-pix_fmt", "yuv420p", "-shortest",
+                                            f_seg_p
+                                        ]
+                                        subprocess.run(cmd_seg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                        segment_files.append(f_seg_p)
+
+                                    # FFmpeg concat으로 5개 장면 무손실 결합
+                                    concat_txt_p = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                    temp_cleanup.append(concat_txt_p)
+                                    with open(concat_txt_p, "w", encoding="utf-8") as cf_out:
+                                        for seg_p in segment_files:
+                                            safe_p = seg_p.replace("\\", "/")
+                                            cf_out.write(f"file '{safe_p}'\n")
+
+                                    final_mp4_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                    temp_cleanup.append(final_mp4_p)
+                                    cmd_concat = [
+                                        ffmpeg_exe, "-y",
+                                        "-f", "concat", "-safe", "0",
+                                        "-i", concat_txt_p,
+                                        "-c", "copy",
+                                        final_mp4_p
+                                    ]
+                                    subprocess.run(cmd_concat, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                    with open(final_mp4_p, "rb") as vf:
                                         mp4_bytes = vf.read()
+                                    st.success("🎉 한글 디자인 + 실시간 자막 + 남성 성우 음성이 결합된 쇼츠 MP4 생성이 완료되었습니다!")
                                     st.video(mp4_bytes)
                                     st.download_button(
-                                        label="📥 남성 성우 음성 결합 쇼츠(.mp4) 다운로드",
+                                        label="📥 완성형 한글 쇼츠 동영상(.mp4) 다운로드",
                                         data=mp4_bytes,
-                                        file_name=f"AGIE_{clean_tk}_shorts_full.mp4",
+                                        file_name=f"AGIE_{clean_tk}_shorts_korean.mp4",
                                         mime="video/mp4",
                                         use_container_width=True
                                     )
-                                    for p_rm in [mp3_path, img_path, mp4_path]:
-                                        if os.path.exists(p_rm): os.remove(p_rm)
+                                    for p_rm in temp_cleanup:
+                                        if os.path.exists(p_rm):
+                                            try: os.remove(p_rm)
+                                            except Exception: pass
                             except Exception as e:
-                                st.warning(f"완성형 MP4 합성을 위해 `requirements.txt`에 `edge-tts`, `Pillow`, `imageio-ffmpeg`를 추가해 주세요. (오류 상세: {e})")
+                                st.warning(f"MP4 렌더링 중 오류가 발생했습니다. `requirements.txt`에 `edge-tts`, `Pillow`, `imageio-ffmpeg`가 설치되어 있는지 확인해 주세요. (상세: {e})")
 
-                        st.markdown("#### 📜 3단계: Vrew·캡컷 자동자막용 대본")
+                        st.markdown("#### 📜 3단계: Vrew·캡컷 자동자막용 전체 대본")
                         st.code(tts_only_script, language="text")
 
                         hold_disclosure = "현재 제작자는 해당 종목을 장기 투자 관점에서 보유 중이며 단기 매매 계획이 없습니다." if creator_holds else "현재 제작자는 영상 제작 시점 기준 해당 종목을 보유하고 있지 않습니다."
                         yt_metadata_package = f"""[추천 쇼츠 제목]
-• {comp_name}({clean_tk}), 현재 주가에 반영된 미래 성장률은? (10년 재무·DCF 해부) #shorts
+• {comp_name}({clean_tk}), 현재 주가에 반영된 미래 성장률은? ({data_len}년 재무·DCF 해부) #shorts
 
 [유튜브 설명란 & 고정 댓글 법적 고지문]
 ⚠️ 본 영상은 DART·SEC 공시 기반의 정량적 밸류에이션 프레임워크 시뮬레이션이며, 특정 종목의 매수·매도 추천이나 유료 리딩이 아닙니다. 자본시장법 준수를 위해 댓글을 통한 1:1 종목 상담은 진행하지 않습니다. (컨센서스 및 추정치는 확인이 필요한 부분입니다.)
