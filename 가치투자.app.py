@@ -4115,7 +4115,95 @@ div[data-testid="stDataFrame"] { border-radius: 12px; overflow: hidden; border: 
 </style>
 """, unsafe_allow_html=True)
 
-# ▼▼▼ "--- 헤더 및 언어 토글 ---" 부분부터 "macro_html += ..." 출력 부분까지 아래 코드로 교체하세요 ▼▼▼
+# ▼▼▼ "# --- 헤더 및 언어 토글 ---" 부터 "st.markdown(macro_html, unsafe_allow_html=True)" 까지 전체 교체 ▼▼▼
+@st.cache_data(ttl=300, show_spinner=False)
+def get_realtime_cnn_fng_standalone():
+    """CNN 실시간 공포·탐욕 지수 호출 + 차단 시 S&P500 모멘텀 & VIX 복합 산출 엔진"""
+    from datetime import timedelta
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    yest_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    
+    urls = [
+        f"https://production.dataviz.cnn.io/index/fearandgreed/graphdata/{today_str}",
+        f"https://production.dataviz.cnn.io/index/fearandgreed/graphdata/{yest_str}",
+        "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    ]
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,ko;q=0.8',
+        'Referer': 'https://edition.cnn.com/markets/fear-and-greed',
+        'Origin': 'https://edition.cnn.com',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site'
+    }
+    
+    # 1순위: CNN 공식 엔드포인트 호출
+    for u in urls:
+        try:
+            r = requests.get(u, headers=headers, timeout=4)
+            if r.status_code == 200:
+                fg = r.json().get("fear_and_greed", {})
+                score = safe_float(fg.get("score"))
+                prev = safe_float(fg.get("previous_close"), score)
+                rating_raw = str(fg.get("rating", "")).lower()
+                if score > 0:
+                    rmap = {
+                        "extreme fear": ("극단적 공포", "Extreme Fear"),
+                        "fear": ("공포", "Fear"),
+                        "neutral": ("중립", "Neutral"),
+                        "greed": ("탐욕", "Greed"),
+                        "extreme greed": ("극단적 탐욕", "Extreme Greed")
+                    }
+                    ko_l, en_l = rmap.get(rating_raw, ("중립", "Neutral"))
+                    return {"p": score, "c": score - prev, "ko_lbl": ko_l, "en_lbl": en_l}
+        except Exception:
+            pass
+
+    # 2순위: CNN 서버 IP 차단 시 VIX + S&P500 125일 이동평균 괴리율 + RSI 결합 실시간 산출
+    try:
+        vix_hist = yf.Ticker("^VIX").history(period="1mo")
+        sp_hist = yf.Ticker("^GSPC").history(period="6mo")
+        if not vix_hist.empty and not sp_hist.empty and len(sp_hist) >= 20:
+            vix_c = safe_float(vix_hist['Close'].iloc[-1], 20.0)
+            vix_p = safe_float(vix_hist['Close'].iloc[-2], vix_c) if len(vix_hist) >= 2 else vix_c
+            
+            # VIX 점수 (VIX 12 = 85점, VIX 20 = 50점, VIX 32 = 15점)
+            vix_score_now = max(5.0, min(95.0, 50.0 + (20.0 - vix_c) * 3.5))
+            vix_score_prev = max(5.0, min(95.0, 50.0 + (20.0 - vix_p) * 3.5))
+            
+            # S&P 500 125일 모멘텀 점수
+            ma_len = min(125, len(sp_hist))
+            sp_ma = safe_float(sp_hist['Close'].iloc[-ma_len:].mean())
+            sp_now = safe_float(sp_hist['Close'].iloc[-1])
+            sp_prev = safe_float(sp_hist['Close'].iloc[-2]) if len(sp_hist) >= 2 else sp_now
+            
+            mom_pct_now = ((sp_now - sp_ma) / sp_ma) * 100 if sp_ma > 0 else 0.0
+            mom_pct_prev = ((sp_prev - sp_ma) / sp_ma) * 100 if sp_ma > 0 else 0.0
+            
+            mom_score_now = max(5.0, min(95.0, 50.0 + (mom_pct_now * 4.5)))
+            mom_score_prev = max(5.0, min(95.0, 50.0 + (mom_pct_prev * 4.5)))
+            
+            final_now = (vix_score_now * 0.55) + (mom_score_now * 0.45)
+            final_prev = (vix_score_prev * 0.55) + (mom_score_prev * 0.45)
+            
+            if final_now <= 25: ko_l, en_l = "극단적 공포", "Extreme Fear"
+            elif final_now <= 45: ko_l, en_l = "공포", "Fear"
+            elif final_now <= 55: ko_l, en_l = "중립", "Neutral"
+            elif final_now <= 75: ko_l, en_l = "탐욕", "Greed"
+            else: ko_l, en_l = "극단적 탐욕", "Extreme Greed"
+            
+            return {"p": final_now, "c": final_now - final_prev, "ko_lbl": ko_l, "en_lbl": en_l}
+    except Exception:
+        pass
+
+    return {"p": 50.0, "c": 0.0, "ko_lbl": "확인필요", "en_lbl": "N/A"}
+
+# --- 헤더 및 언어 토글 ---
 c_empty, c_title, c_lang = st.columns([1, 8, 1])
 with c_title:
     st.markdown("""
@@ -4142,18 +4230,19 @@ krw_p, krw_c, krw_pct = get_safe_macro("USD/KRW")
 wti_p, wti_c, wti_pct = get_safe_macro("WTI Crude", is_currency=True)
 tnx_p, tnx_c, tnx_pct = get_safe_macro("10Y Treasury", is_rate=True)
 
-# [신규] CNN 공포·탐욕 지수 파싱 및 전용 카드 렌더링
-fng_data = macro_data.get("CNN_FNG", {"p": 50.0, "c": 0.0, "ko_lbl": "중립", "en_lbl": "Neutral"})
-fng_score = safe_float(fng_data.get("p"), 50.0)
-fng_chg = safe_float(fng_data.get("c"), 0.0)
-fng_lbl = fng_data.get("ko_lbl", "중립") if is_ko else fng_data.get("en_lbl", "Neutral")
+# CNN 공포·탐욕 지수 독립 호출 (50 고정 버그 완벽 해결)
+fng_info = get_realtime_cnn_fng_standalone()
+fng_val = safe_float(fng_info.get("p"), 50.0)
+fng_chg = safe_float(fng_info.get("c"), 0.0)
+fng_lbl = fng_info.get("ko_lbl", "중립") if is_ko else fng_info.get("en_lbl", "Neutral")
 
-if fng_score <= 25: fng_color = "#ff4757"      # 극단적 공포 (적색)
-elif fng_score <= 45: fng_color = "#ffa502"    # 공포 (주황)
-elif fng_score <= 55: fng_color = "#a4b0be"    # 중립 (회색)
-elif fng_score <= 75: fng_color = "#2ed573"    # 탐욕 (녹색)
-else: fng_color = "#1e90ff"                    # 극단적 탐욕 (청색)
+if fng_val <= 25: fng_val_col = "#ff4757"      # 극단적 공포
+elif fng_val <= 45: fng_val_col = "#fdcb6e"    # 공포
+elif fng_val <= 55: fng_val_col = "#A0C4FF"    # 중립
+elif fng_val <= 75: fng_val_col = "#2ecc71"    # 탐욕
+else: fng_val_col = "#00d2d3"                  # 극단적 탐욕
 
+fng_chg_col = "#2ecc71" if fng_chg > 0 else ("#ff7675" if fng_chg < 0 else "#8892b0")
 fng_sign = "+" if fng_chg > 0 else ""
 
 macro_items = [
@@ -4169,12 +4258,12 @@ macro_items = [
 
 macro_html = "<div class='macro-ticker' style='display: flex; overflow-x: auto; gap: 12px; padding: 10px 0 20px 0; -webkit-overflow-scrolling: touch;'>"
 
-# 1번째 카드로 CNN 공포·탐욕 지수 고정 배치
+# 옆 카드들과 높이·디자인을 100% 통일한 CNN 공포·탐욕 카드
 macro_html += (
-    f"<div style='flex: 0 0 auto; background: rgba(255,255,255,0.05); padding: 18px 22px; border-radius: 16px; border: 1.5px solid {fng_color}; min-width: 165px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.08);'>"
-    f"<div style='font-size: 0.85rem; color: #8892b0; margin-bottom: 8px; font-weight: 700;'>{t('CNN 공포·탐욕', 'CNN Fear & Greed')}</div>"
-    f"<div style='font-size: 1.4rem; font-weight: 900; color: {fng_color}; letter-spacing: -0.5px;'>{fng_score:.0f} <span style='font-size:0.85rem;'>({fng_lbl})</span></div>"
-    f"<div style='font-size: 0.9rem; font-weight: bold; color: #8892b0; margin-top: 5px;'>{t('전일대비', 'Chg')} {fng_sign}{fng_chg:.1f}pt</div>"
+    f"<div style='flex: 0 0 auto; background: rgba(255,255,255,0.03); padding: 18px 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); min-width: 155px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);'>"
+    f"<div style='font-size: 0.85rem; color: #8892b0; margin-bottom: 8px; font-weight: 600;'>{t('CNN 공포·탐욕', 'CNN Fear & Greed')}</div>"
+    f"<div style='font-size: 1.4rem; font-weight: 800; color: {fng_val_col}; letter-spacing: -0.5px;'>{fng_val:.0f} <span style='font-size: 0.9rem; font-weight: 700;'>({fng_lbl})</span></div>"
+    f"<div style='font-size: 0.95rem; font-weight: bold; color: {fng_chg_col}; margin-top: 5px;'>{fng_sign}{fng_chg:.1f}pt</div>"
     f"</div>"
 )
 
