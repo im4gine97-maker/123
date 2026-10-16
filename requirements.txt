@@ -8,3 +8,8 @@ plotly
 OpenDartReader
 pykrx
 setuptools
+gTTS
+Pillow
+imageio
+imageio-ffmpeg
+numpy
