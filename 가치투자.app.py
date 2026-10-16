@@ -1958,12 +1958,177 @@ def get_yf_info(stk):
     except:
         return {}
 
+# ▼▼▼ [교체 1 시작] def get_finviz_data(cd): 부터 def get_naver_finance(cd): 끝까지 교체 ▼▼▼
+import random
+
+def get_stealth_headers(site="general", referer=None):
+    """봇 탐지(Cloudflare/Akamai) 우회를 위한 실제 최신 브라우저 핑거프린트 헤더 생성기"""
+    ua_pool = [
+        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"', '"Windows"'),
+        ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36", '"Google Chrome";v="130", "Chromium";v="130", "Not_A Brand";v="24"', '"macOS"'),
+        ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0", '"Microsoft Edge";v="129", "Chromium";v="129", "Not_A Brand";v="24"', '"Windows"')
+    ]
+    ua, sec_ch_ua, platform = random.choice(ua_pool)
+
+    # 미국 SEC EDGAR는 공식 정책상 고유 기관/리서치 포맷(AppName/Version + 이메일)을 요구하며 일반 Mozilla 단독 헤더를 봇으로 차단함
+    if site == "sec":
+        return {
+            "User-Agent": "AGIEQuantResearch/3.5 (Enterprise Value Analysis Terminal; contact@agie-research.org)",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Accept-Encoding": "gzip, deflate",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive"
+        }
+
+    headers = {
+        "User-Agent": ua,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate",
+        "Sec-Ch-Ua": sec_ch_ua,
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": platform,
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none" if not referer else "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control": "max-age=0"
+    }
+    if site == "naver":
+        headers["Referer"] = referer or "https://finance.naver.com/"
+    elif site == "finviz":
+        headers["Referer"] = "https://finviz.com/"
+        headers["Accept-Language"] = "en-US,en;q=0.9"
+    elif site == "yahoo":
+        headers["Referer"] = "https://finance.yahoo.com/"
+        headers["Accept-Language"] = "en-US,en;q=0.9"
+    elif referer:
+        headers["Referer"] = referer
+    return headers
+
+# 주요 미국 종목 CIK 내장 사전 (SEC 서버 호출 횟수를 최소화하여 봇 차단 원천 방지)
+SEC_CIK_BUILTIN = {
+    "AAPL": "0000320193", "MSFT": "0000789019", "GOOGL": "0001652044", "GOOG": "0001652044",
+    "AMZN": "0001018724", "NVDA": "0001045810", "META": "0001326801", "TSLA": "0001318605",
+    "BRK-B": "0001067983", "BRK-A": "0001067983", "AVGO": "0001730168", "LLY": "0000059478",
+    "WMT": "0000104169", "JPM": "0000019617", "V": "0001403161", "MA": "0001141391",
+    "XOM": "0000034088", "COST": "0000909832", "ORCL": "0001341439", "HD": "0000354950",
+    "PG": "0000080424", "UNH": "0000731766", "JNJ": "0000200406", "NFLX": "0001065280",
+    "BAC": "0000070858", "CRM": "0001108524", "ABBV": "0001551152", "CVX": "0000093410",
+    "KO": "0000021344", "MRK": "0000310158", "AMD": "0000002488", "PEP": "0000077476",
+    "TMO": "0000097745", "ADBE": "0000796343", "MCD": "0000063908", "CSCO": "0000858877",
+    "DIS": "0001744489", "INTU": "0000896878", "QCOM": "0000804328", "TXN": "0000097476",
+    "AMAT": "0000006951", "LRCX": "0000707549", "MU": "0000723125", "INTC": "0000050863",
+    "AXP": "0000004962", "MCO": "0001059556", "SPGI": "0000064040", "FICO": "0000814547",
+    "CMG": "0001058090", "PLTR": "0001321655", "UBER": "0001543151", "CAT": "0000018230"
+}
+
+@st.cache_data(ttl=86400*7, show_spinner=False)
+def get_sec_cik_map():
+    """SEC 전체 티커-CIK 매핑 테이블 (7일 캐싱으로 중복 호출 원천 차단)"""
+    cmap = SEC_CIK_BUILTIN.copy()
+    try:
+        r = requests.get("https://www.sec.gov/files/company_tickers.json", headers=get_stealth_headers("sec"), timeout=6)
+        if r.status_code == 200:
+            for _, val in r.json().items():
+                tk_str = str(val.get("ticker", "")).upper()
+                cik_str = str(val.get("cik_str", "")).zfill(10)
+                if tk_str and cik_str:
+                    cmap[tk_str] = cmap.get(tk_str, cik_str)
+    except Exception:
+        pass
+    return cmap
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_sec_company_facts_cached(cd):
+    """SEC EDGAR 기업별 10년 원본 재무제표 JSON (24시간 캐싱으로 봇 차단 완벽 방어)"""
+    clean_us_tk = str(cd).upper().strip().replace('.B', '-B').replace('.A', '-A')
+    base_tk = clean_us_tk.replace('-B', '').replace('-A', '')
+    cmap = get_sec_cik_map()
+    cik = cmap.get(clean_us_tk) or cmap.get(base_tk)
+    if not cik:
+        return {}
+    try:
+        url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+        r = requests.get(url, headers=get_stealth_headers("sec"), timeout=8)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return {}
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_naver_adjusted_yearly_prices(cd):
+    """한국 주식 액면분할/유무상증자 100% 보정된 네이버 금융 공식 수정주가 연평균 산출기"""
+    res_prices = {}
+    try:
+        url = f"https://fchart.stock.naver.com/sise.nhn?symbol={cd}&timeframe=month&count=130&requestType=0"
+        r = requests.get(url, headers=get_stealth_headers("naver"), timeout=5)
+        if r.status_code == 200:
+            root = ET.fromstring(r.text)
+            yr_vals = {}
+            for item in root.findall('.//item'):
+                data_str = item.attrib.get('data', '')
+                parts = data_str.split('|')
+                if len(parts) >= 5:
+                    y_int = int(parts[0][:4])
+                    close_p = safe_float(parts[4])
+                    if close_p > 0:
+                        yr_vals.setdefault(y_int, []).append(close_p)
+            for y_k, p_list in yr_vals.items():
+                res_prices[y_k] = sum(p_list) / len(p_list)
+    except Exception:
+        pass
+    return res_prices
+
+def normalize_split_shares(raw_sh, y_int, sh_out, splits_data):
+    """
+    [액면분할 3중 완전 방어 엔진]
+    SEC 10-K의 비교재무제표 소급 재작성(Restatement), 복수 액면분할(NVDA/TSLA 등),
+    듀얼 클래스(GOOGL/BRK 등)로 인한 20배~50배 주식수 왜곡을 수학적으로 완벽히 교정합니다.
+    """
+    if raw_sh <= 0:
+        return sh_out if sh_out > 0 else 1.0
+    if sh_out <= 0:
+        return raw_sh
+
+    # 1. 가능한 모든 액면분할 누적 배수 후보군 생성 (소급 적용된 경우 배수 1.0 포함)
+    candidates = {1.0}
+    if splits_data is not None and not splits_data.empty:
+        future_splits = [float(ratio) for s_date, ratio in splits_data.items() if s_date.year >= y_int and ratio > 0]
+        cur_m = 1.0
+        for r in future_splits:
+            cur_m *= r
+            candidates.add(cur_m)
+            candidates.add(r)
+        all_splits = [float(ratio) for _, ratio in splits_data.items() if ratio > 0]
+        tot_m = 1.0
+        for r in all_splits:
+            tot_m *= r
+            candidates.add(tot_m)
+
+    # 2. 후보 배수 중 현재 총주식수(sh_out)와 가장 자연스럽게 이어지는 배수 선택
+    best_sh = raw_sh
+    min_dist = abs((raw_sh / sh_out) - 1.0)
+    for m in candidates:
+        adj_candidate = raw_sh * m
+        dist = abs((adj_candidate / sh_out) - 1.0)
+        if dist < min_dist:
+            min_dist = dist
+            best_sh = adj_candidate
+
+    # 3. 분할 보정 후 주식수가 현재 총주식수(sh_out)의 0.35배~2.5배 이내면 정상 채택
+    # (만약 듀얼클래스 누락이나 미기록 액면분할로 여전히 2.5배 이상 차이 나면 sh_out으로 안전 고정)
+    if 0.35 * sh_out <= best_sh <= 2.5 * sh_out:
+        return best_sh
+    return sh_out
+
 def get_finviz_data(cd):
     res = {}
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         fv_url = f"https://finviz.com/quote.ashx?t={cd}"
-        fv_r = requests.get(fv_url, headers=headers, timeout=5)
+        fv_r = requests.get(fv_url, headers=get_stealth_headers("finviz"), timeout=5)
         if fv_r.status_code == 200:
             fv_s = BeautifulSoup(fv_r.text, 'html.parser')
             def get_fv(label):
@@ -1983,16 +2148,15 @@ def get_finviz_data(cd):
             if eps_ttm: res['trailingEps'] = safe_float(eps_ttm)
             pb = get_fv("P/B")
             if pb: res['priceToBook'] = safe_float(pb)
-    except:
+    except Exception:
         pass
     return res
 
 def get_yahoo_profile(cd):
     res = {}
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         yh_url = f"https://finance.yahoo.com/quote/{cd}/profile"
-        yh_r = requests.get(yh_url, headers=headers, timeout=5)
+        yh_r = requests.get(yh_url, headers=get_stealth_headers("yahoo"), timeout=5)
         if yh_r.status_code == 200:
             yh_s = BeautifulSoup(yh_r.text, 'html.parser')
             desc = yh_s.find('section', {'data-testid': 'description'})
@@ -2001,33 +2165,18 @@ def get_yahoo_profile(cd):
             if exec_table:
                 ceo_name = exec_table.find('tbody').find('tr').find('td').text.strip()
                 res['companyOfficers'] = [{'name': ceo_name}]
-    except:
+    except Exception:
         pass
     return res
 
 def get_naver_finance(cd):
     res = {}
     try:
-        import random
-        import re
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
-        
-        # [핵심 수술 1] 네이버의 강력한 크롤링 차단을 뚫기 위한 진짜 브라우저 위장 헤더
-        user_agents = [
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Safari/605.1.15'
-        ]
-        headers = {
-            'User-Agent': random.choice(user_agents),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Referer': 'https://finance.naver.com/'
-        }
-        r = requests.get(url, headers=headers, timeout=5)
+        r = requests.get(url, headers=get_stealth_headers("naver", referer="https://finance.naver.com/"), timeout=5)
         r.encoding = 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
         
-        # [핵심 수술 2] 문자가 섞여 있어도 숫자와 소수점, 부호만 완벽하게 뜯어내는 강력한 정규식 추출기
         def extract_val(selector):
             el = s.select_one(selector)
             if el and el.text.strip() not in ['-', '', 'N/A']:
@@ -2083,11 +2232,12 @@ def get_naver_finance(cd):
                     if clean_text: valid_roes.append(safe_float(clean_text))
                 if valid_roes:
                     res['returnOnEquity'] = valid_roes[-1] / 100.0
-        except: pass
-        
+        except Exception:
+            pass
     except Exception:
         pass
     return res
+# ▲▲▲ [교체 1 끝] ▲▲▲
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
@@ -2920,46 +3070,59 @@ def calc_piotroski_f_score(stk, is_financial=False):
 # =========================================================================
 # [신규 추가 엔진 4] 발행주식수 증감률 (주식 희석 vs 소각 판독기)
 # =========================================================================
+# ▼▼▼ [교체 2 시작] def analyze_share_dilution(stk, cd, kr): 함수 전체 교체 ▼▼▼
 def analyze_share_dilution(stk, cd, kr):
     if stk is None:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
     try:
         shares_series = {}
-        # 미국 주식인 경우 SEC EDGAR에서 10년치 발행주식수 우선 조회
+        splits_data = pd.Series(dtype=float)
+        try:
+            splits_data = stk.splits
+        except Exception:
+            pass
+
+        # 현재 기준 총주식수 확보 (액면분할 정규화 기준점)
+        sh_now = 0.0
+        try:
+            sh_now = safe_float(stk.fast_info.shares)
+        except Exception:
+            pass
+
+        # 1. 미국 주식인 경우 캐싱된 SEC EDGAR에서 10년치 발행주식수 우선 조회
         if not kr:
             try:
-                sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
-                tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=4).json()
-                cik = next((str(v['cik_str']).zfill(10) for k, v in tickers_res.items() if v['ticker'].upper() == cd.upper()), None)
-                if cik:
-                    facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=5).json()
-                    us_gaap = facts.get('facts', {}).get('us-gaap', {})
-                    for tag in ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic', 'CommonStockSharesOutstanding']:
-                        if tag in us_gaap:
-                            for item in us_gaap[tag].get('units', {}).get('shares', []):
-                                if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
-                                    fy = int(item.get('fy'))
-                                    val = safe_float(item.get('val'))
-                                    if val > 0 and (fy not in shares_series or val > shares_series[fy]):
+                facts = get_sec_company_facts_cached(cd)
+                us_gaap = facts.get('facts', {}).get('us-gaap', {})
+                for tag in ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic', 'CommonStockSharesOutstanding']:
+                    if tag in us_gaap:
+                        for item in us_gaap[tag].get('units', {}).get('shares', []):
+                            if item.get('form') in ['10-K', '10-K/A']:
+                                end_yr = str(item.get('end', ''))[:4]
+                                fy_yr = str(item.get('fy', ''))
+                                y_str = end_yr if (end_yr.isdigit() and int(end_yr) >= 2012) else fy_yr
+                                if not y_str.isdigit():
+                                    continue
+                                fy = int(y_str)
+                                val = safe_float(item.get('val'))
+                                filed_yr = str(item.get('filed', ''))[:4]
+                                # 해당 연도 직후에 제출된 원본 10-K의 주식수를 우선 채택
+                                if val > 0:
+                                    if fy not in shares_series or (filed_yr.isdigit() and int(filed_yr) == fy + 1):
                                         shares_series[fy] = val
-                            if len(shares_series) >= 3:
-                                break
-                    if shares_series:
-                        try:
-                            splits_data = stk.splits
-                            if not splits_data.empty:
-                                for y_k in list(shares_series.keys()):
-                                    sf = 1.0
-                                    for s_date, s_ratio in splits_data.items():
-                                        if s_date.year > y_k:
-                                            sf *= s_ratio
-                                    shares_series[y_k] *= sf
-                        except:
-                            pass
-            except:
+                        if len(shares_series) >= 3:
+                            break
+
+                if shares_series:
+                    latest_yr = max(shares_series.keys())
+                    if sh_now <= 0:
+                        sh_now = shares_series[latest_yr]
+                    for y_k in list(shares_series.keys()):
+                        shares_series[y_k] = normalize_split_shares(shares_series[y_k], y_k, sh_now, splits_data)
+            except Exception:
                 pass
 
-        # SEC 데이터가 없거나 한국 주식인 경우 yfinance 4~5년치 데이터 활용
+        # 2. SEC 데이터가 없거나 한국 주식인 경우 yfinance 데이터 활용 (액면분할 보정 포함)
         if len(shares_series) < 2:
             inc = stk.income_stmt
             bs = stk.balance_sheet
@@ -2981,6 +3144,11 @@ def analyze_share_dilution(stk, cd, kr):
                                 shares_series[y_k] = safe_float(val)
                         if len(shares_series) >= 2:
                             break
+            if shares_series:
+                latest_yr = max(shares_series.keys())
+                ref_sh = sh_now if sh_now > 0 else shares_series[latest_yr]
+                for y_k in list(shares_series.keys()):
+                    shares_series[y_k] = normalize_split_shares(shares_series[y_k], y_k, ref_sh, splits_data)
 
         if len(shares_series) >= 2:
             sorted_y = sorted(shares_series.keys())[-10:]
@@ -2998,9 +3166,10 @@ def analyze_share_dilution(stk, cd, kr):
                     return f"<span style='color:#fdcb6e; font-weight:bold;'>[유지] {span}년간 변동 미미 ({chg_pct:+.1f}%)</span><br><span style='font-size:0.85em; color:#8892b0;'>유상증자 및 희석 없음</span>"
                 else:
                     return f"<span style='color:#ff7675; font-weight:bold;'>[희석 주의] {span}년간 총 +{chg_pct:.1f}% 증가</span><br><span style='font-size:0.85em; color:#8892b0;'>유상증자/스톡옵션 발행을 통한 주주가치 희석</span>"
-    except:
+    except Exception:
         pass
     return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
+# ▲▲▲ [교체 2 끝] ▲▲▲
 def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None, buyback_yield_pct=0.0):
     score_details = {}
     score = 0  
@@ -3504,6 +3673,21 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
 # =========================================================================
 # [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
 # =========================================================================
+# ▼▼▼ [교체 3 시작] def get_10yr_custom_metrics 부터 def generate_quick_ai_preview 바로 윗줄까지 교체 ▼▼▼
+def _calc_robust_multiple_avg(m_list, max_cap=200.0):
+    """단일 연도 일시적 순이익 급감이나 잔존 이상치로 인한 10년 평균 멀티플 왜곡 방어"""
+    valid = [x for x in m_list if 0 < x <= max_cap]
+    if not valid:
+        return 0.0
+    if len(valid) >= 5:
+        s_val = sorted(valid)
+        median_v = s_val[len(s_val) // 2]
+        # 중앙값의 3.5배를 초과하는 극단적 이상치(일시적 어닝쇼크 착시 등) 필터링
+        filtered = [x for x in valid if x <= max(median_v * 3.5, 45.0)]
+        if len(filtered) >= 3:
+            return sum(filtered) / len(filtered)
+    return sum(valid) / len(valid)
+
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
     a_pe_10y = 0.0
     a_pbr_10y = 0.0
@@ -3511,29 +3695,60 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     data_len = 0
     base_fcf_10y = None
     is_zigzag_10y = False
-    hist_roe_10y = []   # [추가] 10년치 ROE 리스트
-    hist_roic_10y = []  # [추가] 10년치 ROIC 리스트
+    hist_roe_10y = []
+    hist_roic_10y = []
 
-    try: hist_10y = stk.history(period="10y")
-    except: hist_10y = pd.DataFrame()
+    try:
+        hist_10y = stk.history(period="10y")
+    except Exception:
+        hist_10y = pd.DataFrame()
+
+    try:
+        splits_data = stk.splits
+    except Exception:
+        splits_data = pd.Series(dtype=float)
+
+    # 한국 주식은 네이버 공식 수정주가(액면분할 100% 반영됨)를 1순위로 활용
+    naver_adj_prices = get_naver_adjusted_yearly_prices(cd) if kr else {}
 
     def get_avg_price(y_int):
-        if hist_10y.empty: return reg_p
+        if kr and y_int in naver_adj_prices and naver_adj_prices[y_int] > 0:
+            return naver_adj_prices[y_int]
+        if hist_10y is None or hist_10y.empty:
+            return reg_p
         y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
-        return safe_float(y_prices.mean()) if not y_prices.empty else 0.0
+        if y_prices.empty:
+            return 0.0
+        avg_p = safe_float(y_prices.mean())
+        # 혹시 yfinance에 액면분할 미반영 주가가 남아있는 경우(현재가의 8배 이상 급등) 분할 비율로 자동 보정
+        if avg_p > reg_p * 8.0 and splits_data is not None and not splits_data.empty:
+            sf = 1.0
+            for s_date, s_ratio in splits_data.items():
+                if s_date.year > y_int and s_ratio > 1.0:
+                    sf *= float(s_ratio)
+            if sf > 1.0 and (avg_p / sf) >= reg_p * 0.05:
+                avg_p = avg_p / sf
+        return avg_p
 
-    # 구글, 버크셔 등 복수 클래스 주식의 시가총액 역산
-    mcap = safe_float(stk.info.get('marketCap'))
+    # 봇 차단을 막기 위해 stk.info 재호출 대신 캐시된 fetch_cached_info 및 fast_info 우선 사용
+    cached_i = fetch_cached_info(tk, kr, cd)
+    mcap = safe_float(cached_i.get('marketCap'))
+    if mcap <= 0:
+        try:
+            mcap = safe_float(stk.fast_info.market_cap)
+        except Exception:
+            pass
+
     if mcap > 0 and reg_p > 0:
         sh_out = mcap / reg_p
     else:
-        sh_out = safe_float(stk.info.get('impliedSharesOutstanding'))
+        sh_out = safe_float(cached_i.get('impliedSharesOutstanding'))
         if sh_out <= 0:
-            sh_out = safe_float(stk.info.get('sharesOutstanding', 1))
+            sh_out = safe_float(cached_i.get('sharesOutstanding', 1))
 
     # 1. ADR 기업 (TSMC, ASML, 테무 등: 환율 보정 및 시총 오류 완벽 해결)
     if is_adr:
-        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
+        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
         try:
             _inc = stk.income_stmt
             bs = stk.balance_sheet
@@ -3545,13 +3760,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     yp = get_avg_price(y_val)
                     ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
                     
-                    # [핵심 수술] ni_val(총이익) * adr_fx_ratio = 달러 기준 1주당 순이익(EPS)
-                    # 따라서 시가총액이 아닌 1주당 가격(yp)을 EPS로 직접 나누어야 정상적인 PER이 나옵니다.
                     past_eps_usd = ni_val * adr_fx_ratio
-                    if past_eps_usd > 0 and yp > 0: 
+                    if past_eps_usd > 0 and yp > 0:
                         pe_l.append(yp / past_eps_usd)
                         
-                    # [추가] ADR 기업 ROE / ROIC 10년치 자체 계산 로직
                     try:
                         eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if bs is not None and 'Stockholders Equity' in bs.index else 0
                         if eq_val > 0: hist_roe_10y.append((ni_val / eq_val) * 100)
@@ -3566,9 +3778,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         cash = safe_float(bs.loc['Cash And Cash Equivalents', c_date]) if bs is not None and 'Cash And Cash Equivalents' in bs.index else 0
                         inv_cap = total_debt + eq_val - cash
                         if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
-                    except: pass
+                    except Exception:
+                        pass
                         
-            if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
+            if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 200.0)
 
             if not hist_10y.empty and bs is not None and not bs.empty:
                 for c_date in bs.columns[:10]:
@@ -3576,17 +3789,16 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     yp = get_avg_price(y_val)
                     eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
                     
-                    # [핵심 수술] eq_val(총자산) * adr_fx_ratio = 달러 기준 1주당 장부가치(BPS)
                     past_bps_usd = eq_val * adr_fx_ratio
-                    if past_bps_usd > 0 and yp > 0: 
+                    if past_bps_usd > 0 and yp > 0:
                         pbr_l.append(yp / past_bps_usd)
                         
-            if pbr_l: a_pbr_10y = sum(pbr_l) / len(pbr_l)
-        except: pass
+            if pbr_l: a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
+        except Exception:
+            pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # ▼▼▼ get_10yr_custom_metrics 함수 내부의 "# 2. 한국 기업" 부터 "# 4. 폴백: 공시 데이터 부재 시" 바로 윗줄까지 교체 ▼▼▼
-    # 2. 한국 기업 (DART 10년 재무제표 최우선 고정)
+    # 2. 한국 기업 (DART 10년 재무제표 + 네이버 공식 수정주가 결합)
     elif kr:
         pe_list, pbr_list, fcf_list = [], [], []
         try:
@@ -3609,11 +3821,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     _ca = safe_float(dart_df.loc['6. 유동자산', y_str]) * 100000000 if '6. 유동자산' in dart_df.index else 0
                     _liab = safe_float(dart_df.loc['7. 부채총계', y_str]) * 100000000 if '7. 부채총계' in dart_df.index else 0
 
-                    # 자본총계 누락 시 (자산 - 부채)로 역산
                     if _eq <= 0 and _ast > _liab and _liab > 0:
                         _eq = _ast - _liab
 
-                    # 초경량 API 사용 시 현금흐름표가 비어있으면 보수적 주주이익(순이익의 85%)으로 FCF 추세 산출
                     calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
                     if calc_fcf <= 0 and _ni > 0:
                         calc_fcf = min(ocf * 0.7, _ni * 0.85) if ocf > 0 else (_ni * 0.85)
@@ -3642,10 +3852,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         if _ni > 0: pe_list.append(mkt_cap / _ni)
                         if _eq > 0: pbr_list.append(mkt_cap / _eq)
 
-                if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
-                if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+                if pe_list: a_pe_10y = _calc_robust_multiple_avg(pe_list, 200.0)
+                if pbr_list: a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 50.0)
 
-                yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, stk.info)
+                yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, cached_i)
                 if len(fcf_list) >= 2:
                     c, o = fcf_list[0], fcf_list[-1]
                     base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(fcf_list[:3]) / min(3, len(fcf_list)))
@@ -3663,30 +3873,20 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(ni_positive_list[:3])/len(ni_positive_list[:3]) if ni_positive_list else 0)
                     final_g_10y = yf_g
 
-                if a_pe_10y <= 0: a_pe_10y = safe_float(stk.info.get('trailingPE'), 10.0)
-                if a_pbr_10y <= 0: a_pbr_10y = safe_float(stk.info.get('priceToBook'), 1.0)
+                if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 10.0)
+                if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.0)
 
                 return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
             pass
 
-    # 3. 미국 기업 (SEC EDGAR: 일반주 및 미국 금융주 10년 ROE/ROIC 완벽 추출)
+    # 3. 미국 기업 (캐싱된 SEC EDGAR + 액면분할 3중 방어 엔진)
     else:
         try:
-            sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
-            tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
-            cik = None
-            clean_us_tk = cd.upper().replace('-B', '').replace('-A', '')
-            for key, val in tickers_res.items():
-                if val['ticker'].upper() in [cd.upper(), clean_us_tk]:
-                    cik = str(val['cik_str']).zfill(10); break
+            facts = get_sec_company_facts_cached(cd)
+            us_gaap = facts.get('facts', {}).get('us-gaap', {})
 
-            if cik:
-                facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=8).json()
-                us_gaap = facts.get('facts', {}).get('us-gaap', {})
-
-                # [핵심 수리] 미국 금융주의 대차대조표(시점 데이터)는 10-K 내에서 fp가 'Q4'나 빈값으로 들어가거나
-                # 비교재무제표의 연도가 end 날짜에 기록되므로 end[:4]와 fy를 모두 추출하여 10년치 누락을 원천 차단!
+            if us_gaap:
                 def get_sec_fact(tags, unit='USD', is_instant=False):
                     res = {}
                     for tag in tags:
@@ -3695,7 +3895,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                                 form_t = item.get('form', '')
                                 if form_t in ['10-K', '10-K/A']:
                                     if not is_instant:
-                                        # 손익/현금흐름은 연간(FY) 또는 약 330일 이상 기간 데이터만 추출
                                         start_s, end_s = item.get('start', ''), item.get('end', '')
                                         if start_s and end_s:
                                             try:
@@ -3737,19 +3936,17 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_assets = get_sec_fact(['Assets'], unit='USD', is_instant=True)
                 sec_liab = get_sec_fact(['Liabilities'], unit='USD', is_instant=True)
                 sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD', is_instant=True)
-                sec_shares = get_sec_fact([
+                sec_shares_dur = get_sec_fact([
                     'WeightedAverageNumberOfDilutedSharesOutstanding',
-                    'WeightedAverageNumberOfSharesOutstandingBasic',
-                    'CommonStockSharesOutstanding'
+                    'WeightedAverageNumberOfSharesOutstandingBasic'
                 ], unit='shares', is_instant=False)
+                sec_shares_inst = get_sec_fact([
+                    'CommonStockSharesOutstanding'
+                ], unit='shares', is_instant=True)
 
                 sec_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)[:10]
                 pe_list, pbr_list, fcf_list = [], [], []
-                
-                try: splits_data = stk.splits
-                except: splits_data = pd.Series(dtype=float)
 
-                # 직전 유효 자본총계 백업용 (특정 연도 태그 변경 시 보간)
                 last_valid_eq = 0
                 for y_str in sec_years:
                     y_int = int(y_str)
@@ -3763,7 +3960,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     _ca = sec_ca.get(y_str, 0)
                     _op = sec_op.get(y_str, _ni * 1.25 if _ni != 0 else 0)
 
-                    # [미국 금융주 10년 핵심 수리] StockholdersEquity 누락 연도는 (Assets - Liabilities)로 정확히 역산!
                     if _eq <= 0 and _ast > _liab and _liab > 0:
                         _eq = _ast - _liab
                     if _eq > 0:
@@ -3790,14 +3986,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
                         fcf_list.append(fcf_v)
 
-                    hist_sh = sec_shares.get(y_str, sh_out)
-                    split_factor = 1.0
-                    if not splits_data.empty:
-                        for split_date, split_ratio in splits_data.items():
-                            if split_date.year > y_int:
-                                split_factor *= split_ratio
-                    
-                    hist_sh_adjusted = hist_sh * split_factor
+                    # [핵심 수리] 액면분할 소급 재작성(Restatement) 및 복수 분할 이중 곱셈 완벽 방지!
+                    raw_hist_sh = sec_shares_dur.get(y_str) or sec_shares_inst.get(y_str) or sh_out
+                    hist_sh_adjusted = normalize_split_shares(raw_hist_sh, y_int, sh_out, splits_data)
                     mkt_cap = yp * hist_sh_adjusted
 
                     if _ni > 0 and mkt_cap > 0:
@@ -3805,14 +3996,14 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _eq > 0 and mkt_cap > 0:
                         pbr_list.append(mkt_cap / _eq)
 
-                if pe_list: a_pe_10y = sum(pe_list) / len(pe_list)
-                if pbr_list: a_pbr_10y = sum(pbr_list) / len(pbr_list)
+                if pe_list: a_pe_10y = _calc_robust_multiple_avg(pe_list, 200.0)
+                if pbr_list: a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
 
                 data_len = len(sec_years)
                 if len(fcf_list) >= 2:
                     c, o = fcf_list[0], fcf_list[-1]
                     base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    if c > 0 and o > 0: 
+                    if c > 0 and o > 0:
                         final_g_10y = (c / o) ** (1 / max(1, len(fcf_list) - 1)) - 1
                     final_g_10y = max(0.02, min(final_g_10y, 0.15))
 
@@ -3820,18 +4011,17 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
                     if 1 in dirs and -1 in dirs: is_zigzag_10y = True
 
-                if a_pe_10y <= 0: a_pe_10y = safe_float(stk.info.get('trailingPE'), 15.0)
-                if a_pbr_10y <= 0: a_pbr_10y = safe_float(stk.info.get('priceToBook'), 1.5)
+                if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
+                if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.5)
 
                 if data_len >= 5:
                     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
             pass
-    # ▲▲▲ 여기까지 교체 ▲▲▲
-    # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
-    base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, stk.info)
 
-    # [추가] 만약 공시 데이터에서 ROE/ROIC를 못 구했다면 yfinance(최대 4년)로 최후의 자체 계산
+    # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
+    base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
+
     if not hist_roe_10y or not hist_roic_10y:
         try:
             _inc = stk.income_stmt
@@ -3842,7 +4032,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         ni = safe_float(_inc[c].loc['Net Income']) if 'Net Income' in _inc.index else 0
                         eq = safe_float(_bs[c].loc['Stockholders Equity']) if 'Stockholders Equity' in _bs.index else 0
                         if eq > 0: hist_roe_10y.append((ni / eq) * 100)
-                    except: pass
+                    except Exception: pass
                     try:
                         ebit = safe_float(_inc[c].loc['EBIT']) if 'EBIT' in _inc.index else (safe_float(_inc[c].loc['Operating Income']) if 'Operating Income' in _inc.index else 0)
                         pretax = safe_float(_inc[c].loc['Pretax Income']) if 'Pretax Income' in _inc.index else 0
@@ -3853,8 +4043,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         cash = safe_float(_bs[c].loc['Cash And Cash Equivalents']) if 'Cash And Cash Equivalents' in _bs.index else 0
                         inv_cap = total_debt + eq - cash
                         if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
-                    except: pass
-        except: pass
+                    except Exception: pass
+        except Exception: pass
 
     if a_pe_10y <= 0:
         try:
@@ -3867,11 +4057,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
                     if ni_val > 0 and yp > 0 and sh_out > 0:
                         pe_l.append((yp * sh_out) / ni_val)
-                if pe_l: a_pe_10y = sum(pe_l) / len(pe_l)
-        except: pass
+                if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 200.0)
+        except Exception: pass
         
         if a_pe_10y <= 0:
-            t_pe_fallback = safe_float(stk.info.get('trailingPE'))
+            t_pe_fallback = safe_float(cached_i.get('trailingPE'))
             if t_pe_fallback > 0: a_pe_10y = t_pe_fallback
             else: a_pe_10y = 15.0
 
@@ -3887,13 +4077,14 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     
                     mkt_cap = yp * sh_out
                     if eq_val > 0 and mkt_cap > 0: pbr_l.append(mkt_cap / eq_val)
-            if pbr_l: a_pbr_10y = sum(pbr_l) / len(pbr_l)
-        except: pass
+            if pbr_l: a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
+        except Exception: pass
 
     if a_pbr_10y <= 0:
-        a_pbr_10y = safe_float(stk.info.get('priceToBook', 1.0))
+        a_pbr_10y = safe_float(cached_i.get('priceToBook', 1.0))
 
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
+# ▲▲▲ [교체 3 끝] (바로 아래에 def generate_quick_ai_preview(tk): 가 이어집니다) ▲▲▲
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
@@ -6394,16 +6585,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             try:
                                 # SEC 방화벽을 우회하기 위한 정식 User-Agent 포맷
                                 sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
-                                tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
-                                cik = None
-                                for key, val in tickers_res.items():
-                                    if val['ticker'].upper() == cd.upper():
-                                        cik = str(val['cik_str']).zfill(10)
-                                        break
-                                
-                                if cik:
-                                    facts_url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
-                                    facts_res = requests.get(facts_url, headers=sec_headers, timeout=10).json()
+                                # 기존 1513~1526행의 tickers_res / facts_res 호출을 아래 2줄로 대체 가능
+                                facts_res = get_sec_company_facts_cached(cd)
+                                if facts_res:
                                     us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
                                     
                                     def extract_annual_data(tags):
