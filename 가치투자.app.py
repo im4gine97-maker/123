@@ -5838,54 +5838,54 @@ with tab1:
                     elif mos_val >= -5: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#fdcb6e; font-weight:600;'>[보통] (+{mos_val:.1f}% 할인)</span>"
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
-
+    
                 # --- [수정] 모든 기업에 대해 현재 / 5년 평균 / 10년 평균 PER·PBR을 모두 표출하고 선택 기준 하이라이트 ---
-                use_5y_flag = st.session_state.get("use_5y_avg", False)
-                pe_5y_v = safe_float(st.session_state.get(f"pe_5y_{tk}"), a_pe)
-                pe_10y_v = safe_float(st.session_state.get(f"pe_10y_{tk}"), a_pe)
-                pbr_5y_v = safe_float(st.session_state.get(f"pbr_5y_{tk}"), a_pbr)
-                pbr_10y_v = safe_float(st.session_state.get(f"pbr_10y_{tk}"), a_pbr)
-                sel_yr_txt = "5년평균 대비" if use_5y_flag else "10년평균 대비"
+             use_5y_flag = st.session_state.get("use_5y_avg", False)
+             pe_5y_v = safe_float(st.session_state.get(f"pe_5y_{tk}"), a_pe)
+             pe_10y_v = safe_float(st.session_state.get(f"pe_10y_{tk}"), a_pe)
+             pbr_5y_v = safe_float(st.session_state.get(f"pbr_5y_{tk}"), a_pbr)
+             pbr_10y_v = safe_float(st.session_state.get(f"pbr_10y_{tk}"), a_pbr)
+             sel_yr_txt = "5년평균 대비" if use_5y_flag else "10년평균 대비"
 
-                per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-                if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
-                elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
-                else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
+             per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+             if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
+             elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
+             else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
 
-                t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
-                pe_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pe_5y_v:.1f}배(적용)</b>" if use_5y_flag else f"5년: {pe_5y_v:.1f}배"
-                pe_10_lbl = f"10년: {pe_10y_v:.1f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pe_10y_v:.1f}배(적용)</b>"
+             t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
+             pe_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pe_5y_v:.1f}배(적용)</b>" if use_5y_flag else f"5년: {pe_5y_v:.1f}배"
+             pe_10_lbl = f"10년: {pe_10y_v:.1f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pe_10y_v:.1f}배(적용)</b>"
 
-                if f_pe > 0 and a_pe > 0:
-                    fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
-                elif f_pe > 0 and a_pe <= 0:
-                    fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str} | 5년: N/A | 10년: N/A</span>"
-                else:
-                    fwd_pe_val_str = "N/A"
-                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
-                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
+             if f_pe > 0 and a_pe > 0:
+                 fwd_pe_val_str = f"{f_pe:.1f}배"
+                 fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
+             elif f_pe > 0 and a_pe <= 0:
+                 fwd_pe_val_str = f"{f_pe:.1f}배"
+                 fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str} | 5년: N/A | 10년: N/A</span>"
+             else:
+                 fwd_pe_val_str = "N/A"
+                 fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
+             lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
 
-                pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
-                if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
-                elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
-                else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
+             pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+             if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
+             elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
+             else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
 
-                t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
-                pbr_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pbr_5y_v:.2f}배(적용)</b>" if use_5y_flag else f"5년: {pbr_5y_v:.2f}배"
-                pbr_10_lbl = f"10년: {pbr_10y_v:.2f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pbr_10y_v:.2f}배(적용)</b>"
+             t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
+             pbr_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pbr_5y_v:.2f}배(적용)</b>" if use_5y_flag else f"5년: {pbr_5y_v:.2f}배"
+             pbr_10_lbl = f"10년: {pbr_10y_v:.2f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pbr_10y_v:.2f}배(적용)</b>"
 
-                if f_pbr > 0 and a_pbr > 0:
-                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
-                elif f_pbr > 0 and a_pbr <= 0:
-                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str} | 5년: N/A | 10년: N/A</span>"
-                else:
-                    fwd_pbr_val_str = "N/A"
-                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
-                lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
+             if f_pbr > 0 and a_pbr > 0:
+                 fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                 fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
+             elif f_pbr > 0 and a_pbr <= 0:
+                 fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                 fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str} | 5년: N/A | 10년: N/A</span>"
+             else:
+                 fwd_pbr_val_str = "N/A"
+                 fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
+             lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
