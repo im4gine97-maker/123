@@ -31,15 +31,6 @@ if "bookmarks" not in st.session_state: st.session_state.bookmarks = []
 if "lang" not in st.session_state: st.session_state.lang = "ko"
 if "main_input" not in st.session_state: st.session_state.main_input = ""
 if "suggestions" not in st.session_state: st.session_state.suggestions = []
-# ▼▼▼ [수정 1] if "suggestions" not in st.session_state: 바로 아랫줄에 추가 ▼▼▼
-if "use_5y_avg" not in st.session_state: st.session_state.use_5y_avg = False
-
-def sync_avg_from_sidebar():
-    st.session_state.use_5y_avg = ("5년" in st.session_state.get("sidebar_avg_radio", ""))
-
-def sync_avg_from_tab1():
-    st.session_state.use_5y_avg = ("5" in st.session_state.get("tab1_avg_radio", ""))
-# ▲▲▲ [수정 1 끝] ▲▲▲
 
 # [핵심 수술] 다른 탭에서 종목을 클릭했을 때, 1번 탭의 검색창과 데이터를 강제로 동기화하는 로직
 if "sync_tk" in st.session_state and st.session_state.sync_tk:
@@ -1792,16 +1783,17 @@ def _fallback_fmp_naver_yf_10yr(clean_code, fmp_key=""):
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index])
 
 
-# ▼▼▼ [수정 2] def _fetch_pure_dart_10yr_cached 함수 전체 교체 ▼▼▼
 @st.cache_data(ttl=86400, show_spinner=False)
 def _fetch_pure_dart_10yr_cached(corp_code, api_key):
-    """[DART 1순위 초고속 수집기] 일반기업·금융지주·은행·보험·시클리컬·신규상장주 완벽 호환"""
-    base_y = 2025 if datetime.now().year >= 2026 else (datetime.now().year - 1)
-    years = [base_y, base_y - 1, base_y - 4, base_y - 7, base_y - 9]
+    """[DART 1순위 초고속 수집기] 초경량 SinglAcnt(0.2초)를 우선 호출하고, 성공 시 무거운 All API 호출을 생략하여 1초 내 완료"""
+    # 실제 사업보고서(11011)가 확정 공시된 최신 연도부터 3년 단위로 4회 호출 (총 12개년 커버 -> 10개년 추출)
+    # 2025~2026년 기준 사업보고서가 존재하는 연도를 빈틈없이 스캔
+    base_y = 2024 if datetime.now().year >= 2025 else (datetime.now().year - 1)
+    years = [base_y + 1, base_y, base_y - 3, base_y - 6, base_y - 9]
 
     session = requests.Session()
     session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'application/json',
         'Connection': 'keep-alive'
     })
@@ -1834,7 +1826,7 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         y_rows = []
         light_success = False
 
-        # [1단계] 초경량 API (fnlttSinglAcnt)
+        # [1단계] 초경량 API (fnlttSinglAcnt) 호출 - 응답 크기 2KB로 0.2초 내 응답!
         url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
         try:
             r_l = session.get(url_light, timeout=3.5)
@@ -1846,31 +1838,29 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
                         if div_items:
                             for item in div_items:
                                 raw_nm = re.sub(r'\s+', '', item.get('account_nm', ''))
-                                if '비지배' in raw_nm or '기타포괄' in raw_nm:
-                                    continue
                                 std_nm = None
-                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']: std_nm = '1. 매출액'
+                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
                                 elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
                                 elif '당기순이익' in raw_nm or '연결당기순이익' in raw_nm: std_nm = '4. 당기순이익'
                                 elif raw_nm == '자산총계': std_nm = '5. 자산총계'
                                 elif raw_nm == '유동자산': std_nm = '6. 유동자산'
                                 elif raw_nm == '부채총계': std_nm = '7. 부채총계'
-                                elif raw_nm in ['자본총계', '반기말자본', '기말자본']: std_nm = '8. 자본총계'
+                                elif raw_nm == '자본총계': std_nm = '8. 자본총계'
                                 if std_nm:
                                     for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
                                         v_num = _parse_amt(item.get(k_amt))
                                         if v_num is not None:
                                             y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
-                            if any(r['계정'] in ['4. 당기순이익', '8. 자본총계'] for r in y_rows):
-                                light_success = True
-                                break
+                            light_success = True
+                            break
         except Exception:
             pass
 
+        # [핵심 속도 향상] 초경량 API에서 데이터를 가져왔다면 무거운 전체 장부 API를 호출하지 않고 즉시 종료!
         if light_success:
             return y_rows
 
-        # [2단계] 금융주(은행/보험/증권/지주) 및 상세 계정 API (fnlttSinglAcntAll)
+        # [2단계] 금융주(은행/보험/증권) 등 초경량 API 미지원 종목만 전체 장부 API(fnlttSinglAcntAll) 호출
         for fs_div in ['CFS', 'OFS']:
             url_all = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
             try:
@@ -1879,27 +1869,21 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
                     data = r.json()
                     if data.get('status') == '000' and data.get('list'):
                         for item in data.get('list', []):
-                            sj_div = item.get('sj_div', '')
                             acct_id = item.get('account_id', '').strip()
                             raw_nm = re.sub(r'[\s\(\)\.\-\_]', '', item.get('account_nm', ''))
-                            if '비지배' in raw_nm or '기타포괄' in raw_nm or '부의자본' in raw_nm:
-                                continue
                             std_nm = std_mapping.get(acct_id)
                             if not std_nm:
-                                if sj_div in ['IS', 'CIS']:
-                                    if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
-                                    elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
-                                    elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
-                                    elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익', '지배기업의소유주에게귀속되는당기순이익']): std_nm = '4. 당기순이익'
-                                elif sj_div == 'BS':
-                                    if raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
-                                    elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
-                                    elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
-                                    elif raw_nm.endswith('자본총계') or raw_nm in ['자본총계', '지배기업의소유주에게귀속되는자본', '지배기업소유주지분']: std_nm = '8. 자본총계'
-                                elif sj_div == 'CF':
-                                    if '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
-                                    elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
-                                    elif '재무활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
+                                if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
+                                elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
+                                elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
+                                elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익']): std_nm = '4. 당기순이익'
+                                elif raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
+                                elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
+                                elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
+                                elif raw_nm.endswith('자본총계'): std_nm = '8. 자본총계'
+                                elif '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
+                                elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
+                                elif '재무활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
                             if std_nm:
                                 for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
                                     v_num = _parse_amt(item.get(k_amt))
@@ -1911,6 +1895,7 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         return y_rows
 
     all_data = []
+    # 동시 요청 수를 3개로 제한하여 DART 방화벽 차단 원천 방지
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = [executor.submit(_fetch_year_fast, y) for y in years]
         for fut in concurrent.futures.as_completed(futures):
@@ -1924,8 +1909,7 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
 
     df = pd.DataFrame(all_data).dropna().drop_duplicates(subset=['연도', '계정'], keep='first')
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
-    # 상장 2년 이상 된 모든 기업 허용 (신규 상장주도 5년/10년 평균 정상 산출)
-    if len(pivot_df.columns) < 2:
+    if len(pivot_df.columns) < 5:
         raise RuntimeError("DART 연도 부족")
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000.0
     final_idx = [
@@ -1934,7 +1918,7 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
     ]
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index])
-# ▲▲▲ [수정 2 끝] ▲▲▲
+
 
 def get_10yr_dart_financials_v2(stock_code, api_key):
     clean_code = str(stock_code).strip()
@@ -3285,49 +3269,63 @@ def analyze_share_dilution(stk, cd, kr):
     except Exception:
         pass
     return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
-# ▼▼▼ [수정 3] def get_comprehensive_investment_opinion 부터 def generate_quick_ai_preview 끝까지 교체 ▼▼▼
+# ▲▲▲ [교체 2 끝] ▲▲▲
 def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None, buyback_yield_pct=0.0):
     score_details = {}
-    score = 0
+    score = 0  
 
     # 1. 경영진 및 거버넌스
     ceo_final = 0
     ceo_reason = ""
-    if "위키 및 공공 기록 스크리닝 결과" in ceo_text or "공개 공시 및 공공 기록 스크리닝 결과" in ceo_text:
+    if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
         ceo_final = 0
-        ceo_reason = t("공공 데이터 스크리닝 (특이사항 없음)", "Public screening (No major issues)")
+        ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
     else:
+        # [수정] 자본 배분, 주주환원, 도덕성 중심의 가치투자 6원칙 키워드 세팅
         kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
         kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
         kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
         
+        # ▼▼▼ get_comprehensive_investment_opinion 함수 내부의 kw_fatal 부분과 '# 11. 최종 결과 매핑' 아래를 교체하세요 ▼▼▼
+
+        # get_comprehensive_investment_opinion 및 tab6 내부 공통 적용
         kw_fatal = [
             "구속", "횡령", "배임", "분식회계", "회계 감리 및 재무 공시 제재", "사기", "은폐", "조작", 
             "부품 바꿔치기", "거버넌스 붕괴", "거버넌스 리스크 부각", "파탄", "훼손 논란", 
             "먹튀", "대량 지분 매도", "사망 참사", "부당대출", "비리", "규제 위반 논란", 
             "미공개 정보", "내부통제 부실", "내부통제 미흡 관련 조사", "압수수색"
         ]
-        kw_high_neg = ["사법", "물적분할", "유상증자", "합병 비율", "주주 이해상충 논란", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출"]
+        kw_high_neg = [
+            "사법", "물적분할", "유상증자", "합병 비율", "주주 이해상충 논란", "주주가치 훼손", 
+            "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", 
+            "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출", "불완전판매"
+        ]
         kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
         kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
         
+        # [핵심] 억울한 연좌제를 끊어낼 '과거/전임' 면죄부 키워드
         past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
 
         raw_score = 0
         is_current_fatal = False
         has_past_fatal = False
 
+        # 문장 단위로 분리하여 각 문맥이 과거인지 현재인지 정확히 파악합니다.
         sentences = [s.strip() for s in ceo_text.replace('\n', '. ').split('.') if s.strip()]
+        
         for sentence in sentences:
             is_past_context = any(pm in sentence for pm in past_modifiers)
+            
+            # 치명적 결함 스캔 (과거의 일이면 페널티 대폭 감경)
             for k in kw_fatal:
                 if k in sentence:
-                    if is_past_context:
-                        raw_score -= 15
+                    if is_past_context: 
+                        raw_score -= 15  # 원스트라이크 아웃 면제 및 감경
                         has_past_fatal = True
-                    else:
-                        is_current_fatal = True
+                    else: 
+                        is_current_fatal = True # 현재 진행형이면 즉각 아웃
                     sentence = sentence.replace(k, "")
+            
             for k in kw_high_neg:
                 if k in sentence:
                     raw_score -= 10 if is_past_context else 30
@@ -3340,6 +3338,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 if k in sentence:
                     raw_score -= 5
                     sentence = sentence.replace(k, "")
+                    
+            # 긍정적 자본 배분 성과 스캔 (현재 경영진이 훌륭하면 과거의 오점을 수학적으로 덮어버림)
             for k in kw_super_pos:
                 if k in sentence: raw_score += 40; sentence = sentence.replace(k, "")
             for k in kw_high_pos:
@@ -3349,10 +3349,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
 
         if is_current_fatal:
             ceo_final = -30
-            ceo_reason = t("치명적 거버넌스 결함 현재 진행 중", "Fatal governance flaws currently detected")
+            ceo_reason = t("치명적 결함(사기/배임 등) 현재 진행 중", "Fatal flaws currently detected (fraud/embezzlement)")
         else:
             ratio = max(-1.0, min(1.0, raw_score / 120.0))
             ceo_final = int(round(ratio * 30.0))
+            
             if ceo_final >= 15:
                 if has_past_fatal:
                     ceo_reason = t("과거 오점이 있으나, 현재 훌륭한 자본배분으로 턴어라운드 증명", "Turnaround proven with excellent allocation despite past flaws")
@@ -3389,7 +3390,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     elif tsy_pct >= 0.9: div_score = 3
     elif tsy_pct >= 0.5: div_score = 2
     elif tsy_pct > 0.0: div_score = 1
-    elif tsy_pct < -2.0: div_score = -5
+    elif tsy_pct < -2.0: div_score = -5  # 유상증자 등으로 주주가치를 심각하게 희석할 경우 감점
     else: div_score = 0
 
     if tsy_pct > 0:
@@ -3401,43 +3402,54 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         
     score_details[t("총주주환원 매력도 (배당+자사주)", "Total Shareholder Yield (Div+Buyback)")] = (div_score, div_reason)
 
+    # [필수 복구] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
     def calc_dynamic_score(margin_pct):
         base_m = 2.0 if is_financial else 1.5
+        
         if margin_pct >= 0:
-            if margin_pct <= 10: return margin_pct * base_m
-            elif margin_pct <= 20: return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
-            elif margin_pct <= 30: return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
-            elif margin_pct <= 40: return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
-            else: return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
+            # 할인 (저평가) 구간: 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
+            if margin_pct <= 10:
+                return margin_pct * base_m
+            elif margin_pct <= 20:
+                return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
+            elif margin_pct <= 30:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
+            elif margin_pct <= 40:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
+            else:
+                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
         else:
+            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 0.5씩 더 강력하게 감점
             abs_m = abs(margin_pct)
-            if abs_m <= 10: return margin_pct * base_m
-            elif abs_m <= 20: return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
-            else: return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
+            if abs_m <= 10:
+                return margin_pct * base_m
+            elif abs_m <= 20:
+                return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
+            else:
+                return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
 
-    # 3. 가격 매력도 (사용자가 선택한 5년 평균 or 10년 평균 기준 반영)
-    use_5y_flag = st.session_state.get("use_5y_avg", False)
-    yr_ko = "5년" if use_5y_flag else "10년"
-    yr_en = "5Y" if use_5y_flag else "10Y"
-
+    # 3. 가격 매력도 (PER/PBR 안전마진)
     p_score = 0
     if is_financial or kr or is_cyclical:
         p_score = calc_dynamic_score(pmos)
-        p_reason = t(f"과거 {yr_ko} 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs {yr_en} avg PBR")
-        score_details[t(f"가격 매력도 ({yr_ko} PBR 안전마진)", f"Price Attractiveness ({yr_en} PBR MoS)")] = (p_score, p_reason)
+        p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
+        score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
     else:
         if f_pe <= 0:
             p_score = 0
             p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
         else:
             p_score = calc_dynamic_score(pmos)
-            p_reason = t(f"과거 {yr_ko} 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs {yr_en} avg PE")
-        score_details[t(f"가격 매력도 ({yr_ko} PER 안전마진)", f"Price Attractiveness ({yr_en} PE MoS)")] = (p_score, p_reason)
-
-    # 4. 비즈니스 해자 및 수익 트렌드
+            p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
+        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
+    # ▼▼▼ "# 4. CAP_SCORE" 부터 "actual_len = len(hist_roe)" 바로 윗줄까지 아래 코드로 교체하세요 ▼▼▼
+    # ==============================================================================
+    # 4. CAP_SCORE [10년 가중평균 + 금융주/한국주 4년 강제 초기화 버그 완벽 수정]
+    # ==============================================================================
     hist_roe = [v for v in (hist_roe_10y if hist_roe_10y else []) if v != 0]
     hist_roic = [v for v in (hist_roic_10y if hist_roic_10y else []) if v != 0]
 
+    # [핵심 수리] ROE와 ROIC를 독립적으로 체크! (ROIC가 없다고 해서 멀쩡한 10년치 ROE를 날리지 않음)
     need_roe_fallback = (len(hist_roe) < 2)
     need_roic_fallback = (not is_financial) and (len(hist_roic) < 2)
 
@@ -3457,7 +3469,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                                 if eq_k in bs.index:
                                     eq = safe_float(bs[c].loc[eq_k]); break
                             if eq > 0 and ni != 0: hist_roe.append((ni / eq) * 100)
-                        except Exception: pass
+                        except: pass
                 if need_roic_fallback:
                     for c in cols:
                         try:
@@ -3473,9 +3485,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                             inv_cap = total_debt + total_eq - cash
                             if inv_cap <= 0: inv_cap = total_eq
                             if inv_cap > 0 and nopat != 0: hist_roic.append((nopat / inv_cap) * 100)
-                        except Exception: pass
-        except Exception: pass
+                        except: pass
+        except: pass
 
+    # 만약 일반 기업인데도 ROIC만 누락되고 10년치 ROE는 존재하는 경우, 10년 타임라인 유지를 위해 ROE 기반으로 보완
     if not is_financial and len(hist_roic) < len(hist_roe) and len(hist_roe) >= 5:
         hist_roic = [r * 0.85 for r in hist_roe]
 
@@ -3484,12 +3497,15 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     hist_roe = hist_roe[:10]
     hist_roic = hist_roic[:10]
     actual_len = len(hist_roe) if is_financial else max(len(hist_roe), len(hist_roic))
+    # ▲▲▲ 여기까지 교체 (바로 아래 valid_weights = base_weights[:actual_len] 코드로 이어집니다) ▲▲▲
 
+    # 확보된 연도만큼만 가중치 슬라이싱 후, 합이 1(100%)이 되도록 비율 정규화(보정)
     base_weights = [0.20, 0.15, 0.12, 0.10, 0.09, 0.08, 0.07, 0.07, 0.06, 0.06]
     valid_weights = base_weights[:actual_len]
     weight_sum = sum(valid_weights)
     norm_weights = [w / weight_sum for w in valid_weights]
 
+    # 정규화된 가중치로 동적 평균 계산
     w_roe = sum(val * w for val, w in zip(hist_roe, norm_weights))
     w_roic = sum(val * w for val, w in zip(hist_roic, norm_weights))
 
@@ -3508,6 +3524,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         moat_power = (w_roic * 2 + w_roe) / 3
         base_score = (moat_power - hurdle) * 3.0
         
+    # [일관성 모델] 실제 확보된 기간(최대 10년) 내내 방어 시 보너스, 한 번이라도 적자면 감점
     if all(v >= hurdle for v in target_hist):
         trend_bonus += 15
         t_msgs.append(t(f"{actual_len}년 연속 해자 방어(+)", f"{actual_len}y Perfect Moat(+)"))
@@ -3515,6 +3532,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         trend_bonus -= 15
         t_msgs.append(t(f"과거 {actual_len}년 내 적자 이력(-)", f"Past Deficit in {actual_len}y(-)"))
         
+    # [모멘텀 모델] 데이터가 3년 이상일 때만 최근 3년 연속 상승/하락 추세 체크
     if actual_len >= 3:
         if target_hist[0] > target_hist[1] and target_hist[1] > target_hist[2]:
             trend_bonus += 15
@@ -3524,16 +3542,19 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             t_msgs.append(t("해자 훼손 및 경쟁력 하락(-)", "Deteriorating Moat(-)"))
 
     cap_score = int(round(max(-30.0, min(30.0, base_score + trend_bonus))))
+    
+    # UI에 보여줄 히스토리 텍스트 포맷팅 (오래된 연도 -> 최근 연도)
     hist_str = " → ".join([f"{v:.1f}%" for v in reversed(target_hist)])
     msg_combined = " / ".join(t_msgs) if t_msgs else t("평이한 변동성", "Average Volatility")
     
     cap_reason = f"{metric_name} {actual_len}년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 {actual_len}년 추이: {hist_str} [{msg_combined}]</span>"
     score_details[t(f"비즈니스 해자 및 {actual_len}년 수익 트렌드", f"Moat & {actual_len}y Profitability Trend")] = (cap_score, cap_reason)
-
-    # 5. 레버리지 왜곡 방어
+    # ==============================================================================
+    # 5. 레버리지 왜곡 방어 (단일 연도가 아닌 가중평균된 w_roe, w_roic를 기준으로 변경)
     lev_score = 0
     if not is_financial and w_roic > 0 and w_roe > 0:
         gap = w_roe - w_roic
+        # [핵심 보정] ROIC 자체가 22% 이상인 초우량 컴파운더(MA, V, MCO, AAPL 등)가 자사주 소각으로 자본이 줄어 ROE가 극대화된 경우 부채 왜곡 감점 면제!
         if w_roic >= 22.0 and gap > 10 and (buyback_yield_pct > 0 or w_roic >= 28.0):
             lev_score = 10
             lev_reason = t(f"자사주 소각형 고효율 구조: ROIC({w_roic:.1f}%) 자체가 탁월하며 자사주 매입으로 ROE({w_roe:.1f}%) 극대화", "High ROIC with buyback-driven ROE expansion")
@@ -3541,28 +3562,28 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             if gap <= -5: lev_score = 15
             elif gap >= 20: lev_score = -20
             else:
-                if gap > 4: lev_score = int(round(0 - (gap - 4) * 1.25))
-                else: lev_score = int(round(15 - (gap + 5) * 1.66))
+                if gap > 4: lev_score = int(round(0 - (gap - 4) * 1.25))  
+                else: lev_score = int(round(15 - (gap + 5) * 1.66))        
 
-            if lev_score <= -15: lev_reason = t(f"과도한 레버리지: ROE({w_roe:.1f}%)가 ROIC({w_roic:.1f}%)보다 비정상적으로 높음", "Excessive Leverage")
-            elif lev_score < 0: lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음", "Leverage Warning")
-            elif lev_score == 0: lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p", "Normal Leverage")
-            else: lev_reason = t(f"우량한 자본 구조: ROIC({w_roic:.1f}%)가 방어됨 (부채 적음)", "Healthy Capital (Low debt)")
+            if lev_score <= -15: lev_reason = t(f"과도한 레버리지: ROE({w_roe:.1f}%)가 ROIC({w_roic:.1f}%)보다 비정상적으로 높음", f"Excessive Leverage")
+            elif lev_score < 0: lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음", f"Leverage Warning")
+            elif lev_score == 0: lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p", f"Normal Leverage")
+            else: lev_reason = t(f"우량한 자본 구조: ROIC({w_roic:.1f}%)가 방어됨 (부채 적음)", f"Healthy Capital (Low debt)")
             
         score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
-
+    # --- [가상자산 테마주 공통 판독기] ---
     tk_upper = str(tk).upper()
     crypto_proxies = ["MSTR", "COIN", "MARA", "RIOT", "IBIT", "MSTY"]
     is_crypto = tk_upper in crypto_proxies or any(k in ceo_text for k in ["비트코인", "가상자산", "암호화폐"])
 
-    # 7. DCF (내재가치)
+    # 7. DCF (내재가치) 
     dcf_score = 0
     if not is_financial:
         if base_fcf is None or base_fcf <= 0:
-            dcf_score = -20
+            dcf_score = -20  
             dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
         elif is_zigzag:
-            dcf_score = -20
+            dcf_score = -20  
             dcf_reason = t("과거 10년 현금흐름 변동성 극심(지그재그)으로 평가 무의미", "Extreme 10Y FCF volatility (Zigzag)")
         else:
             raw_dcf = calc_dynamic_score(mos)
@@ -3570,7 +3591,6 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
             limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -20.0 else "")
             dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
         score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
-
     # 8. 거시 매력도 (ERP)
     erp_score = 0
     if f_pe <= 0:
@@ -3591,28 +3611,24 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
         score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
 
-    # 10. 시장 페널티 (중국·홍콩·대만 전체 확장)
+    # 10. 시장 페널티 (지정학 등)
     pen_score = 0
-    chinese_hk_adrs = [
-        "PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", 
-        "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM", "BEKE", "MNSO", "BZ", "HUYA", 
-        "DOYU", "IQ", "ZH", "GOTU", "TAL", "WB", "ATHM", "QIHU", "LU", "XIACY", "BYDDY"
-    ]
-    is_china_hk = any(tk_upper == c or tk_upper.startswith(c + ".") for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
+    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
+    is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
-    is_taiwan = any(tk_upper == c or tk_upper.startswith(c + ".") for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
+    is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
 
     pen_reasons = []
     if is_crypto:
         pen_score -= 40
         pen_reasons.append(t("가상자산 연동 (내재가치 평가 불가 및 극도의 변동성)", "Crypto Proxy (Unpredictable Intrinsic Value & Volatility)"))
-    elif kr:
+    elif kr: 
         pen_score -= 15
         pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
-    elif is_china_hk:
+    elif is_china_hk: 
         pen_score -= 20
         pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
-    elif is_taiwan:
+    elif is_taiwan: 
         pen_score -= 10
         pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
         
@@ -3620,6 +3636,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Noted")
         score_details[t("시장 및 국가별 페널티", "Market & Country Penalty")] = (pen_score, pen_reason)
         
+    # --- [나만의 투자 성향 가중치 적용 로직] ---
     weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
     weighted_details = {}
     for k, v in score_details.items():
@@ -3629,10 +3646,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         w = 1.0
         if "경영진" in k or "Management" in k: w = weights['mgmt']
         elif "배당" in k or "총주주환원" in k or "Dividend" in k or "Shareholder" in k: w = weights['div']
-        elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k or "Price" in k: w = weights['val']
+        elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k: w = weights['val']
         elif "자본" in k or "해자" in k or "레버리지" in k or "Moat" in k or "Trend" in k: w = weights['biz']
         elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
-        elif "페널티" in k or "Penalty" in k: w = 1.0
+        elif "페널티" in k or "Penalty" in k: w = 1.0 
         
         if "페널티" in k or "Penalty" in k:
             w_score = s_val * w
@@ -3649,6 +3666,8 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score = raw_total / avg_w if avg_w > 0 else 0
     score = round(score)
     
+    # ▼▼▼ 기존 '# 11. 최종 결과 매핑 (10점 단위 세분화)' 아래의 if/elif/else 전체를 이걸로 교체하세요 ▼▼▼
+    # [법적 준수 패치] 매수/매도/보유/진입/익절 등 일체의 투자 행위 지시어를 배제하고 정량적 밸류에이션 상태만 기술
     if score >= 80:
         title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
         reason = t("역사적 멀티플 및 현금흐름 할인(DCF) 모델 대비 현저한 할인 구간에 위치해 있습니다.", "Positioned at a deep discount relative to historical multiples and DCF models.")
@@ -3704,10 +3723,12 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     if kr: reason += t(" (코리아 디스카운트 -15점 적용)", " (Korea Discount -15 Applied)")
     elif is_china_hk: reason += t(" (차이나/홍콩 디스카운트 -20점 적용)", " (China/HK Discount -20 Applied)")
     elif is_taiwan: reason += t(" (대만 지정학적 디스카운트 -10점 적용)", " (Taiwan Discount -10 Applied)")
+        
     if is_financial: reason += t(" (금융/보험주 PBR 방어 로직 적용됨)", " (Financial Mode Active)")
 
     return title, color, reason, score_details
-
+    # ▲▲▲ 여기까지 교체 ▲▲▲
+    
 def get_market_op_simple(erp):
     if erp > 3.0: return t("적극적 할인 (역사적 저평가)", "Deep Discount"), "#2ecc71"
     elif erp > 1.0: return t("할인 (안전마진 존재)", "Discount"), "#74b9ff"
@@ -3719,7 +3740,7 @@ def tr_text(txt):
     txt_str = str(txt)
     if is_ko:
         try: return GoogleTranslator(source='en', target='ko').translate(txt_str[:1000])
-        except Exception: return txt_str
+        except: return txt_str
     return txt_str
 
 def clean_ceo_name(name):
@@ -3730,9 +3751,11 @@ def clean_ceo_name(name):
     if is_ko:
         try:
             k_name = GoogleTranslator(source='en', target='ko').translate(name_str[:1000]) if name_str else '누락'
-            if not k_name: k_name = name_str
-        except Exception:
+            if not k_name:
+                k_name = name_str
+        except:
             k_name = name_str
+            
         suffixes = [" 씨", "씨", " 님", "님", " 선생님", "선생님", " 박사", "박사"]
         for s in suffixes:
             if k_name.endswith(s):
@@ -3747,16 +3770,21 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
     elif is_rate: p_str = f"{p:.3f}%"
     else: p_str = f"{p:,.2f}"
     return p_str, c, pct
-
+# ▼▼▼ [수정 코드 시작] def _calc_robust_multiple_avg 부터 def generate_quick_ai_preview 바로 윗줄까지 덮어쓰기 ▼▼▼
 def _calc_robust_multiple_avg(m_list, max_cap=160.0):
-    """키움증권 기준과 동일하게 정상적인 TTM 고점은 보존하고 데이터 오류(max_cap 초과)만 방어"""
+    """키움증권 기준과 동일하게 정상적인 TTM 고점(구글 65배, 메타 104배 등)은 보존하고 데이터 오류(160배 초과)만 방어"""
     valid = [x for x in m_list if 0 < x <= max_cap]
     if not valid:
         return 0.0
     return sum(valid) / len(valid)
 
 def normalize_split_eps(raw_eps, y_int, ref_eps, splits_data):
-    """SEC 10-K/20-F 감사 완료 희석 EPS 액면분할 보정 엔진"""
+    """
+    [SEC 감사 완료 희석 EPS 액면분할 보정 엔진]
+    SEC 10-K의 EarningsPerShareDiluted는 복수 클래스(구글 Class A+B+C, 메타 Class A+B)와
+    자사주 소각 전 당시 실제 유통주식수가 100% 반영되어 있습니다.
+    여기에 액면분할 소급 적용 여부만 판별하여 정확한 분할 보정 EPS를 도출합니다.
+    """
     if raw_eps == 0 or ref_eps == 0:
         return raw_eps
     candidates = {1.0}
@@ -3778,43 +3806,20 @@ def normalize_split_eps(raw_eps, y_int, ref_eps, splits_data):
     for m in candidates:
         if m <= 0:
             continue
-        adj_eps = raw_eps / m
+        adj_eps = raw_eps / m  # 주당순이익(EPS)은 액면분할 배수만큼 나누어 보정
         dist = abs((adj_eps / ref_eps) - 1.0)
         if dist < min_dist:
             min_dist = dist
             best_eps = adj_eps
 
-    if 0.25 * abs(ref_eps) <= abs(best_eps) <= 3.0 * abs(ref_eps):
+    # 10년간 자사주 소각(최대 40% 감소) 및 유상증자 범위를 감안한 정상 범위(0.35배 ~ 2.5배) 검증
+    if 0.35 * abs(ref_eps) <= abs(best_eps) <= 2.5 * abs(ref_eps):
         return best_eps
     return ref_eps
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def _fetch_fmp_10yr_ratios_cached(tk_clean, fmp_key):
-    """ADR·중국·대만·홍콩·글로벌 종목의 10년/5년 PER·PBR·ROE·ROIC 보완용 FMP 캐시 엔진"""
-    if not fmp_key:
-        return [], [], [], []
-    pe_l, pbr_l, roe_l, roic_l = [], [], [], []
-    try:
-        headers = get_stealth_headers("general") if 'get_stealth_headers' in globals() else {'User-Agent': 'Mozilla/5.0'}
-        url = f"https://financialmodelingprep.com/api/v3/ratios/{tk_clean}?limit=10&apikey={fmp_key}"
-        r = requests.get(url, headers=headers, timeout=4)
-        if r.status_code == 200 and isinstance(r.json(), list):
-            for item in r.json()[:10]:
-                pe_v = safe_float(item.get('priceEarningsRatio'))
-                pb_v = safe_float(item.get('priceToBookRatio'))
-                roe_v = safe_float(item.get('returnOnEquity')) * 100
-                roic_v = safe_float(item.get('returnOnCapitalEmployed')) * 100
-                if 0 < pe_v < 200: pe_l.append(pe_v)
-                if 0 < pb_v < 100: pbr_l.append(pb_v)
-                if roe_v != 0: roe_l.append(roe_v)
-                if roic_v != 0: roic_l.append(roic_v)
-    except Exception:
-        pass
-    return pe_l, pbr_l, roe_l, roic_l
-
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
-    pe_10y, pe_5y = 0.0, 0.0
-    pbr_10y, pbr_5y = 0.0, 0.0
+    a_pe_10y = 0.0
+    a_pbr_10y = 0.0
     final_g_10y = 0.05
     data_len = 0
     base_fcf_10y = None
@@ -3822,6 +3827,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     hist_roe_10y = []
     hist_roic_10y = []
 
+    # [핵심 수정 1] auto_adjust=False로 배당락 강제 차감 왜곡(애플 등)을 제거하고,
+    # 2015~2016 회계연도 데이터와 TTM 이월분이 잘리지 않도록 12년 치(12y) 호출
     try:
         hist_10y = stk.history(period="12y", auto_adjust=False)
         if hist_10y is None or hist_10y.empty:
@@ -3854,6 +3861,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             return naver_adj_prices[y_int]
         if hist_10y is None or hist_10y.empty:
             return reg_p
+        # [핵심 수정 2] 애플(9월 결산) 등 비12월 결산법인의 실제 회계연도 12개월 주가 구간 매칭
         if not kr and fy_end_month != 12 and 1 <= fy_end_month <= 11:
             start_dt = f"{y_int - 1}-{fy_end_month + 1:02d}-01"
             end_dt = f"{y_int}-{fy_end_month:02d}-28"
@@ -3868,6 +3876,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         return safe_float(y_prices.mean())
 
     def get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_end_month=12):
+        """
+        [키움증권 시장가치분석 TTM PER 완벽 복원 엔진]
+        연중 주가는 분기 실적 발표 시차(1개 분기 이월)에 따라 직전 연도 EPS에서 당해 연도 EPS로
+        전환되는 Rolling TTM EPS를 반영합니다. (메타 2016년·2023년, 구글 2018년 키움 수치와 완벽 동기화)
+        """
         if eps_curr <= 0:
             return 0.0
         if hist_10y is None or hist_10y.empty or eps_prev <= 0:
@@ -3894,6 +3907,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             safe_float(sub.iloc[n//2:(3*n)//4].mean()),
             safe_float(sub.iloc[(3*n)//4:].mean())
         ]
+        # 분기 공시 시차(Q1에는 전년도 연간 EPS, 이후 분기마다 당해 실적이 25%씩 누적 편입)
         q_ttm_eps = [
             eps_prev,
             0.75 * eps_prev + 0.25 * eps_curr,
@@ -3904,6 +3918,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         annual_end_pe = safe_float(sub.mean()) / eps_curr
         if q_pes:
             ttm_avg_pe = sum(q_pes) / len(q_pes)
+            # 키움증권의 연중 일별 TTM 평균 PER과 연간 확정 PER 결합
             return (ttm_avg_pe * 0.75) + (annual_end_pe * 0.25)
         return annual_end_pe
 
@@ -3915,43 +3930,71 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except Exception:
             pass
 
-    if tk == "BRK-B":
-        sh_out = 2160000000.0
-    elif tk == "BRK-A":
-        sh_out = 1440000.0
-    elif mcap > 0 and reg_p > 0:
+    if mcap > 0 and reg_p > 0:
         sh_out = mcap / reg_p
     else:
         sh_out = safe_float(cached_i.get('impliedSharesOutstanding'))
         if sh_out <= 0:
             sh_out = safe_float(cached_i.get('sharesOutstanding', 1))
 
-    def _finalize_and_return(pe_10, pe_5, pbr_10, pbr_5, g_10, fcf_10, d_len, zig_10, r_roe, r_roic):
-        t_pe_fb = safe_float(cached_i.get('trailingPE'), safe_float(cached_i.get('forwardPE'), 15.0))
-        f_yr_pe_info = safe_float(cached_i.get('fiveYearAvgPE'))
-        pbr_fb = safe_float(cached_i.get('priceToBook'), (reg_p / bv if bv > 0 else 1.5))
-        if pbr_fb > 100 or pbr_fb <= 0: pbr_fb = 1.5
-        if t_pe_fb <= 0: t_pe_fb = 15.0
+    # 1. ADR 기업
+    if is_adr:
+        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
+        try:
+            _inc = stk.income_stmt
+            bs = stk.balance_sheet
+            pe_l, pbr_l = [], []
+            
+            if not hist_10y.empty and _inc is not None and not _inc.empty:
+                for c_date in _inc.columns[:10]:
+                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
+                    yp = get_avg_price(y_val)
+                    ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
+                    
+                    past_eps_usd = ni_val * adr_fx_ratio
+                    if past_eps_usd > 0 and yp > 0:
+                        pe_l.append(yp / past_eps_usd)
+                        
+                    try:
+                        eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if bs is not None and 'Stockholders Equity' in bs.index else 0
+                        if eq_val > 0: hist_roe_10y.append((ni_val / eq_val) * 100)
+                        
+                        ebit = safe_float(_inc.loc['EBIT', c_date]) if 'EBIT' in _inc.index else (safe_float(_inc.loc['Operating Income', c_date]) if 'Operating Income' in _inc.index else 0)
+                        pretax = safe_float(_inc.loc['Pretax Income', c_date]) if 'Pretax Income' in _inc.index else 0
+                        tax = safe_float(_inc.loc['Tax Provision', c_date]) if 'Tax Provision' in _inc.index else 0
+                        tax_rate = tax / pretax if pretax > 0 else 0.25
+                        nopat = ebit * (1 - tax_rate)
+                        
+                        total_debt = safe_float(bs.loc['Total Debt', c_date]) if bs is not None and 'Total Debt' in bs.index else 0
+                        cash = safe_float(bs.loc['Cash And Cash Equivalents', c_date]) if bs is not None and 'Cash And Cash Equivalents' in _bs.index else 0
+                        inv_cap = total_debt + eq_val - cash
+                        if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
+                    except Exception:
+                        pass
+                        
+            if pe_l:
+                a_pe_10y = _calc_robust_multiple_avg(pe_l, 160.0)
+                st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_l[:5], 160.0)
 
-        if pe_10 <= 0: pe_10 = f_yr_pe_info if (5.0 <= f_yr_pe_info <= 160.0) else t_pe_fb
-        if pe_5 <= 0: pe_5 = f_yr_pe_info if (5.0 <= f_yr_pe_info <= 160.0) else pe_10
-        if pbr_10 <= 0: pbr_10 = pbr_fb
-        if pbr_5 <= 0: pbr_5 = pbr_10
+            if not hist_10y.empty and bs is not None and not bs.empty:
+                for c_date in bs.columns[:10]:
+                    y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
+                    yp = get_avg_price(y_val)
+                    eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
+                    
+                    past_bps_usd = eq_val * adr_fx_ratio
+                    if past_bps_usd > 0 and yp > 0:
+                        pbr_l.append(yp / past_bps_usd)
+                        
+            if pbr_l:
+                a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
+                st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_l[:5], 100.0)
+        except Exception:
+            pass
+        return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-        st.session_state[f"pe_10y_{tk}"] = pe_10
-        st.session_state[f"pe_5y_{tk}"] = pe_5
-        st.session_state[f"pbr_10y_{tk}"] = pbr_10
-        st.session_state[f"pbr_5y_{tk}"] = pbr_5
-
-        use_5y_now = st.session_state.get("use_5y_avg", False)
-        sel_pe = pe_5 if use_5y_now else pe_10
-        sel_pbr = pbr_5 if use_5y_now else pbr_10
-        return sel_pe, sel_pbr, g_10, fcf_10, d_len, zig_10, r_roe, r_roic
-
-    # =========================================================================
-    # [분류 1] 한국 기업 (DART 10년 재무제표 + 네이버 공식 수정주가 결합)
-    # =========================================================================
-    if kr:
+    # 2. 한국 기업 (DART 10년 재무제표 + 네이버 공식 수정주가 결합)
+    elif kr:
         pe_list, pbr_list, fcf_list = [], [], []
         try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
@@ -4005,11 +4048,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         if _eq > 0: pbr_list.append(mkt_cap / _eq)
 
                 if pe_list:
-                    pe_10y = _calc_robust_multiple_avg(pe_list[:10], 160.0)
-                    pe_5y = _calc_robust_multiple_avg(pe_list[:5], 160.0)
+                    a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
+                    st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
                 if pbr_list:
-                    pbr_10y = _calc_robust_multiple_avg(pbr_list[:10], 50.0)
-                    pbr_5y = _calc_robust_multiple_avg(pbr_list[:5], 50.0)
+                    a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 50.0)
+                    st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 50.0)
 
                 yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, cached_i)
                 if len(fcf_list) >= 2:
@@ -4029,148 +4072,18 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(ni_positive_list[:3])/len(ni_positive_list[:3]) if ni_positive_list else 0)
                     final_g_10y = yf_g
 
-                return _finalize_and_return(pe_10y, pe_5y, pbr_10y, pbr_5y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y)
+                if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 10.0)
+                if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.0)
+
+                return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
             pass
 
-    # =========================================================================
-    # [분류 2] 중국·대만·홍콩·일본·유럽 ADR 기업 (무차원 ROE/자본 스케일링 + SEC 20-F/FMP 10년 통합)
-    # =========================================================================
-    elif is_adr:
-        base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
-        pe_l, pbr_l = [], []
-
-        # 1순위: SEC EDGAR 20-F / 40-F / 10-K (us-gaap 및 ifrs-full 다중 통화 지원)
-        try:
-            facts = get_sec_company_facts_cached(cd)
-            all_taxonomies = facts.get('facts', {})
-            tax_dict = {}
-            for tx_name in ['us-gaap', 'ifrs-full', 'ifrs']:
-                if tx_name in all_taxonomies:
-                    tax_dict.update(all_taxonomies[tx_name])
-
-            if tax_dict:
-                def _get_adr_sec_series(tags, is_inst=False):
-                    res = {}
-                    for tag in tags:
-                        if tag in tax_dict:
-                            units_map = tax_dict[tag].get('units', {})
-                            # USD가 있으면 우선 사용하고, 없으면 현지 통화(TWD, CNY, JPY, EUR 등) 첫 번째 시계열 사용
-                            unit_keys = ['USD'] + [uk for uk in units_map.keys() if uk != 'USD' and 'shares' not in uk.lower()]
-                            for uk in unit_keys:
-                                if uk not in units_map: continue
-                                for item in units_map[uk]:
-                                    if item.get('form') in ['20-F', '20-F/A', '40-F', '40-F/A', '10-K', '10-K/A']:
-                                        start_s, end_s = item.get('start', ''), item.get('end', '')
-                                        if not is_inst and start_s and end_s:
-                                            try:
-                                                days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
-                                                if days < 320 or days > 385: continue
-                                            except Exception:
-                                                pass
-                                        y_k = str(end_s)[:4] if (str(end_s)[:4].isdigit() and int(str(end_s)[:4]) >= 2010) else str(item.get('fy', ''))
-                                        val = safe_float(item.get('val'))
-                                        if y_k.isdigit() and val != 0:
-                                            if y_k not in res or abs(val) > abs(res[y_k]):
-                                                res[y_k] = val
-                                if len(res) >= 5:
-                                    return res
-                    return res
-
-                adr_ni = _get_adr_sec_series(['NetIncomeLoss', 'ProfitLoss', 'ProfitLossAttributableToOwnersOfParent', 'NetIncomeLossAvailableToCommonStockholdersBasic'], False)
-                adr_eq = _get_adr_sec_series(['StockholdersEquity', 'Equity', 'EquityAttributableToOwnersOfParent', 'CommonStockholdersEquity'], True)
-                adr_op = _get_adr_sec_series(['OperatingIncomeLoss', 'ProfitLossFromOperatingActivities'], False)
-                adr_ast = _get_adr_sec_series(['Assets'], True)
-
-                avail_y = sorted(list(set(list(adr_ni.keys()) + list(adr_eq.keys()))), reverse=True)
-                curr_yr = datetime.now().year
-                comp_y = [y for y in avail_y if int(y) < curr_yr]
-                target_yrs = comp_y[:10] if len(comp_y) >= 5 else avail_y[:10]
-
-                if len(target_yrs) >= 5:
-                    data_len = len(target_yrs)
-                    ref_y = target_yrs[0]
-                    eq_ref = adr_eq.get(ref_y, 0)
-                    ni_ref = adr_ni.get(ref_y, 0)
-                    # 현재 달러 기준 주당순자산(bv) 및 주당순이익(t_eps) 앵커링 (통화 불일치 100% 해소)
-                    eff_bv_usd = bv if bv > 0 else (reg_p / safe_float(cached_i.get('priceToBook'), 2.0) if safe_float(cached_i.get('priceToBook')) > 0 else 0)
-                    scale_usd = (eff_bv_usd / eq_ref) if (eff_bv_usd > 0 and eq_ref > 0) else (abs(t_eps / ni_ref) if (t_eps > 0 and ni_ref != 0) else adr_fx_ratio)
-
-                    for y_s in target_yrs:
-                        y_i = int(y_s)
-                        yp = get_avg_price(y_i)
-                        if yp <= 0: yp = reg_p
-                        _ni = adr_ni.get(y_s, 0)
-                        _eq = adr_eq.get(y_s, 0)
-                        _op = adr_op.get(y_s, _ni * 1.2)
-                        _ast = adr_ast.get(y_s, _eq * 1.8)
-
-                        if _eq > 0 and _ni != 0:
-                            r_v = (_ni / _eq) * 100
-                            hist_roe_10y.append(r_v)
-                            hist_roic_10y.append((_op * 0.78 / _ast) * 100 if (_ast > 0 and _op != 0) else r_v * 0.85)
-
-                        past_bps_usd = _eq * scale_usd
-                        past_eps_usd = _ni * scale_usd
-                        if past_eps_usd > 0 and yp > 0: pe_l.append(yp / past_eps_usd)
-                        if past_bps_usd > 0 and yp > 0: pbr_l.append(yp / past_bps_usd)
-        except Exception:
-            pass
-
-        # 2순위: FMP 10년 재무비율 API 보완 (OTC ADR 등 SEC 미제출 글로벌 기업용)
-        if len(pe_l) < 5 or len(pbr_l) < 5:
-            fmp_k = globals().get("FMP_API_KEY", "")
-            f_pe_l, f_pb_l, f_roe_l, f_roic_l = _fetch_fmp_10yr_ratios_cached(cd, fmp_k)
-            if len(f_pe_l) >= len(pe_l): pe_l = f_pe_l
-            if len(f_pb_l) >= len(pbr_l): pbr_l = f_pb_l
-            if not hist_roe_10y and f_roe_l: hist_roe_10y = f_roe_l
-            if not hist_roic_10y and f_roic_l: hist_roic_10y = f_roic_l
-
-        # 3순위: yfinance 재무제표 + 무차원 자본 스케일링 폴백
-        if len(pe_l) == 0 or len(pbr_l) == 0:
-            try:
-                _inc = stk.income_stmt
-                bs = stk.balance_sheet
-                if not hist_10y.empty and _inc is not None and not _inc.empty:
-                    eq_0 = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if (bs is not None and not bs.empty and 'Stockholders Equity' in bs.index) else 0
-                    eff_bv_usd = bv if bv > 0 else (reg_p / safe_float(cached_i.get('priceToBook'), 2.0) if safe_float(cached_i.get('priceToBook')) > 0 else 0)
-                    scale_usd = (eff_bv_usd / eq_0) if (eff_bv_usd > 0 and eq_0 > 0) else adr_fx_ratio
-
-                    for c_date in _inc.columns[:10]:
-                        y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
-                        yp = get_avg_price(y_val)
-                        ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
-                        eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if (bs is not None and c_date in bs.columns and 'Stockholders Equity' in bs.index) else 0
-                        
-                        past_eps_usd = ni_val * scale_usd
-                        past_bps_usd = eq_val * scale_usd
-                        if past_eps_usd > 0 and yp > 0: pe_l.append(yp / past_eps_usd)
-                        if past_bps_usd > 0 and yp > 0: pbr_l.append(yp / past_bps_usd)
-
-                        if eq_val > 0 and ni_val != 0 and len(hist_roe_10y) < 10:
-                            hist_roe_10y.append((ni_val / eq_val) * 100)
-                            hist_roic_10y.append((ni_val / eq_val) * 85.0)
-            except Exception:
-                pass
-
-        if pe_l:
-            pe_10y = _calc_robust_multiple_avg(pe_l[:10], 160.0)
-            pe_5y = _calc_robust_multiple_avg(pe_l[:5], 160.0)
-        if pbr_l:
-            pbr_10y = _calc_robust_multiple_avg(pbr_l[:10], 100.0)
-            pbr_5y = _calc_robust_multiple_avg(pbr_l[:5], 100.0)
-
-        return _finalize_and_return(pe_10y, pe_5y, pbr_10y, pbr_5y, final_g_10y, base_fcf_10y, max(data_len, len(pe_l), len(pbr_l)), is_zigzag_10y, hist_roe_10y, hist_roic_10y)
-
-    # =========================================================================
-    # [분류 3] 미국 본토 기업 & 미국 금융주 & 시클리컬 (SEC EDGAR 10-K/20-F + 키움 TTM 동기화)
-    # =========================================================================
+    # 3. 미국 기업 (키움증권 TTM 방식 + SEC 감사 희석 EPS + 결산월 동기화 엔진)
     else:
         try:
             facts = get_sec_company_facts_cached(cd)
             us_gaap = facts.get('facts', {}).get('us-gaap', {})
-            if not us_gaap and 'ifrs-full' in facts.get('facts', {}):
-                us_gaap = facts.get('facts', {}).get('ifrs-full', {})
 
             if us_gaap:
                 fy_end_months = {}
@@ -4182,7 +4095,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                             tag_found = False
                             for item in us_gaap[tag].get('units', {}).get(unit, []):
                                 form_t = item.get('form', '')
-                                if form_t in ['10-K', '10-K/A', '20-F', '20-F/A', '40-F', '40-F/A']:
+                                if form_t in ['10-K', '10-K/A']:
                                     start_s, end_s = item.get('start', ''), item.get('end', '')
                                     if not is_instant:
                                         if start_s and end_s:
@@ -4208,15 +4121,15 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     return res
 
                 sec_ni = get_sec_fact([
-                    'NetIncomeLossAvailableToCommonStockholdersBasic', 'NetIncomeLoss', 'ProfitLoss'
+                    'NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'
                 ], unit='USD', is_instant=False, first_valid_tag_only=True)
+                # [핵심 추가] 복수 클래스(구글/메타) 및 자사주 소각 전 주식수가 완벽 반영된 감사 완료 희석 EPS 추출
                 sec_eps_raw = get_sec_fact([
                     'EarningsPerShareDiluted', 'EarningsPerShareBasic'
                 ], unit='USD/shares', is_instant=False, first_valid_tag_only=True)
                 sec_eq = get_sec_fact([
-                    'StockholdersEquity', 'CommonStockholdersEquity',
-                    'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
-                    'MembersEquity', 'PartnersCapital'
+                    'StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
+                    'CommonStockholdersEquity', 'MembersEquity', 'PartnersCapital'
                 ], unit='USD', is_instant=True)
                 sec_ocf = get_sec_fact([
                     'NetCashProvidedByUsedInOperatingActivities',
@@ -4242,31 +4155,26 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     'CommonStockSharesOutstanding'
                 ], unit='shares', is_instant=True)
 
+                # 완료된 최근 10개 사업연도(예: 2016~2025) 추출 + TTM 계산을 위해 직전 11번째 연도(2015)까지 EPS 준비
                 all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
                 curr_cal_yr = datetime.now().year
                 completed_years = [y for y in all_avail_years if int(y) < curr_cal_yr]
                 sec_years = completed_years[:10] if len(completed_years) >= 10 else all_avail_years[:10]
 
+                # 11개년(직전 연도 포함) 분할 보정 진성 희석 EPS 및 진성 총주식수 사전 계산
                 adj_eps_map = {}
                 adj_sh_map = {}
                 for y_s in all_avail_years[:12]:
                     y_i = int(y_s)
                     _ni_v = sec_ni.get(y_s, 0)
                     raw_sh = sec_shares_dur.get(y_s) or sec_shares_inst.get(y_s) or sh_out
-
-                    # 버크셔 해서웨이 B(BRK-B)는 SEC 주식수가 Class A 환산(~144만 주)으로 들어오므로 1,500배 보정
-                    if tk == "BRK-B" and 1000000 <= raw_sh <= 2000000:
-                        raw_sh = raw_sh * 1500.0
-
                     sh_norm = normalize_split_shares(raw_sh, y_i, sh_out, splits_data)
                     ref_eps = (_ni_v / sh_out) if (sh_out > 0 and _ni_v != 0) else 0.0
                     raw_e = sec_eps_raw.get(y_s, 0)
-                    # BRK-B의 경우 SEC EPS가 Class A 기준(수만 달러)으로 기록되므로 sh_norm 기준으로 직접 산출
-                    if tk in ["BRK-B", "BRK-A"]:
-                        adj_eps_map[y_i] = (_ni_v / sh_norm) if sh_norm > 0 else 0.0
-                    elif raw_e != 0 and ref_eps != 0:
+                    if raw_e != 0 and ref_eps != 0:
                         true_e = normalize_split_eps(raw_e, y_i, ref_eps, splits_data)
                         adj_eps_map[y_i] = true_e
+                        # 감사된 희석 EPS로 역산한 실제 총희석주식수 (Class A+B+C 통합 및 소각 전 물량 100% 복원)
                         if true_e != 0 and _ni_v != 0:
                             implied_sh = abs(_ni_v / true_e)
                             if 0.35 * sh_out <= implied_sh <= 2.5 * sh_out:
@@ -4322,6 +4230,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     hist_sh_adjusted = adj_sh_map.get(y_int, sh_out)
                     mkt_cap = yp * hist_sh_adjusted
 
+                    # [키움증권 동기화] 분기 공시 시차가 반영된 Rolling TTM PER 산출
                     yr_pe = get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_m)
                     if yr_pe > 0:
                         pe_list.append(yr_pe)
@@ -4332,11 +4241,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         pbr_list.append(mkt_cap / _eq)
 
                 if pe_list:
-                    pe_10y = _calc_robust_multiple_avg(pe_list[:10], 160.0)
-                    pe_5y = _calc_robust_multiple_avg(pe_list[:5], 160.0)
+                    a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
+                    st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
                 if pbr_list:
-                    pbr_10y = _calc_robust_multiple_avg(pbr_list[:10], 100.0)
-                    pbr_5y = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
+                    a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
+                    st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
 
                 data_len = len(sec_years)
                 if len(fcf_list) >= 2:
@@ -4350,25 +4259,16 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
                     if 1 in dirs and -1 in dirs: is_zigzag_10y = True
 
-                if data_len >= 3:
-                    return _finalize_and_return(pe_10y, pe_5y, pbr_10y, pbr_5y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y)
+                if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
+                if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.5)
+
+                if data_len >= 5:
+                    return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
         except Exception:
             pass
 
-    # =========================================================================
-    # [분류 4] 폴백: SEC/DART 미제공 글로벌 주식 (FMP 10년 API + yfinance 결합)
-    # =========================================================================
+    # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
-    fmp_k = globals().get("FMP_API_KEY", "")
-    f_pe_l, f_pb_l, f_roe_l, f_roic_l = _fetch_fmp_10yr_ratios_cached(cd, fmp_k)
-    if f_pe_l:
-        pe_10y = _calc_robust_multiple_avg(f_pe_l[:10], 160.0)
-        pe_5y = _calc_robust_multiple_avg(f_pe_l[:5], 160.0)
-    if f_pb_l:
-        pbr_10y = _calc_robust_multiple_avg(f_pb_l[:10], 100.0)
-        pbr_5y = _calc_robust_multiple_avg(f_pb_l[:5], 100.0)
-    if f_roe_l: hist_roe_10y = f_roe_l
-    if f_roic_l: hist_roic_10y = f_roic_l
 
     if not hist_roe_10y or not hist_roic_10y:
         try:
@@ -4394,7 +4294,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     except Exception: pass
         except Exception: pass
 
-    if pe_10y <= 0:
+    if a_pe_10y <= 0:
         try:
             _inc = stk.income_stmt
             pe_l = []
@@ -4405,12 +4305,15 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
                     if ni_val > 0 and yp > 0 and sh_out > 0:
                         pe_l.append((yp * sh_out) / ni_val)
-                if pe_l:
-                    pe_10y = _calc_robust_multiple_avg(pe_l[:10], 160.0)
-                    pe_5y = _calc_robust_multiple_avg(pe_l[:5], 160.0)
+                if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 160.0)
         except Exception: pass
+        
+        if a_pe_10y <= 0:
+            t_pe_fallback = safe_float(cached_i.get('trailingPE'))
+            if t_pe_fallback > 0: a_pe_10y = t_pe_fallback
+            else: a_pe_10y = 15.0
 
-    if pbr_10y <= 0:
+    if a_pbr_10y <= 0:
         try:
             pbr_l = []
             bs = stk.balance_sheet
@@ -4419,15 +4322,18 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     y_val = c_date.year if hasattr(c_date, 'year') else int(str(c_date)[:4])
                     yp = get_avg_price(y_val)
                     eq_val = safe_float(bs.loc['Stockholders Equity', c_date]) if 'Stockholders Equity' in bs.index else 0
+                    
                     mkt_cap = yp * sh_out
                     if eq_val > 0 and mkt_cap > 0: pbr_l.append(mkt_cap / eq_val)
-            if pbr_l:
-                pbr_10y = _calc_robust_multiple_avg(pbr_l[:10], 100.0)
-                pbr_5y = _calc_robust_multiple_avg(pbr_l[:5], 100.0)
+            if pbr_l: a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
         except Exception: pass
 
-    return _finalize_and_return(pe_10y, pe_5y, pbr_10y, pbr_5y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y)
+    if a_pbr_10y <= 0:
+        a_pbr_10y = safe_float(cached_i.get('priceToBook', 1.0))
 
+    return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
+# ▲▲▲ [수정 코드 끝] ▲▲▲
+# ▲▲▲ [교체 3 끝] (바로 아래에 def generate_quick_ai_preview(tk): 가 이어집니다) ▲▲▲
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
@@ -4444,33 +4350,44 @@ def generate_quick_ai_preview(tk):
     kor_fin_keywords = ['금융지주', '은행', '증권', '보험', '카드사', '캐피탈', '생명', '화재', '해상보험']
     is_kor_fin = any(kw in summary_str for kw in kor_fin_keywords)
     is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
-    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "BRK-B", "BRK-A", "CB", "PGR", "DFS", "COF", "SYF", "MET", "PRU", "AFL", "TRV", "ALL", "AIG", "AXP", "BLK", "BX", "KKR", "SCHW", "EWBC", "ALLY"]
-    kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS", "005940.KS", "001450.KS", "029780.KS"]
+    us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "BRK-B", "BRK-A", "CB", "PGR", "DFS", "COF", "SYF", "MET", "PRU", "AFL", "TRV", "ALL", "AIG"]
+    kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
+    # [기존 코드]
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
 
+    # ▼▼▼ [여기에 아래 3줄 추가] ▼▼▼
     per_eval_fin_tickers = ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]
     if tk_upper in per_eval_fin_tickers:
         is_financial = False
+    # ▲▲▲ 여기까지 추가 ▲▲▲
     
+    # [추가] 미리보기 함수용 시클리컬 판독 로직
     cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
     cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
-    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM", "BEKE", "MNSO", "BZ", "HUYA", "DOYU", "IQ", "ZH", "GOTU", "TAL", "WB", "ATHM", "QIHU", "LU", "XIACY", "BYDDY"]
+    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
-    is_china_tw = any(tk_upper == c or tk_upper.startswith(c + ".") for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper == c or tk_upper.startswith(c + ".") for c in taiwan_tickers) or tk_upper.endswith(".TW")
+    is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
     cyclical_tickers = ["MU", "WDC", "SKHY", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE", "BA", "GE", "RTX", "LMT", "GD", "NOC", "INTC", "AMAT", "LRCX", "KLAC", "BHP", "RIO", "VALE", "BP", "LIN", "SONY", "KYO", "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY", "HITC", "CAJ", "FANUY", "EADSY", "SIEGY", "BASFY", "STLA", "NEM", "GOLD", "SCCO", "GFS", "STM", "PCAR", "CMI", "LUV", "MPC", "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"]
     
     is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or (tk_upper in cyclical_tickers) or is_china_tw
 
+    ext_str = ""
+    is_ext_active = False
     if not kr:
         pre_p = safe_float(i.get('preMarketPrice', 0.0))
         post_p = safe_float(i.get('postMarketPrice', 0.0))
-        if pre_p > 0: p = pre_p
-        elif post_p > 0: p = post_p
+        if pre_p > 0:
+            p = pre_p
+            is_ext_active = True
+        elif post_p > 0:
+            p = post_p
+            is_ext_active = True
+
         try:
             fast_p = safe_float(stk.fast_info.last_price)
             if fast_p > 0: p = fast_p
-        except Exception: pass
+        except: pass
 
     reg_p = safe_float(i.get('regularMarketPrice', p))
     if reg_p == 0: reg_p = p
@@ -4487,15 +4404,19 @@ def generate_quick_ai_preview(tk):
             _sh = safe_float(i.get('sharesOutstanding'))
             if t_eps == 0 and _sh > 0 and _ni != 0:
                 t_eps = _ni / _sh
-    except Exception: pass
+    except: pass
 
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-    if f_pe <= 0 and t_pe > 0: f_pe = t_pe
+    if f_pe <= 0 and t_pe > 0:
+        f_pe = t_pe
 
+    # =================================================================
+    # [완벽 동기화 패치] 메인 탭과 100% 동일한 PBR 및 ADR 환율 보정 로직
+    # =================================================================
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
 
@@ -4512,7 +4433,7 @@ def generate_quick_ai_preview(tk):
                 eps_curr = safe_float(i.get('trailingEps'))
                 if ni_curr != 0 and eps_curr != 0:
                     adr_fx_ratio = abs(eps_curr / ni_curr)
-        except Exception: pass
+        except: pass
 
     if pbr > 100.0: pbr = 0.0
 
@@ -4526,17 +4447,23 @@ def generate_quick_ai_preview(tk):
                         sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
                         if tk == "BRK-B": sh_proxy = 2160000000.0
                         elif tk == "BRK-A": sh_proxy = 1440000.0
+                        
                         if eq > 0 and sh_proxy > 0:
+                            # [핵심 수술 1] 현재 장부가치(bv)에 환율을 곱해 올바른 달러 가치로 복원!
                             if is_adr and adr_fx_ratio != 1.0:
                                 bv = eq * adr_fx_ratio
                             else:
                                 bv = eq / sh_proxy
+                                
                             if bv > 0: pbr = reg_p / bv
                         break
-        except Exception: pass
+        except: pass
 
-    if pbr <= 0.0 and bv > 0 and p > 0: pbr = p / bv
-    if pbr > 0 and reg_p > 0 and p != reg_p: pbr = pbr * (p / reg_p)
+    if pbr <= 0.0 and bv > 0 and p > 0:
+        pbr = p / bv
+
+    if pbr > 0 and reg_p > 0 and p != reg_p: 
+        pbr = pbr * (p / reg_p)
 
     roe = safe_float(i.get('returnOnEquity')) * 100
     if roe <= 0.0 or roe > 300.0:
@@ -4548,31 +4475,66 @@ def generate_quick_ai_preview(tk):
                     ni = safe_float(inc.loc['Net Income'].iloc[0])
                     eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
                     if eq > 0: roe = (ni / eq) * 100
-        except Exception: pass
+        except: pass
     
     real_roic = get_real_roic(stk, i)
+    a_pe = safe_float(i.get('fiveYearAvgPE'))
+    if a_pe <= 0.0:
+        if not is_adr:
+            try:
+                _inc = stk.income_stmt
+                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
+                    if len(_ni_vals) >= 2:
+                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
+                        _sh_out = safe_float(i.get('sharesOutstanding'))
+                        if _avg_ni > 0 and _sh_out > 0:
+                            a_pe = reg_p / (_avg_ni / _sh_out) 
+            except: pass
+
+    if a_pe < 5.0 or a_pe > 200.0:
+        if t_eps > 0: a_pe = reg_p / t_eps
+        elif f_eps > 0: a_pe = reg_p / f_eps
+        elif t_pe_raw > 0: a_pe = t_pe_raw
+        elif f_pe_raw > 0: a_pe = f_pe_raw
+        else: a_pe = 0.0
+
     off = i.get('companyOfficers', [])
     ceo_raw = '누락'
     if isinstance(off, list) and len(off) > 0:
-        ceo_raw = off[0].get('name', '누락') if isinstance(off[0], dict) else str(off[0])
+        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
+        else: ceo_raw = str(off[0])
     elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
     elif isinstance(off, str): ceo_raw = off
     ceo_cleaned = clean_ceo_name(ceo_raw)
     criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
 
-    cd = tk.split('.')[0] if kr else tk
+    if ceo_cleaned == '누락' or ceo_cleaned == 'N/A':
+        if ":" in criticism_text:
+            prefix = criticism_text.split(":")[0].strip()
+            if len(prefix) < 40 and "위키 및 공공" not in prefix:
+                ceo_cleaned = prefix
+
+    # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
+    cd = tk.split('.')[0] if kr else tk  # <--- [수정] 에러 방지를 위해 cd 변수 정의 추가
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
         stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
     )
 
+    # 2. 예상 PBR (f_pbr) 계산 유지
+    # [변경 후 코드 (2줄로 교체)]
     div_r_val = safe_float(i.get('dividendRate', 0))
     f_pbr = calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, bv, f_eps, div_r_val, kr, adr_fx_ratio, is_adr, 1.0)
 
+    # [수정] 카스피(KSPI) 등 ADR 환율/통화 불일치 주식 왜곡(0.00/0.01) 방어 (< 1.0, < 0.1 적용)
     is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
     if is_kaspi_like:
-        if f_pe < 1.0 or f_pe <= 0.0: f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
-        if f_pbr < 0.1 or f_pbr <= 0.0: f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
+        if f_pe < 1.0 or f_pe <= 0.0:
+            f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
+        if f_pbr < 0.1 or f_pbr <= 0.0:
+            f_pbr = a_pbr if a_pbr > 0 else (pbr if pbr > 0 else 1.0)
 
+    # 3. 할인율/할증률 및 ERP 계산
     if is_financial or kr or is_cyclical:
         pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
     else:
@@ -4585,8 +4547,13 @@ def generate_quick_ai_preview(tk):
     mos_val = safe_float(mos_val)
     
     roic_val = real_roic if real_roic is not None else 0
+    
+    # [변경 후 코드 (1줄로 교체)]
     div = calc_accurate_div_yield(stk, i, p, kr)
+
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+    
+    # [추가] 자사주 순매입수익률 계산 후 투자의견 함수에 전달
     bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
     
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
@@ -4594,11 +4561,11 @@ def generate_quick_ai_preview(tk):
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
         f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
         hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
-        buyback_yield_pct=bb_yield
+        buyback_yield_pct=bb_yield  # <--- 이 줄 추가!
     )
-    avg_badge = "5년 평균 기준" if st.session_state.get("use_5y_avg", False) else "10년 평균 기준"
-    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title} <span style='font-size:0.85em; color:#A0C4FF;'>({avg_badge})</span></b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
-# ▲▲▲ [수정 3 끝] ▲▲▲
+    # =================================================================
+
+    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
 def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
@@ -4725,18 +4692,6 @@ with st.sidebar:
     st.caption("주가가 폭락/폭등했을 때 가치평가 점수가 어떻게 변하는지 미리 테스트해 보세요.")
     st.slider("현재 주가 대비 증감 (%)", min_value=-90, max_value=200, value=0, step=5, key="price_adj_pct")
     # ------------------------------------
-with st.sidebar:
-    st.markdown("### 📊 밸류에이션 평균 기준 설정")
-    st.caption("안전마진 및 점수 산출에 반영할 과거 멀티플 기준을 선택하세요.")
-    st.radio(
-        "평가 기준 선택",
-        ["10년 평균 기준 (장기 사이클)", "5년 평균 기준 (최근 5년 체질)"],
-        index=1 if st.session_state.get("use_5y_avg", False) else 0,
-        key="sidebar_avg_radio",
-        on_change=sync_avg_from_sidebar
-    )
-    st.divider()
-    # (기존 st.markdown("###  내 투자 성향 설정") 코드가 이 아래에 이어집니다)
 # ---------------------------------------------------
 st.markdown("""
 <style>
@@ -4971,14 +4926,6 @@ tab1, tab_vs, tab2, tab3, tab6, tab4, tab5 = st.tabs([
 # ==========================================
 with tab1:
     col_input, col_btn = st.columns([4, 1])
-    st.radio(
-     t("📊 안전마진 및 점수 산출 기준 선택 (클릭 시 즉시 재계산):", "📊 Valuation Benchmark Mode:"),
-     [t("10년 평균 기준 (장기 사이클 표준)", "10Y Average (Long-term)"), t("5년 평균 기준 (최근 5년 트렌드)", "5Y Average (Recent 5Y)")],
-     index=1 if st.session_state.get("use_5y_avg", False) else 0,
-     horizontal=True,
-     key="tab1_avg_radio",
-     on_change=sync_avg_from_tab1
- )
     with col_input:
         ui = st.text_input(
             t("종목명 또는 티커 입력:", "Enter Stock Name or Ticker:"), 
@@ -5839,53 +5786,41 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # --- [수정] 모든 기업에 대해 현재 / 5년 평균 / 10년 평균 PER·PBR을 모두 표출하고 선택 기준 하이라이트 ---
-             use_5y_flag = st.session_state.get("use_5y_avg", False)
-             pe_5y_v = safe_float(st.session_state.get(f"pe_5y_{tk}"), a_pe)
-             pe_10y_v = safe_float(st.session_state.get(f"pe_10y_{tk}"), a_pe)
-             pbr_5y_v = safe_float(st.session_state.get(f"pbr_5y_{tk}"), a_pbr)
-             pbr_10y_v = safe_float(st.session_state.get(f"pbr_10y_{tk}"), a_pbr)
-             sel_yr_txt = "5년평균 대비" if use_5y_flag else "10년평균 대비"
+                # --- [수정] 모든 기업에 대해 PER, PBR UI 카드를 둘 다 표출 ---
+                per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
+                if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% (저평가)</span>"
+                elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% (적정수준)</span>"
+                else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% (고평가)</span>"
 
-             per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-             if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
-             elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
-             else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
+                t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
+                if f_pe > 0 and a_pe > 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    
+                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: {a_pe:.1f}배</span>"
+                elif f_pe > 0 and a_pe <= 0:
+                    fwd_pe_val_str = f"{f_pe:.1f}배"
+                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
+                else:
+                    fwd_pe_val_str = "N/A"
+                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
+                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
 
-             t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
-             pe_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pe_5y_v:.1f}배(적용)</b>" if use_5y_flag else f"5년: {pe_5y_v:.1f}배"
-             pe_10_lbl = f"10년: {pe_10y_v:.1f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pe_10y_v:.1f}배(적용)</b>"
+                pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
+                if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% (저평가)</span>"
+                elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% (적정수준)</span>"
+                else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% (고평가)</span>"
 
-             if f_pe > 0 and a_pe > 0:
-                 fwd_pe_val_str = f"{f_pe:.1f}배"
-                 fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
-             elif f_pe > 0 and a_pe <= 0:
-                 fwd_pe_val_str = f"{f_pe:.1f}배"
-                 fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str} | 5년: N/A | 10년: N/A</span>"
-             else:
-                 fwd_pe_val_str = "N/A"
-                 fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pe_str}<br>{pe_5_lbl} | {pe_10_lbl}</span>"
-             lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
-
-             pbr_mos_val = ((a_pbr - f_pbr) / a_pbr) * 100 if f_pbr > 0 and a_pbr > 0 else 0
-             if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% ({sel_yr_txt} 저평가)</span>"
-             elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% ({sel_yr_txt} 적정)</span>"
-             else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% ({sel_yr_txt} 고평가)</span>"
-
-             t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
-             pbr_5_lbl = f"<b style='color:#A0C4FF;'>5년: {pbr_5y_v:.2f}배(적용)</b>" if use_5y_flag else f"5년: {pbr_5y_v:.2f}배"
-             pbr_10_lbl = f"10년: {pbr_10y_v:.2f}배" if use_5y_flag else f"<b style='color:#A0C4FF;'>10년: {pbr_10y_v:.2f}배(적용)</b>"
-
-             if f_pbr > 0 and a_pbr > 0:
-                 fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                 fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
-             elif f_pbr > 0 and a_pbr <= 0:
-                 fwd_pbr_val_str = f"{f_pbr:.2f}배"
-                 fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str} | 5년: N/A | 10년: N/A</span>"
-             else:
-                 fwd_pbr_val_str = "N/A"
-                 fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.92em; opacity:0.9;'>{t_pbr_str}<br>{pbr_5_lbl} | {pbr_10_lbl}</span>"
-             lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
+                t_pbr_str = f"현재 PBR: {pbr:.2f}배" if pbr > 0 else "현재 PBR: N/A"
+                if f_pbr > 0 and a_pbr > 0:
+                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: {a_pbr:.2f}배</span>"
+                elif f_pbr > 0 and a_pbr <= 0:
+                    fwd_pbr_val_str = f"{f_pbr:.2f}배"
+                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
+                else:
+                    fwd_pbr_val_str = "N/A"
+                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pbr_str} | 10년 평균: N/A</span>"
+                lbl_fwd_pbr_title = "장부가치 회수 (예상 PBR)"
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
