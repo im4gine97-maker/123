@@ -2128,14 +2128,17 @@ def get_finviz_data(cd):
     res = {}
     try:
         fv_url = f"https://finviz.com/quote.ashx?t={cd}"
-        fv_r = requests.get(fv_url, headers=get_stealth_headers("finviz"), timeout=5)
+        headers = get_stealth_headers("finviz") if 'get_stealth_headers' in globals() else {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        fv_r = requests.get(fv_url, headers=headers, timeout=5)
         if fv_r.status_code == 200:
             fv_s = BeautifulSoup(fv_r.text, 'html.parser')
             def get_fv(label):
                 elem = fv_s.find(string=label)
                 if elem:
-                    val = elem.find_next('td').text.strip()
-                    if val != '-': return val
+                    td_next = elem.find_next('td')
+                    if td_next:
+                        val = td_next.text.strip()
+                        if val and val != '-': return val
                 return None
 
             fpe = get_fv("Forward P/E")
@@ -2148,6 +2151,19 @@ def get_finviz_data(cd):
             if eps_ttm: res['trailingEps'] = safe_float(eps_ttm)
             pb = get_fv("P/B")
             if pb: res['priceToBook'] = safe_float(pb)
+
+            # [핵심 추가] Finviz에서 배당수익률(Dividend % / Dividend TTM / Dividend Est.) 백업 추출
+            for div_lbl in ["Dividend %", "Dividend TTM", "Dividend Est."]:
+                raw_div = get_fv(div_lbl)
+                if raw_div:
+                    # 예: "2.36 (0.78%)" 또는 "0.78%" 형태에서 퍼센트와 금액 추출
+                    pct_match = re.search(r'\(([\d\.]+)%\)', raw_div)
+                    if pct_match:
+                        res['finviz_div_pct'] = safe_float(pct_match.group(1))
+                        break
+                    elif '%' in raw_div:
+                        res['finviz_div_pct'] = safe_float(raw_div.replace('%', ''))
+                        break
     except Exception:
         pass
     return res
@@ -2615,7 +2631,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         
     return rnd_trend
 # =========================================================================
-# [배당 뻥튀기 버그 완벽 차단] 한국/미국/ETF 배당수익률 정밀 산출 함수
+# [배당 0% 누락 & 뻥튀기 동시 방어] 한국/미국/ETF 4중 백업 배당수익률 산출 엔진
 # =========================================================================
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
     if p <= 0 or not isinstance(i, dict):
@@ -2625,8 +2641,9 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
     div_rate = safe_float(i.get('dividendRate'))
     trailing_rate = safe_float(i.get('trailingAnnualDividendRate'))
     trailing_yield = safe_float(i.get('trailingAnnualDividendYield'))
+    fv_div_pct = safe_float(i.get('finviz_div_pct'))
 
-    # 1. 한국 주식 (네이버 금융에서 #_dvr 퍼센트를 100으로 나누어 저장한 값 복원)
+    # 1. 한국 주식 (네이버 금융 연동 + stk.dividends 백업)
     if kr:
         if div_rate > 0:
             calc_d = (div_rate / p) * 100
@@ -2635,6 +2652,16 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
         if div_yield > 0:
             base_d = div_yield if div_yield > 1.0 else div_yield * 100
             return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
+        try:
+            if stk is not None:
+                divs = stk.dividends
+                if divs is not None and not divs.empty:
+                    cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=370)
+                    recent_div = safe_float(divs[divs.index >= cutoff].sum())
+                    if recent_div > 0 and (recent_div / p) * 100 < 30.0:
+                        return (recent_div / p) * 100
+        except Exception:
+            pass
         return 0.0
 
     # 2. 미국 및 글로벌 주식
@@ -2652,24 +2679,64 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
         if calc_d < 30.0:
             return calc_d
 
-    # (2순위) trailingAnnualDividendYield (항상 순수 소수점 비율: 0.0025 -> 0.25%)
+    # (2순위) trailingAnnualDividendYield (순수 소수점 비율: 0.0075 -> 0.75%)
     if 0 < trailing_yield < 0.30:
         base_d = trailing_yield * 100
         return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
 
-    # (3순위) dividendYield (최신 yfinance는 이미 % 단위이므로 0.25는 그대로 0.25%로 사용!)
+    # (3순위) dividendYield
     if div_yield > 0:
-        # 단, ETF의 'yield' 키에서 넘어온 경우만 소수점(0.035 -> 3.5%) 변환
         etf_y = safe_float(i.get('yield'))
         if etf_y > 0 and div_yield == etf_y and div_yield < 0.50:
+            base_d = div_yield * 100
+        elif div_yield < 0.15 and trailing_yield > 0 and abs(div_yield - trailing_yield) < 0.005:
             base_d = div_yield * 100
         else:
             base_d = div_yield
         return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
 
+    # (4순위 - 핵심 백업 A) Finviz에서 추출한 배당수익률
+    if 0 < fv_div_pct < 30.0:
+        return (fv_div_pct / multiplier) if (sim_pct != 0 and multiplier != 0) else fv_div_pct
+
+    # (5순위 - 핵심 백업 B) 비자(V) 등 stk.info 누락 시 stk.dividends 시계열에서 최근 1년 실제 배당합계 직접 계산!
+    try:
+        if stk is not None:
+            divs = stk.dividends
+            if divs is not None and not divs.empty:
+                cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=370)
+                recent_divs = divs[divs.index >= cutoff]
+                if not recent_divs.empty:
+                    ttm_div_per_share = safe_float(recent_divs.sum())
+                    if ttm_div_per_share > 0:
+                        calc_d = (ttm_div_per_share / p) * 100
+                        if 0 < calc_d < 30.0:
+                            return calc_d
+    except Exception:
+        pass
+
+    # (6순위 - 핵심 백업 C) 재무제표 현금흐름표(Cash Dividends Paid) ÷ 시가총액 역산
+    try:
+        if stk is not None and same_currency:
+            cf = stk.cash_flow
+            if cf is not None and not cf.empty:
+                for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
+                    if dk in cf.index and pd.notna(cf.loc[dk].iloc[0]):
+                        div_paid_total = abs(safe_float(cf.loc[dk].iloc[0]))
+                        sh = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
+                        mcap = (p * sh) if sh > 0 else safe_float(i.get('marketCap'))
+                        if div_paid_total > 0 and mcap > 0:
+                            calc_d = (div_paid_total / mcap) * 100
+                            if 0 < calc_d < 25.0:
+                                return calc_d
+    except Exception:
+        pass
+
     return 0.0
+
+
 # =========================================================================
-# [글로벌/한국/중국/대만/시클리컬 통합] 무오차 자사주 순매입·소각 수익률 산출 엔진
+# [버크셔·복수클래스·일시중단 완벽 보정] 무오차 자사주 순매입·소각 수익률 산출 엔진
 # =========================================================================
 def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
     if stk is None or p <= 0 or not isinstance(i, dict):
@@ -2679,7 +2746,7 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
         inc = stk.income_stmt
         bs = stk.balance_sheet
 
-        # 1. 유통주식수(발행주식수 - 자기주식수) 실제 증감률 산출 (통화 단위와 무관한 순수 비율)
+        # 1. 유통주식수 실제 증감률 산출
         sh_reduction_yield = None
         try:
             sh_hist = []
@@ -2698,7 +2765,6 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
                             sh_hist = vals
                             break
             if len(sh_hist) >= 2 and sh_hist[1] > 0:
-                # 최근 1년 내 액면분할/병합 여부 확인 후 보정
                 split_ratio = 1.0
                 try:
                     sp = stk.splits
@@ -2711,63 +2777,102 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
                     pass
                 adj_curr_sh = sh_hist[0] / split_ratio if split_ratio != 1.0 else sh_hist[0]
                 raw_sh_chg = ((sh_hist[1] - adj_curr_sh) / sh_hist[1]) * 100.0
-                if abs(raw_sh_chg) < 25.0:  # 비정상적 데이터 오류 필터링
+                if abs(raw_sh_chg) < 25.0:
                     sh_reduction_yield = raw_sh_chg
         except Exception:
             pass
 
-        # 2. 현금흐름표 기반 자사주 순매입액(매입 - 발행) 산출
+        # 2. 현금흐름표 기반 자사주 순매입액 산출 (최근 1년 + 버크셔 등 가치주 최근 3년 평균 보완)
         cf_bb_yield = None
+        net_bb_fin = 0.0
+
         if cf is not None and not cf.empty:
-            rep_val, iss_val = 0.0, 0.0
-            for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments', 'Payments For Repurchase Of Common Stock']:
-                if rk in cf.index and pd.notna(cf.loc[rk].iloc[0]):
-                    rep_val = abs(safe_float(cf.loc[rk].iloc[0]))
-                    break
-            for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance', 'Proceeds From Issuance Of Common Stock']:
-                if ik in cf.index and pd.notna(cf.loc[ik].iloc[0]):
-                    iss_val = abs(safe_float(cf.loc[ik].iloc[0]))
-                    break
-            net_bb_fin = rep_val - iss_val  # 재무제표 통화(KRW, USD, CNY, TWD, JPY 등) 기준 금액
+            def _get_col_net_bb(col_idx):
+                if col_idx >= len(cf.columns):
+                    return 0.0
+                rep_v, iss_v = 0.0, 0.0
+                for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments', 'Payments For Repurchase Of Common Stock']:
+                    if rk in cf.index and pd.notna(cf.loc[rk].iloc[col_idx]):
+                        rep_v = abs(safe_float(cf.loc[rk].iloc[col_idx]))
+                        break
+                for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance', 'Proceeds From Issuance Of Common Stock']:
+                    if ik in cf.index and pd.notna(cf.loc[ik].iloc[col_idx]):
+                        iss_v = abs(safe_float(cf.loc[ik].iloc[col_idx]))
+                        break
+                return rep_v - iss_v
 
-            if net_bb_fin != 0:
-                currency_trade = str(i.get('currency', 'USD')).upper()
-                currency_fin = str(i.get('financialCurrency', currency_trade)).upper()
-                same_currency = (currency_trade == currency_fin) or kr
+            net_bb_y0 = _get_col_net_bb(0)
+            # [핵심 보완] 만약 최근 1년 자사주 매입이 일시적으로 0이거나 멈춘 경우(예: 버크셔 해서웨이가 고평가 구간에서 일시 중단),
+            # 직전 3개년(0, 1, 2년차) 중 자사주 매입을 꾸준히 실행한 이력이 있으면 3개년 가중평균(최근 연도 중심)을 반영!
+            net_bb_3y = [_get_col_net_bb(idx) for idx in range(min(3, len(cf.columns)))]
+            pos_3y = [v for v in net_bb_3y if v > 0]
+            if net_bb_y0 != 0:
+                net_bb_fin = net_bb_y0
+            elif len(pos_3y) >= 1:
+                net_bb_fin = sum(net_bb_3y) / len(net_bb_3y)
 
-                mcap_in_fin_curr = 0.0
-                # (A) 거래통화와 재무통화가 같을 때 (미국 본토 주식, 한국 주식)
-                if same_currency:
-                    sh = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
-                    mcap_in_fin_curr = (p * sh) if sh > 0 else safe_float(i.get('marketCap'))
+        # 만약 yfinance 현금흐름표에서 누락된 미국 주식(BRK-B 등)은 SEC EDGAR 캐시에서 직접 추출
+        if net_bb_fin == 0 and not kr and 'get_sec_company_facts_cached' in globals():
+            try:
+                tk_sym = str(getattr(stk, 'ticker', '')).upper()
+                facts = get_sec_company_facts_cached(tk_sym)
+                us_gaap = facts.get('facts', {}).get('us-gaap', {})
+                rep_dict = {}
+                for tag in ['PaymentsForRepurchaseOfCommonStock', 'StockRepurchasedAndRetiredDuringPeriodValue']:
+                    if tag in us_gaap:
+                        for item in us_gaap[tag].get('units', {}).get('USD', []):
+                            if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
+                                fy = int(item.get('fy', 0))
+                                val = abs(safe_float(item.get('val', 0)))
+                                if fy >= datetime.now().year - 4 and val > rep_dict.get(fy, 0):
+                                    rep_dict[fy] = val
+                if rep_dict:
+                    recent_yrs = sorted(rep_dict.keys(), reverse=True)[:3]
+                    net_bb_fin = sum(rep_dict[y] for y in recent_yrs) / len(recent_yrs)
+            except Exception:
+                pass
 
-                # (B) 거래통화와 재무통화가 다를 때 (중국·대만·홍콩·일본·유럽 ADR: BABA, PDD, TSM, ITOCY 등)
-                # 재무제표 내 자본총계(현지통화) * PBR 또는 순이익(현지통화) * PER로 현지통화 시가총액을 정확히 역산!
-                if mcap_in_fin_curr <= 0:
-                    pbr_now = safe_float(i.get('priceToBook'))
-                    if bs is not None and not bs.empty and 0 < pbr_now < 150:
-                        for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                            if eq_k in bs.index and pd.notna(bs.loc[eq_k].iloc[0]):
-                                eq_fin = safe_float(bs.loc[eq_k].iloc[0])
-                                if eq_fin > 0:
-                                    mcap_in_fin_curr = eq_fin * pbr_now
-                                    break
-                if mcap_in_fin_curr <= 0:
-                    pe_now = safe_float(i.get('trailingPE', i.get('forwardPE')))
-                    if inc is not None and not inc.empty and 0 < pe_now < 200 and 'Net Income' in inc.index:
-                        ni_fin = safe_float(inc.loc['Net Income'].iloc[0])
-                        if ni_fin > 0:
-                            mcap_in_fin_curr = ni_fin * pe_now
-                if mcap_in_fin_curr <= 0 and is_adr and adr_fx_ratio != 1.0 and adr_fx_ratio > 0:
-                    # adr_fx_ratio를 통한 달러 주당 매입액 역산
-                    cf_bb_yield = ((net_bb_fin * adr_fx_ratio) / p) * 100.0
+        if net_bb_fin != 0:
+            currency_trade = str(i.get('currency', 'USD')).upper()
+            currency_fin = str(i.get('financialCurrency', currency_trade)).upper()
+            same_currency = (currency_trade == currency_fin) or kr
 
-                if mcap_in_fin_curr > 0:
-                    cf_bb_yield = (net_bb_fin / mcap_in_fin_curr) * 100.0
+            mcap_in_fin_curr = 0.0
+            if same_currency:
+                tk_sym = str(getattr(stk, 'ticker', '')).upper()
+                # 버크셔 해서웨이(BRK-B / BRK-A)는 Class A+B 통합 시가총액(약 21.6억 B주 환산)으로 정확히 나누어야 함
+                if tk_sym == "BRK-B":
+                    mcap_in_fin_curr = p * 2160000000.0
+                elif tk_sym == "BRK-A":
+                    mcap_in_fin_curr = p * 1440000.0
+                else:
+                    mcap_raw = safe_float(i.get('marketCap'))
+                    sh = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
+                    mcap_in_fin_curr = mcap_raw if mcap_raw > 0 else ((p * sh) if sh > 0 else 0.0)
 
-        # 3. 한국/글로벌 교차 판정: 현금흐름표 매입률과 실제 유통주식수 감소율 결합
+            if mcap_in_fin_curr <= 0:
+                pbr_now = safe_float(i.get('priceToBook'))
+                if bs is not None and not bs.empty and 0 < pbr_now < 150:
+                    for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                        if eq_k in bs.index and pd.notna(bs.loc[eq_k].iloc[0]):
+                            eq_fin = safe_float(bs.loc[eq_k].iloc[0])
+                            if eq_fin > 0:
+                                mcap_in_fin_curr = eq_fin * pbr_now
+                                break
+            if mcap_in_fin_curr <= 0:
+                pe_now = safe_float(i.get('trailingPE', i.get('forwardPE')))
+                if inc is not None and not inc.empty and 0 < pe_now < 200 and 'Net Income' in inc.index:
+                    ni_fin = safe_float(inc.loc['Net Income'].iloc[0])
+                    if ni_fin > 0:
+                        mcap_in_fin_curr = ni_fin * pe_now
+            if mcap_in_fin_curr <= 0 and is_adr and adr_fx_ratio != 1.0 and adr_fx_ratio > 0:
+                cf_bb_yield = ((net_bb_fin * adr_fx_ratio) / p) * 100.0
+
+            if mcap_in_fin_curr > 0:
+                cf_bb_yield = (net_bb_fin / mcap_in_fin_curr) * 100.0
+
+        # 3. 최종 결합
         if cf_bb_yield is not None and sh_reduction_yield is not None:
-            # 한국 기업이 기보유 자사주를 소각했거나 신탁 취득한 경우 유통주식수 감소율을 적극 반영
             if kr and sh_reduction_yield > cf_bb_yield and sh_reduction_yield > 0:
                 final_by = (cf_bb_yield + sh_reduction_yield) / 2.0 if cf_bb_yield > 0 else sh_reduction_yield
             else:
@@ -2782,11 +2887,6 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
         return max(-30.0, min(20.0, final_by))
     except Exception:
         return 0.0
-
-
-# =========================================================================
-# [한국/중국/대만/홍콩/시클리컬/금융 완벽 대응] 무오차 Forward PBR 산출 엔진
-# =========================================================================
 def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr, adr_fx_ratio=1.0, is_adr=False, multiplier=1.0):
     if tk in ["BRK-B", "BRK-A"] or (pbr <= 0 and base_bv <= 0) or reg_p <= 0:
         return pbr * multiplier if (pbr > 0 and multiplier != 1.0) else pbr
