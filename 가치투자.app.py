@@ -5726,21 +5726,21 @@ with tab1:
                 # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
                 easy_summary_msg = ""
                 if total_score_val >= 60:
-                    easy_summary_msg = "📊 정량 모델 분석 결과: 현금창출력 및 자본수익률 대비 현저한 안전마진(할인)이 산출되는 구간입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 현금창출력 및 자본수익률 대비 현저한 안전마진(할인)이 산출되는 구간입니다."
                 elif total_score_val >= 40:
-                    easy_summary_msg = "📊 정량 모델 분석 결과: 역사적 평균 멀티플 및 추정 내재가치 대비 유의미하게 할인된 상태입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 역사적 평균 멀티플 및 추정 내재가치 대비 유의미하게 할인된 상태입니다."
                 elif total_score_val >= 20:
-                    easy_summary_msg = "📊 정량 모델 분석 결과: 비즈니스 해자 지표가 양호하며 모델상 적정가치 하단에 위치한 구간입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 비즈니스 해자 지표가 양호하며 모델상 적정가치 하단에 위치한 구간입니다."
                 elif total_score_val >= 0:
-                    easy_summary_msg = "⚖️ 정량 모델 분석 결과: 현재 시장 가격과 모델상 추정 내재가치가 대체로 부합하는 중립 구간입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 현재 시장 가격과 모델상 추정 내재가치가 대체로 부합하는 중립 구간입니다."
                 elif total_score_val >= -20:
-                    easy_summary_msg = "🤔 정량 모델 분석 결과: 기업 수익성은 양호하나 향후 성장 기대감이 현재 멀티플에 일부 선반영되어 있습니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 기업 수익성은 양호하나 향후 성장 기대감이 현재 멀티플에 일부 선반영되어 있습니다."
                 elif total_score_val >= -40:
-                    easy_summary_msg = "⚠️ 정량 모델 분석 결과: 과거 평균 및 DCF 모델 대비 할증되어 거래 중이므로 밸류에이션 부담 점검이 필요합니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 과거 평균 및 DCF 모델 대비 할증되어 거래 중이므로 밸류에이션 부담 점검이 필요합니다."
                 elif total_score_val >= -60:
-                    easy_summary_msg = "🚨 정량 모델 분석 결과: 실적 지표 대비 멀티플 할증 폭이 커서 모델상 안전마진이 확보되지 않는 구간입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 실적 지표 대비 멀티플 할증 폭이 커서 모델상 안전마진이 확보되지 않는 구간입니다."
                 else:
-                    easy_summary_msg = "💥 정량 모델 분석 결과: 정량적 가치평가 모델의 설명 범위를 벗어난 극단적 할증 또는 펀더멘털 훼손 구간입니다."
+                    easy_summary_msg = " 정량 모델 분석 결과: 정량적 가치평가 모델의 설명 범위를 벗어난 극단적 할증 또는 펀더멘털 훼손 구간입니다."
                 # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 integrated_html = (
@@ -7593,7 +7593,7 @@ def get_full_battle_profile(tk):
         "radar": r_vals
     }
 with tab_vs:
-    st.subheader(t("⚔️ 종목 1:1 맞대결 비교 (AI 멀티 스캐너)", "⚔️ 1:1 Stock Battle Comparison"))
+    st.subheader(t(" 종목 1:1 맞대결 비교 (AI 멀티 스캐너)", " 1:1 Stock Battle Comparison"))
     st.caption(t("두 기업을 입력하면 오각형 레이더 차트를 겹쳐 비교하고, 핵심 밸류에이션·해자·총주주환원율·AI 총점을 나란히 대결시킵니다.", "Compare two companies side-by-side with overlaid radar charts and core value metrics."))
 
     c_vs1, c_vs2, c_vs_btn = st.columns([2, 2, 1])
@@ -7603,7 +7603,7 @@ with tab_vs:
         vs_in2 = st.text_input(t("두 번째 종목 (B)", "Second Stock (B)"), value="SK하이닉스", key="vs_input_2")
     with c_vs_btn:
         st.write("")
-        run_vs = st.button(t("⚔️ 맞대결 시작", "⚔️ Compare"), use_container_width=True, type="primary")
+        run_vs = st.button(t(" 맞대결 시작", " Compare"), use_container_width=True, type="primary")
 
     if run_vs or ("vs_res_a" in st.session_state and "vs_res_b" in st.session_state):
         if run_vs:
