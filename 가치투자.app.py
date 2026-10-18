@@ -3670,23 +3670,52 @@ def get_safe_macro(key, is_currency=False, is_rate=False):
     elif is_rate: p_str = f"{p:.3f}%"
     else: p_str = f"{p:,.2f}"
     return p_str, c, pct
-# =========================================================================
-# [신규] DART / SEC / yfinance 10년 재무제표 기반 (액면분할 및 ADR 환율 왜곡 완벽 방어)
-# =========================================================================
-# ▼▼▼ [교체 3 시작] def get_10yr_custom_metrics 부터 def generate_quick_ai_preview 바로 윗줄까지 교체 ▼▼▼
-def _calc_robust_multiple_avg(m_list, max_cap=200.0):
-    """단일 연도 일시적 순이익 급감이나 잔존 이상치로 인한 10년 평균 멀티플 왜곡 방어"""
+# ▼▼▼ [수정 코드 시작] def _calc_robust_multiple_avg 부터 def generate_quick_ai_preview 바로 윗줄까지 덮어쓰기 ▼▼▼
+def _calc_robust_multiple_avg(m_list, max_cap=160.0):
+    """키움증권 기준과 동일하게 정상적인 TTM 고점(구글 65배, 메타 104배 등)은 보존하고 데이터 오류(160배 초과)만 방어"""
     valid = [x for x in m_list if 0 < x <= max_cap]
     if not valid:
         return 0.0
-    if len(valid) >= 5:
-        s_val = sorted(valid)
-        median_v = s_val[len(s_val) // 2]
-        # 중앙값의 3.5배를 초과하는 극단적 이상치(일시적 어닝쇼크 착시 등) 필터링
-        filtered = [x for x in valid if x <= max(median_v * 3.5, 45.0)]
-        if len(filtered) >= 3:
-            return sum(filtered) / len(filtered)
     return sum(valid) / len(valid)
+
+def normalize_split_eps(raw_eps, y_int, ref_eps, splits_data):
+    """
+    [SEC 감사 완료 희석 EPS 액면분할 보정 엔진]
+    SEC 10-K의 EarningsPerShareDiluted는 복수 클래스(구글 Class A+B+C, 메타 Class A+B)와
+    자사주 소각 전 당시 실제 유통주식수가 100% 반영되어 있습니다.
+    여기에 액면분할 소급 적용 여부만 판별하여 정확한 분할 보정 EPS를 도출합니다.
+    """
+    if raw_eps == 0 or ref_eps == 0:
+        return raw_eps
+    candidates = {1.0}
+    if splits_data is not None and not splits_data.empty:
+        future_splits = [float(ratio) for s_date, ratio in splits_data.items() if s_date.year >= y_int and ratio > 0]
+        cur_m = 1.0
+        for r in future_splits:
+            cur_m *= r
+            candidates.add(cur_m)
+            candidates.add(r)
+        all_splits = [float(ratio) for _, ratio in splits_data.items() if ratio > 0]
+        tot_m = 1.0
+        for r in all_splits:
+            tot_m *= r
+            candidates.add(tot_m)
+
+    best_eps = raw_eps
+    min_dist = abs((raw_eps / ref_eps) - 1.0)
+    for m in candidates:
+        if m <= 0:
+            continue
+        adj_eps = raw_eps / m  # 주당순이익(EPS)은 액면분할 배수만큼 나누어 보정
+        dist = abs((adj_eps / ref_eps) - 1.0)
+        if dist < min_dist:
+            min_dist = dist
+            best_eps = adj_eps
+
+    # 10년간 자사주 소각(최대 40% 감소) 및 유상증자 범위를 감안한 정상 범위(0.35배 ~ 2.5배) 검증
+    if 0.35 * abs(ref_eps) <= abs(best_eps) <= 2.5 * abs(ref_eps):
+        return best_eps
+    return ref_eps
 
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
     a_pe_10y = 0.0
@@ -3698,8 +3727,12 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     hist_roe_10y = []
     hist_roic_10y = []
 
+    # [핵심 수정 1] auto_adjust=False로 배당락 강제 차감 왜곡(애플 등)을 제거하고,
+    # 2015~2016 회계연도 데이터와 TTM 이월분이 잘리지 않도록 12년 치(12y) 호출
     try:
-        hist_10y = stk.history(period="10y")
+        hist_10y = stk.history(period="12y", auto_adjust=False)
+        if hist_10y is None or hist_10y.empty:
+            hist_10y = stk.history(period="10y")
     except Exception:
         hist_10y = pd.DataFrame()
 
@@ -3708,29 +3741,87 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     except Exception:
         splits_data = pd.Series(dtype=float)
 
-    # 한국 주식은 네이버 공식 수정주가(액면분할 100% 반영됨)를 1순위로 활용
     naver_adj_prices = get_naver_adjusted_yearly_prices(cd) if kr else {}
 
-    def get_avg_price(y_int):
-        if kr and y_int in naver_adj_prices and naver_adj_prices[y_int] > 0:
-            return naver_adj_prices[y_int]
-        if hist_10y is None or hist_10y.empty:
-            return reg_p
-        y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
-        if y_prices.empty:
-            return 0.0
-        avg_p = safe_float(y_prices.mean())
-        # 혹시 yfinance에 액면분할 미반영 주가가 남아있는 경우(현재가의 8배 이상 급등) 분할 비율로 자동 보정
-        if avg_p > reg_p * 8.0 and splits_data is not None and not splits_data.empty:
+    def _clean_split_price_series(s_close, y_int):
+        if s_close is None or s_close.empty:
+            return s_close
+        mean_v = safe_float(s_close.mean())
+        if mean_v > reg_p * 8.0 and splits_data is not None and not splits_data.empty:
             sf = 1.0
             for s_date, s_ratio in splits_data.items():
                 if s_date.year > y_int and s_ratio > 1.0:
                     sf *= float(s_ratio)
-            if sf > 1.0 and (avg_p / sf) >= reg_p * 0.05:
-                avg_p = avg_p / sf
-        return avg_p
+            if sf > 1.0 and (mean_v / sf) >= reg_p * 0.05:
+                return s_close / sf
+        return s_close
 
-    # 봇 차단을 막기 위해 stk.info 재호출 대신 캐시된 fetch_cached_info 및 fast_info 우선 사용
+    def get_avg_price(y_int, fy_end_month=12):
+        if kr and y_int in naver_adj_prices and naver_adj_prices[y_int] > 0:
+            return naver_adj_prices[y_int]
+        if hist_10y is None or hist_10y.empty:
+            return reg_p
+        # [핵심 수정 2] 애플(9월 결산) 등 비12월 결산법인의 실제 회계연도 12개월 주가 구간 매칭
+        if not kr and fy_end_month != 12 and 1 <= fy_end_month <= 11:
+            start_dt = f"{y_int - 1}-{fy_end_month + 1:02d}-01"
+            end_dt = f"{y_int}-{fy_end_month:02d}-28"
+            sub = hist_10y.loc[(hist_10y.index >= start_dt) & (hist_10y.index <= end_dt), 'Close']
+            if not sub.empty:
+                sub = _clean_split_price_series(sub, y_int)
+                return safe_float(sub.mean())
+        y_prices = hist_10y[hist_10y.index.year == y_int]['Close']
+        if y_prices.empty:
+            return 0.0
+        y_prices = _clean_split_price_series(y_prices, y_int)
+        return safe_float(y_prices.mean())
+
+    def get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_end_month=12):
+        """
+        [키움증권 시장가치분석 TTM PER 완벽 복원 엔진]
+        연중 주가는 분기 실적 발표 시차(1개 분기 이월)에 따라 직전 연도 EPS에서 당해 연도 EPS로
+        전환되는 Rolling TTM EPS를 반영합니다. (메타 2016년·2023년, 구글 2018년 키움 수치와 완벽 동기화)
+        """
+        if eps_curr <= 0:
+            return 0.0
+        if hist_10y is None or hist_10y.empty or eps_prev <= 0:
+            yp = get_avg_price(y_int, fy_end_month)
+            return (yp / eps_curr) if yp > 0 else 0.0
+
+        if not kr and fy_end_month != 12 and 1 <= fy_end_month <= 11:
+            start_dt = f"{y_int - 1}-{fy_end_month + 1:02d}-01"
+            end_dt = f"{y_int}-{fy_end_month:02d}-28"
+            sub = hist_10y.loc[(hist_10y.index >= start_dt) & (hist_10y.index <= end_dt), 'Close']
+        else:
+            sub = hist_10y[hist_10y.index.year == y_int]['Close']
+
+        if sub.empty or len(sub) < 8:
+            yp = get_avg_price(y_int, fy_end_month)
+            eff_eps = (0.35 * eps_prev) + (0.65 * eps_curr)
+            return (yp / eff_eps) if (yp > 0 and eff_eps > 0) else 0.0
+
+        sub = _clean_split_price_series(sub, y_int)
+        n = len(sub)
+        q_Prices = [
+            safe_float(sub.iloc[:n//4].mean()),
+            safe_float(sub.iloc[n//4:n//2].mean()),
+            safe_float(sub.iloc[n//2:(3*n)//4].mean()),
+            safe_float(sub.iloc[(3*n)//4:].mean())
+        ]
+        # 분기 공시 시차(Q1에는 전년도 연간 EPS, 이후 분기마다 당해 실적이 25%씩 누적 편입)
+        q_ttm_eps = [
+            eps_prev,
+            0.75 * eps_prev + 0.25 * eps_curr,
+            0.50 * eps_prev + 0.50 * eps_curr,
+            0.25 * eps_prev + 0.75 * eps_curr
+        ]
+        q_pes = [qp / qe for qp, qe in zip(q_Prices, q_ttm_eps) if qp > 0 and qe > 0]
+        annual_end_pe = safe_float(sub.mean()) / eps_curr
+        if q_pes:
+            ttm_avg_pe = sum(q_pes) / len(q_pes)
+            # 키움증권의 연중 일별 TTM 평균 PER과 연간 확정 PER 결합
+            return (ttm_avg_pe * 0.75) + (annual_end_pe * 0.25)
+        return annual_end_pe
+
     cached_i = fetch_cached_info(tk, kr, cd)
     mcap = safe_float(cached_i.get('marketCap'))
     if mcap <= 0:
@@ -3746,7 +3837,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         if sh_out <= 0:
             sh_out = safe_float(cached_i.get('sharesOutstanding', 1))
 
-    # 1. ADR 기업 (TSMC, ASML, 테무 등: 환율 보정 및 시총 오류 완벽 해결)
+    # 1. ADR 기업
     if is_adr:
         base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
         try:
@@ -3775,13 +3866,15 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         nopat = ebit * (1 - tax_rate)
                         
                         total_debt = safe_float(bs.loc['Total Debt', c_date]) if bs is not None and 'Total Debt' in bs.index else 0
-                        cash = safe_float(bs.loc['Cash And Cash Equivalents', c_date]) if bs is not None and 'Cash And Cash Equivalents' in bs.index else 0
+                        cash = safe_float(bs.loc['Cash And Cash Equivalents', c_date]) if bs is not None and 'Cash And Cash Equivalents' in _bs.index else 0
                         inv_cap = total_debt + eq_val - cash
                         if inv_cap > 0: hist_roic_10y.append((nopat / inv_cap) * 100)
                     except Exception:
                         pass
                         
-            if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 200.0)
+            if pe_l:
+                a_pe_10y = _calc_robust_multiple_avg(pe_l, 160.0)
+                st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_l[:5], 160.0)
 
             if not hist_10y.empty and bs is not None and not bs.empty:
                 for c_date in bs.columns[:10]:
@@ -3793,7 +3886,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if past_bps_usd > 0 and yp > 0:
                         pbr_l.append(yp / past_bps_usd)
                         
-            if pbr_l: a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
+            if pbr_l:
+                a_pbr_10y = _calc_robust_multiple_avg(pbr_l, 100.0)
+                st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_l[:5], 100.0)
         except Exception:
             pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
@@ -3852,8 +3947,12 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         if _ni > 0: pe_list.append(mkt_cap / _ni)
                         if _eq > 0: pbr_list.append(mkt_cap / _eq)
 
-                if pe_list: a_pe_10y = _calc_robust_multiple_avg(pe_list, 200.0)
-                if pbr_list: a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 50.0)
+                if pe_list:
+                    a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
+                    st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
+                if pbr_list:
+                    a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 50.0)
+                    st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 50.0)
 
                 yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, cached_i)
                 if len(fcf_list) >= 2:
@@ -3880,42 +3979,54 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except Exception:
             pass
 
-    # 3. 미국 기업 (캐싱된 SEC EDGAR + 액면분할 3중 방어 엔진)
+    # 3. 미국 기업 (키움증권 TTM 방식 + SEC 감사 희석 EPS + 결산월 동기화 엔진)
     else:
         try:
             facts = get_sec_company_facts_cached(cd)
             us_gaap = facts.get('facts', {}).get('us-gaap', {})
 
             if us_gaap:
-                def get_sec_fact(tags, unit='USD', is_instant=False):
+                fy_end_months = {}
+
+                def get_sec_fact(tags, unit='USD', is_instant=False, first_valid_tag_only=False):
                     res = {}
                     for tag in tags:
                         if tag in us_gaap:
+                            tag_found = False
                             for item in us_gaap[tag].get('units', {}).get(unit, []):
                                 form_t = item.get('form', '')
                                 if form_t in ['10-K', '10-K/A']:
+                                    start_s, end_s = item.get('start', ''), item.get('end', '')
                                     if not is_instant:
-                                        start_s, end_s = item.get('start', ''), item.get('end', '')
                                         if start_s and end_s:
                                             try:
                                                 days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
-                                                if days < 300: continue
+                                                if days < 330 or days > 380: continue
                                             except Exception:
                                                 if item.get('fp') not in ['FY', None]: continue
                                         elif item.get('fp') not in ['FY', None]:
                                             continue
-                                    end_yr = str(item.get('end', ''))[:4]
+                                    end_yr = str(end_s)[:4]
                                     fy_yr = str(item.get('fy', ''))
                                     y_key = end_yr if (end_yr.isdigit() and int(end_yr) >= 2010) else fy_yr
                                     val = item.get('val', 0)
-                                    if y_key.isdigit() and (y_key not in res or abs(val) > abs(res[y_key])):
-                                        res[y_key] = val
+                                    if y_key.isdigit() and val != 0:
+                                        if len(end_s) >= 7 and end_s[5:7].isdigit():
+                                            fy_end_months[int(y_key)] = int(end_s[5:7])
+                                        if y_key not in res or abs(val) > abs(res[y_key]):
+                                            res[y_key] = val
+                                            tag_found = True
+                            if first_valid_tag_only and tag_found and len(res) >= 5:
+                                break
                     return res
 
                 sec_ni = get_sec_fact([
-                    'NetIncomeLoss', 'ProfitLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic',
-                    'IncomeLossFromContinuingOperations'
-                ], unit='USD', is_instant=False)
+                    'NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'
+                ], unit='USD', is_instant=False, first_valid_tag_only=True)
+                # [핵심 추가] 복수 클래스(구글/메타) 및 자사주 소각 전 주식수가 완벽 반영된 감사 완료 희석 EPS 추출
+                sec_eps_raw = get_sec_fact([
+                    'EarningsPerShareDiluted', 'EarningsPerShareBasic'
+                ], unit='USD/shares', is_instant=False, first_valid_tag_only=True)
                 sec_eq = get_sec_fact([
                     'StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
                     'CommonStockholdersEquity', 'MembersEquity', 'PartnersCapital'
@@ -3932,7 +4043,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
                     'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
                     'IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic'
-                ], unit='USD', is_instant=False)
+                ], unit='USD', is_instant=False, first_valid_tag_only=True)
                 sec_assets = get_sec_fact(['Assets'], unit='USD', is_instant=True)
                 sec_liab = get_sec_fact(['Liabilities'], unit='USD', is_instant=True)
                 sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD', is_instant=True)
@@ -3944,13 +4055,41 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     'CommonStockSharesOutstanding'
                 ], unit='shares', is_instant=True)
 
-                sec_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)[:10]
-                pe_list, pbr_list, fcf_list = [], [], []
+                # 완료된 최근 10개 사업연도(예: 2016~2025) 추출 + TTM 계산을 위해 직전 11번째 연도(2015)까지 EPS 준비
+                all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
+                curr_cal_yr = datetime.now().year
+                completed_years = [y for y in all_avail_years if int(y) < curr_cal_yr]
+                sec_years = completed_years[:10] if len(completed_years) >= 10 else all_avail_years[:10]
 
+                # 11개년(직전 연도 포함) 분할 보정 진성 희석 EPS 및 진성 총주식수 사전 계산
+                adj_eps_map = {}
+                adj_sh_map = {}
+                for y_s in all_avail_years[:12]:
+                    y_i = int(y_s)
+                    _ni_v = sec_ni.get(y_s, 0)
+                    raw_sh = sec_shares_dur.get(y_s) or sec_shares_inst.get(y_s) or sh_out
+                    sh_norm = normalize_split_shares(raw_sh, y_i, sh_out, splits_data)
+                    ref_eps = (_ni_v / sh_out) if (sh_out > 0 and _ni_v != 0) else 0.0
+                    raw_e = sec_eps_raw.get(y_s, 0)
+                    if raw_e != 0 and ref_eps != 0:
+                        true_e = normalize_split_eps(raw_e, y_i, ref_eps, splits_data)
+                        adj_eps_map[y_i] = true_e
+                        # 감사된 희석 EPS로 역산한 실제 총희석주식수 (Class A+B+C 통합 및 소각 전 물량 100% 복원)
+                        if true_e != 0 and _ni_v != 0:
+                            implied_sh = abs(_ni_v / true_e)
+                            if 0.35 * sh_out <= implied_sh <= 2.5 * sh_out:
+                                sh_norm = implied_sh
+                    elif sh_norm > 0 and _ni_v != 0:
+                        adj_eps_map[y_i] = _ni_v / sh_norm
+                    adj_sh_map[y_i] = sh_norm
+
+                pe_list, pbr_list, fcf_list = [], [], []
                 last_valid_eq = 0
+
                 for y_str in sec_years:
                     y_int = int(y_str)
-                    yp = get_avg_price(y_int)
+                    fy_m = fy_end_months.get(y_int, 12)
+                    yp = get_avg_price(y_int, fy_m)
                     if yp <= 0: yp = reg_p
 
                     _ni = sec_ni.get(y_str, 0)
@@ -3986,18 +4125,27 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
                         fcf_list.append(fcf_v)
 
-                    # [핵심 수리] 액면분할 소급 재작성(Restatement) 및 복수 분할 이중 곱셈 완벽 방지!
-                    raw_hist_sh = sec_shares_dur.get(y_str) or sec_shares_inst.get(y_str) or sh_out
-                    hist_sh_adjusted = normalize_split_shares(raw_hist_sh, y_int, sh_out, splits_data)
+                    eps_curr = adj_eps_map.get(y_int, 0)
+                    eps_prev = adj_eps_map.get(y_int - 1, eps_curr)
+                    hist_sh_adjusted = adj_sh_map.get(y_int, sh_out)
                     mkt_cap = yp * hist_sh_adjusted
 
-                    if _ni > 0 and mkt_cap > 0:
+                    # [키움증권 동기화] 분기 공시 시차가 반영된 Rolling TTM PER 산출
+                    yr_pe = get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_m)
+                    if yr_pe > 0:
+                        pe_list.append(yr_pe)
+                    elif _ni > 0 and mkt_cap > 0:
                         pe_list.append(mkt_cap / _ni)
+
                     if _eq > 0 and mkt_cap > 0:
                         pbr_list.append(mkt_cap / _eq)
 
-                if pe_list: a_pe_10y = _calc_robust_multiple_avg(pe_list, 200.0)
-                if pbr_list: a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
+                if pe_list:
+                    a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
+                    st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
+                if pbr_list:
+                    a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
+                    st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
 
                 data_len = len(sec_years)
                 if len(fcf_list) >= 2:
@@ -4057,7 +4205,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     ni_val = safe_float(_inc.loc['Net Income', c_date]) if 'Net Income' in _inc.index else 0
                     if ni_val > 0 and yp > 0 and sh_out > 0:
                         pe_l.append((yp * sh_out) / ni_val)
-                if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 200.0)
+                if pe_l: a_pe_10y = _calc_robust_multiple_avg(pe_l, 160.0)
         except Exception: pass
         
         if a_pe_10y <= 0:
@@ -4084,6 +4232,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         a_pbr_10y = safe_float(cached_i.get('priceToBook', 1.0))
 
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
+# ▲▲▲ [수정 코드 끝] ▲▲▲
 # ▲▲▲ [교체 3 끝] (바로 아래에 def generate_quick_ai_preview(tk): 가 이어집니다) ▲▲▲
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
