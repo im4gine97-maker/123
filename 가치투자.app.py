@@ -5526,39 +5526,135 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
-                    # 내부 변수 대신 화면에 표출된 세부 점수들을 직접 합산하여 총점 추출
+                    # 1. 세부 점수 합산 및 게이지 마커 위치 계산 (-100 ~ +100)
                     total_score_val = sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values())
                     total_score_val = round(total_score_val)
+                    sign_tot = "+" if total_score_val > 0 else ""
                     
-                    # 점수 위치를 백분율(%)로 변환하여 마커 위치 계산 (최소 -100, 최대 100 기준)
                     gauge_score = max(-100, min(100, total_score_val))
                     marker_pos = ((gauge_score + 100) / 200) * 100
-                    
-                    # 마커가 양쪽 끝을 넘어가지 않도록 안전망 설정
                     if marker_pos < 2: marker_pos = 2
                     if marker_pos > 98: marker_pos = 98
 
-                    # ▼▼▼ 기존 [AI 종합 투자의견] 렌더링 HTML 전체를 이걸로 교체하세요 ▼▼▼
-                    st.markdown(f"""<div style="padding: 25px 20px; border-radius: 16px; border: 1px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.1);">
-<h3 style="margin: 0 0 12px 0; color: {op_color}; font-size: 1.5rem; letter-spacing: -0.5px;">[정량적 밸류에이션 프레임워크 산출 결과] : {op_title}</h3>
-                        
-<div style="position: relative; width: 100%; height: 16px; margin: 35px 0 15px 0; background: linear-gradient(to right, #8c14fc 0%, #8c14fc 15%, #c23616 15%, #c23616 20%, #eb2f06 20%, #eb2f06 25%, #ff4757 25%, #ff4757 30%, #e15f41 30%, #e15f41 35%, #fa8231 35%, #fa8231 40%, #fab1a0 40%, #fab1a0 45%, #fdcb6e 45%, #fdcb6e 50%, #f39c12 50%, #f39c12 55%, #f1c40f 55%, #f1c40f 60%, #55efc4 60%, #55efc4 65%, #2ecc71 65%, #2ecc71 70%, #10ac84 70%, #10ac84 75%, #00b894 75%, #00b894 80%, #0097e6 80%, #0097e6 85%, #0984e3 85%, #0984e3 90%, #0050b3 90%, #0050b3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
-    <div style="position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center; z-index: 10;">
-        <div style="background-color: {op_color}; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-            {total_score_val}점
-        </div>
-        <div style="color: {op_color}; font-size: 14px; margin-top: -4px;">▼</div>
-    </div>
-</div>
-                        
-<div style="position: relative; width: 100%; height: 20px; font-size: 0.75rem; color: #8892b0; font-weight: 600;">
-    <span style="position: absolute; left: 0;">극단적 고평가 (-100)</span>
-    <span style="position: absolute; left: 50%; transform: translateX(-50%);">적정 가치 (0)</span>
-    <span style="position: absolute; right: 0;">압도적 저평가 (+100)</span>
-</div>
+                    # 2. [찰리 멍거의 5대 정량 체크리스트] 개별 관문 판정 로직
+                    # ① 비즈니스 해자 (ROE / ROIC)
+                    if is_financial:
+                        if roe >= 10.0: c1_st, c1_sub = "pass", f"ROE {roe:.1f}%"
+                        elif roe >= 7.0: c1_st, c1_sub = "warn", f"ROE {roe:.1f}%"
+                        else: c1_st, c1_sub = "fail", f"ROE {roe:.1f}%"
+                    else:
+                        if roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0): c1_st = "pass"
+                        elif roic_val >= 6.0 or roe >= 8.0: c1_st = "warn"
+                        else: c1_st = "fail"
+                        c1_sub = f"ROIC {roic_val:.1f}% · ROE {roe:.1f}%"
 
-<span style="color: var(--text-color); font-size: 1.05rem; display: block; margin-top: 25px; line-height: 1.6;">{op_reason}</span>
-</div>""", unsafe_allow_html=True)
+                    # ② 경영진 & 주주환원 (거버넌스 점수 + 배당·자사주 총환원율)
+                    mgmt_sc = 0
+                    for k_sb, v_sb in score_breakdown.items():
+                        if "경영진" in k_sb or "Management" in k_sb:
+                            mgmt_sc = v_sb[0] if isinstance(v_sb, tuple) else v_sb
+                            break
+                    if mgmt_sc >= 0 and (tsy_total >= 1.5 or mgmt_sc >= 7.0): c2_st = "pass"
+                    elif mgmt_sc >= -5.0 and tsy_total >= 0.0: c2_st = "warn"
+                    else: c2_st = "fail"
+                    c2_sub = f"총환원 {tsy_total:.1f}% · 거버넌스 {mgmt_sc:+.0f}점"
+
+                    # ③ 가격 안전마진 (과거 평균 멀티플 할인율 & DCF 안전마진)
+                    use_5y_chk = st.session_state.get("use_5y_avg", False)
+                    yr_tag = "5년" if use_5y_chk else "10년"
+                    if is_financial:
+                        if pmos_val >= 10.0 or (0 < pbr <= 1.0): c3_st = "pass"
+                        elif pmos_val >= -10.0: c3_st = "warn"
+                        else: c3_st = "fail"
+                        c3_sub = f"{yr_tag}PBR 대비 {pmos_val:+.1f}%"
+                    else:
+                        has_valid_dcf = (base_fcf is not None and base_fcf > 0 and not is_zigzag)
+                        if (pmos_val >= 10.0 and (not has_valid_dcf or mos_val >= 0.0)) or pmos_val >= 20.0 or (has_valid_dcf and mos_val >= 20.0):
+                            c3_st = "pass"
+                        elif pmos_val >= -10.0 or (has_valid_dcf and mos_val >= -10.0):
+                            c3_st = "warn"
+                        else:
+                            c3_st = "fail"
+                        m_type = "PBR" if (kr or is_cyclical) else "PER"
+                        dcf_short = f" · DCF {mos_val:+.0f}%" if has_valid_dcf else ""
+                        c3_sub = f"{yr_tag}{m_type} {pmos_val:+.1f}%{dcf_short}"
+
+                    # ④ 재무 생존력 (피오트로스키 F-Score 및 잉여현금흐름 흑자 여부)
+                    if is_financial:
+                        if roe >= 8.0 and pbr > 0: c4_st, c4_sub = "pass", "자본적정성 양호"
+                        elif roe > 0: c4_st, c4_sub = "warn", "수익성 보통"
+                        else: c4_st, c4_sub = "fail", "수익성 부진"
+                    else:
+                        fcf_ok = (base_fcf is not None and base_fcf > 0)
+                        if fcf_ok and (f_score_val is None or f_score_val >= 6): c4_st = "pass"
+                        elif fcf_ok or (f_score_val is not None and f_score_val >= 4): c4_st = "warn"
+                        else: c4_st = "fail"
+                        f_txt = f"F-Score {f_score_val}/9" if f_score_val is not None else "재무점검"
+                        c4_sub = f"{f_txt} · {'FCF 흑자' if fcf_ok else 'FCF 적자'}"
+
+                    # ⑤ 기회비용 (10년물 미국채 금리 대비 이익수익률 ERP)
+                    if f_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c5_st = "pass"
+                    elif f_pe > 0 and erp >= -1.5: c5_st = "warn"
+                    else: c5_st = "fail"
+                    c5_sub = f"이익수익률 {ey:.1f}% (국채 {erp:+.1f}%p)" if f_pe > 0 else "산출 불가(적자)"
+
+                    munger_items = [
+                        (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
+                        (t("2. 경영진·주주환원", "2. Mgmt & Return"), c2_st, c2_sub),
+                        (t("3. 가격 안전마진", "3. Margin of Safety"), c3_st, c3_sub),
+                        (t("4. 재무 생존력", "4. Financial Health"), c4_st, c4_sub),
+                        (t("5. 국채 대비 기회비용", "5. vs 10Y Treasury"), c5_st, c5_sub)
+                    ]
+
+                    pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
+                    warn_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "warn")
+
+                    # 5대 필터 배지 HTML 조립
+                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-top:22px; text-align:left;'>"
+                    for b_title, b_st, b_sub in munger_items:
+                        if b_st == "pass":
+                            ico, b_col, bg_c, bd_c = "✅", "#2ecc71", "rgba(46, 204, 113, 0.10)", "rgba(46, 204, 113, 0.35)"
+                            st_lbl = t("충족", "Pass")
+                        elif b_st == "warn":
+                            ico, b_col, bg_c, bd_c = "⚠️", "#fdcb6e", "rgba(253, 203, 110, 0.10)", "rgba(253, 203, 110, 0.35)"
+                            st_lbl = t("보통", "Watch")
+                        else:
+                            ico, b_col, bg_c, bd_c = "❌", "#ff7675", "rgba(255, 118, 117, 0.10)", "rgba(255, 118, 117, 0.35)"
+                            st_lbl = t("미달", "Fail")
+
+                        badges_html += (
+                            f"<div style='background:{bg_c}; border:1px solid {bd_c}; border-radius:10px; padding:10px 10px;'>"
+                            f"<div style='font-size:0.80rem; font-weight:800; color:{b_col}; display:flex; justify-content:space-between; align-items:center;'>"
+                            f"<span>{ico} {b_title}</span><span style='font-size:0.70rem; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,0.2);'>{st_lbl}</span></div>"
+                            f"<div style='font-size:0.75rem; color:var(--text-color); opacity:0.85; margin-top:5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>{b_sub}</div>"
+                            f"</div>"
+                        )
+                    badges_html += "</div>"
+
+                    op_clean_label = op_title.split("(")[0].strip()
+                    chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트] : 5개 중 {pass_cnt}개 기준 충족 ({sign_tot}{total_score_val}점)"
+                    chk_header_en = f"📋 [Munger's 5-Point Quantitative Checklist] : {pass_cnt}/5 Passed ({sign_tot}{total_score_val} pts)"
+
+                    # 3. 최종 체크리스트 배너 렌더링
+                    munger_banner_html = (
+                        f"<div style='padding: 25px 20px; border-radius: 16px; border: 1.5px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.12);'>"
+                        f"<h3 style='margin: 0 0 6px 0; color: {op_color}; font-size: 1.42rem; letter-spacing: -0.5px;'>{t(chk_header_ko, chk_header_en)}</h3>"
+                        f"<div style='font-size: 0.92rem; color: #8892b0; font-weight: 700; margin-bottom: 10px;'>종합 밸류에이션 판정: <span style='color:{op_color};'>{op_clean_label}</span> (충족 {pass_cnt} · 보통 {warn_cnt} · 미달 {5 - pass_cnt - warn_cnt})</div>"
+                        f"<div style='position: relative; width: 100%; height: 16px; margin: 32px 0 12px 0; background: linear-gradient(to right, #8c14fc 0%, #8c14fc 15%, #c23616 15%, #c23616 20%, #eb2f06 20%, #eb2f06 25%, #ff4757 25%, #ff4757 30%, #e15f41 30%, #e15f41 35%, #fa8231 35%, #fa8231 40%, #fab1a0 40%, #fab1a0 45%, #fdcb6e 45%, #fdcb6e 50%, #f39c12 50%, #f39c12 55%, #f1c40f 55%, #f1c40f 60%, #55efc4 60%, #55efc4 65%, #2ecc71 65%, #2ecc71 70%, #10ac84 70%, #10ac84 75%, #00b894 75%, #00b894 80%, #0097e6 80%, #0097e6 85%, #0984e3 85%, #0984e3 90%, #0050b3 90%, #0050b3 100%); border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);'>"
+                        f"<div style='position: absolute; top: -28px; left: {marker_pos}%; transform: translateX(-50%); text-align: center; z-index: 10;'>"
+                        f"<div style='background-color: {op_color}; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);'>{sign_tot}{total_score_val}점</div>"
+                        f"<div style='color: {op_color}; font-size: 14px; margin-top: -4px;'>▼</div>"
+                        f"</div></div>"
+                        f"<div style='position: relative; width: 100%; height: 20px; font-size: 0.75rem; color: #8892b0; font-weight: 600;'>"
+                        f"<span style='position: absolute; left: 0;'>극단적 고평가 (-100)</span>"
+                        f"<span style='position: absolute; left: 50%; transform: translateX(-50%);'>적정 가치 (0)</span>"
+                        f"<span style='position: absolute; right: 0;'>압도적 저평가 (+100)</span>"
+                        f"</div>"
+                        f"{badges_html}"
+                        f"<span style='color: var(--text-color); font-size: 0.98rem; display: block; margin-top: 18px; line-height: 1.55; opacity: 0.92;'>{op_reason}</span>"
+                        f"</div>"
+                    )
+                    st.markdown(munger_banner_html, unsafe_allow_html=True)
                     # ▲▲▲ 여기까지 교체 ▲▲▲
 
                     with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
