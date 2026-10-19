@@ -5536,7 +5536,7 @@ with tab1:
                     if marker_pos < 2: marker_pos = 2
                     if marker_pos > 98: marker_pos = 98
 
-                    # 2. [찰리 멍거의 5대 정량 체크리스트] 개별 관문 판정 로직
+                    # 2. [찰리 멍거의 5대 정량 체크리스트] 개별 관문 판정 로직 (F-Score 완전 제거 버전)
                     # ① 비즈니스 해자 (ROE / ROIC)
                     if is_financial:
                         if roe >= 10.0: c1_st, c1_sub = "pass", f"ROE {roe:.1f}%"
@@ -5579,18 +5579,23 @@ with tab1:
                         dcf_short = f" · DCF {mos_val:+.0f}%" if has_valid_dcf else ""
                         c3_sub = f"{yr_tag}{m_type} {pmos_val:+.1f}%{dcf_short}"
 
-                    # ④ 재무 생존력 (피오트로스키 F-Score 및 잉여현금흐름 흑자 여부)
+                    # ④ 재무 생존력 (버핏·멍거식 주주이익 FCF 창출력 & 부채·유동성 방어력)
                     if is_financial:
                         if roe >= 8.0 and pbr > 0: c4_st, c4_sub = "pass", "자본적정성 양호"
                         elif roe > 0: c4_st, c4_sub = "warn", "수익성 보통"
                         else: c4_st, c4_sub = "fail", "수익성 부진"
                     else:
                         fcf_ok = (base_fcf is not None and base_fcf > 0)
-                        if fcf_ok and (f_score_val is None or f_score_val >= 6): c4_st = "pass"
-                        elif fcf_ok or (f_score_val is not None and f_score_val >= 4): c4_st = "warn"
-                        else: c4_st = "fail"
-                        f_txt = f"F-Score {f_score_val}/9" if f_score_val is not None else "재무점검"
-                        c4_sub = f"{f_txt} · {'FCF 흑자' if fcf_ok else 'FCF 적자'}"
+                        debt_bad = ("[경고]" in bio_eval or "[위험]" in bio_eval or "Danger" in bio_eval)
+                        liq_ok = (current_ratio >= 1.0 or roic_val >= 15.0)
+                        if fcf_ok and not debt_bad and liq_ok:
+                            c4_st = "pass"
+                        elif fcf_ok or (not debt_bad and liq_ok):
+                            c4_st = "warn"
+                        else:
+                            c4_st = "fail"
+                        debt_short = "부채과다주의" if debt_bad else ("유동성탄탄" if current_ratio >= 1.2 else "부채안정")
+                        c4_sub = f"{'FCF 흑자' if fcf_ok else 'FCF 적자'} · {debt_short}"
 
                     # ⑤ 기회비용 (10년물 미국채 금리 대비 이익수익률 ERP)
                     if f_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c5_st = "pass"
@@ -5602,14 +5607,13 @@ with tab1:
                         (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
                         (t("2. 경영진·주주환원", "2. Mgmt & Return"), c2_st, c2_sub),
                         (t("3. 가격 안전마진", "3. Margin of Safety"), c3_st, c3_sub),
-                        (t("4. 재무 생존력", "4. Financial Health"), c4_st, c4_sub),
+                        (t("4. 재무 생존력", "4. Financial Survival"), c4_st, c4_sub),
                         (t("5. 국채 대비 기회비용", "5. vs 10Y Treasury"), c5_st, c5_sub)
                     ]
 
                     pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
                     warn_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "warn")
 
-                    # 5대 필터 배지 HTML 조립
                     badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-top:22px; text-align:left;'>"
                     for b_title, b_st, b_sub in munger_items:
                         if b_st == "pass":
@@ -5635,7 +5639,6 @@ with tab1:
                     chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트] : 5개 중 {pass_cnt}개 기준 충족 ({sign_tot}{total_score_val}점)"
                     chk_header_en = f"📋 [Munger's 5-Point Quantitative Checklist] : {pass_cnt}/5 Passed ({sign_tot}{total_score_val} pts)"
 
-                    # 3. 최종 체크리스트 배너 렌더링
                     munger_banner_html = (
                         f"<div style='padding: 25px 20px; border-radius: 16px; border: 1.5px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.12);'>"
                         f"<h3 style='margin: 0 0 6px 0; color: {op_color}; font-size: 1.42rem; letter-spacing: -0.5px;'>{t(chk_header_ko, chk_header_en)}</h3>"
@@ -5655,7 +5658,6 @@ with tab1:
                         f"</div>"
                     )
                     st.markdown(munger_banner_html, unsafe_allow_html=True)
-                    # ▲▲▲ 여기까지 교체 ▲▲▲
 
                     with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
                         breakdown_html = "<ul style='list-style-type: none; padding: 0;'>"
@@ -5960,9 +5962,9 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
                     f"{rnd_block}"
 
-                    # ▼▼▼ [신규 추가 카드 3종] 이익의 질 & 실질 FCF / 피오트로스키 F-Score / 발행주식수 증감률 ▼▼▼
+                    # ▼▼▼ [버핏·멍거 핵심 카드 3종] 이익수익률(vs 국채) / 이익의 질 & 실질 FCF / 주식 희석 vs 소각 판독기 ▼▼▼
+                    f"<div style='{item_style}'><div style='{lbl_style}'>이익수익률 (vs 10년물 미국채)</div><div style='{desc_style} margin-top:5px;'>{ey_str if not is_financial else f'<b style=\"color:#74b9ff;\">{ey:.1f}%</b> (국채 {erp:+.1f}%p)'}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익의 질 (OCF/NI) & 실질 FCF</div><div style='{desc_style} margin-top:5px;'>{eq_sbc_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>피오트로스키 F-Score (9점 만점)</div><div style='{desc_style} margin-top:5px;'>{f_score_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
                     f"</div>"
                 )
@@ -6582,7 +6584,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             </div>
                             <div style="background: rgba(56, 189, 248, 0.12); border-left: 3px solid #38bdf8; padding: 8px 10px; border-radius: 6px; font-size: 0.78rem; color: #e2e8f0;">
                                 🔍 <b>역산 DCF 시장 요구 성장률:</b> {imp_g_fmt}<br>
-                                📊 <b>피오트로스키 F-Score:</b> {f_score_val if f_score_val is not None else 'N/A'} / 9점
+                                📊 <b>영업이익률 / ROE:</b> {op_m:.1f}% / {roe:.1f}%
                             </div>
                             <div style="text-align: center; font-size: 0.65rem; color: #64748b; margin-top: 8px;">
                                 AGIE Value Investing Terminal • Educational Purpose Only
@@ -6709,7 +6711,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         # 5. 역산 DCF & 피오트로스키 F-Score 요약 바
                                         draw.rounded_rectangle([36, 840, W-36, 935], radius=14, fill=(20, 35, 58), outline=(56, 189, 248), width=2)
                                         draw.text((W//2, 868), f"🔍 역산 DCF 시장 요구 성장률: {imp_g_fmt}", font=f_card_val, fill=(56, 189, 248), anchor="mm")
-                                        draw.text((W//2, 908), f"📊 피오트로스키 F-Score: {f_score_val if f_score_val is not None else 'N/A'} / 9점", font=f_card_lbl, fill=(226, 232, 240), anchor="mm")
+                                        draw.text((W//2, 908), f"📊 영업이익률: {op_m:.1f}% | ROE: {roe:.1f}%", font=f_card_lbl, fill=(226, 232, 240), anchor="mm")
 
                                         # 6. 하단 실시간 한글 자막 박스 (음성에 맞춰 변경됨!)
                                         draw.rounded_rectangle([36, 955, W-36, 1215], radius=18, fill=(9, 14, 26), outline=(250, 204, 21), width=3)
@@ -7871,8 +7873,7 @@ with tab_vs:
                 {"지표": "선행 PBR (10년 평균)", res_a['name']: f"{res_a['f_pbr']:.2f}배 ({res_a['a_pbr']:.2f}배)", res_b['name']: f"{res_b['f_pbr']:.2f}배 ({res_b['a_pbr']:.2f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pbr'] < res_b['f_pbr']) else f"🟥 {res_b['name']}"},
                 {"지표": "자본수익률 (ROE)", res_a['name']: f"{res_a['roe']:.1f}%", res_b['name']: f"{res_b['roe']:.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['roe'] > res_b['roe'] else f"🟥 {res_b['name']}"},
                 {"지표": "투하자본수익률 (ROIC)", res_a['name']: ("금융주 제외" if res_a['is_fin'] else f"{res_a['roic']:.1f}%"), res_b['name']: ("금융주 제외" if res_b['is_fin'] else f"{res_b['roic']:.1f}%"), "우위 판정": f"🟦 {res_a['name']}" if res_a['roic'] > res_b['roic'] else f"🟥 {res_b['name']}"},
-                {"지표": "총주주환원율 (배당+자사주)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"},
-                {"지표": "피오트로스키 F-Score", res_a['name']: res_a['f_score'], res_b['name']: res_b['f_score'], "우위 판정": "-"}
+                {"지표": "총주주환원율 (배당+자사주)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"}
             ]
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
         else:
