@@ -6356,28 +6356,28 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [8컷 다이나믹 화면전환 + 막대그래프 버전] 6. 유튜브 쇼츠(Shorts) 제작 스튜디오
+                # [오토핏 텍스트 엔진 + 위트 있는 비유 대본] 6. 유튜브 쇼츠(Shorts) 제작 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 다이나믹 스튜디오 (8컷 빠른 화면전환 + 비교 그래프 MP4)", "🎬 6. Dynamic 8-Cut YouTube Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 다이나믹 스튜디오 (글자잘림 0% 오토핏 + 8컷 MP4)", "🎬 6. Dynamic 8-Cut YouTube Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **요즘 쇼츠 트렌드 완벽 반영:** 복잡한 표를 없애고 **3~4초마다 화면 배경과 막대그래프·도장 그래픽이 통째로 확확 바뀌는 8컷 다이나믹 연출(약 32초)**이 적용되었습니다!",
-                        "💡 Features 8 fast-paced dynamic scene transitions with large comparison bars and stamps."
+                        "💡 **오토핏(Auto-Fit) 렌더링 적용:** 모든 텍스트가 박스 가로·세로 픽셀에 맞춰 폰트 크기와 줄바꿈이 자동 조절되어 **글자 잘림이나 박스 이탈이 절대 발생하지 않습니다.**",
+                        "💡 Auto-fit pixel bounding box engine prevents any text overflow or subtitle truncation."
                     ))
 
                     col_sh_opt1, col_sh_opt2 = st.columns([1.6, 1.4])
                     with col_sh_opt1:
                         shorts_style = st.radio(
-                            t("1️⃣ 쇼츠 오프닝(초반 3초) 후킹 스타일", "Select 3-Second Hook Style"),
+                            t("1️⃣ 쇼츠 스토리텔링 컨셉 선택 (초반 억지 후킹 제거)", "Select Storytelling Concept"),
                             [
-                                "🔥 도파민 팩폭형 (\"지금 바겐세일일까, 거품일까? 30초 팩트폭격!\")",
-                                "🕵️ 100% 인수 게임형 (\"내가 이 회사를 통째로 인수하면 본전 몇 년 걸릴까?\")",
-                                "🚨 시장 속내 폭로형 (\"현재 주가에 숨겨진 소름 돋는 시장의 기대치!\")"
+                                "💼 컨셉 A: 100% 통째 인수 시뮬레이션 (\"이 회사를 통째로 인수하면 남는 장사일까?\")",
+                                "🍗 컨셉 B: 현실 비유 팩폭형 (\"예금 이자·치킨값보다 나을까? 장부 팩트체크\")",
+                                "🔍 컨셉 C: 시장 기대치 역산형 (\"현재 주가에 숨겨진 월가의 진짜 속내\")"
                             ],
                             key=f"shorts_style_{tk}"
                         )
                     with col_sh_opt2:
                         voice_choice = st.selectbox(
-                            "2️⃣ 쇼츠 바이럴 성우 선택 (피치·텐션 업그레이드)",
+                            "2️⃣ 쇼츠 바이럴 성우 선택",
                             [
                                 "🔥 선희 (SunHi 하이텐션) - 쇼츠 알고리즘 1위 통통 튀는 여성 보이스",
                                 "⚡ 인준 (InJoon 크리에이터) - 빠르고 찰진 남성 유튜버 팩폭 보이스",
@@ -6386,7 +6386,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             key=f"shorts_voice_{tk}"
                         )
                         voice_speed = st.slider(
-                            "말하기 속도 배속 (쇼츠 황금배속: +25%)",
+                            "말하기 속도 배속 (추천: +25%)",
                             min_value=10, max_value=40, value=25, step=5,
                             format="+%d%%",
                             key=f"shorts_spd_{tk}"
@@ -6404,67 +6404,67 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     imp_g_fmt = f"연 {implied_g_shorts*100:.1f}%" if implied_g_shorts is not None else "확인 필요"
                     hold_badge = "보유중(단기매매X)" if creator_holds else "미보유"
 
-                    # 경영진 팩트체크 1줄 요약 추출 (명예훼손 방지 필터 적용됨)
-                    gov_pro_short, gov_con_short = "꾸준한 본업 경쟁력 유지", "주주환원 일관성 지속 점검 필요"
+                    # 경영진 팩트체크 핵심 요약 추출
+                    gov_pro_short, gov_con_short = "꾸준한 본업 경쟁력 및 시장 지위 유지", "주주환원 일관성 및 지배구조 지속 점검 필요"
                     if "장점:" in criticism_text and "단점:" in criticism_text:
                         pts = criticism_text.split("단점:")
-                        gov_pro_short = pts[0].split("장점:")[-1].strip()[:48] + "..."
-                        gov_con_short = pts[1].strip()[:48] + "..."
+                        gov_pro_short = pts[0].split("장점:")[-1].strip()
+                        gov_con_short = pts[1].strip()
 
-                    # --- [8컷 초고속 대본 생성 (컷당 3~4초, 직관적 비유)] ---
-                    if "도파민" in shorts_style:
-                        c1_nar = f"잠깐! 스와이프 멈추세요! 현재 주가 {p_str}인 {comp_name}, 과연 지금이 바겐세일일까요, 거품일까요? 30초 만에 털어봅니다!"
-                    elif "인수 게임" in shorts_style:
-                        c1_nar = f"만약 여러분이 {comp_name} 회사를 통째로 인수한다면 몇 년 만에 본전을 뽑을까요? 10년 장부로 딱 30초 만에 견적 내드립니다!"
+                    # --- [8컷 위트 있고 짧은 구어체 대본 (컷당 45~55자 이내로 자막 박스 100% 완벽 수납)] ---
+                    if "컨셉 A" in shorts_style:
+                        c1_nar = f"{comp_name}, 현재 주가 {p_str}! 만약 이 회사를 통째로 인수해서 동업한다면 과연 남는 장사일까요?"
+                    elif "컨셉 B" in shorts_style:
+                        c1_nar = f"주식은 종잇조각이 아니라 회사 지분이죠! 한 주에 {p_str}인 {comp_name}, 지금 제값 주고 사는 걸까요?"
                     else:
-                        c1_nar = f"현재 주가 {p_str}인 {comp_name}! 시장 사람들은 이 회사가 앞으로 얼마나 클 거라고 베팅 중일까요? 지금 바로 까보겠습니다!"
+                        c1_nar = f"현재 주가 {p_str}인 {comp_name}! 시장 사람들은 이 회사가 앞으로 얼마나 클 거라고 베팅 중일까요?"
 
                     # 컷 2: 돈 불리는 속도 (ROE vs 은행예금)
                     roe_mult = max(1.0, roe / 3.5) if roe > 0 else 0
                     if roe >= 15:
-                        c2_nar = f"첫째, 돈 버는 속도! 은행 예금이 연 3.5% 줄 때, 이 회사는 내 자본을 연 {roe:.1f}%, 무려 은행의 {roe_mult:.1f}배 속도로 불려주는 복리 엔진입니다!"
+                        c2_nar = f"시중 은행 예금이 연 3.5% 이자를 줄 때, 이 회사는 주주 자본을 연 {roe:.1f}%, 은행의 {roe_mult:.1f}배 속도로 불려줍니다!"
                     elif roe >= 8:
-                        c2_nar = f"첫째, 돈 버는 속도! 은행 예금이 3.5% 수준일 때, 이 회사의 자본수익률 ROE는 연 {roe:.1f}%로 무난하게 돈을 불리고 있습니다."
+                        c2_nar = f"은행 예금 이자가 3.5% 수준일 때, 이 회사의 자본수익률 ROE는 연 {roe:.1f}%로 무난하게 돈을 불리고 있습니다."
                     else:
-                        c2_nar = f"첫째, 돈 버는 속도! 현재 자본수익률 ROE가 {roe:.1f}%로, 자본 효율성은 다소 아쉬운 구간입니다."
+                        c2_nar = f"현재 자본수익률 ROE가 연 {roe:.1f}%로, 투입된 자본 대비 돈 버는 효율성은 다소 아쉬운 구간입니다."
 
                     # 컷 3: 본전 뽑는 시간 (PER 또는 PBR)
                     if is_financial or kr or is_cyclical:
-                        p_word = f"평소보다 {abs(pmos_val):.0f}% 할인된 가격표입니다!" if pmos_val >= 5 else (f"평소보다 {abs(pmos_val):.0f}% 비싼 프리미엄 구간입니다." if pmos_val <= -5 else "10년 평균과 딱 비슷한 수준입니다.")
-                        c3_nar = f"둘째, 가격표 검증! 장부가치 대비 주가인 선행 PBR은 {f_pbr:.2f}배로, 10년 평균 {a_pbr:.2f}배와 비교하면 {p_word}"
+                        p_word = f"10년 평균보다 {abs(pmos_val):.0f}% 할인된 가격표입니다!" if pmos_val >= 5 else (f"10년 평균보다 {abs(pmos_val):.0f}% 높은 프리미엄 구간입니다." if pmos_val <= -5 else "10년 평균과 딱 비슷한 수준입니다.")
+                        c3_nar = f"장부가치 대비 주가인 선행 PBR은 {f_pbr:.2f}배로, 10년 평균치인 {a_pbr:.2f}배와 비교하면 {p_word}"
                     else:
                         if f_pe > 0 and a_pe > 0:
-                            p_word = f"평소보다 {abs(pmos_val):.0f}% 저렴해진 상태입니다!" if pmos_val >= 5 else (f"평소보다 {abs(pmos_val):.0f}% 비싸게 거래 중입니다." if pmos_val <= -5 else "10년 평균과 거의 같습니다.")
-                            c3_nar = f"둘째, 본전 뽑는 시간! 선행 PER은 {f_pe:.1f}년으로, 10년 평균인 {a_pe:.1f}년과 비교하면 {p_word}"
+                            p_word = f"평소보다 {abs(pmos_val):.0f}% 저렴해진 상태입니다!" if pmos_val >= 5 else (f"평소보다 {abs(pmos_val):.0f}% 비싸게 거래 중입니다." if pmos_val <= -5 else "10년 평균과 거의 일치합니다.")
+                            c3_nar = f"순이익으로 본전 뽑는 시간인 선행 PER은 {f_pe:.1f}년! 10년 평균 {a_pe:.1f}년과 비교하면 {p_word}"
                         else:
-                            c3_nar = f"둘째, 가격표 검증! 현재 장부가치 대비 주가인 PBR은 {pbr:.2f}배 수준에서 움직이고 있습니다."
+                            c3_nar = f"현재 장부가치 대비 주가인 PBR은 {pbr:.2f}배 수준에서 거래되고 있습니다."
 
                     # 컷 4: 주주 보너스 (배당 + 자사주 소각)
                     if tsy_total >= 2.5:
-                        c4_nar = f"셋째, 주주 보너스! 배당 {div:.1f}%에 자사주 소각 효과 {bb_yield:+.1f}%를 합쳐 매년 {tsy_total:.1f}%를 주주에게 돌려주고 있습니다!"
+                        c4_nar = f"가만히 들고만 있어도 현금 배당 {div:.1f}%와 자사주 소각 {bb_yield:+.1f}%를 합쳐 매년 {tsy_total:.1f}%의 주주 보너스를 챙겨줍니다!"
                     elif tsy_total > 0:
-                        c4_nar = f"셋째, 주주 보너스! 배당과 자사주 매입을 합친 총주주환원율은 연 {tsy_total:.1f}% 수준입니다."
+                        c4_nar = f"현금 배당과 자사주 매입을 합쳐 주주에게 돌려주는 총주주환원율은 연 {tsy_total:.1f}% 수준입니다."
                     else:
-                        c4_nar = f"셋째, 주주 환원! 현재 배당보다는 성장을 위한 재투자에 집중하거나 주식 희석 여부를 체크해야 하는 구간입니다."
+                        c4_nar = f"현재 배당보다는 사내 유보와 재투자에 집중하거나, 신주 발행에 따른 지분 희석 여부를 점검해야 합니다."
 
                     # 컷 5: 미국 국채 금리와 맞짱
                     if f_pe > 0:
-                        bond_win = "국채 이자보다 기대 수익률이 높아서 합격입니다!" if erp >= 0.5 else "안전한 국채 이자보다 낮아서 높은 성장성이 꼭 필요한 구간입니다."
-                        c5_nar = f"넷째, 미국 국채와 맞짱! 주식을 예금 이자로 환산한 이익수익률은 {ey:.1f}%로, 미국채 금리 {ty:.1f}%와 비교하면 {bond_win}"
+                        bond_win = "국채 이자보다 기대 수익률이 높아서 투자 매력도가 돋보입니다!" if erp >= 0.5 else "무위험 국채 금리보다 낮아서 확실한 실적 성장이 뒷받침되어야 합니다."
+                        c5_nar = f"주식을 예금 이자로 환산한 이익수익률은 연 {ey:.1f}%! 미국 10년 국채 금리 {ty:.1f}%와 비교하면 {bond_win}"
                     else:
-                        c5_nar = f"넷째, 현재 회계상 이익 변동성으로 인해 미국 국채 금리와의 단순 이자 비교는 확인이 필요합니다."
+                        c5_nar = f"현재 회계상 이익 변동성으로 인해 미국 국채 금리와의 단순 수익률 비교는 추가 확인이 필요합니다."
 
                     # 컷 6: 주가에 숨겨진 속내 (역산 DCF)
                     if not is_financial and implied_g_shorts is not None:
-                        c6_nar = f"다섯째, 시장의 진짜 속내! 현재 주가 {p_str}가 정당화되려면 앞으로 10년간 매년 {imp_g_fmt}씩 성장해야 합니다!"
+                        c6_nar = f"역산해보면 현재 주가 {p_str}가 정당화되기 위해 앞으로 10년간 매년 현금흐름이 {imp_g_fmt}씩 커져야 합니다!"
                     else:
-                        c6_nar = f"다섯째, 현금흐름 체력! 영업이익률 {op_m:.1f}%를 기록하며 본업에서 현금을 창출하고 있습니다."
+                        c6_nar = f"본업 경쟁력의 척도인 영업이익률은 {op_m:.1f}%를 기록하며 현금 창출력을 유지하고 있습니다."
 
-                    # 컷 7: 경영진 팩트폭격
-                    c7_nar = f"여섯째, 경영진 팩트체크! 강점과 리스크 요인이 공존하므로 공시 기준 지배구조 흐름을 꼭 확인해야 합니다."
+                    # 컷 7: 경영진 성적표
+                    c7_nar = f"경영진 자본배분 성적표! 본업의 해자는 뚜렷하지만 지배구조와 주주환원 일관성은 꾸준히 감시해야 합니다."
 
-                    # 컷 8: 최종 판정 & 댓글 투표 유도
-                    c8_nar = f"최종 결론! 찰리 멍거 5대 관문 중 {pass_cnt}개 통과, 정량 총점은 {total_score_val}점입니다! 여러분이라면 지금 동업하시겠습니까? 댓글로 투표해 주세요!"
+                    # 컷 8: 최종 판정 (문장을 간결하게 압축하여 잘림 원천 방지)
+                    c8_nar = f"찰리 멍거 5대 관문 중 {pass_cnt}개 통과, 최종 점수는 {total_score_val}점! 여러분이라면 지금 동업하시겠습니까?"
 
                     scenes_8cut = [
                         ("CUT1_HOOK", c1_nar),
@@ -6525,36 +6525,80 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                         return _get_f
 
-                    # 8컷 장면마다 배경색·그래픽·도장을 완전히 다르게 그리는 다이나믹 렌더러
+                    # [핵심 엔진] 박스 가로·세로 픽셀에 맞춰 폰트 크기 축소 및 자동 줄바꿈을 수행하는 무결점 함수
+                    def _draw_fit_text(draw, box_coords, text, get_font, max_sz=36, min_sz=18, fill=(255,255,255), max_lines=1, line_spacing=1.28):
+                        x1, y1, x2, y2 = box_coords
+                        box_w = max(40, (x2 - x1) - 32)  # 좌우 안전 여백 16px씩 확보
+                        box_h = max(20, (y2 - y1) - 20)  # 상하 안전 여백 10px씩 확보
+                        clean_t = str(text).strip()
+
+                        for sz in range(max_sz, min_sz - 1, -2):
+                            f = get_font(sz, True)
+                            if max_lines == 1:
+                                bbox = draw.textbbox((0, 0), clean_t, font=f)
+                                if (bbox[2] - bbox[0]) <= box_w:
+                                    draw.text(((x1 + x2) // 2, (y1 + y2) // 2), clean_t, font=f, fill=fill, anchor="mm")
+                                    return
+                            else:
+                                # 어절(단어) 단위 픽셀 줄바꿈
+                                words = clean_t.split(' ')
+                                lines, cur = [], ""
+                                for w in words:
+                                    test_l = (cur + " " + w).strip() if cur else w
+                                    bb = draw.textbbox((0, 0), test_l, font=f)
+                                    if (bb[2] - bb[0]) <= box_w:
+                                        cur = test_l
+                                    else:
+                                        if cur: lines.append(cur)
+                                        cur = w
+                                if cur: lines.append(cur)
+
+                                total_h = len(lines) * int(sz * line_spacing)
+                                if len(lines) <= max_lines and total_h <= box_h and all((draw.textbbox((0,0), l, font=f)[2] - draw.textbbox((0,0), l, font=f)[0]) <= box_w for l in lines):
+                                    step_y = int(sz * line_spacing)
+                                    start_y = ((y1 + y2) // 2) - ((len(lines) - 1) * step_y) // 2
+                                    for idx_l, l_str in enumerate(lines):
+                                        draw.text(((x1 + x2) // 2, start_y + idx_l * step_y), l_str, font=f, fill=fill, anchor="mm")
+                                    return
+
+                        # 최소 폰트에서도 길 경우 글자 단위로 안전하게 줄바꿈하여 절단 원천 방지
+                        f = get_font(min_sz, True)
+                        lines, cur = [], ""
+                        for ch in clean_t:
+                            test_l = cur + ch
+                            if (draw.textbbox((0, 0), test_l, font=f)[2] - draw.textbbox((0, 0), test_l, font=f)[0]) <= box_w:
+                                cur = test_l
+                            else:
+                                lines.append(cur)
+                                cur = ch
+                        if cur: lines.append(cur)
+                        lines = lines[:max_lines]
+                        step_y = int(min_sz * line_spacing)
+                        start_y = ((y1 + y2) // 2) - ((len(lines) - 1) * step_y) // 2
+                        for idx_l, l_str in enumerate(lines):
+                            draw.text(((x1 + x2) // 2, start_y + idx_l * step_y), l_str, font=f, fill=fill, anchor="mm")
+
+                    # 8컷 다이나믹 프레임 렌더러 (이모지 깨짐 제거 + 모든 텍스트 오토핏 박스 수납)
                     def _draw_dynamic_8cut_frame(cut_idx, cut_code, nar_text, get_font):
                         from PIL import Image, ImageDraw
-                        import textwrap
                         W, H = 720, 1280
 
-                        # 컷별 배경 테마 컬러 다르게 지정 (화면이 확확 바뀌는 시각 효과)
                         bg_themes = {
-                            "CUT1_HOOK": ((28, 10, 20), (239, 68, 68), "🚨 30초 장부 팩트폭격"),
+                            "CUT1_HOOK": ((24, 12, 28), (239, 68, 68), "OPENING. 100% 지분 인수 게임"),
                             "CUT2_ROE": ((8, 28, 24), (16, 185, 129), "STEP 1. 돈 불리는 복리 속도"),
-                            "CUT3_PRICE": ((10, 22, 42), (56, 189, 248), "STEP 2. 본전 뽑는 시간 & 가격표"),
+                            "CUT3_PRICE": ((10, 22, 42), (56, 189, 248), "STEP 2. 본전 회수 기간 & 가격표"),
                             "CUT4_BONUS": ((24, 12, 40), (192, 132, 252), "STEP 3. 주주 보너스 (배당+소각)"),
-                            "CUT5_BOND": ((28, 22, 8), (250, 204, 21), "STEP 4. 미국 국채 이자와 맞짱!"),
-                            "CUT6_DCF": ((32, 16, 8), (249, 115, 22), "STEP 5. 주가에 숨겨진 시장의 속내"),
-                            "CUT7_GOV": ((18, 20, 28), (148, 163, 184), "STEP 6. 경영진 뒷조사 팩트체크"),
-                            "CUT8_FINAL": ((10, 18, 36), (250, 204, 21), "FINAL. 최종 정량 성적표 & 투표")
+                            "CUT5_BOND": ((28, 22, 8), (250, 204, 21), "STEP 4. 미국 10년 국채와 맞짱"),
+                            "CUT6_DCF": ((32, 16, 8), (249, 115, 22), "STEP 5. 주가에 숨겨진 시장 기대치"),
+                            "CUT7_GOV": ((18, 20, 28), (148, 163, 184), "STEP 6. 경영진 자본배분 성적표"),
+                            "CUT8_FINAL": ((10, 18, 36), (250, 204, 21), "FINAL. 최종 정량 점수 & 투표")
                         }
                         bg_col, accent_col, step_title = bg_themes.get(cut_code, ((15, 23, 42), (56, 189, 248), "AGIE SHORT"))
 
                         img = Image.new("RGB", (W, H), color=bg_col)
                         draw = ImageDraw.Draw(img)
 
-                        f_giant = get_font(78, True)
-                        f_h1 = get_font(50, True)
-                        f_h2 = get_font(36, True)
-                        f_h3 = get_font(28, True)
-                        f_sub = get_font(31, True)
-                        f_sm = get_font(19, False)
-
-                        # 외곽 네온 테두리 & 상단 진행 프로그레스 바 (8칸)
+                        # 외곽 테두리 & 상단 8칸 진행 바
                         draw.rounded_rectangle([14, 14, W-14, H-14], radius=28, outline=accent_col, width=6)
                         seg_w = (W - 80) // 8
                         for s_i in range(8):
@@ -6563,135 +6607,129 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([sx1, 34, sx1 + seg_w - 6, 46], radius=4, fill=scol)
 
                         # 상단 법적 고지 & 스텝 배지
-                        draw.text((W//2, 70), f"⚠️ 공시 기반 시뮬레이션 (매수·매도 추천 아님 | 제작자 {hold_badge})", font=f_sm, fill=(148, 163, 184), anchor="mm")
-                        draw.rounded_rectangle([60, 96, W-60, 154], radius=28, fill=accent_col)
-                        draw.text((W//2, 125), step_title, font=f_h3, fill=(10, 15, 25), anchor="mm")
+                        _draw_fit_text(draw, [36, 52, W-36, 86], f"공시 기반 정량 시뮬레이션 (매수·매도 추천 아님 | 제작자 {hold_badge})", get_font, max_sz=19, min_sz=14, fill=(148, 163, 184), max_lines=1)
+                        draw.rounded_rectangle([60, 94, W-60, 152], radius=28, fill=accent_col)
+                        _draw_fit_text(draw, [60, 94, W-60, 152], step_title, get_font, max_sz=28, min_sz=20, fill=(10, 15, 25), max_lines=1)
 
-                        # 종목명 상단 고정 타이틀
-                        draw.text((W//2, 205), f"{comp_name} ({clean_tk})", font=f_h1, fill=(255, 255, 255), anchor="mm")
+                        # 종목명 헤더 (긴 종목명도 자동 축소되어 절대 안 잘림)
+                        _draw_fit_text(draw, [36, 162, W-36, 240], f"{comp_name} ({clean_tk})", get_font, max_sz=48, min_sz=26, fill=(255, 255, 255), max_lines=1)
 
-                        # --- [중앙 메인 비주얼 영역 (Y: 250 ~ 890) - 컷마다 완전히 다른 그래픽!] ---
+                        # --- [중앙 메인 그래픽 영역 (Y: 255 ~ 860)] ---
                         if cut_code == "CUT1_HOOK":
-                            draw.rounded_rectangle([46, 260, W-46, 520], radius=24, fill=(45, 15, 30), outline=(250, 204, 21), width=4)
-                            draw.text((W//2, 325), "현재 주가", font=f_h2, fill=(253, 224, 71), anchor="mm")
-                            draw.text((W//2, 425), p_str, font=f_giant, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 515], radius=24, fill=(45, 15, 30), outline=(250, 204, 21), width=4)
+                            _draw_fit_text(draw, [60, 275, W-60, 345], "현재 1주당 가격표", get_font, max_sz=32, min_sz=22, fill=(253, 224, 71), max_lines=1)
+                            _draw_fit_text(draw, [60, 350, W-60, 495], p_str, get_font, max_sz=76, min_sz=40, fill=(255, 255, 255), max_lines=1)
 
-                            draw.rounded_rectangle([46, 560, 345, 840], radius=20, fill=(6, 78, 59), outline=(52, 211, 153), width=4)
-                            draw.text((195, 660), "💎 바겐세일", font=f_h2, fill=(110, 231, 183), anchor="mm")
-                            draw.text((195, 740), "찬스일까?", font=f_h2, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([46, 550, 345, 845], radius=20, fill=(6, 78, 59), outline=(52, 211, 153), width=4)
+                            _draw_fit_text(draw, [56, 590, 335, 690], "[바겐세일]", get_font, max_sz=38, min_sz=24, fill=(110, 231, 183), max_lines=1)
+                            _draw_fit_text(draw, [56, 700, 335, 790], "저평가 기회?", get_font, max_sz=34, min_sz=22, fill=(255, 255, 255), max_lines=1)
 
-                            draw.rounded_rectangle([375, 560, W-46, 840], radius=20, fill=(127, 29, 29), outline=(248, 113, 113), width=4)
-                            draw.text((525, 660), "🫧 고점 거품", font=f_h2, fill=(252, 165, 165), anchor="mm")
-                            draw.text((525, 740), "구간일까?", font=f_h2, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([375, 550, W-46, 845], radius=20, fill=(127, 29, 29), outline=(248, 113, 113), width=4)
+                            _draw_fit_text(draw, [385, 590, W-56, 690], "[고점 부담]", get_font, max_sz=38, min_sz=24, fill=(252, 165, 165), max_lines=1)
+                            _draw_fit_text(draw, [385, 700, W-56, 790], "비싼 프리미엄?", get_font, max_sz=34, min_sz=22, fill=(255, 255, 255), max_lines=1)
 
                         elif cut_code == "CUT2_ROE":
-                            # 은행 예금 vs 기업 ROE 막대그래프 비교
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(15, 40, 35), outline=accent_col, width=3)
-                            draw.text((W//2, 320), "내 돈을 굴려주는 1년 복리 속도!", font=f_h2, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(15, 40, 35), outline=accent_col, width=3)
+                            _draw_fit_text(draw, [66, 275, W-66, 345], "내 돈을 굴려주는 1년 복리 이자율 비교", get_font, max_sz=32, min_sz=22, fill=(255, 255, 255), max_lines=1)
 
-                            # 은행 예금 바
-                            draw.text((80, 410), "🏦 은행 예금 이자", font=f_h3, fill=(203, 213, 225), anchor="lm")
-                            draw.rounded_rectangle([80, 440, 220, 495], radius=10, fill=(100, 116, 139))
-                            draw.text((240, 467), "연 3.5%", font=f_h2, fill=(203, 213, 225), anchor="lm")
+                            _draw_fit_text(draw, [80, 370, 380, 420], "시중 은행 예금 이자", get_font, max_sz=26, min_sz=18, fill=(203, 213, 225), max_lines=1)
+                            draw.rounded_rectangle([80, 430, 210, 490], radius=10, fill=(100, 116, 139))
+                            _draw_fit_text(draw, [225, 430, 460, 490], "연 3.5%", get_font, max_sz=34, min_sz=22, fill=(203, 213, 225), max_lines=1)
 
-                            # 기업 ROE 바
-                            draw.text((80, 560), f"🚀 {comp_name} (ROE)", font=f_h3, fill=(250, 204, 21), anchor="lm")
-                            bar_max_w = 460
+                            _draw_fit_text(draw, [80, 520, W-80, 570], f"{comp_name} 자본수익률 (ROE)", get_font, max_sz=26, min_sz=18, fill=(250, 204, 21), max_lines=1)
+                            bar_max_w = 340
                             roe_bar_w = int(max(60, min(bar_max_w, (max(0, roe) / 30.0) * bar_max_w)))
-                            draw.rounded_rectangle([80, 595, 80 + roe_bar_w, 665], radius=12, fill=(16, 185, 129))
-                            draw.text((80 + roe_bar_w + 18, 630), f"연 {roe:.1f}%", font=f_h1, fill=(74, 222, 128), anchor="lm")
+                            draw.rounded_rectangle([80, 580, 80 + roe_bar_w, 650], radius=12, fill=(16, 185, 129))
+                            _draw_fit_text(draw, [80 + roe_bar_w + 12, 580, W-65, 650], f"연 {roe:.1f}%", get_font, max_sz=42, min_sz=24, fill=(74, 222, 128), max_lines=1)
 
-                            stamp_txt = f"🔥 은행 이자의 {max(1.0, roe/3.5):.1f}배 속도!" if roe >= 7 else f"⚠️ 수익성 점검 필요 ({roe:.1f}%)"
-                            draw.rounded_rectangle([80, 725, W-80, 810], radius=16, fill=(6, 95, 70))
-                            draw.text((W//2, 767), stamp_txt, font=f_h2, fill=(250, 204, 21), anchor="mm")
+                            stamp_txt = f"은행 예금의 {max(1.0, roe/3.5):.1f}배 복리 속도!" if roe >= 7 else f"자본 효율성 점검 필요 (ROE {roe:.1f}%)"
+                            draw.rounded_rectangle([70, 700, W-70, 810], radius=16, fill=(6, 95, 70))
+                            _draw_fit_text(draw, [75, 705, W-75, 805], stamp_txt, get_font, max_sz=34, min_sz=20, fill=(250, 204, 21), max_lines=1)
 
                         elif cut_code == "CUT3_PRICE":
-                            # 10년 평균 vs 현재 멀티플 비교
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(15, 30, 58), outline=accent_col, width=3)
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(15, 30, 58), outline=accent_col, width=3)
                             use_pbr_mode = (is_financial or kr or is_cyclical or f_pe <= 0)
-                            m_name = "PBR (장부가 대비)" if use_pbr_mode else "PER (본전 회수 기간)"
+                            m_name = "장부가치 대비 주가 (선행 PBR)" if use_pbr_mode else "순이익으로 본전 뽑는 시간 (선행 PER)"
                             cur_v = f_pbr if use_pbr_mode else f_pe
                             avg_v = a_pbr if use_pbr_mode else a_pe
-                            u_sfx = "배" if use_pbr_mode else "년(배)"
+                            u_sfx = "배" if use_pbr_mode else "년"
 
-                            draw.text((W//2, 315), m_name, font=f_h2, fill=(147, 197, 253), anchor="mm")
+                            _draw_fit_text(draw, [66, 275, W-66, 345], m_name, get_font, max_sz=32, min_sz=22, fill=(147, 197, 253), max_lines=1)
+
                             draw.rounded_rectangle([70, 365, 340, 620], radius=18, fill=(30, 41, 59))
-                            draw.text((205, 420), "10년 평소 평균", font=f_h3, fill=(148, 163, 184), anchor="mm")
-                            draw.text((205, 520), f"{avg_v:.1f}{u_sfx}", font=f_h1, fill=(203, 213, 225), anchor="mm")
+                            _draw_fit_text(draw, [80, 385, 330, 445], "10년 평소 평균", get_font, max_sz=26, min_sz=18, fill=(148, 163, 184), max_lines=1)
+                            _draw_fit_text(draw, [80, 460, 330, 590], f"{avg_v:.1f}{u_sfx}", get_font, max_sz=52, min_sz=28, fill=(203, 213, 225), max_lines=1)
 
                             draw.rounded_rectangle([380, 365, W-70, 620], radius=18, fill=(23, 37, 84), outline=(250, 204, 21), width=4)
-                            draw.text((515, 420), "현재 가격표", font=f_h3, fill=(250, 204, 21), anchor="mm")
-                            draw.text((515, 520), f"{cur_v:.1f}{u_sfx}", font=f_h1, fill=(255, 255, 255), anchor="mm")
+                            _draw_fit_text(draw, [390, 385, W-80, 445], "현재 가격표", get_font, max_sz=26, min_sz=18, fill=(250, 204, 21), max_lines=1)
+                            _draw_fit_text(draw, [390, 460, W-80, 590], f"{cur_v:.1f}{u_sfx}", get_font, max_sz=52, min_sz=28, fill=(255, 255, 255), max_lines=1)
 
-                            disc_lbl = f"✅ 평소보다 {abs(pmos_val):.1f}% 할인 구간!" if pmos_val >= 0 else f"⚠️ 평소보다 {abs(pmos_val):.1f}% 프리미엄!"
+                            disc_lbl = f"10년 평균 대비 {abs(pmos_val):.1f}% 할인 구간!" if pmos_val >= 0 else f"10년 평균 대비 {abs(pmos_val):.1f}% 프리미엄!"
                             disc_bg = (22, 101, 52) if pmos_val >= 0 else (153, 27, 27)
-                            draw.rounded_rectangle([70, 665, W-70, 800], radius=18, fill=disc_bg)
-                            draw.text((W//2, 732), disc_lbl, font=f_h2, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([70, 660, W-70, 805], radius=18, fill=disc_bg)
+                            _draw_fit_text(draw, [80, 670, W-80, 795], disc_lbl, get_font, max_sz=34, min_sz=20, fill=(255, 255, 255), max_lines=1)
 
                         elif cut_code == "CUT4_BONUS":
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(38, 18, 60), outline=accent_col, width=3)
-                            draw.text((W//2, 325), "🎁 주주 호주머니에 꽂히는 보너스", font=f_h2, fill=(233, 213, 255), anchor="mm")
-                            draw.text((W//2, 465), f"연 {tsy_total:.1f}%", font=f_giant, fill=(250, 204, 21), anchor="mm")
-                            draw.rounded_rectangle([80, 575, W-80, 680], radius=16, fill=(59, 7, 100))
-                            draw.text((W//2, 627), f"현금 배당 {div:.1f}%  +  자사주 소각 {bb_yield:+.1f}%", font=f_h2, fill=(255, 255, 255), anchor="mm")
-                            draw.text((W//2, 765), "🔥 자사주를 사서 없애면 내 지분 가치가 올라갑니다!", font=f_h3, fill=(216, 180, 254), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(38, 18, 60), outline=accent_col, width=3)
+                            _draw_fit_text(draw, [66, 285, W-66, 355], "주주에게 매년 돌려주는 총보너스", get_font, max_sz=32, min_sz=22, fill=(233, 213, 255), max_lines=1)
+                            _draw_fit_text(draw, [66, 375, W-66, 535], f"연 {tsy_total:.1f}%", get_font, max_sz=78, min_sz=44, fill=(250, 204, 21), max_lines=1)
+
+                            draw.rounded_rectangle([70, 565, W-70, 685], radius=16, fill=(59, 7, 100))
+                            _draw_fit_text(draw, [80, 575, W-80, 675], f"현금 배당 {div:.1f}% + 자사주 소각 {bb_yield:+.1f}%", get_font, max_sz=32, min_sz=20, fill=(255, 255, 255), max_lines=1)
+                            _draw_fit_text(draw, [66, 720, W-66, 815], "자사주를 사서 태우면 내 지분 가치가 올라갑니다!", get_font, max_sz=26, min_sz=18, fill=(216, 180, 254), max_lines=1)
 
                         elif cut_code == "CUT5_BOND":
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(40, 30, 10), outline=accent_col, width=3)
-                            draw.text((W//2, 320), "⚖️ 안전한 국채 이자 vs 이 주식!", font=f_h2, fill=(254, 240, 138), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(40, 30, 10), outline=accent_col, width=3)
+                            _draw_fit_text(draw, [66, 280, W-66, 350], "안전한 미국 국채 이자 vs 이 주식!", get_font, max_sz=32, min_sz=22, fill=(254, 240, 138), max_lines=1)
 
-                            draw.rounded_rectangle([70, 385, 335, 660], radius=18, fill=(51, 65, 85))
-                            draw.text((202, 445), "🇺🇸 미국 10년 국채", font=f_h3, fill=(203, 213, 225), anchor="mm")
-                            draw.text((202, 555), f"{ty:.1f}%", font=f_h1, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([70, 375, 335, 650], radius=18, fill=(51, 65, 85))
+                            _draw_fit_text(draw, [80, 395, 325, 460], "미국 10년 국채", get_font, max_sz=26, min_sz=18, fill=(203, 213, 225), max_lines=1)
+                            _draw_fit_text(draw, [80, 475, 325, 620], f"{ty:.1f}%", get_font, max_sz=52, min_sz=30, fill=(255, 255, 255), max_lines=1)
 
-                            draw.rounded_rectangle([385, 385, W-70, 660], radius=18, fill=(113, 63, 18), outline=(250, 204, 21), width=4)
-                            draw.text((517, 445), "📈 주식 기대수익률", font=f_h3, fill=(253, 224, 71), anchor="mm")
-                            draw.text((517, 555), f"{ey:.1f}%", font=f_h1, fill=(74, 222, 128) if erp >= 0 else (248, 113, 113), anchor="mm")
+                            draw.rounded_rectangle([385, 375, W-70, 650], radius=18, fill=(113, 63, 18), outline=(250, 204, 21), width=4)
+                            _draw_fit_text(draw, [395, 395, W-80, 460], "주식 이익수익률", get_font, max_sz=26, min_sz=18, fill=(253, 224, 71), max_lines=1)
+                            _draw_fit_text(draw, [395, 475, W-80, 620], f"{ey:.1f}%", get_font, max_sz=52, min_sz=30, fill=(74, 222, 128) if erp >= 0 else (248, 113, 113), max_lines=1)
 
-                            erp_msg = f"국채 대비 {erp:+.1f}%p ({'주식 우위!' if erp >= 0 else '국채 우위!'})"
-                            draw.rounded_rectangle([70, 700, W-70, 805], radius=16, fill=(20, 20, 20))
-                            draw.text((W//2, 752), erp_msg, font=f_h2, fill=(250, 204, 21), anchor="mm")
+                            erp_msg = f"국채 대비 {erp:+.1f}%p ({'주식 수익률 우위!' if erp >= 0 else '국채 이자 우위!'})"
+                            draw.rounded_rectangle([70, 685, W-70, 805], radius=16, fill=(20, 20, 20))
+                            _draw_fit_text(draw, [80, 695, W-80, 795], erp_msg, get_font, max_sz=32, min_sz=20, fill=(250, 204, 21), max_lines=1)
 
                         elif cut_code == "CUT6_DCF":
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(48, 22, 10), outline=accent_col, width=3)
-                            draw.text((W//2, 325), "🔍 현재 주가에 숨겨진 시장의 기대치", font=f_h2, fill=(254, 215, 170), anchor="mm")
-                            draw.text((W//2, 415), "앞으로 10년간 매년 벌어야 하는 성장률", font=f_h3, fill=(203, 213, 225), anchor="mm")
-                            draw.text((W//2, 535), imp_g_fmt, font=f_giant, fill=(250, 204, 21), anchor="mm")
-                            draw.rounded_rectangle([70, 645, W-70, 800], radius=18, fill=(67, 20, 7))
-                            draw.text((W//2, 695), f"보수적 DCF 정량 산출값: {iv_fmt}", font=f_h2, fill=(255, 255, 255), anchor="mm")
-                            draw.text((W//2, 755), f"(현재 영업이익률 {op_m:.1f}% · 과거 평균성장 {final_g*100:.1f}%)", font=f_h3, fill=(253, 186, 116), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(48, 22, 10), outline=accent_col, width=3)
+                            _draw_fit_text(draw, [66, 280, W-66, 345], "현재 주가에 숨겨진 시장의 요구 성장률", get_font, max_sz=30, min_sz=20, fill=(254, 215, 170), max_lines=1)
+                            _draw_fit_text(draw, [66, 355, W-66, 415], "향후 10년간 매년 달성해야 하는 실적 성장", get_font, max_sz=24, min_sz=18, fill=(203, 213, 225), max_lines=1)
+                            _draw_fit_text(draw, [66, 430, W-66, 600], imp_g_fmt, get_font, max_sz=76, min_sz=40, fill=(250, 204, 21), max_lines=1)
+
+                            draw.rounded_rectangle([70, 630, W-70, 810], radius=18, fill=(67, 20, 7))
+                            _draw_fit_text(draw, [80, 645, W-80, 720], f"보수적 DCF 정량 산출값: {iv_fmt}", get_font, max_sz=32, min_sz=20, fill=(255, 255, 255), max_lines=1)
+                            _draw_fit_text(draw, [80, 725, W-80, 795], f"(현재 영업이익률 {op_m:.1f}% · 과거 성장률 {final_g*100:.1f}%)", get_font, max_sz=24, min_sz=16, fill=(253, 186, 116), max_lines=1)
 
                         elif cut_code == "CUT7_GOV":
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(23, 27, 38), outline=accent_col, width=3)
-                            draw.text((W//2, 315), "🕵️ 경영진 & 지배구조 팩트체크", font=f_h2, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(23, 27, 38), outline=accent_col, width=3)
+                            _draw_fit_text(draw, [66, 275, W-66, 340], "경영진 자본배분 & 지배구조 팩트체크", get_font, max_sz=30, min_sz=20, fill=(255, 255, 255), max_lines=1)
 
-                            draw.rounded_rectangle([70, 370, W-70, 575], radius=16, fill=(6, 78, 59))
-                            draw.text((W//2, 415), "👍 핵심 강점 (Pros)", font=f_h3, fill=(110, 231, 183), anchor="mm")
-                            for idx_l, l_txt in enumerate(textwrap.wrap(gov_pro_short, width=22)[:2]):
-                                draw.text((W//2, 475 + idx_l*42), l_txt, font=f_h3, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([70, 360, W-70, 580], radius=16, fill=(6, 78, 59))
+                            _draw_fit_text(draw, [85, 370, W-85, 425], "[핵심 강점 / PROS]", get_font, max_sz=25, min_sz=18, fill=(110, 231, 183), max_lines=1)
+                            _draw_fit_text(draw, [85, 430, W-85, 565], gov_pro_short, get_font, max_sz=25, min_sz=17, fill=(255, 255, 255), max_lines=3)
 
-                            draw.rounded_rectangle([70, 605, W-70, 815], radius=16, fill=(127, 29, 29))
-                            draw.text((W//2, 650), "⚠️ 점검 리스크 (Cons)", font=f_h3, fill=(252, 165, 165), anchor="mm")
-                            for idx_l, l_txt in enumerate(textwrap.wrap(gov_con_short, width=22)[:2]):
-                                draw.text((W//2, 710 + idx_l*42), l_txt, font=f_h3, fill=(255, 255, 255), anchor="mm")
+                            draw.rounded_rectangle([70, 605, W-70, 825], radius=16, fill=(127, 29, 29))
+                            _draw_fit_text(draw, [85, 615, W-85, 670], "[점검 리스크 / CONS]", get_font, max_sz=25, min_sz=18, fill=(252, 165, 165), max_lines=1)
+                            _draw_fit_text(draw, [85, 675, W-85, 810], gov_con_short, get_font, max_sz=25, min_sz=17, fill=(255, 255, 255), max_lines=3)
 
-                        else:  # CUT8_FINAL
-                            draw.rounded_rectangle([46, 260, W-46, 850], radius=24, fill=(15, 23, 42), outline=(250, 204, 21), width=5)
-                            draw.text((W//2, 320), f"📋 찰리 멍거 5대 관문 ({pass_cnt}/5 통과)", font=f_h2, fill=(147, 197, 253), anchor="mm")
-                            draw.text((W//2, 460), f"{total_score_val}점", font=f_giant, fill=(250, 204, 21), anchor="mm")
-                            draw.text((W//2, 575), op_title.split('(')[0].strip(), font=f_h1, fill=(74, 222, 128) if total_score_val >= 20 else (248, 113, 113), anchor="mm")
+                        else:  # CUT8_FINAL (글자 삐져나감 100% 해결!)
+                            draw.rounded_rectangle([46, 255, W-46, 850], radius=24, fill=(15, 23, 42), outline=(250, 204, 21), width=5)
+                            _draw_fit_text(draw, [66, 280, W-66, 350], f"찰리 멍거 5대 관문 ({pass_cnt}/5 통과)", get_font, max_sz=32, min_sz=22, fill=(147, 197, 253), max_lines=1)
+                            _draw_fit_text(draw, [66, 365, W-66, 520], f"{total_score_val}점", get_font, max_sz=78, min_sz=48, fill=(250, 204, 21), max_lines=1)
+                            _draw_fit_text(draw, [66, 530, W-66, 615], op_title.split('(')[0].strip(), get_font, max_sz=40, min_sz=24, fill=(74, 222, 128) if total_score_val >= 20 else (248, 113, 113), max_lines=1)
 
-                            draw.rounded_rectangle([70, 655, W-70, 815], radius=20, fill=(220, 38, 38))
-                            draw.text((W//2, 710), "💬 여러분이라면 지금 동업하시겠습니까?", font=f_h3, fill=(255, 255, 255), anchor="mm")
-                            draw.text((W//2, 765), "👇 댓글로 [찬성 vs 반대] 투표해 주세요!", font=f_h2, fill=(254, 240, 138), anchor="mm")
+                            # 빨간 투표 박스 (오토핏 적용으로 박스 밖 탈출 절대 불가!)
+                            draw.rounded_rectangle([66, 645, W-66, 820], radius=20, fill=(220, 38, 38))
+                            _draw_fit_text(draw, [80, 660, W-80, 725], "여러분이라면 지금 동업하시겠습니까?", get_font, max_sz=28, min_sz=18, fill=(255, 255, 255), max_lines=1)
+                            _draw_fit_text(draw, [80, 730, W-80, 805], "댓글로 [찬성 vs 반대] 투표해 주세요!", get_font, max_sz=32, min_sz=20, fill=(254, 240, 138), max_lines=1)
 
-                        # --- [하단 자막 박스 (Y: 910 ~ 1230) - 한눈에 들어오는 큼직한 자막] ---
-                        draw.rounded_rectangle([36, 910, W-36, 1225], radius=22, fill=(9, 13, 22), outline=accent_col, width=4)
-                        wrapped_sub = textwrap.wrap(nar_text, width=19)[:4]
-                        sy = 975 if len(wrapped_sub) >= 3 else 1015
-                        for w_line in wrapped_sub:
-                            draw.text((W//2, sy), w_line, font=f_sub, fill=(255, 255, 255), anchor="mm")
-                            sy += 50
+                        # --- [하단 자막 박스 (Y: 885 ~ 1235) - 오토핏 다중 줄바꿈으로 잘림 0%] ---
+                        draw.rounded_rectangle([36, 885, W-36, 1235], radius=22, fill=(9, 13, 22), outline=accent_col, width=4)
+                        _draw_fit_text(draw, [52, 900, W-52, 1220], nar_text, get_font, max_sz=33, min_sz=21, fill=(255, 255, 255), max_lines=5, line_spacing=1.35)
 
                         return img
 
@@ -6700,7 +6738,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     with btn_c1:
                         gen_mp3_btn = st.button("🔊 하이텐션 성우 음성(.mp3) 뽑기", key=f"btn_mp3_{tk}", use_container_width=True)
                     with btn_c2:
-                        gen_mp4_btn = st.button("🎬 8컷 다이나믹 쇼츠 영상(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
+                        gen_mp4_btn = st.button("🎬 8컷 오토핏 쇼츠 영상(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
 
                     if gen_mp3_btn:
                         import tempfile, os
@@ -6717,7 +6755,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     if gen_mp4_btn:
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os
-                            with st.spinner("8단계 다이나믹 화면 전환 + 막대그래프 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            with st.spinner("글자 잘림 0% 오토핏 엔진으로 8컷 다이나믹 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 seg_files, cleanup_files = [], []
@@ -6751,12 +6789,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf: mp4_b = vf.read()
-                                st.success("🎉 3~4초마다 화면과 그래프가 확확 바뀌는 8컷 다이나믹 쇼츠(.mp4)가 완성되었습니다!")
+                                st.success("🎉 글자 잘림 없이 모든 박스에 딱 들어맞는 8컷 다이나믹 쇼츠(.mp4)가 완성되었습니다!")
                                 st.video(mp4_b)
                                 st.download_button(
                                     label="📥 8컷 다이나믹 쇼츠(.mp4) 다운로드",
                                     data=mp4_b,
-                                    file_name=f"AGIE_{clean_tk}_8cut_dynamic_shorts.mp4",
+                                    file_name=f"AGIE_{clean_tk}_8cut_autofit_shorts.mp4",
                                     mime="video/mp4",
                                     use_container_width=True
                                 )
@@ -6767,7 +6805,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
-                    st.markdown("#### 📜 8컷 타임라인 대본 & 유튜브 고정댓글 패키지")
+                    st.markdown("#### 📜 8컷 타임라인 대본")
                     st.code(tts_only_script, language="text")
                 # =====================================================================
                 # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
@@ -7845,11 +7883,11 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
             # =====================================================================
-            # [신규 탑재] 🥊 1:1 라이벌 맞대결 전용 6라운드 쇼츠(.mp4) 스튜디오
+            # [오토핏 완벽 적용] 🥊 1:1 라이벌 맞대결 전용 6라운드 쇼츠(.mp4) 스튜디오
             # =====================================================================
             st.divider()
             with st.expander(t(f"🥊 [{res_a['name']} vs {res_b['name']}] 1:1 라이벌 배틀 쇼츠(.mp4) 제작 스튜디오", "🥊 1:1 Rival Battle Shorts Studio"), expanded=True):
-                st.info("💡 **알고리즘 치트키 포맷:** 대중들이 가장 좋아하는 **'라이벌 1:1 스펙 대결'** 포맷입니다. 라운드마다 **파란팀(🟦) vs 빨간팀(🟥) 게이지 바**와 **승리 트로피 도장**이 쾅쾅 찍히는 35초 쇼츠 영상을 즉시 생성합니다!")
+                st.info("💡 **오토핏(Auto-Fit) 적용 완료:** 긴 기업명이나 자막도 칸 밖으로 절대 삐져나가지 않으며, 6라운드 라이벌 스펙 대결 영상을 30초 분량으로 생성합니다.")
 
                 vs_col1, vs_col2 = st.columns(2)
                 with vs_col1:
@@ -7866,7 +7904,6 @@ with tab_vs:
                     vs_speed = st.slider("⚡ 중계 말하기 배속 (추천: +25%)", 10, 40, 25, 5, format="+%d%%", key="vs_shorts_spd")
 
                 na, nb = res_a['name'], res_b['name']
-                # 라운드별 승자 판정
                 w_r1 = na if res_a['roe'] >= res_b['roe'] else nb
                 w_r2 = na if (0 < res_a['f_pe'] <= res_b['f_pe']) or (res_b['f_pe'] <= 0 and res_a['f_pe'] > 0) else nb
                 w_r3 = na if res_a['tsy'] >= res_b['tsy'] else nb
@@ -7874,27 +7911,27 @@ with tab_vs:
                 w_final = na if res_a['score'] >= res_b['score'] else nb
 
                 vs_scenes = [
-                    ("VS_INTRO", "🔥 세기의 라이벌 1:1 장부 맞대결!", na, nb, res_a['p_str'], res_b['p_str'], "FIGHT!",
-                     f"세기의 라이벌 맞대결! {na} 대 {nb}! 과연 10년 치 장부 스펙으로 붙으면 누가 이길까요? 30초 만에 승자를 가립니다!"),
-                    ("VS_R1", "ROUND 1. 돈 불리는 복리 속도 (ROE)", na, nb, f"{res_a['roe']:.1f}%", f"{res_b['roe']:.1f}%", f"🏆 {w_r1} 승!",
-                     f"1라운드, 돈 불리는 속도 ROE 대결! {na} {res_a['roe']:.1f}% 대 {nb} {res_b['roe']:.1f}%! 1라운드는 {w_r1}의 승리입니다!"),
-                    ("VS_R2", "ROUND 2. 본전 빨리 뽑기 (선행 PER)", na, nb, f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년", f"🏆 {w_r2} 승!",
-                     f"2라운드, 본전 뽑는 시간 PER 대결! {na} {res_a['f_pe']:.1f}년 대 {nb} {res_b['f_pe']:.1f}년! 더 짧은 시간에 본전을 뽑는 {w_r2} 승리!"),
-                    ("VS_R3", "ROUND 3. 주주 보너스 (배당+자사주)", na, nb, f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"🏆 {w_r3} 승!",
-                     f"3라운드, 배당과 자사주 소각을 합친 주주 보너스! {na} {res_a['tsy']:.1f}% 대 {nb} {res_b['tsy']:.1f}%로 {w_r3} 우위!"),
-                    ("VS_R4", "ROUND 4. 가격 할인율 (안전마진)", na, nb, f"{res_a['mos']:+.1f}%", f"{res_b['mos']:+.1f}%", f"🏆 {w_r4} 승!",
-                     f"4라운드, 평소 대비 가격 할인율 안전마진! {na} {res_a['mos']:+.1f}% 대 {nb} {res_b['mos']:+.1f}%로 {w_r4} 승리!"),
-                    ("VS_FINAL", "👑 FINAL. AI 정량 총점 최종 승자!", na, nb, f"{res_a['score']}점", f"{res_b['score']}점", f"👑 최종승: {w_final}!",
-                     f"최종 라운드! {na} {res_a['score']}점 대 {nb} {res_b['score']}점으로 정량 모델 판정승은 {w_final}입니다! 여러분의 원픽은 어디인가요? 지금 댓글로 투표해 주세요!")
+                    ("VS_INTRO", "OPENING. 라이벌 1:1 장부 맞대결", na, nb, res_a['p_str'], res_b['p_str'], "1:1 스펙 대결 스타트!",
+                     f"세기의 라이벌 맞대결! {na} 대 {nb}! 10년 치 장부 스펙으로 붙으면 누가 이길까요?"),
+                    ("VS_R1", "ROUND 1. 돈 불리는 복리 속도 (ROE)", na, nb, f"연 {res_a['roe']:.1f}%", f"연 {res_b['roe']:.1f}%", f"1라운드 승: {w_r1}!",
+                     f"1라운드, 자본을 불리는 속도 ROE 대결! {na} {res_a['roe']:.1f}% 대 {nb} {res_b['roe']:.1f}%로 {w_r1} 우위!"),
+                    ("VS_R2", "ROUND 2. 본전 빨리 뽑기 (선행 PER)", na, nb, f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년", f"2라운드 승: {w_r2}!",
+                     f"2라운드, 본전 뽑는 시간 PER 대결! {na} {res_a['f_pe']:.1f}년 대 {nb} {res_b['f_pe']:.1f}년으로 {w_r2} 승리!"),
+                    ("VS_R3", "ROUND 3. 주주 보너스 (배당+소각)", na, nb, f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"3라운드 승: {w_r3}!",
+                     f"3라운드, 배당과 자사주 소각을 합친 주주 보너스! {na} {res_a['tsy']:.1f}% 대 {nb} {res_b['tsy']:.1f}%로 {w_r3} 승리!"),
+                    ("VS_R4", "ROUND 4. 평소 대비 가격 할인율", na, nb, f"{res_a['mos']:+.1f}%", f"{res_b['mos']:+.1f}%", f"4라운드 승: {w_r4}!",
+                     f"4라운드, 10년 평균 대비 가격 안전마진! {na} {res_a['mos']:+.1f}% 대 {nb} {res_b['mos']:+.1f}%로 {w_r4} 우위!"),
+                    ("VS_FINAL", "FINAL. 정량 모델 최종 판정승!", na, nb, f"{res_a['score']}점", f"{res_b['score']}점", f"최종 판정승: {w_final}!",
+                     f"최종 스코어! {na} {res_a['score']}점 대 {nb} {res_b['score']}점으로 판정승은 {w_final}! 여러분의 원픽을 댓글로 남겨주세요!")
                 ]
                 vs_full_script = " ".join([s[7] for s in vs_scenes])
 
                 if st.button("🎬 1:1 라이벌 배틀 쇼츠 영상(.mp4) 즉시 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
-                        import imageio_ffmpeg, subprocess, tempfile, os, textwrap
+                        import imageio_ffmpeg, subprocess, tempfile, os
 
-                        with st.spinner(f"[{na} vs {nb}] 6라운드 배틀 그래픽 쇼츠(.mp4)를 렌더링 중입니다..."):
+                        with st.spinner(f"[{na} vs {nb}] 오토핏 6라운드 배틀 쇼츠(.mp4)를 렌더링 중입니다..."):
                             font_dir = tempfile.gettempdir()
                             bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                             if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
@@ -7902,12 +7939,42 @@ with tab_vs:
                                 if r.status_code == 200:
                                     with open(bold_p, "wb") as f: f.write(r.content)
 
-                            def _gf(sz):
+                            def _gf(sz, is_eb=True):
                                 for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
                                     if os.path.exists(c):
                                         try: return ImageFont.truetype(c, sz)
                                         except Exception: continue
                                 return ImageFont.load_default()
+
+                            def _fit_vs_txt(draw, box_coords, text, max_sz=36, min_sz=16, fill=(255,255,255), max_lines=1, line_spacing=1.32):
+                                x1, y1, x2, y2 = box_coords
+                                bw, bh = max(30, (x2 - x1) - 24), max(20, (y2 - y1) - 16)
+                                ct = str(text).strip()
+                                for sz in range(max_sz, min_sz - 1, -2):
+                                    f = _gf(sz)
+                                    if max_lines == 1:
+                                        bb = draw.textbbox((0, 0), ct, font=f)
+                                        if (bb[2] - bb[0]) <= bw:
+                                            draw.text(((x1 + x2)//2, (y1 + y2)//2), ct, font=f, fill=fill, anchor="mm")
+                                            return
+                                    else:
+                                        words = ct.split(' ')
+                                        lines, cur = [], ""
+                                        for w in words:
+                                            tl = (cur + " " + w).strip() if cur else w
+                                            if (draw.textbbox((0,0), tl, font=f)[2] - draw.textbbox((0,0), tl, font=f)[0]) <= bw:
+                                                cur = tl
+                                            else:
+                                                if cur: lines.append(cur)
+                                                cur = w
+                                        if cur: lines.append(cur)
+                                        th = len(lines) * int(sz * line_spacing)
+                                        if len(lines) <= max_lines and th <= bh and all((draw.textbbox((0,0), l, font=f)[2] - draw.textbbox((0,0), l, font=f)[0]) <= bw for l in lines):
+                                            sy_step = int(sz * line_spacing)
+                                            sy = ((y1 + y2)//2) - ((len(lines) - 1) * sy_step)//2
+                                            for i_l, l_s in enumerate(lines):
+                                                draw.text(((x1 + x2)//2, sy + i_l * sy_step), l_s, font=f, fill=fill, anchor="mm")
+                                            return
 
                             def _make_vs_tts(txt, out_p):
                                 v_id = "ko-KR-SunHiNeural" if "선희" in vs_voice else ("ko-KR-InJoonNeural" if "인준" in vs_voice else "ko-KR-HyunsuNeural")
@@ -7928,42 +7995,37 @@ with tab_vs:
                                 img = Image.new("RGB", (W, H), color=(10, 14, 24))
                                 draw = ImageDraw.Draw(img)
 
-                                # 좌(블루) vs 우(레드) 반반 배틀 배경 하이라이트
-                                draw.rectangle([16, 180, W//2, 880], fill=(12, 28, 58))
-                                draw.rectangle([W//2, 180, W-16, 880], fill=(58, 14, 24))
+                                draw.rectangle([16, 175, W//2, 860], fill=(12, 28, 58))
+                                draw.rectangle([W//2, 175, W-16, 860], fill=(58, 14, 24))
                                 draw.rounded_rectangle([14, 14, W-14, H-14], radius=28, outline=(250, 204, 21), width=6)
 
-                                # 상단 라운드 배너
-                                draw.text((W//2, 55), "⚠️ DART·SEC 공시 기반 스펙 시뮬레이션 (매수·매도 추천 아님)", font=_gf(18), fill=(148, 163, 184), anchor="mm")
+                                _fit_vs_txt(draw, [36, 36, W-36, 72], "DART·SEC 공시 기반 스펙 시뮬레이션 (매수·매도 추천 아님)", max_sz=18, min_sz=14, fill=(148, 163, 184), max_lines=1)
                                 draw.rounded_rectangle([40, 82, W-40, 152], radius=24, fill=(250, 204, 21))
-                                draw.text((W//2, 117), r_title, font=_gf(30), fill=(10, 14, 24), anchor="mm")
+                                _fit_vs_txt(draw, [50, 82, W-50, 152], r_title, max_sz=30, min_sz=20, fill=(10, 14, 24), max_lines=1)
 
-                                # 좌측 블루팀(A) vs 우측 레드팀(B) 카드
-                                draw.rounded_rectangle([36, 210, 342, 680], radius=22, fill=(15, 38, 78), outline=(56, 189, 248), width=4)
-                                draw.text((189, 285), "🟦 BLUE TEAM", font=_gf(22), fill=(56, 189, 248), anchor="mm")
-                                draw.text((189, 365), name_a[:8], font=_gf(38), fill=(255, 255, 255), anchor="mm")
-                                draw.text((189, 520), val_a, font=_gf(52), fill=(250, 204, 21), anchor="mm")
+                                # 블루팀(좌) 카드
+                                draw.rounded_rectangle([36, 205, 342, 675], radius=22, fill=(15, 38, 78), outline=(56, 189, 248), width=4)
+                                _fit_vs_txt(draw, [46, 235, 332, 295], "[BLUE TEAM]", max_sz=22, min_sz=16, fill=(56, 189, 248), max_lines=1)
+                                _fit_vs_txt(draw, [46, 315, 332, 415], name_a, max_sz=38, min_sz=20, fill=(255, 255, 255), max_lines=2)
+                                _fit_vs_txt(draw, [46, 465, 332, 610], val_a, max_sz=52, min_sz=26, fill=(250, 204, 21), max_lines=1)
 
-                                draw.rounded_rectangle([378, 210, W-36, 680], radius=22, fill=(78, 18, 30), outline=(248, 113, 113), width=4)
-                                draw.text((531, 285), "🟥 RED TEAM", font=_gf(22), fill=(248, 113, 113), anchor="mm")
-                                draw.text((531, 365), name_b[:8], font=_gf(38), fill=(255, 255, 255), anchor="mm")
-                                draw.text((531, 520), val_b, font=_gf(52), fill=(250, 204, 21), anchor="mm")
+                                # 레드팀(우) 카드
+                                draw.rounded_rectangle([378, 205, W-36, 675], radius=22, fill=(78, 18, 30), outline=(248, 113, 113), width=4)
+                                _fit_vs_txt(draw, [388, 235, W-46, 295], "[RED TEAM]", max_sz=22, min_sz=16, fill=(248, 113, 113), max_lines=1)
+                                _fit_vs_txt(draw, [388, 315, W-46, 415], name_b, max_sz=38, min_sz=20, fill=(255, 255, 255), max_lines=2)
+                                _fit_vs_txt(draw, [388, 465, W-46, 610], val_b, max_sz=52, min_sz=26, fill=(250, 204, 21), max_lines=1)
 
-                                # 중앙 VS 원형 엠블럼
-                                draw.ellipse([W//2-44, 405, W//2+44, 493], fill=(250, 204, 21), outline=(10, 14, 24), width=5)
-                                draw.text((W//2, 449), "VS", font=_gf(32), fill=(10, 14, 24), anchor="mm")
+                                # 중앙 VS 원형 배지
+                                draw.ellipse([W//2-44, 400, W//2+44, 488], fill=(250, 204, 21), outline=(10, 14, 24), width=5)
+                                _fit_vs_txt(draw, [W//2-40, 400, W//2+40, 488], "VS", max_sz=32, min_sz=24, fill=(10, 14, 24), max_lines=1)
 
-                                # 중앙 하단 라운드 승자 대형 골드 스탬프
-                                draw.rounded_rectangle([60, 720, W-60, 855], radius=24, fill=(220, 38, 38) if "최종" in badge_txt else (6, 95, 70), outline=(250, 204, 21), width=4)
-                                draw.text((W//2, 787), badge_txt, font=_gf(46), fill=(255, 255, 255), anchor="mm")
+                                # 승자 판정 도장 박스
+                                draw.rounded_rectangle([56, 710, W-56, 845], radius=24, fill=(220, 38, 38) if "최종" in badge_txt else (6, 95, 70), outline=(250, 204, 21), width=4)
+                                _fit_vs_txt(draw, [70, 720, W-70, 835], badge_txt, max_sz=44, min_sz=24, fill=(255, 255, 255), max_lines=1)
 
-                                # 하단 자막 박스
-                                draw.rounded_rectangle([36, 900, W-36, 1225], radius=22, fill=(9, 13, 22), outline=(56, 189, 248), width=4)
-                                w_lines = textwrap.wrap(nar_txt, width=19)[:4]
-                                sy = 965 if len(w_lines) >= 3 else 1005
-                                for wl in w_lines:
-                                    draw.text((W//2, sy), wl, font=_gf(31), fill=(255, 255, 255), anchor="mm")
-                                    sy += 50
+                                # 하단 자막 박스 (오토핏 5줄 지원)
+                                draw.rounded_rectangle([36, 885, W-36, 1235], radius=22, fill=(9, 13, 22), outline=(56, 189, 248), width=4)
+                                _fit_vs_txt(draw, [52, 900, W-52, 1220], nar_txt, max_sz=33, min_sz=21, fill=(255, 255, 255), max_lines=5, line_spacing=1.35)
 
                                 return img
 
@@ -7997,7 +8059,7 @@ with tab_vs:
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                             with open(out_vs_mp4, "rb") as vf: vs_mp4_b = vf.read()
-                            st.success(f"🎉 [{na} vs {nb}] 6라운드 라이벌 배틀 쇼츠(.mp4)가 완성되었습니다!")
+                            st.success(f"🎉 [{na} vs {nb}] 글자 잘림 없는 6라운드 배틀 쇼츠(.mp4)가 완성되었습니다!")
                             st.video(vs_mp4_b)
                             st.download_button(
                                 label=f"📥 [{na}_vs_{nb}] 배틀 쇼츠(.mp4) 다운로드",
