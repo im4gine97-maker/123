@@ -6356,12 +6356,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [법적 방어 + DCF 실제성장률 비교 + 충청도 남자 보이스] 6. 쇼츠 스튜디오
+                # [에러 수정 완료: 사투리 글자 변환 삭제 + 목소리만 추가 + DCF 성장률 비교] 6. 쇼츠 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (충청도 보이스 + DCF 성장률 비교 + 법적 안전버전)", "🎬 6. Value Investing Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (신규 남성 보이스 + DCF 성장률 비교 + 법적 안전버전)", "🎬 6. Value Investing Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **업그레이드 핵심:** ① **자본시장법·명예훼손 리스크 0% 중립화**, ② **DCF 요구 성장률 vs 실제 현재/과거 성장률 1:1 비교**, ③ **구수하고 찰진 '충청도 남자 썰풀이 보이스(사투리 어미 자동 변환)'** 및 참고영상 무호흡 점프컷 보이스가 탑재되었습니다.",
-                        "💡 Legal-safe framing, Reverse DCF vs Actual Growth comparison, and Chungcheong-do dialect TTS voice."
+                        "💡 **핵심 기능:** ① **자본시장법·명예훼손 리스크 0% 중립화**, ② **DCF 요구 성장률 vs 실제 과거 성장률 1:1 비교**, ③ 대본은 깔끔한 표준어 요약체로 유지하면서 **참고영상 점프컷 보이스 및 충청도 쇼츠풍 중저음 남성 보이스(음성 파형 튜닝)**만 선택할 수 있도록 구성했습니다.",
+                        "💡 Legal-safe framing, Reverse DCF vs Actual Growth comparison, and custom tuned male TTS voices."
                     ))
 
                     col_sh_opt1, col_sh_opt2 = st.columns([1.6, 1.4])
@@ -6385,19 +6385,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         )
                     with col_sh_opt2:
                         voice_choice = st.selectbox(
-                            "2️⃣ 쇼츠 AI 보이스 선택 (충청도 남자 보이스 추가!)",
+                            "2️⃣ 쇼츠 AI 보이스 선택 (음성 톤·파형 튜닝)",
                             [
-                                "🌾 [충청도 남자 보이스] 은근슬쩍 뼈 때리는 충청도 아재 (사투리 어미 자동변환)",
                                 "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
+                                "🌾 [충청도 쇼츠 보이스] 구수하고 묵직한 중저음 썰풀이 남성 (음성 파형 튜닝)",
                                 "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
                                 "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
                                 "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
                             ],
                             key=f"shorts_voice_{tk}"
                         )
-                        default_spd = 22 if "충청도" in voice_choice else 28
+                        default_spd = 24 if "충청도" in voice_choice else 28
                         voice_speed = st.slider(
-                            "말하기 속도 배속 (충청도 추천: +20~24% / 일반 쇼츠: +28%)",
+                            "말하기 속도 배속 (추천: +24% ~ +28%)",
                             min_value=10, max_value=45, value=default_spd, step=1,
                             format="+%d%%",
                             key=f"shorts_spd_{tk}"
@@ -6410,15 +6410,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     comp_name = primary_names.get(tk, i.get('shortName', tk))
                     clean_tk = tk.split('.')[0] if kr else tk
-                    is_cc_dialect = ("충청도" in voice_choice)
                     hold_badge = "보유중(단기매매계획없음)" if creator_holds else "미보유"
 
                     # --- [DCF 요구 성장률 vs 실제 성장률 정밀 비교 데이터 산출] ---
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     iv_fmt = (f"{int(iv):,}원" if kr else f"${iv:,.2f}") if (iv and not is_financial) else "산출유보(금융/적자)"
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
-                    hist_fcf_g_pct = final_g * 100.0  # 과거 실제 FCF 연평균 성장률
-                    recent_eps_g_pct = eps_g_val if has_eps_g else hist_fcf_g_pct  # 최근 이익 성장률(컨센서스/YoY)
+                    hist_fcf_g_pct = final_g * 100.0
+                    recent_eps_g_pct = eps_g_val if has_eps_g else hist_fcf_g_pct
 
                     imp_g_fmt = f"연 {imp_g_pct:.1f}%" if implied_g_shorts is not None else "확인 필요"
                     actual_g_fmt = f"연 {hist_fcf_g_pct:.1f}%"
@@ -6426,16 +6425,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     a_pe_5y = safe_float(st.session_state.get(f"pe_5y_{tk}", a_pe), a_pe)
                     if a_pe_5y <= 0: a_pe_5y = a_pe
 
-                    # 상단 2줄 고정 타이틀
+                    # 상단 2줄 고정 타이틀 (표준어 고정)
                     if "타이틀 A" in shorts_style:
                         top_line1 = f"정통 가치투자 공식으로 {comp_name}"
-                        top_line2 = ("10년 치 장부 뜯어본 결과유" if is_cc_dialect else "10년 치 장부 뜯어본 결과")
+                        top_line2 = "10년 치 장부 뜯어본 결과"
                     elif "타이틀 B" in shorts_style:
-                        top_line1 = f"버핏·멍거의 재무 원칙으로 본"
+                        top_line1 = "버핏·멍거의 재무 원칙으로 본"
                         top_line2 = f"{comp_name} 진짜 장부 데이터"
                     else:
                         top_line1 = f"{comp_name} 회사를 통째로 인수하면"
-                        top_line2 = ("본전 뽑는 데 몇 년 걸릴까유?" if is_cc_dialect else "본전 뽑는 데 몇 년 걸릴까?")
+                        top_line2 = "본전 뽑는 데 몇 년 걸릴까?"
 
                     # --- [법적 안전 + 시청자 눈높이 일상어 번역 로직] ---
                     margin_won = max(1, int(round(op_m)))
@@ -6449,7 +6448,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         moat_chunk_2 = (f"투하자본수익률 ROIC도 연 {roic_val:.1f}%를 기록했고" if roic_val > 0 else "본업에서 꾸준히 현금을 창출하고 있고")
                         moat_chunk_3 = (f"내 돈 불리는 속도 ROE는 연 {roe:.1f}%로 은행의 {bank_mult:.0f}배 수준임" if roe >= 10 else f"자본을 불리는 속도 ROE는 연 {roe:.1f}% 수준임")
 
-                    # PER, PBR 및 4년 연속 상승 추세 팩트 체크
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
                     disc_txt = f"{abs(pmos_val):.0f}% 낮은 수치" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 높은 수치"
                     if use_pbr_m:
@@ -6463,20 +6461,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         val_chunk_3 = f"5년 평균 {a_pe_5y:.1f}년, 10년 평균 {a_pe:.1f}년과 비교하면"
                         val_chunk_4 = f"과거 평균 대비 약 {disc_txt}에 위치해 있음"
 
-                    # 국채 금리 비교 (법적 중립 서술)
                     if erp >= 0:
                         bond_verdict = f"미국채 금리보다 {erp:+.1f}%p 높은 기대 이익률임"
                     else:
                         bond_verdict = f"미국채 금리보다 {abs(erp):.1f}%p 낮아 이익 성장이 중요함"
 
-                    # 배당 일관성 + 총주주환원율
                     div_consist_str = "배당도 꾸준히 유지·상승 중이고" if ("상승" in div_trend or "유지" in div_trend) else "배당 정책 변동성은 확인이 필요하고"
                     if tsy_total > 0:
                         bonus_chunk = f"매년 연 {tsy_total:.1f}% 수준을 주주에게 환원하고 있음"
                     else:
                         bonus_chunk = "배당보다는 사내 유보와 재투자에 집중하고 있음"
 
-                    # 재무제표 기반 객관적 리스크 점검 (명예훼손 원천 차단)
                     debt_bad = ("[경고]" in bio_eval or "[위험]" in bio_eval)
                     eps_up = ("합격" in eps_trend or "Pass" in eps_trend)
                     bps_up = ("합격" in bps_trend or "Pass" in bps_trend or "특수" in bps_trend)
@@ -6507,43 +6502,36 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     final_neutral_line = f"가치투자 5대 기준 중 {pass_cnt}개 부합 (추정치는 확인 필요함)"
 
-                    # --- [26컷 풀버전 vs 14컷 요약버전 구성] ---
+                    # --- [26컷 풀버전 vs 14컷 요약버전 자막 리스트 (사투리 변환 없이 바로 할당)] ---
                     if "26컷" in shorts_len_mode:
-                        raw_chunks = [
-                            # SCENE 1: 소유권 관점 오프닝 (4컷)
+                        pop_chunks = [
                             (f"현재 {comp_name} 1주 가격은 {p_str}인데", "SCENE_1"),
                             ("주식을 단순 종잇조각이 아니라", "SCENE_1"),
                             ("가치투자 원칙대로 회사를 통째로 인수한다고 보고", "SCENE_1"),
                             (f"최근 {data_len}년 치 공시 장부를 뜯어봤음", "SCENE_1"),
 
-                            # SCENE 2: 기준 1 - 경제적 해자 & ROE·ROIC (4컷)
                             (moat_chunk_1, "SCENE_2"),
                             (moat_chunk_2, "SCENE_2"),
                             (moat_chunk_3, "SCENE_2"),
                             (f"{div_consist_str}", "SCENE_2"),
 
-                            # SCENE 3: 기준 2 - 현재/선행/5년/10년 PER & PBR (4컷)
                             (val_chunk_1, "SCENE_3"),
                             (val_chunk_2, "SCENE_3"),
                             (val_chunk_3, "SCENE_3"),
                             (val_chunk_4, "SCENE_3"),
 
-                            # SCENE 4: 기준 3 - 이익수익률 vs 10년물 미국채 금리 (3컷)
                             ("주식을 은행 예금 이자처럼 환산해보면", "SCENE_4"),
                             (f"이 주식의 기대 이익수익률은 연 {ey:.1f}% 수준인데", "SCENE_4"),
                             (f"10년물 미국채 금리 {ty:.2f}%와 비교하면 {bond_verdict}", "SCENE_4"),
 
-                            # SCENE 5: 기준 4 - 배당 + 자사주 소각 환원율 (3컷)
                             ("가만히 주식을 보유할 때 받는 주주 환원은", "SCENE_5"),
                             (f"현금배당 {div:.1f}%와 자사주 소각 {bb_yield:+.1f}%를 합쳐서", "SCENE_5"),
                             (bonus_chunk, "SCENE_5"),
 
-                            # SCENE 6: 기준 5 - 4년 연속 성장 추세 & 재무 리스크 점검 (3컷)
                             ("재무 건전성과 과거 추세를 팩트체크해보면", "SCENE_6"),
                             (trend_fact_line, "SCENE_6"),
                             (risk_fact_line, "SCENE_6"),
 
-                            # SCENE 7: 핵심! DCF 요구 성장률 vs 실제 성장률 비교 (5컷)
                             ("마지막으로 DCF 현금흐름 모델을 역산해보면", "SCENE_7"),
                             (dcf_comp_1, "SCENE_7"),
                             (dcf_comp_2, "SCENE_7"),
@@ -6551,7 +6539,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             (final_neutral_line, "SCENE_7")
                         ]
                     else:
-                        raw_chunks = [
+                        pop_chunks = [
                             (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
                             (f"정통 가치투자 공식으로 {data_len}년 장부를 뜯어봤음", "SCENE_1"),
                             (moat_chunk_1, "SCENE_2"),
@@ -6568,14 +6556,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             (final_neutral_line, "SCENE_7")
                         ]
 
-                    pop_chunks = [(_to_cc_dialect(txt), sc) for txt, sc in raw_chunks]
                     tts_only_script = " ".join([c[0] for c in pop_chunks])
 
-                    # AI 보이스 합성기 (충청도 남자 보이스 전용 튜닝 포함)
+                    # AI 보이스 합성기 (충청도 쇼츠 남성 보이스 음색 튜닝 포함)
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe):
                         if "충청도" in voice_choice:
-                            # 충청도 아재 특유의 구수하고 능청스러운 중저음 + 약간 느긋하면서도 툭툭 끊어 치는 톤
-                            voice_id, pitch_str = "ko-KR-InJoonNeural", "-2Hz"
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "-3Hz"
                         elif "공감입니다 스타일" in voice_choice:
                             voice_id, pitch_str = "ko-KR-InJoonNeural", "+4Hz"
                         elif "낭만 썰풀이" in voice_choice:
@@ -6598,7 +6584,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             gTTS(text=text_line, lang='ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
-                        pad_t = "0.06" if "충청도" in voice_choice else "0.04"
+                        pad_t = "0.05" if "충청도" in voice_choice else "0.04"
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-38dB:"
                             "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
@@ -6757,23 +6743,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 660, W-160, "[부채비율 & 유동비율 생존력 팩트체크]", get_font, start_sz=21, min_sz=15, fill=(252, 165, 165))
                             _fit_single_line(draw, W//2, 725, W-160, risk_fact_line, get_font, start_sz=24, min_sz=16, fill=(255, 255, 255))
 
-                        else:  # SCENE_7: 핵심 요청! 역산 DCF 요구 성장률 vs 실제 현재/과거 성장률 1:1 비교!
+                        else:  # SCENE_7: 역산 DCF 요구 성장률 vs 실제 현재/과거 성장률 1:1 비교!
                             draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
                             _fit_single_line(draw, W//2, 390, W-110, "DCF 검증 : 주가가 요구하는 성장률 vs 실제 성장률", get_font, start_sz=23, min_sz=16, fill=(255, 230, 0))
 
-                            # 좌측: 현재 주가에 반영된 10년 요구 성장률 (역산 DCF)
                             draw.rounded_rectangle([66, 430, 342, 645], radius=16, fill=(30, 41, 59), outline=(255, 82, 82), width=3)
                             _fit_single_line(draw, 204, 470, 250, "주가에 반영된 요구 성장률", get_font, start_sz=20, min_sz=14, fill=(252, 165, 165))
                             _fit_single_line(draw, 204, 545, 250, imp_g_fmt, get_font, start_sz=46, min_sz=26, fill=(255, 255, 255))
                             _fit_single_line(draw, 204, 610, 250, "(역산 DCF 추정치)", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
 
-                            # 우측: 실제 회사의 과거 FCF 성장률 & 최근 이익 성장률
                             draw.rounded_rectangle([378, 430, W-66, 645], radius=16, fill=(6, 78, 59), outline=(0, 230, 118), width=3)
                             _fit_single_line(draw, 516, 470, 250, "회사의 실제 과거 성장률", get_font, start_sz=20, min_sz=14, fill=(110, 231, 183))
                             _fit_single_line(draw, 516, 545, 250, actual_g_fmt, get_font, start_sz=46, min_sz=26, fill=(0, 230, 118))
                             _fit_single_line(draw, 516, 610, 250, f"(최근 이익증감 {recent_eps_g_pct:+.1f}%)", get_font, start_sz=18, min_sz=13, fill=(255, 230, 0))
 
-                            # 하단 DCF 산출값 & 5대 기준 부합 수 (추정치 확인 필요 명시)
                             draw.rounded_rectangle([66, 665, W-66, 722], radius=12, fill=(26, 35, 52))
                             _fit_single_line(draw, W//2, 693, W-160, f"DCF 모델 시뮬레이션 값: {iv_fmt} (할인율·성장률 가정치 확인 필요)", get_font, start_sz=21, min_sz=14, fill=(56, 189, 248))
 
@@ -6799,7 +6782,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
                         draw.text((W//2, 915), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
-                        # 4. 하단 블랙 레터박스 & 법적 면책 고지 강화
+                        # 4. 하단 블랙 레터박스 & 법적 면책 고지
                         draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
                         _fit_single_line(draw, W//2, 1105, W-50, "본 영상은 학술·교육용 공시 데이터 시뮬레이션이며 투자 권유·자문이 아닙니다", get_font, start_sz=19, min_sz=14, fill=(148, 163, 184))
                         _fit_single_line(draw, W//2, 1155, W-50, f"컨센서스 및 DCF 추정치는 확인이 필요한 부분입니다 (이해상충 고지: 제작자 {hold_badge})", get_font, start_sz=17, min_sz=13, fill=(100, 116, 139))
@@ -6815,7 +6798,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     if gen_mp3_btn:
                         import tempfile, os, subprocess, imageio_ffmpeg
-                        with st.spinner("선택하신 보이스(충청도/점프컷)를 합성 중입니다..."):
+                        with st.spinner("선택하신 보이스를 합성 중입니다..."):
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                             raw_m = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                             tuned_w = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
@@ -7970,19 +7953,19 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
             # =====================================================================
-            # [법적 안전 + 충청도 남자 보이스 탑재] 📊 1:1 종목 비교 쇼츠 스튜디오 (20컷)
+            # [에러 수정 완료: 사투리 글자 변환 삭제 + 목소리만 추가] 📊 1:1 종목 비교 쇼츠 스튜디오
             # =====================================================================
             st.divider()
             with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 가치투자 기준 1:1 비교 쇼츠(.mp4) 스튜디오", "🎬 Value Investing 1:1 Comparison Shorts Studio"), expanded=True):
-                st.info("💡 **충청도 보이스 & 법적 안전 비교 적용:** 특정 종목을 추천하는 단정적 표현 없이, 두 회사의 **돈 불리는 복리 속도, 본전 회수 시간(5년·10년 평균 비교), 주주 환원율, 가격 할인 폭**을 객관적 숫자로 비교합니다.")
+                st.info("💡 **법적 안전 비교 & 신규 남성 보이스 적용:** 특정 종목을 추천하는 단정적 표현 없이, 두 회사의 **돈 불리는 복리 속도, 본전 회수 시간(10년 평균 비교), 주주 환원율, 가격 할인 폭**을 객관적 숫자로 비교합니다.")
 
                 vs_col1, vs_col2 = st.columns(2)
                 with vs_col1:
                     vs_voice = st.selectbox(
-                        "🎙️ 쇼츠 AI 보이스 선택 (충청도 남자 보이스 추가!)",
+                        "🎙️ 쇼츠 AI 보이스 선택",
                         [
-                            "🌾 [충청도 남자 보이스] 은근슬쩍 뼈 때리는 충청도 아재 (사투리 어미 자동변환)",
                             "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
+                            "🌾 [충청도 쇼츠 보이스] 구수하고 묵직한 중저음 썰풀이 남성 (음성 파형 튜닝)",
                             "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
                             "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
                             "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
@@ -7990,17 +7973,16 @@ with tab_vs:
                         key="vs_shorts_voice"
                     )
                 with vs_col2:
-                    def_vs_spd = 22 if "충청도" in vs_voice else 28
-                    vs_speed = st.slider("⚡ 말하기 배속 (충청도 추천: +22% / 일반: +28%)", 10, 45, def_vs_spd, 1, format="+%d%%", key="vs_shorts_spd")
+                    def_vs_spd = 24 if "충청도" in vs_voice else 28
+                    vs_speed = st.slider("⚡ 말하기 배속 (추천: +24% ~ +28%)", 10, 45, def_vs_spd, 1, format="+%d%%", key="vs_shorts_spd")
 
                 na, nb = res_a['name'], res_b['name']
-                is_vs_cc = ("충청도" in vs_voice)
                 w_roe = na if res_a['roe'] >= res_b['roe'] else nb
                 w_pe = na if (0 < res_a['f_pe'] <= res_b['f_pe']) or (res_b['f_pe'] <= 0 and res_a['f_pe'] > 0) else nb
                 w_tsy = na if res_a['tsy'] >= res_b['tsy'] else nb
                 w_mos = na if res_a['mos'] >= res_b['mos'] else nb
 
-                raw_vs_chunks = [
+                vs_pop_chunks = [
                     (f"{na}랑 {nb} 두 회사를 두고", "VS_1"),
                     ("가치투자 5대 기준으로 장부를 뜯어보면", "VS_1"),
                     ("누가 더 알짜배기인지 10년 치 숫자로 비교해봤음", "VS_1"),
@@ -8023,31 +8005,10 @@ with tab_vs:
                     (f"매년 연 {res_a['tsy']:.1f}% 대 연 {res_b['tsy']:.1f}%를 돌려주고 있어서", "VS_5"),
                     (f"주주 환원 수치는 {w_tsy} 쪽이 더 높았음", "VS_5"),
 
-                    ("정리하면 자본 복리 속도는 " + w_roe + " 쪽이 앞섰고", "VS_6"),
-                    ("과거 대비 가격 할인 폭은 " + w_mos + " 쪽이 앞섰는데", "VS_6"),
-                    ("추정치는 확인이 필요하니 투자 성향에 맞춰 참고 바람", "VS_6")
+                    (f"정리하면 자본 복리 속도는 {w_roe} 쪽이 앞섰고", "VS_6"),
+                    (f"과거 대비 가격 할인 폭은 {w_mos} 쪽이 앞섰는데", "VS_6"),
+                    ("추정치는 확인이 필요하니 투자 기준에 맞춰 참고 바람", "VS_6")
                 ]
-
-                def _to_vs_cc(s_line):
-                    if not is_vs_cc:
-                        return s_line
-                    for o_w, n_w in [
-                        ("비교해봤음", "싹 다 비교해봤슈"),
-                        ("뜯어보면", "뜯어보면 말여유"),
-                        ("수치는 ", "숫자는 "),
-                        ("더 높았음", "더 높았구먼유"),
-                        ("걸리는데", "걸리는디"),
-                        ("더 짧았음", "더 짧았슈"),
-                        ("수준이라", "수준이라서유"),
-                        ("더 컸음", "더 컸구먼유"),
-                        ("돌려주고 있어서", "챙겨주고 있어서유"),
-                        ("앞섰는데", "앞섰는디"),
-                        ("참고 바람", "각자 잘 판단해봐유")
-                    ]:
-                        s_line = s_line.replace(o_w, n_w)
-                    return s_line
-
-                vs_pop_chunks = [(_to_vs_cc(t_c), s_c) for t_c, s_c in raw_vs_chunks]
                 vs_full_script = " ".join([c[0] for c in vs_pop_chunks])
 
                 if st.button("🎬 1:1 가치투자 비교 쇼츠(.mp4) 바로 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
@@ -8083,7 +8044,7 @@ with tab_vs:
 
                             def _make_vs_chunk_wav(txt, raw_p, wav_p, ffmpeg_exe):
                                 if "충청도" in vs_voice:
-                                    v_id, p_hz = "ko-KR-InJoonNeural", "-2Hz"
+                                    v_id, p_hz = "ko-KR-InJoonNeural", "-3Hz"
                                 elif "공감입니다 스타일" in vs_voice:
                                     v_id, p_hz = "ko-KR-InJoonNeural", "+4Hz"
                                 elif "낭만 썰풀이" in vs_voice:
@@ -8103,7 +8064,7 @@ with tab_vs:
                                     from gtts import gTTS
                                     gTTS(text=txt, lang='ko').save(raw_p)
 
-                                pad_t = "0.06" if "충청도" in vs_voice else "0.04"
+                                pad_t = "0.05" if "충청도" in vs_voice else "0.04"
                                 af_flt = (
                                     "silenceremove=start_periods=1:start_threshold=-38dB:"
                                     "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
@@ -8122,7 +8083,7 @@ with tab_vs:
                                 draw = ImageDraw.Draw(img)
 
                                 _fit_line(draw, W//2, 92, W-60, f"{na} vs {nb}", start_sz=50, min_sz=26, fill=(255, 255, 255))
-                                _fit_line(draw, W//2, 172, W-60, ("10년 장부 비교해본 결과유" if is_vs_cc else "10년 장부 비교해본 결과"), start_sz=52, min_sz=28, fill=(255, 230, 0))
+                                _fit_line(draw, W//2, 172, W-60, "10년 장부 비교해본 결과", start_sz=52, min_sz=28, fill=(255, 230, 0))
                                 draw.rectangle([0, 236, W, 244], fill=(40, 40, 40))
                                 draw.rectangle([0, 236, int(W * ((c_idx+1)/n_vs)), 244], fill=(255, 230, 0))
 
