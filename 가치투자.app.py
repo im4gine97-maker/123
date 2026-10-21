@@ -8222,7 +8222,7 @@ with tab_vs:
 # ==========================================
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
-    headers_ common = {
+    headers_common = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json"
