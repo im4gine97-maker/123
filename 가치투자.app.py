@@ -8218,174 +8218,308 @@ with tab_vs:
 
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(vs_pop_chunks)]), language="text")
 # ==========================================
-# [신규 탭 1] 핀비즈 히트맵 (Finviz S&P 500 & KR Market Map)
+# [100% 무료 · 무인증 3중 백업] 실시간 시가총액 순위 & 등락률 자동 연동 히트맵 엔진
 # ==========================================
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
-    if market_type == "US":
-        # Finviz S&P 500 표준 섹터 -> 산업 -> (티커, 한글명, 시가총액 가중치 B$)
-        finviz_universe = [
-            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "MSFT", "마이크로소프트", 3380),
-            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "ORCL", "오라클", 520),
-            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "PANW", "팔로알토", 130),
-            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "CRWD", "크라우드스트라이크", 95),
-            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "PLTR", "팔란티어", 180),
-            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "CRM", "세일즈포스", 330),
-            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "ADBE", "어도비", 240),
-            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "NOW", "서비스나우", 210),
-            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "INTU", "인튜이트", 190),
-            ("TECHNOLOGY", "CONSUMER ELECTRONICS", "AAPL", "애플", 3450),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "NVDA", "엔비디아", 3520),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "AVGO", "브로드컴", 950),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "AMD", "AMD", 260),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "MU", "마이크론", 130),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "TXN", "텍사스인스트루먼트", 185),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "QCOM", "퀄컴", 195),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "INTC", "인텔", 105),
-            ("TECHNOLOGY", "SEMICONDUCTORS", "MRVL", "마벨", 85),
-            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "AMAT", "어플라이드", 160),
-            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "LRCX", "램리서치", 110),
-            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "KLAC", "KLA", 105),
-            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "DELL", "델", 90),
-            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "CSCO", "시스코", 235),
-            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "IBM", "IBM", 210),
+    headers_ common = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json"
+    }
 
-            ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO", "GOOGL", "구글(알파벳)", 2210),
-            ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO", "META", "메타", 1420),
-            ("COMMUNICATION SERVICES", "ENTERTAINMENT", "NFLX", "넷플릭스", 340),
-            ("COMMUNICATION SERVICES", "ENTERTAINMENT", "DIS", "디즈니", 200),
-            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "TMUS", "T-모바일", 250),
-            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "VZ", "버라이즌", 180),
-            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "T", "AT&T", 160),
+    # 주요 종목 한글 이름 매핑 (primary_names 연동)
+    kor_name_dict = globals().get("primary_names", {})
 
-            ("CONSUMER CYCLICAL", "INTERNET RETAIL", "AMZN", "아마존", 2150),
-            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "TSLA", "테슬라", 810),
-            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "GM", "GM", 60),
-            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "F", "포드", 45),
-            ("CONSUMER CYCLICAL", "HOME IMPROVEMENT", "HD", "홈디포", 410),
-            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "MCD", "맥도날드", 215),
-            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "SBUX", "스타벅스", 110),
-            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "NKE", "나이키", 120),
-            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "TJX", "TJX", 135),
-            ("CONSUMER CYCLICAL", "TRAVEL & LODGING", "BKNG", "부킹홀딩스", 155),
-            ("CONSUMER CYCLICAL", "TRAVEL & LODGING", "MAR", "메리어트", 80),
+    # 영문 섹터명을 Finviz 표준 대문자 섹터명으로 정규화
+    sector_norm_map = {
+        "Electronic Technology": "TECHNOLOGY",
+        "Technology Services": "TECHNOLOGY",
+        "Communications": "COMMUNICATION SERVICES",
+        "Retail Trade": "CONSUMER CYCLICAL",
+        "Consumer Durables": "CONSUMER CYCLICAL",
+        "Consumer Services": "CONSUMER CYCLICAL",
+        "Consumer Non-Durables": "CONSUMER DEFENSIVE",
+        "Distribution Services": "CONSUMER DEFENSIVE",
+        "Finance": "FINANCIAL",
+        "Health Technology": "HEALTHCARE",
+        "Health Services": "HEALTHCARE",
+        "Producer Manufacturing": "INDUSTRIALS",
+        "Transportation": "INDUSTRIALS",
+        "Commercial Services": "INDUSTRIALS",
+        "Industrial Services": "INDUSTRIALS",
+        "Energy Minerals": "ENERGY",
+        "Utilities": "REAL ESTATE & UTILITIES",
+        "Non-Energy Minerals": "BASIC MATERIALS",
+        "Process Industries": "BASIC MATERIALS"
+    }
 
-            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "WMT", "월마트", 750),
-            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "COST", "코스트코", 430),
-            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "TGT", "타겟", 70),
-            ("CONSUMER DEFENSIVE", "HOUSEHOLD & PERSONAL", "PG", "P&G", 400),
-            ("CONSUMER DEFENSIVE", "BEVERAGES", "KO", "코카콜라", 295),
-            ("CONSUMER DEFENSIVE", "BEVERAGES", "PEP", "펩시코", 230),
-            ("CONSUMER DEFENSIVE", "TOBACCO", "PM", "필립모리스", 195),
-            ("CONSUMER DEFENSIVE", "TOBACCO", "MO", "알트리아", 90),
-
-            ("FINANCIAL", "BANKS - DIVERSIFIED", "JPM", "JP모건", 700),
-            ("FINANCIAL", "BANKS - DIVERSIFIED", "BAC", "뱅크오브아메리카", 350),
-            ("FINANCIAL", "BANKS - DIVERSIFIED", "WFC", "웰스파고", 240),
-            ("FINANCIAL", "BANKS - DIVERSIFIED", "C", "씨티그룹", 130),
-            ("FINANCIAL", "CREDIT SERVICES", "V", "비자", 600),
-            ("FINANCIAL", "CREDIT SERVICES", "MA", "마스터카드", 500),
-            ("FINANCIAL", "CREDIT SERVICES", "AXP", "아멕스", 200),
-            ("FINANCIAL", "INSURANCE", "BRK-B", "버크셔해서웨이", 1050),
-            ("FINANCIAL", "INSURANCE", "PGR", "프로그레시브", 150),
-            ("FINANCIAL", "INSURANCE", "CB", "처브", 115),
-            ("FINANCIAL", "CAPITAL MARKETS", "GS", "골드만삭스", 180),
-            ("FINANCIAL", "CAPITAL MARKETS", "MS", "모건스탠리", 190),
-            ("FINANCIAL", "CAPITAL MARKETS", "BLK", "블랙록", 150),
-            ("FINANCIAL", "CAPITAL MARKETS", "SPGI", "S&P글로벌", 160),
-            ("FINANCIAL", "CAPITAL MARKETS", "MCO", "무디스", 90),
-
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "LLY", "일라이릴리", 920),
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "JNJ", "존슨앤드존슨", 390),
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "ABBV", "애브비", 360),
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "MRK", "머크", 280),
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "PFE", "화이자", 160),
-            ("HEALTHCARE", "DRUG MANUFACTURERS", "AMGN", "암젠", 175),
-            ("HEALTHCARE", "HEALTHCARE PLANS", "UNH", "유나이티드헬스", 540),
-            ("HEALTHCARE", "HEALTHCARE PLANS", "ELV", "엘리번스헬스", 110),
-            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "TMO", "써모피셔", 230),
-            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "ABT", "애보트", 210),
-            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "ISRG", "인튜이티브서지컬", 185),
-            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "SYK", "스트라이커", 145),
-
-            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "GE", "GE에어로스페이스", 200),
-            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "RTX", "RTX", 165),
-            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "LMT", "록히드마틴", 135),
-            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "BA", "보잉", 115),
-            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "CAT", "캐터필러", 190),
-            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "DE", "디어앤컴퍼니", 115),
-            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "UNP", "유니온퍼시픽", 150),
-            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "UBER", "우버", 165),
-            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "ETN", "이튼", 140),
-
-            ("ENERGY", "OIL & GAS INTEGRATED", "XOM", "엑손모빌", 550),
-            ("ENERGY", "OIL & GAS INTEGRATED", "CVX", "셰브론", 290),
-            ("ENERGY", "OIL & GAS E&P", "COP", "코노코필립스", 135),
-            ("ENERGY", "OIL & GAS E&P", "EOG", "EOG리소시스", 75),
-            ("ENERGY", "OIL & GAS E&P", "SLB", "슐룸베르거", 65),
-
-            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "PLD", "프로로지스", 115),
-            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "AMT", "아메리칸타워", 100),
-            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "NEE", "넥스테라에너지", 170),
-            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "SO", "서던컴퍼니", 95),
-            ("REAL ESTATE & UTILITIES", "BASIC MATERIALS", "LIN", "린데", 220),
-            ("REAL ESTATE & UTILITIES", "BASIC MATERIALS", "FCX", "프리포트맥모란", 70)
+    # =========================================================
+    # [1순위 무료 엔진] TradingView 공개 스캐너 (API 키 불필요, 시총 순위 + 1D/1W/1M/YTD 일괄 수집)
+    # =========================================================
+    try:
+        tv_mkt = "america" if market_type == "US" else "korea"
+        tv_url = f"https://scanner.tradingview.com/{tv_mkt}/scan"
+        tv_filters = [
+            {"left": "market_cap_basic", "operation": "nempty"},
+            {"left": "type", "operation": "equal", "right": "stock"},
+            {"left": "is_primary", "operation": "equal", "right": True}
         ]
-    else:
-        finviz_universe = [
+        if market_type == "US":
+            tv_filters.append({"left": "exchange", "operation": "in_range", "right": ["NASDAQ", "NYSE"]})
+
+        tv_payload = {
+            "filter": tv_filters,
+            "options": {"lang": "ko"},
+            "markets": [tv_mkt],
+            "symbols": {"query": {"types": []}, "tickers": []},
+            "columns": [
+                "name", "description", "sector", "industry",
+                "market_cap_basic", "change", "Perf.W", "Perf.1M", "Perf.YTD"
+            ],
+            "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
+            "range": [0, 90 if market_type == "US" else 55]
+        }
+
+        r_tv = requests.post(tv_url, json=tv_payload, headers=headers_common, timeout=5)
+        if r_tv.status_code == 200:
+            tv_data = r_tv.json().get("data", [])
+            if len(tv_data) >= 20:
+                rows = []
+                seen_base = set()
+                for item in tv_data:
+                    d = item.get("d", [])
+                    if len(d) < 9:
+                        continue
+                    tk_raw = str(d[0]).strip()
+                    desc_nm = str(d[1] or tk_raw).strip()
+                    sec_raw = str(d[2] or "OTHER").strip()
+                    ind_raw = str(d[3] or sec_raw).strip()
+                    mcap_raw = safe_float(d[4])
+
+                    # 듀얼 클래스(GOOG/GOOGL, BRK.A/BRK.B) 및 우선주 중복 제거
+                    if market_type == "US":
+                        if tk_raw in ["GOOG", "BRK.A", "FOXA", "NWSA"]:
+                            continue
+                        tk_clean = tk_raw.replace(".", "-")
+                    else:
+                        if desc_nm.endswith("우") or desc_nm.endswith("우B"):
+                            continue
+                        tk_clean = tk_raw + ".KS"
+
+                    if tk_clean in seen_base or mcap_raw <= 0:
+                        continue
+                    seen_base.add(tk_clean)
+
+                    # 기간별 수익률 선택 (1D=d[5], 1W=d[6], 1M=d[7], YTD=d[8])
+                    if period_mode == "1D":
+                        chg_val = safe_float(d[5])
+                    elif period_mode == "1W":
+                        chg_val = safe_float(d[6], safe_float(d[5]))
+                    elif period_mode == "1M":
+                        chg_val = safe_float(d[7], safe_float(d[5]))
+                    else:
+                        chg_val = safe_float(d[8], safe_float(d[5]))
+
+                    if market_type == "US":
+                        sec_disp = sector_norm_map.get(sec_raw, sec_raw.upper())
+                        ind_disp = ind_raw.upper()
+                        kor_nm = kor_name_dict.get(tk_clean, desc_nm)
+                        disp_label_name = tk_clean
+                        mcap_scaled = round(mcap_raw / 1e9, 2)  # Billion USD
+                    else:
+                        sec_disp = sec_raw
+                        ind_disp = ind_raw
+                        kor_nm = kor_name_dict.get(tk_clean, desc_nm)
+                        disp_label_name = kor_nm
+                        mcap_scaled = round(mcap_raw / 1e12, 2)  # 조 원 단위
+
+                    sign = "+" if chg_val > 0 else ""
+                    rows.append({
+                        "market": "S&P 500" if market_type == "US" else "KOSPI / KOSDAQ",
+                        "sector": sec_disp,
+                        "industry": ind_disp,
+                        "ticker": tk_clean,
+                        "kor_name": kor_nm,
+                        "label": f"<b>{disp_label_name}</b><br>{sign}{chg_val:.2f}%",
+                        "mcap": max(0.5, mcap_scaled),
+                        "chg": round(chg_val, 2)
+                    })
+
+                if len(rows) >= 20:
+                    return pd.DataFrame(rows)
+    except Exception:
+        pass
+
+    # =========================================================
+    # [2순위 무료 백업 - 한국(KR)] 네이버 금융 실시간 시가총액 순위 스캔
+    # =========================================================
+    if market_type == "KR":
+        kr_sector_map = {
+            "005930": ("IT·반도체", "메모리·파운드리"), "000660": ("IT·반도체", "메모리·파운드리"),
+            "042700": ("IT·반도체", "반도체장비·부품"), "009150": ("IT·반도체", "반도체장비·부품"),
+            "035420": ("IT·반도체", "플랫폼·게임"), "035720": ("IT·반도체", "플랫폼·게임"), "259960": ("IT·반도체", "플랫폼·게임"),
+            "373220": ("2차전지·소재", "배터리셀·소재"), "006400": ("2차전지·소재", "배터리셀·소재"),
+            "051910": ("2차전지·소재", "배터리셀·소재"), "247540": ("2차전지·소재", "배터리셀·소재"),
+            "086520": ("2차전지·소재", "배터리셀·소재"), "003670": ("2차전지·소재", "배터리셀·소재"),
+            "005490": ("2차전지·소재", "철강·제련"), "010130": ("2차전지·소재", "철강·제련"),
+            "005380": ("자동차·중공업·방산", "완성차·부품"), "000270": ("자동차·중공업·방산", "완성차·부품"),
+            "012330": ("자동차·중공업·방산", "완성차·부품"), "012450": ("자동차·중공업·방산", "방산·조선·전력"),
+            "329180": ("자동차·중공업·방산", "방산·조선·전력"), "009540": ("자동차·중공업·방산", "방산·조선·전력"),
+            "042660": ("자동차·중공업·방산", "방산·조선·전력"), "034020": ("자동차·중공업·방산", "방산·조선·전력"),
+            "267260": ("자동차·중공업·방산", "방산·조선·전력"), "079550": ("자동차·중공업·방산", "방산·조선·전력"),
+            "207940": ("바이오·헬스케어", "바이오·제약"), "068270": ("바이오·헬스케어", "바이오·제약"),
+            "196170": ("바이오·헬스케어", "바이오·제약"), "000100": ("바이오·헬스케어", "바이오·제약"),
+            "105560": ("금융·지주·소비재", "은행·금융지주"), "055550": ("금융·지주·소비재", "은행·금융지주"),
+            "086790": ("금융·지주·소비재", "은행·금융지주"), "138040": ("금융·지주·소비재", "은행·금융지주"),
+            "032830": ("금융·지주·소비재", "보험·지주·소비"), "028260": ("금융·지주·소비재", "보험·지주·소비"),
+            "033780": ("금융·지주·소비재", "보험·지주·소비")
+        }
+        live_kr_list = []
+        for sosok, mkt_sfx in [(0, ".KS"), (1, ".KQ")]:
+            limit_cnt = 35 if sosok == 0 else 15
+            try:
+                url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok={sosok}&page=1"
+                r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
+                r.encoding = 'euc-kr'
+                soup = BeautifulSoup(r.text, 'html.parser')
+                cnt = 0
+                for tr in soup.select("table.type_2 tbody tr"):
+                    a_tag = tr.select_one("a.tltle")
+                    if not a_tag: continue
+                    kor_nm = a_tag.text.strip()
+                    if kor_nm.endswith("우") or kor_nm.endswith("우B") or any(k in kor_nm for k in ["KODEX", "TIGER", "KBSTAR", "ACE", "RISE", "SOL", "HANARO"]):
+                        continue
+                    code_m = re.search(r'code=(\d{6})', a_tag.get("href", ""))
+                    if not code_m: continue
+                    cd6 = code_m.group(1)
+                    tds = tr.select("td.number")
+                    if len(tds) >= 5:
+                        chg_1d = safe_float(re.sub(r'[^\d\.\-\+]', '', tds[1].text))
+                        mcap_uk = safe_float(re.sub(r'[^\d\.]', '', tds[4].text))
+                        if mcap_uk > 0:
+                            sec, ind = kr_sector_map.get(cd6, ("기타 시총 상위", "코스피·코스닥 상위"))
+                            live_kr_list.append((sec, ind, cd6 + mkt_sfx, kor_nm, round(mcap_uk / 10000.0, 2), chg_1d))
+                            cnt += 1
+                            if cnt >= limit_cnt: break
+            except Exception:
+                pass
+
+        if period_mode == "1D" and len(live_kr_list) >= 10:
+            return pd.DataFrame([{
+                "market": "KOSPI / KOSDAQ", "sector": s, "industry": i, "ticker": tk_s, "kor_name": kn,
+                "label": f"<b>{kn}</b><br>{'+' if c > 0 else ''}{c:.2f}%", "mcap": max(0.5, mc), "chg": round(c, 2)
+            } for s, i, tk_s, kn, mc, c in live_kr_list])
+
+        finviz_universe = [(x[0], x[1], x[2], x[3], x[4]) for x in live_kr_list] if live_kr_list else [
             ("IT·반도체", "메모리·파운드리", "005930.KS", "삼성전자", 420),
-            ("IT·반도체", "메모리·파운드리", "000660.KS", "SK하이닉스", 160),
-            ("IT·반도체", "반도체장비·부품", "042700.KS", "한미반도체", 12),
-            ("IT·반도체", "반도체장비·부품", "009150.KS", "삼성전기", 11),
-            ("IT·반도체", "플랫폼·게임", "035420.KS", "NAVER", 30),
-            ("IT·반도체", "플랫폼·게임", "035720.KS", "카카오", 18),
-            ("IT·반도체", "플랫폼·게임", "259960.KS", "크래프톤", 16),
-            ("2차전지·화학", "배터리셀·소재", "373220.KS", "LG에너지솔루션", 90),
-            ("2차전지·화학", "배터리셀·소재", "006400.KS", "삼성SDI", 22),
-            ("2차전지·화학", "배터리셀·소재", "051910.KS", "LG화학", 23),
-            ("2차전지·화학", "배터리셀·소재", "247540.KQ", "에코프로비엠", 15),
-            ("2차전지·화학", "철강·제련", "005490.KS", "POSCO홀딩스", 30),
-            ("2차전지·화학", "철강·제련", "010130.KS", "고려아연", 16),
-            ("자동차·중공업·방산", "완성차·부품", "005380.KS", "현대차", 55),
-            ("자동차·중공업·방산", "완성차·부품", "000270.KS", "기아", 42),
-            ("자동차·중공업·방산", "완성차·부품", "012330.KS", "현대모비스", 22),
-            ("자동차·중공업·방산", "방산·조선·전력", "012450.KS", "한화에어로스페이스", 20),
-            ("자동차·중공업·방산", "방산·조선·전력", "329180.KS", "HD현대중공업", 18),
-            ("자동차·중공업·방산", "방산·조선·전력", "034020.KS", "두산에너빌리티", 14),
-            ("자동차·중공업·방산", "방산·조선·전력", "267260.KS", "HD현대일렉트릭", 12),
-            ("바이오·헬스케어", "바이오의약품", "207940.KS", "삼성바이오로직스", 72),
-            ("바이오·헬스케어", "바이오의약품", "068270.KS", "셀트리온", 40),
-            ("바이오·헬스케어", "바이오의약품", "196170.KQ", "알테오젠", 18),
-            ("바이오·헬스케어", "바이오의약품", "000100.KS", "유한양행", 11),
-            ("금융·지주·소비재", "은행·금융지주", "105560.KS", "KB금융", 36),
-            ("금융·지주·소비재", "은행·금융지주", "055550.KS", "신한지주", 28),
-            ("금융·지주·소비재", "은행·금융지주", "086790.KS", "하나금융지주", 19),
-            ("금융·지주·소비재", "은행·금융지주", "138040.KS", "메리츠금융지주", 20),
-            ("금융·지주·소비재", "보험·지주·필수소비", "032830.KS", "삼성생명", 19),
-            ("금융·지주·소비재", "보험·지주·필수소비", "028260.KS", "삼성물산", 24),
-            ("금융·지주·소비재", "보험·지주·필수소비", "033780.KS", "KT&G", 14),
-            ("금융·지주·소비재", "보험·지주·필수소비", "003230.KS", "삼양식품", 9)
+            ("IT·반도체", "메모리·파운드리", "000660.KS", "SK하이닉스", 160)
         ]
 
+    # =========================================================
+    # [2순위 무료 백업 - 미국(US)] 네이버 해외증시 시총 순위 API + yfinance 연동
+    # =========================================================
+    else:
+        us_sector_lookup = {
+            "MSFT": ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE"), "ORCL": ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE"),
+            "PANW": ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE"), "CRWD": ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE"),
+            "PLTR": ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE"), "CRM": ("TECHNOLOGY", "SOFTWARE - APPLICATION"),
+            "ADBE": ("TECHNOLOGY", "SOFTWARE - APPLICATION"), "NOW": ("TECHNOLOGY", "SOFTWARE - APPLICATION"),
+            "INTU": ("TECHNOLOGY", "SOFTWARE - APPLICATION"), "AAPL": ("TECHNOLOGY", "CONSUMER ELECTRONICS"),
+            "NVDA": ("TECHNOLOGY", "SEMICONDUCTORS"), "AVGO": ("TECHNOLOGY", "SEMICONDUCTORS"),
+            "AMD": ("TECHNOLOGY", "SEMICONDUCTORS"), "MU": ("TECHNOLOGY", "SEMICONDUCTORS"),
+            "TXN": ("TECHNOLOGY", "SEMICONDUCTORS"), "QCOM": ("TECHNOLOGY", "SEMICONDUCTORS"),
+            "INTC": ("TECHNOLOGY", "SEMICONDUCTORS"), "MRVL": ("TECHNOLOGY", "SEMICONDUCTORS"),
+            "AMAT": ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT"), "LRCX": ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT"),
+            "KLAC": ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT"), "CSCO": ("TECHNOLOGY", "COMPUTER HARDWARE & IT"),
+            "IBM": ("TECHNOLOGY", "COMPUTER HARDWARE & IT"), "DELL": ("TECHNOLOGY", "COMPUTER HARDWARE & IT"),
+            "GOOGL": ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO"), "META": ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO"),
+            "NFLX": ("COMMUNICATION SERVICES", "ENTERTAINMENT"), "DIS": ("COMMUNICATION SERVICES", "ENTERTAINMENT"),
+            "TMUS": ("COMMUNICATION SERVICES", "TELECOM SERVICES"), "VZ": ("COMMUNICATION SERVICES", "TELECOM SERVICES"),
+            "T": ("COMMUNICATION SERVICES", "TELECOM SERVICES"), "AMZN": ("CONSUMER CYCLICAL", "INTERNET RETAIL"),
+            "TSLA": ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS"), "HD": ("CONSUMER CYCLICAL", "HOME IMPROVEMENT"),
+            "MCD": ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL"), "NKE": ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL"),
+            "SBUX": ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL"), "BKNG": ("CONSUMER CYCLICAL", "TRAVEL & LODGING"),
+            "WMT": ("CONSUMER DEFENSIVE", "DISCOUNT STORES"), "COST": ("CONSUMER DEFENSIVE", "DISCOUNT STORES"),
+            "PG": ("CONSUMER DEFENSIVE", "HOUSEHOLD & PERSONAL"), "KO": ("CONSUMER DEFENSIVE", "BEVERAGES"),
+            "PEP": ("CONSUMER DEFENSIVE", "BEVERAGES"), "PM": ("CONSUMER DEFENSIVE", "TOBACCO"),
+            "JPM": ("FINANCIAL", "BANKS - DIVERSIFIED"), "BAC": ("FINANCIAL", "BANKS - DIVERSIFIED"),
+            "WFC": ("FINANCIAL", "BANKS - DIVERSIFIED"), "C": ("FINANCIAL", "BANKS - DIVERSIFIED"),
+            "V": ("FINANCIAL", "CREDIT SERVICES"), "MA": ("FINANCIAL", "CREDIT SERVICES"),
+            "AXP": ("FINANCIAL", "CREDIT SERVICES"), "BRK-B": ("FINANCIAL", "INSURANCE"),
+            "PGR": ("FINANCIAL", "INSURANCE"), "GS": ("FINANCIAL", "CAPITAL MARKETS"),
+            "MS": ("FINANCIAL", "CAPITAL MARKETS"), "BLK": ("FINANCIAL", "CAPITAL MARKETS"),
+            "SPGI": ("FINANCIAL", "CAPITAL MARKETS"), "LLY": ("HEALTHCARE", "DRUG MANUFACTURERS"),
+            "JNJ": ("HEALTHCARE", "DRUG MANUFACTURERS"), "ABBV": ("HEALTHCARE", "DRUG MANUFACTURERS"),
+            "MRK": ("HEALTHCARE", "DRUG MANUFACTURERS"), "PFE": ("HEALTHCARE", "DRUG MANUFACTURERS"),
+            "AMGN": ("HEALTHCARE", "DRUG MANUFACTURERS"), "UNH": ("HEALTHCARE", "HEALTHCARE PLANS"),
+            "TMO": ("HEALTHCARE", "MEDICAL DEVICES & DIAG"), "ABT": ("HEALTHCARE", "MEDICAL DEVICES & DIAG"),
+            "ISRG": ("HEALTHCARE", "MEDICAL DEVICES & DIAG"), "SYK": ("HEALTHCARE", "MEDICAL DEVICES & DIAG"),
+            "GE": ("INDUSTRIALS", "AEROSPACE & DEFENSE"), "RTX": ("INDUSTRIALS", "AEROSPACE & DEFENSE"),
+            "LMT": ("INDUSTRIALS", "AEROSPACE & DEFENSE"), "BA": ("INDUSTRIALS", "AEROSPACE & DEFENSE"),
+            "CAT": ("INDUSTRIALS", "MACHINERY & TRANSPORT"), "DE": ("INDUSTRIALS", "MACHINERY & TRANSPORT"),
+            "UNP": ("INDUSTRIALS", "MACHINERY & TRANSPORT"), "UBER": ("INDUSTRIALS", "MACHINERY & TRANSPORT"),
+            "XOM": ("ENERGY", "OIL & GAS INTEGRATED"), "CVX": ("ENERGY", "OIL & GAS INTEGRATED"),
+            "COP": ("ENERGY", "OIL & GAS E&P"), "PLD": ("REAL ESTATE & UTILITIES", "REIT & UTILITIES"),
+            "NEE": ("REAL ESTATE & UTILITIES", "REIT & UTILITIES"), "LIN": ("REAL ESTATE & UTILITIES", "BASIC MATERIALS")
+        }
+
+        # 네이버 해외증시 모바일 공개 API로 실시간 뉴욕/나스닥 시총 순위 스캔 시도
+        naver_us_list = []
+        for exch in ["NASDAQ", "NYSE"]:
+            try:
+                nv_url = f"https://api.stock.naver.com/stock/exchange/{exch}/marketValue?page=1&pageSize=45"
+                r_nv = requests.get(nv_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=4)
+                if r_nv.status_code == 200:
+                    for st_item in r_nv.json().get("stocks", []):
+                        sym = str(st_item.get("symbolCode", "")).upper().replace(".", "-")
+                        if sym in ["GOOG", "BRK-A"]: continue
+                        k_nm = st_item.get("stockName", sym)
+                        mc_krw_str = str(st_item.get("marketValue", "0")).replace(",", "")
+                        mc_val = safe_float(mc_krw_str)
+                        chg_1d = safe_float(st_item.get("fluctuationsRatio", 0.0))
+                        if sym and mc_val > 0:
+                            sec, ind = us_sector_lookup.get(sym, ("OTHER S&P LEADERS", "LARGE CAP"))
+                            naver_us_list.append((sec, ind, sym, k_nm, mc_val, chg_1d))
+            except Exception:
+                pass
+
+        if period_mode == "1D" and len(naver_us_list) >= 30:
+            return pd.DataFrame([{
+                "market": "S&P 500", "sector": s, "industry": i, "ticker": tk_s, "kor_name": kn,
+                "label": f"<b>{tk_s}</b><br>{'+' if c > 0 else ''}{c:.2f}%", "mcap": max(1.0, mc), "chg": round(c, 2)
+            } for s, i, tk_s, kn, mc, c in naver_us_list])
+
+        finviz_universe = [
+            (sec, ind, tk_s, kor_name_dict.get(tk_s, tk_s), 100.0)
+            for tk_s, (sec, ind) in us_sector_lookup.items()
+        ]
+
+    # =========================================================
+    # [3순위 무료 백업] yfinance 일괄 다운로드 + 실시간 주가 연동 시총 계산
+    # =========================================================
     tickers_list = [item[2] for item in finviz_universe]
-    dl_period = "1y" if period_mode == "YTD" else ("2mo" if period_mode == "1M" else "10d")
     pct_map = {}
+    live_mcap_scale = {}
 
     try:
-        raw_df = yf.download(tickers_list, period=dl_period, group_by="ticker", threads=True, progress=False)
+        raw_df = yf.download(tickers_list, period="1y", group_by="ticker", threads=True, progress=False)
         curr_year = datetime.now().year
         for tk_sym in tickers_list:
             try:
                 sub = raw_df[tk_sym]['Close'].dropna() if len(tickers_list) > 1 else raw_df['Close'].dropna()
                 if len(sub) >= 2:
                     now_p = float(sub.iloc[-1])
+                    yr_start_p = float(sub.iloc[0])
+                    live_mcap_scale[tk_sym] = (now_p / yr_start_p) if yr_start_p > 0 else 1.0
+
                     if period_mode == "1D":
                         base_p = float(sub.iloc[-2])
                     elif period_mode == "1W":
                         base_p = float(sub.iloc[max(0, len(sub) - 6)])
                     elif period_mode == "1M":
                         base_p = float(sub.iloc[max(0, len(sub) - 22)])
-                    else:  # YTD
+                    else:
                         ytd_sub = sub[sub.index.year == curr_year]
                         prev_yr_sub = sub[sub.index.year < curr_year]
                         base_p = float(prev_yr_sub.iloc[-1]) if not prev_yr_sub.empty else float(ytd_sub.iloc[0])
@@ -8399,8 +8533,9 @@ def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
             pct_map[tk_sym] = 0.0
 
     rows = []
-    for sec, ind, tk_sym, kor_nm, mcap_w in finviz_universe:
+    for sec, ind, tk_sym, kor_nm, base_mcap in finviz_universe:
         chg = pct_map.get(tk_sym, 0.0)
+        dyn_mcap = round(base_mcap * live_mcap_scale.get(tk_sym, 1.0), 2)
         disp_tk = kor_nm if market_type == "KR" else tk_sym
         sign = "+" if chg > 0 else ""
         rows.append({
@@ -8410,74 +8545,10 @@ def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
             "ticker": tk_sym,
             "kor_name": kor_nm,
             "label": f"<b>{disp_tk}</b><br>{sign}{chg:.2f}%",
-            "mcap": mcap_w,
+            "mcap": max(1.0, dyn_mcap),
             "chg": round(chg, 2)
         })
     return pd.DataFrame(rows)
-
-with tab_heatmap:
-    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 실시간 마켓 히트맵", "🗺️ Finviz Style Real-Time Market Heatmap"))
-    st.caption(t("박스의 크기는 각 기업의 시가총액 비중을 나타내며, 색상은 등락률(초록=상승, 빨강=하락)을 실시간으로 보여줍니다. 박스를 클릭하면 확대해서 볼 수 있습니다.", "Box size represents Market Cap; color represents % performance."))
-
-    hm_c1, hm_c2 = st.columns([1.5, 2.0])
-    with hm_c1:
-        hm_mkt = st.radio(
-            "시장 선택",
-            ["🇺🇸 미국 S&P 500 (Finviz 원본 스타일)", "🇰🇷 한국 대표주 (KOSPI·KOSDAQ)"],
-            horizontal=True,
-            key="hm_mkt_sel"
-        )
-    with hm_c2:
-        hm_prd = st.radio(
-            "등락률 기준 기간",
-            ["1D (일간 실시간)", "1W (최근 1주일)", "1M (최근 1개월)", "YTD (연초 대비)"],
-            horizontal=True,
-            key="hm_prd_sel"
-        )
-
-    mkt_code = "US" if "미국" in hm_mkt else "KR"
-    prd_code = hm_prd.split(" ")[0]
-
-    with st.spinner("실시간 섹터별 시가총액 및 등락률 히트맵을 렌더링 중입니다..."):
-        df_hm = fetch_finviz_heatmap_data(mkt_code, prd_code)
-
-        if not df_hm.empty:
-            import plotly.express as px
-            # Finviz 시그니처 다크 레드 -> 다크 차콜 -> 브라이트 그린 컬러 스케일
-            finviz_colorscale = [
-                [0.0, "#b71c1c"],
-                [0.25, "#7f1d1d"],
-                [0.5, "#262931"],
-                [0.75, "#14532d"],
-                [1.0, "#16a34a"]
-            ]
-            c_range = 3.0 if prd_code == "1D" else (6.0 if prd_code == "1W" else (12.0 if prd_code == "1M" else 25.0))
-
-            fig_hm = px.treemap(
-                df_hm,
-                path=[px.Constant("S&P 500 MAP" if mkt_code == "US" else "KOREA MARKET MAP"), "sector", "industry", "label"],
-                values="mcap",
-                color="chg",
-                color_continuous_scale=finviz_colorscale,
-                range_color=[-c_range, c_range],
-                custom_data=["kor_name", "ticker", "chg", "mcap"]
-            )
-            fig_hm.update_traces(
-                textinfo="label",
-                textposition="middle center",
-                textfont=dict(family="Pretendard, Arial Black, sans-serif", size=15, color="#ffffff"),
-                marker=dict(line=dict(width=1.5, color="#0b0e14"), cornerradius=2),
-                hovertemplate="<b>%{customdata[0]} (%{customdata[1]})</b><br>등락률: %{customdata[2]:+.2f}%<extra></extra>"
-            )
-            fig_hm.update_layout(
-                height=720,
-                margin=dict(t=10, l=4, r=4, b=10),
-                paper_bgcolor="#0b0e14",
-                plot_bgcolor="#0b0e14",
-                coloraxis_showscale=False
-            )
-            st.plotly_chart(fig_hm, use_container_width=True)
-            st.caption("출처: Finviz 섹터 분류 체계 및 Yahoo Finance 실시간 시세 연동")
 
 
 # ==========================================
