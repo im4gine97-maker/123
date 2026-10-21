@@ -6356,43 +6356,52 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [참고영상 완벽 구현] 6. 블룸버그·토스 감성 + 1줄 툭툭 자막 쇼츠 스튜디오
+                # [참고영상 보이스 + 26컷 풀버전 1줄 툭툭 자막] 6. 유튜브 쇼츠 트렌디 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 트렌디 스튜디오 (1줄 툭툭 자막 + 논스톱 AI 보이스 + 블룸버그 UI)", "🎬 6. Trendy Bloomberg-Style Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 트렌디 스튜디오 (참고영상 보이스 + 26컷 딥다이브 1줄 자막)", "🎬 6. Trendy 26-Cut Deep-Dive Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **참고 영상 스타일 완벽 적용:** ① 상단 2줄 블랙&옐로우 고정 타이틀, ② **1초마다 한 줄씩 '툭툭' 튀어나오는 가변형 블랙 자막 박스**, ③ **쉼표 없이 한 호흡에 몰아치는 2030 요약체(~해봤음/~나왔음) AI 보이스**, ④ **블룸버그·토스증권 스타일의 미니멀 다크 인포그래픽**이 결합되었습니다.",
-                        "💡 Features 1-line popping subtitles, breathless continuous AI voiceover, and Bloomberg/Toss dark minimal data UI."
+                        "💡 **참고 영상('공감입니다 2.0') 스타일 완벽 이식:** ① 구절 사이의 숨소리를 잘라내어 툭툭 치고 나가는 **무호흡 점프컷 썰풀이 보이스**, ② **26컷(약 34초) 풀버전 1줄 팝업 자막**으로 5년·10년 PER/PBR, 국채 금리 대비 이익수익률, ROE·ROIC, 자사주 소각, 경영진 리스크, 역산 DCF까지 빠짐없이 다룹니다.",
+                        "💡 Features jump-cut breathless storytelling TTS voice, 26-cut 1-line popping subtitles, and 7 Bloomberg/Toss dark infographic scenes."
                     ))
 
                     col_sh_opt1, col_sh_opt2 = st.columns([1.6, 1.4])
                     with col_sh_opt1:
                         shorts_style = st.radio(
-                            t("1️⃣ 상단 고정 타이틀 & 브리핑 톤 선택", "Select Header & Briefing Tone"),
+                            t("1️⃣ 상단 고정 타이틀 & 브리핑 컨셉", "Select Header & Briefing Tone"),
                             [
-                                "📊 스타일 A: 월가 데이터 역산 썰 (\"월가에서 {종목} 장부 보고 놀란 이유\")",
+                                "📊 스타일 A: 월가 장부 역산 썰 (\"월가에서 {종목} 장부 보고 놀란 이유\")",
                                 "⚡ 스타일 B: 스마트머니 팩트체크 (\"요즘 서학·동학개미가 {종목} 주목한 이유\")",
                                 "🔍 스타일 C: 블룸버그 퀀트 리포트 (\"{종목} 현재 주가에 숨겨진 진짜 기대치\")"
                             ],
                             key=f"shorts_style_{tk}"
                         )
+                        shorts_len_mode = st.radio(
+                            t("📏 영상 분량 선택", "Select Video Length"),
+                            [
+                                "🔥 26컷 딥다이브 풀버전 (약 34초 - 모든 핵심 지표 + 경영진 + DCF 총망라)",
+                                "⚡ 12컷 핵심 요약 버전 (약 15초 - 핵심 멀티플 + ROE + 역산 DCF만 압축)"
+                            ],
+                            key=f"shorts_len_{tk}"
+                        )
                     with col_sh_opt2:
                         voice_choice = st.selectbox(
-                            "2️⃣ 쇼츠 AI 보이스 (참고 영상 톤 세팅)",
+                            "2️⃣ 쇼츠 AI 보이스 (참고 영상 무호흡 점프컷 튜닝 탑재)",
                             [
-                                "⚡ 인준 하이피치 (InJoon Fast) - 참고 영상 스타일의 빠르고 찰진 남성 요약 보이스",
-                                "🔥 선희 하이텐션 (SunHi Viral) - 트렌디한 2030 여성 정보 브리핑 보이스",
-                                "🎙️ 현수 모던톤 (Hyunsu Modern) - 깔끔한 블룸버그 뉴스 브리핑 보이스"
+                                "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
+                                "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
+                                "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
+                                "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
                             ],
                             key=f"shorts_voice_{tk}"
                         )
                         voice_speed = st.slider(
-                            "말하기 속도 배속 (참고 영상 호흡 추천: +32%)",
-                            min_value=15, max_value=45, value=32, step=1,
+                            "말하기 속도 배속 (참고 영상 호흡 추천: +28%)",
+                            min_value=15, max_value=45, value=28, step=1,
                             format="+%d%%",
                             key=f"shorts_spd_{tk}"
                         )
                         creator_holds = st.checkbox(
-                            t("제작자 현재 해당 종목 보유 중 (하단 미세 고지)", "Creator holds this stock"),
+                            t("제작자 현재 해당 종목 보유 중 (하단 고지)", "Creator holds this stock"),
                             value=False,
                             key=f"shorts_hold_{tk}"
                         )
@@ -6404,7 +6413,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     imp_g_fmt = f"연 {implied_g_shorts*100:.1f}%" if implied_g_shorts is not None else f"연 {final_g*100:.1f}%"
                     hold_badge = "보유중" if creator_holds else "미보유"
 
-                    # 상단 2줄 고정 타이틀 (첫 줄: 흰색, 둘째 줄: 노란색 - 참고 영상과 동일한 구조)
+                    # 5년 평균 PER / PBR 추출 (세션 캐시 연동)
+                    a_pe_5y = safe_float(st.session_state.get(f"pe_5y_{tk}", a_pe), a_pe)
+                    a_pbr_5y = safe_float(st.session_state.get(f"pbr_5y_{tk}", a_pbr), a_pbr)
+                    if a_pe_5y <= 0: a_pe_5y = a_pe
+                    if a_pbr_5y <= 0: a_pbr_5y = a_pbr
+
+                    # 상단 2줄 고정 타이틀 (첫 줄: 흰색, 둘째 줄: 노란색)
                     if "스타일 A" in shorts_style:
                         top_line1 = f"월가에서 {comp_name} 장부 보고"
                         top_line2 = "소름 돋았다는 진짜 이유"
@@ -6416,59 +6431,151 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         top_line2 = "시장 기대치 역산해본 결과"
 
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
-                    mult_lbl = "선행 PBR" if use_pbr_m else "선행 PER"
-                    mult_cur = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}배"
-                    mult_avg = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}배"
                     disc_txt = f"{abs(pmos_val):.0f}% 낮은 저평가" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 높은 프리미엄"
 
-                    # 참고 영상처럼 1초마다 '툭툭' 끊어 나오는 10개 한 줄 자막 리스트
-                    # (전체 문장을 이어 읽으면 하나의 자연스러운 스토리텔링이 됨)
-                    pop_chunks = [
-                        (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
-                        ("이 가격이 적당한지 월가 모델로", "SCENE_1"),
-                        (f"{data_len}년 치 장부를 역산해봤음", "SCENE_2"),
-                        (f"그랬더니 {mult_lbl}이 {mult_cur} 수준이라", "SCENE_2"),
-                        (f"10년 평균 대비 {disc_txt} 구간임", "SCENE_2"),
-                        (f"특히 자본수익률 ROE가 {roe:.1f}%인데", "SCENE_3"),
-                        (f"영업이익률도 {op_m:.1f}%를 기록하면서", "SCENE_3"),
-                        (f"주주환원율이 연 {tsy_total:.1f}%에 달했음", "SCENE_4"),
-                        ("현재 주가에 반영된 향후 10년", "SCENE_5"),
-                        (f"요구 성장률은 {imp_g_fmt}로 나왔다고 함", "SCENE_5")
-                    ]
+                    # EPS 및 자본(BPS) 4년 추세 한 줄 요약
+                    eps_up = ("합격" in eps_trend or "Pass" in eps_trend)
+                    bps_up = ("합격" in bps_trend or "Pass" in bps_trend or "특수" in bps_trend)
+                    if eps_up and bps_up:
+                        trend_line = "꾸준히 우상향하며 복리 성장을 증명했음"
+                    elif eps_up or bps_up:
+                        trend_line = "대체로 견조한 우상향 흐름을 유지했음"
+                    else:
+                        trend_line = "다소 변동을 겪으며 사이클 영향을 받았음"
+
+                    # 재무 생존력(부채/유동성) 한 줄 요약
+                    debt_bad = ("[경고]" in bio_eval or "[위험]" in bio_eval)
+                    if is_financial:
+                        surv_line = "자본 적정성과 현금 창출력이 안정적이라"
+                    elif not debt_bad and current_ratio >= 1.2:
+                        surv_line = f"유동비율 {current_ratio:.1f}배로 현금 체력이 넉넉해서"
+                    elif not debt_bad:
+                        surv_line = "부채 통제와 현금흐름이 안정적인 편이라"
+                    else:
+                        surv_line = "차입금과 재무 레버리지 부담은 있는 편이라"
+
+                    # 경영진 강점/단점 핵심 구절 추출 (1줄 자막용 16자 내외 압축)
+                    gov_pro_1, gov_pro_2 = "본업의 압도적 시장 지위와", "높은 현금 창출력을 입증했지만"
+                    gov_con_1, gov_con_2 = "경쟁 심화와 규제 마찰 등", "지배구조 리스크는 점검해야 함"
+                    if "장점:" in criticism_text and "단점:" in criticism_text:
+                        pts = criticism_text.split("단점:")
+                        raw_p = pts[0].split("장점:")[-1].strip()
+                        raw_c = pts[1].strip()
+                        # 첫 문장 핵심 어절 추출
+                        p_words = raw_p.split(".")[0].split(" ")
+                        c_words = raw_c.split(".")[0].split(" ")
+                        if len(p_words) >= 6:
+                            gov_pro_1 = " ".join(p_words[:3])[:17]
+                            gov_pro_2 = (" ".join(p_words[3:6])[:14] + " 등 강점이 뚜렷하지만")
+                        if len(c_words) >= 6:
+                            gov_con_1 = " ".join(c_words[:3])[:17]
+                            gov_con_2 = (" ".join(c_words[3:6])[:13] + " 이슈는 체크해야 함")
+
+                    # --- [26컷 딥다이브 풀버전 vs 12컷 요약버전 자막 구성] ---
+                    if "26컷" in shorts_len_mode:
+                        pop_chunks = [
+                            # SCENE 1: 오프닝 & 현재 주가 (4컷)
+                            (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
+                            ("이 가격이 적당한지 월가 모델로", "SCENE_1"),
+                            (f"최근 {data_len}년 치 재무제표와 현금흐름을", "SCENE_1"),
+                            ("처음부터 끝까지 싹 다 역산해봤음", "SCENE_1"),
+
+                            # SCENE 2: 멀티플 검증 - 현재/선행/5년/10년 PER & PBR (5컷)
+                            (f"먼저 현재 PER은 {t_pe:.1f}배 수준이고", "SCENE_2"),
+                            (f"컨센서스 선행 PER은 {f_pe:.1f}배인데", "SCENE_2"),
+                            (f"5년 평균 {a_pe_5y:.1f}배, 10년 평균 {a_pe:.1f}배 대비", "SCENE_2"),
+                            (f"약 {disc_txt} 구간이었음", "SCENE_2"),
+                            (f"선행 PBR 역시 {f_pbr:.2f}배로 10년 평균 {a_pbr:.2f}배 수준임", "SCENE_2"),
+
+                            # SCENE 3: 이익수익률 vs 10년물 미국채 금리 (3컷)
+                            ("특히 주식을 예금 이자로 환산한", "SCENE_3"),
+                            (f"이익수익률은 연 {ey:.1f}%를 기록했는데", "SCENE_3"),
+                            (f"미국 10년 국채 금리 {ty:.2f}% 대비 {erp:+.1f}%p 차이 남", "SCENE_3"),
+
+                            # SCENE 4: 비즈니스 해자 - ROE·ROIC·영업이익률·4년 추세 (4컷)
+                            (f"본업 마진인 영업이익률은 {op_m:.1f}%였고", "SCENE_4"),
+                            (f"자본수익률 ROE {roe:.1f}%, 투하자본수익률 ROIC {roic_val:.1f}%로", "SCENE_4"),
+                            ("자본을 굴리는 복리 엔진이 확인됐는데", "SCENE_4"),
+                            (f"최근 4년간 이익과 자본도 {trend_line}", "SCENE_4"),
+
+                            # SCENE 5: 주주환원(배당+자사주) & 재무 생존력 (4컷)
+                            (f"여기에 배당 {div:.1f}%와 자사주 소각 {bb_yield:+.1f}%를 더해", "SCENE_5"),
+                            (f"총주주환원율이 연 {tsy_total:.1f}%에 달했는데", "SCENE_5"),
+                            (f"{surv_line}", "SCENE_5"),
+                            ("위기 대응력과 현금 흐름도 탄탄했음", "SCENE_5"),
+
+                            # SCENE 6: 경영진 강점 & 리스크 팩트체크 (3컷)
+                            (f"경영진은 {gov_pro_1}", "SCENE_6"),
+                            (f"{gov_pro_2}", "SCENE_6"),
+                            (f"반면 {gov_con_1} 리스크는 주의해야 함", "SCENE_6"),
+
+                            # SCENE 7: 역산 DCF & 멍거 5대 관문 최종 결론 (3컷)
+                            (f"현 주가에 반영된 10년 요구 성장률은 {imp_g_fmt}이고", "SCENE_7"),
+                            (f"보수적 DCF 산출값은 {iv_fmt}으로 계산됐는데", "SCENE_7"),
+                            (f"멍거 관문 {pass_cnt}개 통과, 최종 {total_score_val}점으로 나왔다고 함", "SCENE_7")
+                        ]
+                    else:
+                        pop_chunks = [
+                            (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
+                            (f"{data_len}년 치 장부를 월가 모델로 역산해봤음", "SCENE_1"),
+                            (f"선행 PER은 {f_pe:.1f}배, 10년 평균은 {a_pe:.1f}배라", "SCENE_2"),
+                            (f"평소 대비 {disc_txt} 구간이었음", "SCENE_2"),
+                            (f"이익수익률은 연 {ey:.1f}%로 미국채 {ty:.2f}%와", "SCENE_3"),
+                            (f"비교하면 {erp:+.1f}%p 격차를 보였음", "SCENE_3"),
+                            (f"특히 ROE {roe:.1f}%, ROIC {roic_val:.1f}%에", "SCENE_4"),
+                            (f"영업이익률도 {op_m:.1f}%를 기록하면서", "SCENE_4"),
+                            (f"배당과 소각을 합친 환원율이 연 {tsy_total:.1f}%였음", "SCENE_5"),
+                            ("현재 주가에 반영된 향후 10년", "SCENE_7"),
+                            (f"요구 성장률은 {imp_g_fmt} 수준이었고", "SCENE_7"),
+                            (f"최종 정량 점수는 {total_score_val}점으로 나왔다고 함", "SCENE_7")
+                        ]
+
                     tts_only_script = " ".join([c[0] for c in pop_chunks])
 
-                    def _generate_seamless_voice(script_text, out_path):
-                        if "인준" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+9Hz"  # 참고 영상 특유의 긴박하고 또렷한 남성 톤
-                        elif "선희" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-SunHiNeural", "+5Hz"
+                    # [핵심!] 참고 영상('공감입니다 2.0') 특유의 무호흡 점프컷 썰풀이 보이스 합성기
+                    def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe):
+                        is_ref_1 = "공감입니다 스타일" in voice_choice
+                        is_ref_2 = "낭만 썰풀이" in voice_choice
+                        if is_ref_1:
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+4Hz"
+                        elif is_ref_2:
+                            voice_id, pitch_str = "ko-KR-HyunsuNeural", "+2Hz"
+                        elif "인준" in voice_choice:
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+8Hz"
                         else:
-                            voice_id, pitch_str = "ko-KR-HyunsuNeural", "+4Hz"
+                            voice_id, pitch_str = "ko-KR-SunHiNeural", "+5Hz"
+
                         rate_str = f"+{voice_speed}%"
                         try:
                             import edge_tts, asyncio
-                            async def _run_tts():
-                                communicate = edge_tts.Communicate(script_text, voice=voice_id, rate=rate_str, pitch=pitch_str)
-                                await communicate.save(out_path)
+                            async def _run():
+                                await edge_tts.Communicate(text_line, voice=voice_id, rate=rate_str, pitch=pitch_str).save(raw_mp3_path)
                             loop = asyncio.new_event_loop()
-                            try: loop.run_until_complete(_run_tts())
+                            try: loop.run_until_complete(_run())
                             finally: loop.close()
-                            return True, f"논스톱 AI 보이스 ({voice_id} | 배속 {rate_str} | 피치 {pitch_str}) 생성 완료"
                         except ImportError:
                             from gtts import gTTS
-                            gTTS(text=script_text, lang='ko', slow=False).save(out_path)
-                            return False, "⚠️ `requirements.txt`에 `edge-tts`를 추가하시면 참고 영상과 동일한 AI 보이스가 적용됩니다!"
+                            gTTS(text=text_line, lang='ko', slow=False).save(raw_mp3_path)
 
-                    def _get_audio_duration(ffmpeg_exe, audio_path):
-                        import subprocess, re
+                        # FFmpeg 무호흡 점프컷 필터: 앞뒤 숨소리(무음)를 완전히 도려내고 라디오 성우 EQ 적용
+                        import subprocess
+                        af_filter = (
+                            "silenceremove=start_periods=1:start_threshold=-38dB:"
+                            "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
+                            "equalizer=f=2800:width_type=h:width=1200:g=3,"
+                            "apad=pad_dur=0.04"
+                        )
                         try:
-                            res = subprocess.run([ffmpeg_exe, "-i", audio_path], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-                            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res.stderr)
-                            if m:
-                                return int(m.group(1))*3600 + int(m.group(2))*60 + float(m.group(3))
+                            subprocess.run([
+                                ffmpeg_exe, "-y", "-i", raw_mp3_path,
+                                "-af", af_filter,
+                                "-ar", "24000", "-ac", "1", tuned_wav_path
+                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                         except Exception:
-                            pass
-                        return 12.5
+                            subprocess.run([
+                                ffmpeg_exe, "-y", "-i", raw_mp3_path,
+                                "-ar", "24000", "-ac", "1", tuned_wav_path
+                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                     def _load_korean_pil_fonts():
                         import os, tempfile
@@ -6489,7 +6596,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                         return _get_f
 
-                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=24, fill=(255,255,255)):
+                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=20, fill=(255,255,255)):
                         t_str = str(text).strip()
                         for sz in range(start_sz, min_sz - 1, -2):
                             f = get_font(sz)
@@ -6502,194 +6609,239 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # 참고 영상 레이아웃 + 블룸버그/토스 다크 그래픽 렌더러
-                    def _draw_trendy_pop_frame(chunk_idx, sub_text, scene_code, get_font):
+                    # 7개 블룸버그·토스 다크 인포그래픽 씬 + 하단 1줄 툭툭 자막 렌더러
+                    def _draw_trendy_pop_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 고정 블랙 레터박스 (Y: 0 ~ 250) + 흰색/노란색 2줄 임팩트 헤더 (참고 영상 100% 재현)
-                        _fit_single_line(draw, W//2, 95, W-60, top_line1, get_font, start_sz=52, min_sz=30, fill=(255, 255, 255))
-                        _fit_single_line(draw, W//2, 175, W-60, top_line2, get_font, start_sz=54, min_sz=30, fill=(255, 230, 0))
-                        draw.rectangle([0, 238, W, 244], fill=(255, 230, 0))  # 상단 노란색 구분선
+                        # 1. 상단 고정 블랙 레터박스 (Y: 0 ~ 244) + 흰색/노란색 2줄 임팩트 헤더 (참고 영상 100% 재현)
+                        _fit_single_line(draw, W//2, 92, W-60, top_line1, get_font, start_sz=50, min_sz=28, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 172, W-60, top_line2, get_font, start_sz=52, min_sz=28, fill=(255, 230, 0))
+                        # 상단 진행 프로그레스 바 (노란색 게이지)
+                        draw.rectangle([0, 236, W, 244], fill=(40, 40, 40))
+                        prog_w = int(W * ((chunk_idx + 1) / max(1, total_chunks)))
+                        draw.rectangle([0, 236, prog_w, 244], fill=(255, 230, 0))
 
-                        # 2. 중앙 블룸버그 / 토스증권 스타일 다크 캔버스 (Y: 244 ~ 1040)
+                        # 2. 중앙 블룸버그 / 토스증권 다크 캔버스 (Y: 244 ~ 1040)
                         draw.rectangle([0, 244, W, 1040], fill=(11, 15, 23))
-                        # 은은한 블룸버그 터미널 그리드 라인
                         for gx in range(120, W, 120):
-                            draw.line([(gx, 244), (gx, 1040)], fill=(20, 27, 40), width=1)
+                            draw.line([(gx, 244), (gx, 1040)], fill=(19, 26, 38), width=1)
                         for gy in range(360, 1040, 120):
-                            draw.line([(0, gy), (W, gy)], fill=(20, 27, 40), width=1)
+                            draw.line([(0, gy), (W, gy)], fill=(19, 26, 38), width=1)
 
-                        # 좌측 상단 워터마크 배지 (참고 영상의 '공감입니다' 위치)
-                        draw.rounded_rectangle([32, 272, 225, 316], radius=8, fill=(23, 31, 46), outline=(56, 189, 248), width=2)
-                        _fit_single_line(draw, 128, 294, 180, "AGIE TERMINAL", get_font, start_sz=18, min_sz=14, fill=(56, 189, 248))
+                        # 상단 워터마크 & 씬 번호 배지
+                        draw.rounded_rectangle([32, 270, 235, 314], radius=8, fill=(23, 31, 46), outline=(56, 189, 248), width=2)
+                        _fit_single_line(draw, 133, 292, 190, "AGIE QUANT LAB", get_font, start_sz=18, min_sz=14, fill=(56, 189, 248))
 
-                        # 우측 상단 티커 태그
-                        draw.rounded_rectangle([W-210, 272, W-32, 316], radius=8, fill=(23, 31, 46))
-                        _fit_single_line(draw, W-121, 294, 165, f"TICKER : {clean_tk}", get_font, start_sz=18, min_sz=14, fill=(148, 163, 184))
+                        draw.rounded_rectangle([W-220, 270, W-32, 314], radius=8, fill=(23, 31, 46))
+                        _fit_single_line(draw, W-126, 292, 175, f"{clean_tk}  |  {chunk_idx+1:02d}/{total_chunks:02d}", get_font, start_sz=18, min_sz=14, fill=(148, 163, 184))
 
-                        # 씬별 미니멀 하이엔드 데이터 그래픽 (1.5~2초마다 화면 전환)
+                        # --- [7대 데이터 씬 전환 (SCENE_1 ~ SCENE_7)] ---
                         if scene_code == "SCENE_1":
-                            # 토스증권 스타일 대형 주가 + AI 스코어 카드
-                            draw.rounded_rectangle([48, 355, W-48, 790], radius=24, fill=(17, 24, 39), outline=(49, 130, 246), width=3)
-                            _fit_single_line(draw, W//2, 420, W-130, f"{comp_name} ({clean_tk})", get_font, start_sz=38, min_sz=24, fill=(148, 163, 184))
-                            _fit_single_line(draw, W//2, 535, W-130, p_str, get_font, start_sz=82, min_sz=44, fill=(255, 255, 255))
-
-                            # 하단 미니멀 필 배지
-                            draw.rounded_rectangle([140, 645, W-140, 725], radius=30, fill=(29, 78, 216))
-                            _fit_single_line(draw, W//2, 685, W-300, f"QUANT SCORE : {total_score_val:+} PT", get_font, start_sz=28, min_sz=18, fill=(255, 255, 255))
-
-                            # 두 번째 컷에서 참고 영상처럼 빨간색 동그라미 포커스 이펙트 등장!
-                            if chunk_idx == 1:
-                                draw.ellipse([110, 465, W-110, 610], outline=(255, 45, 45), width=7)
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(49, 130, 246), width=3)
+                            _fit_single_line(draw, W//2, 415, W-120, f"{comp_name} ({clean_tk})", get_font, start_sz=40, min_sz=24, fill=(148, 163, 184))
+                            _fit_single_line(draw, W//2, 535, W-120, p_str, get_font, start_sz=82, min_sz=44, fill=(255, 255, 255))
+                            draw.rounded_rectangle([110, 645, W-110, 735], radius=30, fill=(29, 78, 216))
+                            _fit_single_line(draw, W//2, 690, W-250, f"DART·SEC {data_len}년 재무 빅데이터 스캔", get_font, start_sz=26, min_sz=18, fill=(255, 255, 255))
+                            if chunk_idx >= 1:
+                                draw.ellipse([95, 465, W-95, 605], outline=(255, 45, 45), width=7)
 
                         elif scene_code == "SCENE_2":
-                            # 블룸버그 스타일 10년 평균 멀티플 vs 현재 멀티플 수평 비교
-                            draw.rounded_rectangle([48, 355, W-48, 790], radius=24, fill=(17, 24, 39), outline=(51, 65, 85), width=2)
-                            _fit_single_line(draw, W//2, 410, W-130, f"VALUATION MULTIPLE ({mult_lbl})", get_font, start_sz=28, min_sz=18, fill=(56, 189, 248))
+                            # 현재 / 선행 / 5년 / 10년 PER & PBR 한눈에 비교하는 블룸버그 4단 바
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
+                            _fit_single_line(draw, W//2, 395, W-120, "VALUATION MULTIPLES (PER · PBR 비교)", get_font, start_sz=26, min_sz=18, fill=(56, 189, 248))
 
-                            # 10년 평균 바
-                            _fit_single_line(draw, 190, 490, 240, "10Y HISTORICAL AVG", get_font, start_sz=20, min_sz=14, fill=(148, 163, 184))
-                            draw.rounded_rectangle([85, 515, 380, 565], radius=8, fill=(51, 65, 85))
-                            _fit_single_line(draw, 495, 540, 180, mult_avg, get_font, start_sz=34, min_sz=22, fill=(203, 213, 225))
+                            rows_m = [
+                                ("현재 PER", f"{t_pe:.1f}배", (148, 163, 184)),
+                                ("선행 PER (컨센서스)", f"{f_pe:.1f}배", (255, 230, 0)),
+                                ("5년 / 10년 평균 PER", f"{a_pe_5y:.1f}배 / {a_pe:.1f}배", (203, 213, 225)),
+                                ("선행 PBR (10년평균)", f"{f_pbr:.2f}배 ({a_pbr:.2f}배)", (74, 222, 128))
+                            ]
+                            for r_i, (r_lbl, r_val, r_col) in enumerate(rows_m):
+                                ry = 460 + r_i * 72
+                                draw.rounded_rectangle([75, ry-26, W-75, ry+26], radius=10, fill=(26, 35, 52))
+                                _fit_single_line(draw, 220, ry, 260, r_lbl, get_font, start_sz=23, min_sz=16, fill=(203, 213, 225))
+                                _fit_single_line(draw, 515, ry, 240, r_val, get_font, start_sz=27, min_sz=18, fill=r_col)
 
-                            # 현재 멀티플 바
-                            _fit_single_line(draw, 180, 610, 240, "CURRENT FORWARD", get_font, start_sz=20, min_sz=14, fill=(255, 230, 0))
-                            bar_c = (0, 230, 118) if pmos_val >= 0 else (255, 82, 82)
-                            draw.rounded_rectangle([85, 635, 430, 690], radius=8, fill=bar_c)
-                            _fit_single_line(draw, 540, 662, 180, mult_cur, get_font, start_sz=40, min_sz=24, fill=(255, 230, 0))
-
-                            # 빨간 동그라미 강조
-                            if chunk_idx == 4:
-                                draw.rounded_rectangle([75, 715, W-75, 772], radius=12, fill=(6, 78, 59) if pmos_val >= 0 else (127, 29, 29))
-                                _fit_single_line(draw, W//2, 743, W-180, f"10Y 평균 대비 {disc_txt}", get_font, start_sz=26, min_sz=18, fill=(255, 255, 255))
+                            badge_c = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
+                            draw.rounded_rectangle([75, 730, W-75, 785], radius=12, fill=badge_c)
+                            _fit_single_line(draw, W//2, 757, W-180, f"10년 평균 대비 {disc_txt} 구간", get_font, start_sz=25, min_sz=18, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_3":
-                            # ROE & 영업이익률 2단 미니멀 모던 카드
-                            draw.rounded_rectangle([48, 355, 344, 790], radius=24, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
-                            _fit_single_line(draw, 196, 435, 260, "ROE (자본수익률)", get_font, start_sz=26, min_sz=18, fill=(148, 163, 184))
-                            _fit_single_line(draw, 196, 565, 260, f"{roe:.1f}%", get_font, start_sz=64, min_sz=36, fill=(0, 230, 118))
-                            _fit_single_line(draw, 196, 695, 260, "S&P500 평균 15%", get_font, start_sz=20, min_sz=14, fill=(100, 116, 139))
+                            # 이익수익률(Earnings Yield) vs 10년물 미국채 금리 비교
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
+                            _fit_single_line(draw, W//2, 400, W-120, "EARNINGS YIELD vs 10Y TREASURY", get_font, start_sz=26, min_sz=18, fill=(255, 230, 0))
 
-                            draw.rounded_rectangle([376, 355, W-48, 790], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
-                            _fit_single_line(draw, 524, 435, 260, "OP MARGIN (영업이익률)", get_font, start_sz=24, min_sz=16, fill=(148, 163, 184))
-                            _fit_single_line(draw, 524, 565, 260, f"{op_m:.1f}%", get_font, start_sz=64, min_sz=36, fill=(56, 189, 248))
-                            _fit_single_line(draw, 524, 695, 260, f"ROIC {roic_val:.1f}%", get_font, start_sz=22, min_sz=16, fill=(148, 163, 184))
+                            draw.rounded_rectangle([70, 445, 340, 685], radius=18, fill=(30, 41, 59))
+                            _fit_single_line(draw, 205, 495, 240, "미국 10년물 국채", get_font, start_sz=24, min_sz=18, fill=(148, 163, 184))
+                            _fit_single_line(draw, 205, 595, 240, f"{ty:.2f}%", get_font, start_sz=54, min_sz=30, fill=(255, 255, 255))
+
+                            draw.rounded_rectangle([380, 445, W-70, 685], radius=18, fill=(23, 37, 84), outline=(56, 189, 248), width=3)
+                            _fit_single_line(draw, 515, 495, 240, "주식 이익수익률", get_font, start_sz=24, min_sz=18, fill=(56, 189, 248))
+                            _fit_single_line(draw, 515, 595, 240, f"{ey:.1f}%", get_font, start_sz=54, min_sz=30, fill=(0, 230, 118) if erp >= 0 else (255, 100, 100))
+
+                            draw.rounded_rectangle([70, 715, W-70, 780], radius=12, fill=(30, 41, 59))
+                            _fit_single_line(draw, W//2, 747, W-170, f"국채 금리 대비 격차(ERP) : {erp:+.1f}%p", get_font, start_sz=26, min_sz=18, fill=(255, 230, 0))
 
                         elif scene_code == "SCENE_4":
-                            # 주주환원율 (배당 + 자사주 소각)
-                            draw.rounded_rectangle([48, 355, W-48, 790], radius=24, fill=(17, 24, 39), outline=(192, 132, 252), width=3)
-                            _fit_single_line(draw, W//2, 425, W-130, "TOTAL SHAREHOLDER YIELD", get_font, start_sz=26, min_sz=18, fill=(192, 132, 252))
-                            _fit_single_line(draw, W//2, 555, W-130, f"연 {tsy_total:.1f}%", get_font, start_sz=80, min_sz=44, fill=(255, 230, 0))
-                            draw.rounded_rectangle([90, 660, W-90, 740], radius=14, fill=(30, 41, 59))
-                            _fit_single_line(draw, W//2, 700, W-210, f"배당수익률 {div:.1f}%  |  자사주 소각 {bb_yield:+.1f}%", get_font, start_sz=26, min_sz=18, fill=(255, 255, 255))
+                            # 비즈니스 해자: ROE / ROIC / 영업이익률 / 4년 추세
+                            draw.rounded_rectangle([44, 345, 344, 675], radius=22, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
+                            _fit_single_line(draw, 194, 405, 260, "ROE (자기자본이익률)", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 194, 515, 260, f"{roe:.1f}%", get_font, start_sz=62, min_sz=34, fill=(0, 230, 118))
+                            _fit_single_line(draw, 194, 620, 260, f"ROIC : {roic_val:.1f}%", get_font, start_sz=25, min_sz=18, fill=(255, 255, 255))
 
-                        else:  # SCENE_5: 역산 DCF 요구 성장률 & 최종 스코어
-                            draw.rounded_rectangle([48, 355, W-48, 790], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, W//2, 420, W-130, "IMPLIED 10Y GROWTH (역산 DCF)", get_font, start_sz=26, min_sz=18, fill=(255, 230, 0))
-                            _fit_single_line(draw, W//2, 545, W-130, imp_g_fmt, get_font, start_sz=76, min_sz=42, fill=(255, 255, 255))
-                            draw.ellipse([145, 475, W-145, 615], outline=(255, 45, 45), width=6)  # 빨간 동그라미 포커스
-                            draw.rounded_rectangle([85, 655, W-85, 745], radius=14, fill=(30, 41, 59))
-                            _fit_single_line(draw, W//2, 700, W-200, f"DCF 산출값: {iv_fmt}  |  총점: {total_score_val}점", get_font, start_sz=28, min_sz=18, fill=(56, 189, 248))
+                            draw.rounded_rectangle([376, 345, W-44, 675], radius=22, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
+                            _fit_single_line(draw, 526, 405, 260, "OP MARGIN (영업이익률)", get_font, start_sz=22, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 526, 515, 260, f"{op_m:.1f}%", get_font, start_sz=62, min_sz=34, fill=(56, 189, 248))
+                            _fit_single_line(draw, 526, 620, 260, f"매출총이익률 {gross_m:.1f}%", get_font, start_sz=23, min_sz=16, fill=(203, 213, 225))
 
-                        # 3. [핵심!] 참고 영상과 100% 동일한 하단 1줄 가변폭 블랙 자막 박스 (Y: 895)
-                        # 글자 길이에 딱 맞게 검은색 직사각형 배경 박스가 동적으로 생성되어 '툭툭' 팝업됨!
+                            draw.rounded_rectangle([44, 700, W-44, 800], radius=16, fill=(23, 35, 55))
+                            _fit_single_line(draw, W//2, 750, W-120, f"4년 이익·자본 추세 : {trend_line}", get_font, start_sz=25, min_sz=18, fill=(255, 230, 0))
+
+                        elif scene_code == "SCENE_5":
+                            # 주주환원율 (배당 + 자사주 소각) & 유동비율 생존력
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(192, 132, 252), width=3)
+                            _fit_single_line(draw, W//2, 405, W-120, "SHAREHOLDER YIELD & SURVIVAL", get_font, start_sz=26, min_sz=18, fill=(192, 132, 252))
+                            _fit_single_line(draw, W//2, 520, W-120, f"연 {tsy_total:.1f}% 환원", get_font, start_sz=72, min_sz=40, fill=(255, 230, 0))
+
+                            draw.rounded_rectangle([75, 615, W-75, 685], radius=12, fill=(30, 41, 59))
+                            _fit_single_line(draw, W//2, 650, W-180, f"현금배당 {div:.1f}%  +  자사주 순매입·소각 {bb_yield:+.1f}%", get_font, start_sz=25, min_sz=18, fill=(255, 255, 255))
+
+                            draw.rounded_rectangle([75, 705, W-75, 775], radius=12, fill=(20, 45, 40))
+                            _fit_single_line(draw, W//2, 740, W-180, f"단기 현금 동원력 (유동비율) : {current_ratio:.2f}배", get_font, start_sz=25, min_sz=18, fill=(74, 222, 128))
+
+                        elif scene_code == "SCENE_6":
+                            # 경영진 자본배분 강점 vs 리스크 팩트체크
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(148, 163, 184), width=2)
+                            _fit_single_line(draw, W//2, 395, W-120, "GOVERNANCE & RISK CHECK", get_font, start_sz=26, min_sz=18, fill=(56, 189, 248))
+
+                            draw.rounded_rectangle([70, 435, W-70, 595], radius=16, fill=(6, 78, 59))
+                            _fit_single_line(draw, W//2, 475, W-160, "[PROS / 핵심 강점]", get_font, start_sz=22, min_sz=16, fill=(110, 231, 183))
+                            _fit_single_line(draw, W//2, 540, W-160, f"{gov_pro_1} {gov_pro_2[:12]}", get_font, start_sz=26, min_sz=16, fill=(255, 255, 255))
+
+                            draw.rounded_rectangle([70, 620, W-70, 780], radius=16, fill=(127, 29, 29))
+                            _fit_single_line(draw, W//2, 660, W-160, "[CONS / 점검 리스크]", get_font, start_sz=22, min_sz=16, fill=(252, 165, 165))
+                            _fit_single_line(draw, W//2, 725, W-160, f"{gov_con_1} {gov_con_2[:12]}", get_font, start_sz=26, min_sz=16, fill=(255, 255, 255))
+
+                        else:  # SCENE_7: 역산 DCF 요구 성장률 & 멍거 관문 최종 점수
+                            draw.rounded_rectangle([44, 345, W-44, 805], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
+                            _fit_single_line(draw, W//2, 398, W-120, "REVERSE DCF & MUNGER SCORE", get_font, start_sz=25, min_sz=18, fill=(255, 230, 0))
+                            _fit_single_line(draw, W//2, 495, W-120, f"요구 성장률 {imp_g_fmt}", get_font, start_sz=56, min_sz=32, fill=(255, 255, 255))
+                            draw.ellipse([90, 440, W-90, 555], outline=(255, 45, 45), width=6)
+
+                            draw.rounded_rectangle([75, 580, W-75, 660], radius=14, fill=(30, 41, 59))
+                            _fit_single_line(draw, W//2, 620, W-180, f"보수적 DCF 산출값 : {iv_fmt}", get_font, start_sz=28, min_sz=18, fill=(56, 189, 248))
+
+                            draw.rounded_rectangle([75, 680, W-75, 775], radius=14, fill=(29, 78, 216))
+                            _fit_single_line(draw, W//2, 727, W-180, f"멍거 관문 {pass_cnt}/5 통과  |  총점 {total_score_val}점", get_font, start_sz=30, min_sz=20, fill=(255, 230, 0))
+
+                        # 3. 하단 1줄 가변폭 블랙 자막 박스 (참고 영상과 100% 동일한 팝업 연출)
                         sub_clean = str(sub_text).strip()
-                        sub_font = get_font(42)
+                        sub_font = get_font(40)
                         bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
                         tw = bb[2] - bb[0]
-                        if tw > (W - 70):
-                            sub_font = get_font(35)
+                        while tw > (W - 64) and sub_font.size > 24:
+                            sub_font = get_font(sub_font.size - 2)
                             bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
                             tw = bb[2] - bb[0]
                         th = bb[3] - bb[1]
                         pad_x, pad_y = 24, 16
-                        bx1 = max(20, (W - tw)//2 - pad_x)
-                        bx2 = min(W - 20, (W + tw)//2 + pad_x)
-                        by1 = 910 - th//2 - pad_y
-                        by2 = 910 + th//2 + pad_y
+                        bx1 = max(18, (W - tw)//2 - pad_x)
+                        bx2 = min(W - 18, (W + tw)//2 + pad_x)
+                        by1 = 915 - th//2 - pad_y
+                        by2 = 915 + th//2 + pad_y
 
                         draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
-                        draw.text((W//2, 910), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
+                        draw.text((W//2, 915), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
-                        # 4. 하단 블랙 레터박스 & 법적 안전 고지 (미니멀하게 배치)
+                        # 4. 하단 블랙 레터박스 & 법적 안전 고지
                         draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
-                        _fit_single_line(draw, W//2, 1110, W-60, f"DART·SEC 10Y QUANT SIMULATION  |  {op_title.split('(')[0].strip()}", get_font, start_sz=22, min_sz=16, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 1160, W-60, f"본 영상은 공시 데이터 시뮬레이션이며 매수·매도 추천이 아닙니다 (제작자 {hold_badge})", get_font, start_sz=17, min_sz=13, fill=(100, 116, 139))
+                        _fit_single_line(draw, W//2, 1108, W-60, f"AGIE 10Y QUANT SIMULATION  |  {op_title.split('(')[0].strip()}", get_font, start_sz=22, min_sz=16, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 1158, W-60, f"공시 데이터 기반 시뮬레이션이며 매수·매도 추천이 아닙니다 (제작자 {hold_badge})", get_font, start_sz=17, min_sz=13, fill=(100, 116, 139))
 
                         return img
 
                     st.markdown("---")
                     btn_c1, btn_c2 = st.columns(2)
                     with btn_c1:
-                        gen_mp3_btn = st.button("🔊 논스톱 AI 보이스(.mp3) 미리듣기", key=f"btn_mp3_{tk}", use_container_width=True)
+                        gen_mp3_btn = st.button("🔊 무호흡 점프컷 보이스(.mp3) 미리듣기", key=f"btn_mp3_{tk}", use_container_width=True)
                     with btn_c2:
-                        gen_mp4_btn = st.button("🎬 1줄 툭툭 자막 쇼츠(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
+                        gen_mp4_btn = st.button("🎬 1줄 툭툭 자막 풀버전 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary")
 
                     if gen_mp3_btn:
-                        import tempfile, os
-                        with st.spinner("쉼표 없이 몰아치는 쇼츠 AI 보이스를 합성 중입니다..."):
-                            tmp_mp3 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-                            is_edge, msg = _generate_seamless_voice(tts_only_script, tmp_mp3)
-                            if is_edge: st.success(msg)
-                            else: st.warning(msg)
-                            with open(tmp_mp3, "rb") as af: mp3_b = af.read()
+                        import tempfile, os, subprocess, imageio_ffmpeg
+                        with st.spinner("참고 영상 스타일의 무호흡 점프컷 보이스를 합성 중입니다..."):
+                            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                            raw_m = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                            tuned_w = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                            _generate_chunk_voice(tts_only_script, raw_m, tuned_w, ffmpeg_exe)
+                            with open(tuned_w, "rb") as af: mp3_b = af.read()
+                            st.success("🎯 무호흡 점프컷 & 라디오 EQ 보이스 튜닝이 완료되었습니다!")
                             st.audio(mp3_b, format="audio/mp3")
-                            st.download_button("📥 AI 보이스(.mp3) 다운로드", data=mp3_b, file_name=f"AGIE_{clean_tk}_voice.mp3", mime="audio/mp3", use_container_width=True)
-                            os.remove(tmp_mp3)
+                            st.download_button("📥 점프컷 AI 보이스(.mp3) 다운로드", data=mp3_b, file_name=f"AGIE_{clean_tk}_jumpcut_voice.mp3", mime="audio/mp3", use_container_width=True)
+                            for p_rm in [raw_m, tuned_w]:
+                                if os.path.exists(p_rm):
+                                    try: os.remove(p_rm)
+                                    except Exception: pass
 
                     if gen_mp4_btn:
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os
-                            with st.spinner("단일 호흡 AI 보이스 + 1초 단위 '툭툭' 팝업 자막 쇼츠(.mp4)를 초고속 렌더링 중입니다..."):
+                            with st.spinner(f"총 {len(pop_chunks)}컷 무호흡 점프컷 보이스 & 1줄 팝업 자막 쇼츠(.mp4)를 병렬 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
+                                n_chunks = len(pop_chunks)
 
-                                # 1. 전체 대본을 단 하나의 MP3로 생성 (문장 간 끊김·정적 0%)
-                                full_aud = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-                                cleanup_files.append(full_aud)
-                                _generate_seamless_voice(tts_only_script, full_aud)
+                                # 1. 각 자막 구절별로 무호흡 점프컷 오디오와 프레임을 병렬 생성하여 0.01초 단위까지 완벽 싱크!
+                                seg_mp4_list = [None] * n_chunks
 
-                                # 2. 전체 오디오 길이를 측정하여 10개 한 줄 자막의 글자 수 비율대로 표시 시간(초) 배분
-                                total_dur = _get_audio_duration(ffmpeg_exe, full_aud)
-                                total_chars = sum(len(c[0].replace(" ", "")) for c in pop_chunks)
-                                concat_lines = []
-
-                                for idx_c, (sub_t, sc_code) in enumerate(pop_chunks):
+                                def _build_single_cut(idx_c, sub_t, sc_code):
                                     f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                                    cleanup_files.append(f_img)
-                                    _draw_trendy_pop_frame(idx_c, sub_t, sc_code, get_font).save(f_img)
+                                    f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                    f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                                    f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
-                                    c_len = len(sub_t.replace(" ", ""))
-                                    seg_dur = max(0.75, total_dur * (c_len / max(1, total_chars)))
-                                    safe_img_p = f_img.replace("\\", "/")
-                                    concat_lines.append(f"file '{safe_img_p}'\nduration {seg_dur:.3f}\n")
-                                    if idx_c == len(pop_chunks) - 1:
-                                        concat_lines.append(f"file '{safe_img_p}'\n")
+                                    _draw_trendy_pop_frame(idx_c, n_chunks, sub_t, sc_code, get_font).save(f_img)
+                                    _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe)
+
+                                    subprocess.run([
+                                        ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
+                                        "-c:v", "libx264", "-tune", "stillimage", "-r", "30",
+                                        "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
+                                        "-shortest", f_seg
+                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                    return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
+
+                                with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                                    futs = [ex.submit(_build_single_cut, i_c, st_c, sc_c) for i_c, (st_c, sc_c) in enumerate(pop_chunks)]
+                                    for ft in concurrent.futures.as_completed(futs):
+                                        i_res, seg_p, tmp_list = ft.result()
+                                        seg_mp4_list[i_res] = seg_p
+                                        cleanup_files.extend(tmp_list)
 
                                 concat_p = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                 cleanup_files.append(concat_p)
                                 with open(concat_p, "w", encoding="utf-8") as cf:
-                                    cf.writelines(concat_lines)
+                                    for sp in seg_mp4_list:
+                                        cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
 
                                 out_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                 cleanup_files.append(out_mp4)
                                 subprocess.run([
                                     ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", concat_p,
-                                    "-i", full_aud, "-c:v", "libx264", "-r", "30", "-pix_fmt", "yuv420p",
-                                    "-c:a", "aac", "-b:a", "192k", "-shortest", out_mp4
+                                    "-c", "copy", out_mp4
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf: mp4_b = vf.read()
-                                st.success("🎉 참고 영상 스타일의 1줄 툭툭 자막 + 논스톱 AI 보이스 쇼츠(.mp4)가 완성되었습니다!")
+                                st.success(f"🎉 참고 영상 보이스 + {n_chunks}컷 1줄 툭툭 자막 쇼츠(.mp4)가 완성되었습니다!")
                                 st.video(mp4_b)
                                 st.download_button(
-                                    label="📥 트렌디 쇼츠(.mp4) 다운로드",
+                                    label=f"📥 {n_chunks}컷 트렌디 쇼츠(.mp4) 다운로드",
                                     data=mp4_b,
-                                    file_name=f"AGIE_{clean_tk}_trendy_shorts.mp4",
+                                    file_name=f"AGIE_{clean_tk}_{n_chunks}cut_shorts.mp4",
                                     mime="video/mp4",
                                     use_container_width=True
                                 )
@@ -6700,7 +6852,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
-                    st.markdown("#### 📜 1줄 툭툭 자막 리스트 (총 10컷 / 약 13초)")
+                    st.markdown(f"#### 📜 1줄 툭툭 자막 리스트 (총 {len(pop_chunks)}컷)")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # =====================================================================
                 # [파트 3] 📊 기업 10년 핵심 장부 내역 (에러 원천 차단 및 항목 대폭 확대)
@@ -7778,52 +7930,77 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
             # =====================================================================
-            # [참고영상 스타일] 📊 1:1 종목 비교 쇼츠 (1줄 툭툭 자막 + 블룸버그 다크 UI)
+            # [참고영상 점프컷 보이스 + 20컷 확장] 📊 1:1 종목 비교 쇼츠 스튜디오
             # =====================================================================
             st.divider()
-            with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 트렌디 1:1 비교 쇼츠(.mp4) 스튜디오", "🎬 1:1 Quant Comparison Shorts Studio"), expanded=True):
-                st.info("💡 **블룸버그·토스 다크 UI + 1줄 툭툭 자막 적용:** 두 기업의 10년 치 핵심 데이터를 담백한 2030 요약체(`~비교해봤음`, `~나왔음`, `~기록했다고 함`)와 1초 단위 팝업 자막으로 빠르게 브리핑합니다.")
+            with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 트렌디 1:1 비교 쇼츠(.mp4) 스튜디오 (20컷 풀버전)", "🎬 1:1 Quant Comparison Shorts Studio"), expanded=True):
+                st.info("💡 **참고 영상 점프컷 보이스 + 20컷 풀버전 비교:** 두 기업의 주가, 선행/10년 평균 PER·PBR, ROE·ROIC, 배당+자사주 소각 환원율, 안전마진, 최종 정량 점수까지 1줄 팝업 자막으로 촘촘하게 비교합니다.")
 
                 vs_col1, vs_col2 = st.columns(2)
                 with vs_col1:
                     vs_voice = st.selectbox(
                         "🎙️ 쇼츠 AI 보이스 선택",
                         [
-                            "⚡ 인준 하이피치 (InJoon Fast) - 참고 영상 스타일의 빠른 남성 요약 보이스",
-                            "🔥 선희 하이텐션 (SunHi Viral) - 트렌디한 2030 여성 브리핑 보이스",
-                            "🎙️ 현수 모던톤 (Hyunsu Modern) - 차분한 블룸버그 데이터 브리핑 보이스"
+                            "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
+                            "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
+                            "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
+                            "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
                         ],
                         key="vs_shorts_voice"
                     )
                 with vs_col2:
-                    vs_speed = st.slider("⚡ 말하기 배속 (참고 영상 호흡 추천: +32%)", 15, 45, 32, 1, format="+%d%%", key="vs_shorts_spd")
+                    vs_speed = st.slider("⚡ 말하기 배속 (참고 영상 호흡 추천: +28%)", 15, 45, 28, 1, format="+%d%%", key="vs_shorts_spd")
 
                 na, nb = res_a['name'], res_b['name']
                 w_roe = na if res_a['roe'] >= res_b['roe'] else nb
+                w_roic = na if res_a['roic'] >= res_b['roic'] else nb
                 w_pe = na if (0 < res_a['f_pe'] <= res_b['f_pe']) or (res_b['f_pe'] <= 0 and res_a['f_pe'] > 0) else nb
+                w_pbr = na if (0 < res_a['f_pbr'] <= res_b['f_pbr']) else nb
                 w_tsy = na if res_a['tsy'] >= res_b['tsy'] else nb
+                w_mos = na if res_a['mos'] >= res_b['mos'] else nb
                 w_final = na if res_a['score'] >= res_b['score'] else nb
 
                 vs_pop_chunks = [
+                    # VS_1: 오프닝 & 주가 (3컷)
                     (f"{na}랑 {nb} 중에", "VS_1"),
                     ("어디가 더 낫냐고 물어보는데", "VS_1"),
-                    ("10년 치 장부 데이터로 비교해봤음", "VS_1"),
-                    (f"먼저 자본수익률 ROE를 보면", "VS_2"),
-                    (f"{na} {res_a['roe']:.1f}% 대 {nb} {res_b['roe']:.1f}%로", "VS_2"),
-                    (f"수익성은 {w_roe} 쪽이 앞섰음", "VS_2"),
-                    (f"반면 선행 PER 멀티플은", "VS_3"),
-                    (f"{na} {res_a['f_pe']:.1f}배 대 {nb} {res_b['f_pe']:.1f}배였고", "VS_3"),
-                    (f"주주환원율은 {w_tsy} 쪽이 더 높았는데", "VS_4"),
-                    (f"정량 총점은 {w_final} 우위로 나왔다고 함", "VS_4")
+                    ("10년 치 장부 데이터로 정밀 비교해봤음", "VS_1"),
+
+                    # VS_2: 선행 PER & 10년 평균 PER 비교 (4컷)
+                    ("먼저 본전 회수 기간인 선행 PER은", "VS_2"),
+                    (f"{na} {res_a['f_pe']:.1f}배 대 {nb} {res_b['f_pe']:.1f}배인데", "VS_2"),
+                    (f"10년 평균 PER {res_a['a_pe']:.1f}배, {res_b['a_pe']:.1f}배와 비교해도", "VS_2"),
+                    (f"멀티플 부담은 {w_pe} 쪽이 더 낮았음", "VS_2"),
+
+                    # VS_3: 선행 PBR & 안전마진 할인율 (3컷)
+                    (f"장부가 대비 선행 PBR은 {res_a['f_pbr']:.2f}배 대 {res_b['f_pbr']:.2f}배였고", "VS_3"),
+                    (f"평소 대비 가격 안전마진은 {res_a['mos']:+.1f}% 대 {res_b['mos']:+.1f}%로", "VS_3"),
+                    (f"가격 매력도는 {w_mos} 쪽이 앞섰음", "VS_3"),
+
+                    # VS_4: ROE & ROIC 비즈니스 해자 비교 (4컷)
+                    ("핵심인 돈 버는 복리 속도를 보면", "VS_4"),
+                    (f"자본수익률 ROE는 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%였고", "VS_4"),
+                    (f"투하자본수익률 ROIC도 {res_a['roic']:.1f}% 대 {res_b['roic']:.1f}%라", "VS_4"),
+                    (f"비즈니스 해자는 {w_roe} 쪽이 우위였음", "VS_4"),
+
+                    # VS_5: 총주주환원율 (배당 + 자사주 소각) (3컷)
+                    ("배당과 자사주 소각을 합친 주주환원율은", "VS_5"),
+                    (f"{na} 연 {res_a['tsy']:.1f}% 대 {nb} 연 {res_b['tsy']:.1f}%로", "VS_5"),
+                    (f"주주 보너스는 {w_tsy} 쪽이 더 높았음", "VS_5"),
+
+                    # VS_6: 최종 정량 점수 결론 (3컷)
+                    ("모든 지표를 합산한 월가 정량 총점은", "VS_6"),
+                    (f"{na} {res_a['score']}점 대 {nb} {res_b['score']}점으로", "VS_6"),
+                    (f"최종 판정은 {w_final} 우위로 나왔다고 함", "VS_6")
                 ]
                 vs_full_script = " ".join([c[0] for c in vs_pop_chunks])
 
-                if st.button("🎬 1:1 트렌디 비교 쇼츠(.mp4) 바로 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
+                if st.button("🎬 20컷 트렌디 1:1 비교 쇼츠(.mp4) 바로 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
-                        import imageio_ffmpeg, subprocess, tempfile, os, re
+                        import imageio_ffmpeg, subprocess, tempfile, os
 
-                        with st.spinner(f"[{na} vs {nb}] 1줄 툭툭 자막 + 논스톱 AI 보이스 쇼츠(.mp4)를 렌더링 중입니다..."):
+                        with st.spinner(f"[{na} vs {nb}] 참고 영상 점프컷 보이스 + 20컷 팝업 자막 쇼츠(.mp4)를 병렬 렌더링 중입니다..."):
                             font_dir = tempfile.gettempdir()
                             bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                             if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
@@ -7838,7 +8015,7 @@ with tab_vs:
                                         except Exception: continue
                                 return ImageFont.load_default()
 
-                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=20, fill=(255,255,255)):
+                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=18, fill=(255,255,255)):
                                 t_s = str(text).strip()
                                 for sz in range(start_sz, min_sz - 1, -2):
                                     f = _gf(sz)
@@ -7849,117 +8026,139 @@ with tab_vs:
                                 f = _gf(min_sz)
                                 draw.text((cx, cy), t_s, font=f, fill=fill, anchor="mm")
 
-                            def _make_vs_tts(txt, out_p):
-                                v_id = "ko-KR-InJoonNeural" if "인준" in vs_voice else ("ko-KR-SunHiNeural" if "선희" in vs_voice else "ko-KR-HyunsuNeural")
-                                p_hz = "+9Hz" if "인준" in vs_voice else ("+5Hz" if "선희" in vs_voice else "+4Hz")
+                            def _make_vs_chunk_wav(txt, raw_p, wav_p, ffmpeg_exe):
+                                is_ref_1 = "공감입니다 스타일" in vs_voice
+                                is_ref_2 = "낭만 썰풀이" in vs_voice
+                                if is_ref_1:
+                                    v_id, p_hz = "ko-KR-InJoonNeural", "+4Hz"
+                                elif is_ref_2:
+                                    v_id, p_hz = "ko-KR-HyunsuNeural", "+2Hz"
+                                elif "인준" in vs_voice:
+                                    v_id, p_hz = "ko-KR-InJoonNeural", "+8Hz"
+                                else:
+                                    v_id, p_hz = "ko-KR-SunHiNeural", "+5Hz"
                                 try:
                                     import edge_tts, asyncio
                                     async def _r():
-                                        await edge_tts.Communicate(txt, voice=v_id, rate=f"+{vs_speed}%", pitch=p_hz).save(out_p)
+                                        await edge_tts.Communicate(txt, voice=v_id, rate=f"+{vs_speed}%", pitch=p_hz).save(raw_p)
                                     loop = asyncio.new_event_loop()
                                     try: loop.run_until_complete(_r())
                                     finally: loop.close()
                                 except ImportError:
                                     from gtts import gTTS
-                                    gTTS(text=txt, lang='ko').save(out_p)
+                                    gTTS(text=txt, lang='ko').save(raw_p)
+
+                                af_flt = (
+                                    "silenceremove=start_periods=1:start_threshold=-38dB:"
+                                    "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
+                                    "equalizer=f=2800:width_type=h:width=1200:g=3,apad=pad_dur=0.04"
+                                )
+                                try:
+                                    subprocess.run([ffmpeg_exe, "-y", "-i", raw_p, "-af", af_flt, "-ar", "24000", "-ac", "1", wav_p], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                except Exception:
+                                    subprocess.run([ffmpeg_exe, "-y", "-i", raw_p, "-ar", "24000", "-ac", "1", wav_p], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                            n_vs = len(vs_pop_chunks)
 
                             def _draw_vs_pop_frame(c_idx, sub_txt, sc_code):
                                 W, H = 720, 1280
                                 img = Image.new("RGB", (W, H), color=(0, 0, 0))
                                 draw = ImageDraw.Draw(img)
 
-                                # 1. 상단 2줄 블랙&옐로우 고정 타이틀
-                                _fit_line(draw, W//2, 95, W-60, f"{na} vs {nb}", start_sz=52, min_sz=28, fill=(255, 255, 255))
-                                _fit_line(draw, W//2, 175, W-60, "10년 데이터 비교해본 결과", start_sz=52, min_sz=28, fill=(255, 230, 0))
-                                draw.rectangle([0, 238, W, 244], fill=(255, 230, 0))
+                                _fit_line(draw, W//2, 92, W-60, f"{na} vs {nb}", start_sz=50, min_sz=26, fill=(255, 255, 255))
+                                _fit_line(draw, W//2, 172, W-60, "10년 장부 역산해본 결과", start_sz=52, min_sz=28, fill=(255, 230, 0))
+                                draw.rectangle([0, 236, W, 244], fill=(40, 40, 40))
+                                draw.rectangle([0, 236, int(W * ((c_idx+1)/n_vs)), 244], fill=(255, 230, 0))
 
-                                # 2. 중앙 블룸버그·토스 다크 비교 카드
                                 draw.rectangle([0, 244, W, 1040], fill=(11, 15, 23))
                                 if sc_code == "VS_1":
-                                     m_lbl, va, vb = "CURRENT PRICE (현재 주가)", res_a['p_str'], res_b['p_str']
+                                    m_lbl, va, vb, sa, sb = "CURRENT PRICE (현재 주가)", res_a['p_str'], res_b['p_str'], f"DCF {res_a['iv_str']}", f"DCF {res_b['iv_str']}"
                                 elif sc_code == "VS_2":
-                                    m_lbl, va, vb = "ROE (자본수익률 비교)", f"{res_a['roe']:.1f}%", f"{res_b['roe']:.1f}%"
+                                    m_lbl, va, vb, sa, sb = "FORWARD PER (선행 멀티플)", f"{res_a['f_pe']:.1f}배", f"{res_b['f_pe']:.1f}배", f"10Y평균 {res_a['a_pe']:.1f}배", f"10Y평균 {res_b['a_pe']:.1f}배"
                                 elif sc_code == "VS_3":
-                                    m_lbl, va, vb = "FORWARD PER (선행 멀티플)", f"{res_a['f_pe']:.1f}배", f"{res_b['f_pe']:.1f}배"
+                                    m_lbl, va, vb, sa, sb = "PBR & MARGIN OF SAFETY", f"{res_a['f_pbr']:.2f}배", f"{res_b['f_pbr']:.2f}배", f"안전마진 {res_a['mos']:+.1f}%", f"안전마진 {res_b['mos']:+.1f}%"
+                                elif sc_code == "VS_4":
+                                    m_lbl, va, vb, sa, sb = "ROE & ROIC (복리 수익성)", f"{res_a['roe']:.1f}%", f"{res_b['roe']:.1f}%", f"ROIC {res_a['roic']:.1f}%", f"ROIC {res_b['roic']:.1f}%"
+                                elif sc_code == "VS_5":
+                                    m_lbl, va, vb, sa, sb = "SHAREHOLDER YIELD (주주환원)", f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"배당 {res_a['div']:.1f}%", f"배당 {res_b['div']:.1f}%"
                                 else:
-                                    m_lbl, va, vb = "QUANT SCORE (정량 총점)", f"{res_a['score']}점", f"{res_b['score']}점"
+                                    m_lbl, va, vb, sa, sb = "FINAL QUANT SCORE (총점)", f"{res_a['score']}점", f"{res_b['score']}점", res_a['op_title'].split('(')[0], res_b['op_title'].split('(')[0]
 
-                                _fit_line(draw, W//2, 310, W-80, m_lbl, start_sz=28, min_sz=18, fill=(56, 189, 248))
+                                _fit_line(draw, W//2, 305, W-80, m_lbl, start_sz=26, min_sz=18, fill=(56, 189, 248))
 
-                                # 좌측 종목 A 카드
-                                draw.rounded_rectangle([40, 365, 344, 785], radius=22, fill=(17, 24, 39), outline=(49, 130, 246), width=3)
-                                _fit_line(draw, 192, 445, 270, na, start_sz=36, min_sz=20, fill=(255, 255, 255))
-                                _fit_line(draw, 192, 595, 270, va, start_sz=54, min_sz=28, fill=(56, 189, 248))
-                                _fit_line(draw, 192, 715, 270, f"환원율 연 {res_a['tsy']:.1f}%", start_sz=22, min_sz=16, fill=(148, 163, 184))
+                                draw.rounded_rectangle([40, 355, 344, 795], radius=22, fill=(17, 24, 39), outline=(49, 130, 246), width=3)
+                                _fit_line(draw, 192, 435, 270, na, start_sz=36, min_sz=20, fill=(255, 255, 255))
+                                _fit_line(draw, 192, 575, 270, va, start_sz=54, min_sz=28, fill=(56, 189, 248))
+                                _fit_line(draw, 192, 710, 270, sa, start_sz=24, min_sz=16, fill=(148, 163, 184))
 
-                                # 우측 종목 B 카드
-                                draw.rounded_rectangle([376, 365, W-40, 785], radius=22, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
-                                _fit_line(draw, 528, 445, 270, nb, start_sz=36, min_sz=20, fill=(255, 255, 255))
-                                _fit_line(draw, 528, 595, 270, vb, start_sz=54, min_sz=28, fill=(0, 230, 118))
-                                _fit_line(draw, 528, 715, 270, f"환원율 연 {res_b['tsy']:.1f}%", start_sz=22, min_sz=16, fill=(148, 163, 184))
+                                draw.rounded_rectangle([376, 355, W-40, 795], radius=22, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
+                                _fit_line(draw, 528, 435, 270, nb, start_sz=36, min_sz=20, fill=(255, 255, 255))
+                                _fit_line(draw, 528, 575, 270, vb, start_sz=54, min_sz=28, fill=(0, 230, 118))
+                                _fit_line(draw, 528, 710, 270, sb, start_sz=24, min_sz=16, fill=(148, 163, 184))
 
-                                # 3. 하단 1줄 가변폭 블랙 자막 박스 ('툭툭' 팝업)
                                 sub_c = str(sub_txt).strip()
-                                sf = _gf(42)
+                                sf = _gf(40)
                                 bb = draw.textbbox((0, 0), sub_c, font=sf)
                                 tw = bb[2] - bb[0]
-                                if tw > (W - 70):
-                                    sf = _gf(35)
+                                while tw > (W - 64) and sf.size > 24:
+                                    sf = _gf(sf.size - 2)
                                     bb = draw.textbbox((0, 0), sub_c, font=sf)
                                     tw = bb[2] - bb[0]
                                 th = bb[3] - bb[1]
-                                bx1, bx2 = max(20, (W - tw)//2 - 24), min(W - 20, (W + tw)//2 + 24)
-                                by1, by2 = 910 - th//2 - 16, 910 + th//2 + 16
+                                bx1, bx2 = max(18, (W - tw)//2 - 24), min(W - 18, (W + tw)//2 + 24)
+                                by1, by2 = 915 - th//2 - 16, 915 + th//2 + 16
                                 draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
-                                draw.text((W//2, 910), sub_c, font=sf, fill=(255, 255, 255), anchor="mm")
+                                draw.text((W//2, 915), sub_c, font=sf, fill=(255, 255, 255), anchor="mm")
 
-                                # 4. 하단 레터박스
                                 draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
                                 _fit_line(draw, W//2, 1125, W-60, "공시 기반 정량 시뮬레이션이며 매수·매도 추천이 아닙니다", start_sz=18, min_sz=14, fill=(100, 116, 139))
                                 return img
 
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                             cleans = []
-                            full_aud = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-                            cleans.append(full_aud)
-                            _make_vs_tts(vs_full_script, full_aud)
+                            seg_list = [None] * n_vs
 
-                            res_p = subprocess.run([ffmpeg_exe, "-i", full_aud], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-                            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_p.stderr)
-                            tot_dur = (int(m.group(1))*3600 + int(m.group(2))*60 + float(m.group(3))) if m else 12.5
-                            tot_ch = sum(len(c[0].replace(" ", "")) for c in vs_pop_chunks)
-                            cat_lines = []
-
-                            for idx_v, (stxt, scd) in enumerate(vs_pop_chunks):
+                            def _build_vs_cut(i_v, stxt, scd):
                                 fi = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                                cleans.append(fi)
-                                _draw_vs_pop_frame(idx_v, stxt, scd).save(fi)
-                                dur_v = max(0.75, tot_dur * (len(stxt.replace(" ", "")) / max(1, tot_ch)))
-                                sp_i = fi.replace("\\", "/")
-                                cat_lines.append(f"file '{sp_i}'\nduration {dur_v:.3f}\n")
-                                if idx_v == len(vs_pop_chunks) - 1:
-                                    cat_lines.append(f"file '{sp_i}'\n")
+                                fr = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                                fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                _draw_vs_pop_frame(i_v, stxt, scd).save(fi)
+                                _make_vs_chunk_wav(stxt, fr, fw, ffmpeg_exe)
+                                subprocess.run([
+                                    ffmpeg_exe, "-y", "-loop", "1", "-i", fi, "-i", fw,
+                                    "-c:v", "libx264", "-tune", "stillimage", "-r", "30",
+                                    "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
+                                    "-shortest", fs
+                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                return i_v, fs, [fi, fr, fw, fs]
+
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                                futs = [ex.submit(_build_vs_cut, idx_v, s_t, s_c) for idx_v, (s_t, s_c) in enumerate(vs_pop_chunks)]
+                                for ft in concurrent.futures.as_completed(futs):
+                                    iv_r, fs_r, t_l = ft.result()
+                                    seg_list[iv_r] = fs_r
+                                    cleans.extend(t_l)
 
                             cat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                             cleans.append(cat_txt)
                             with open(cat_txt, "w", encoding="utf-8") as cf:
-                                cf.writelines(cat_lines)
+                                for sp in seg_list:
+                                    cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
 
                             out_vs_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                             cleans.append(out_vs_mp4)
                             subprocess.run([
-                                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt,
-                                "-i", full_aud, "-c:v", "libx264", "-r", "30", "-pix_fmt", "yuv420p",
-                                "-c:a", "aac", "-b:a", "192k", "-shortest", out_vs_mp4
+                                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt, "-c", "copy", out_vs_mp4
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                             with open(out_vs_mp4, "rb") as vf: vs_mp4_b = vf.read()
-                            st.success(f"🎉 [{na} vs {nb}] 참고 영상 스타일 1줄 툭툭 자막 쇼츠(.mp4)가 완성되었습니다!")
+                            st.success(f"🎉 [{na} vs {nb}] 20컷 점프컷 보이스 쇼츠(.mp4)가 완성되었습니다!")
                             st.video(vs_mp4_b)
                             st.download_button(
-                                label=f"📥 [{na}_vs_{nb}] 쇼츠(.mp4) 다운로드",
+                                label=f"📥 [{na}_vs_{nb}] 20컷 쇼츠(.mp4) 다운로드",
                                 data=vs_mp4_b,
-                                file_name=f"AGIE_VS_{res_a['tk']}_{res_b['tk']}_trendy_shorts.mp4",
+                                file_name=f"AGIE_VS_{res_a['tk']}_{res_b['tk']}_20cut_shorts.mp4",
                                 mime="video/mp4",
                                 use_container_width=True
                             )
@@ -7971,7 +8170,6 @@ with tab_vs:
                         st.warning(f"비교 쇼츠 생성 오류: {e}")
 
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(vs_pop_chunks)]), language="text")
-        else:
             st.error(t("종목 데이터를 불러오지 못했습니다. 티커나 종목명을 다시 확인해 주세요.", "Failed to load stock data. Please check the ticker."))
 # ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
 st.divider()
