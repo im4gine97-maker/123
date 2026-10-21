@@ -4910,10 +4910,12 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-# [변경 후 코드]
-tab1, tab_vs, tab2, tab3, tab6, tab4, tab5 = st.tabs([
+# [변경 후 코드] 핀비즈 히트맵 및 S&P500 업종 성과 탭 추가
+tab1, tab_vs, tab_heatmap, tab_sector, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("종목 1:1 맞대결", "1:1 Stock Battle"),
+    t("핀비즈 히트맵", "Finviz Heatmap"),
+    t("S&P500 업종 성과", "S&P500 Sector Performance"),
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 100"),
     t("경영진 평가 순위", "Management Ranking"),
@@ -6356,12 +6358,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [최신 트렌드 BGM + 영문발음 교정 + PBR 안내 + 5대기준 설명] 6. 쇼츠 스튜디오
+                # [초보자 눈높이 100% 일상어 + 워런 버핏 방식 + 트렌드 BGM] 6. 쇼츠 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (트렌드 BGM + 발음교정 + 가치투자 5대 기준)", "🎬 6. Value Investing Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (초보자 눈높이 설명 + 워런 버핏 방식 + 트렌드 BGM)", "🎬 6. Beginner-Friendly Buffett Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **최신 쇼츠 트렌드 풀패키지:** ① **트렌디 다크 신스/로파이 BGM 자동 믹싱**, ② **`SK하이닉스` 등 영문 기업명·약어 발음 완벽 교정**, ③ **한국·대만·홍콩·시클리컬 PBR 산출 이유 설명**, ④ **가치투자 5대 기준(수익성·주주환원·가격할인·현금체력·국채비교) 5칸 성적표 시각화**가 적용되었습니다.",
-                        "💡 Includes trendy BGM synthesis, Korean TTS phonetic correction, PBR explanation, and 5-pillar visual scorecard."
+                        "💡 **주식을 전혀 모르는 시청자 눈높이 완성:** 어려운 영어 약어(PER·PBR·ROE·DCF)를 대본에서 완전히 없애고 **'동네 가게 통째로 인수하기', '100원 팔면 남는 돈', '은행 예금 이자와 비교'**처럼 초등학생도 이해하는 비유와 **워런 버핏의 5가지 기준 성적표**로 설명합니다.",
+                        "💡 Explains Warren Buffett's 5 criteria using everyday analogies without complex financial jargon."
                     ))
 
                     col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
@@ -6407,84 +6409,81 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     imp_g_fmt = f"연 {imp_g_pct:.1f}%" if implied_g_shorts is not None else "산출제외"
                     actual_g_fmt = f"연 {hist_fcf_g_pct:.1f}%"
 
-                    top_line1 = f"가치투자 기준으로 {comp_name}"
-                    top_line2 = "10년 치 장부 뜯어본 결과"
+                    top_line1 = "워런 버핏의 가치투자 방식으로"
+                    top_line2 = f"{comp_name} 10년 장부 뜯어본 결과"
 
-                    # 1. 한국·대만·홍콩·중국·경기민감주·금융주 PBR 적용 이유 명확히 설명
+                    # 1. 주식을 모르는 사람도 단번에 이해하는 가격 설명 (한국·대만·홍콩·시클리컬·금융주 PBR 이유 포함)
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
-                    disc_txt = f"{abs(pmos_val):.0f}% 낮은 가격" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 높은 가격"
+                    disc_txt = f"{abs(pmos_val):.0f}% 더 싸진 상태" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 더 비싸진 상태"
 
                     if is_financial:
-                        pbr_reason_tag = "금융업 특성상 회사 순자산(PBR) 기준으로 계산함"
-                        val_c1 = "금융주는 특성상 순자산인 PBR로 계산하는데"
-                        val_c2 = f"현재 장부가의 {f_pbr:.2f}배로 10년 평균({a_pbr:.2f}배) 대비"
+                        pbr_reason_tag = "금융회사는 가진 순재산(건물·현금) 대비 가격(PBR)으로 계산"
+                        val_c1 = "금융회사는 버핏 방식으로 회사가 가진 순재산과 비교하는데"
+                        val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
                     elif kr or is_china_tw or is_cyclical or f_pe <= 0:
                         if kr:
-                            pbr_reason_tag = "한국 증시 특성상 순자산(PBR) 기준으로 계산함"
-                            val_c1 = "한국 주식은 이익 변동이 커서 PBR로 계산하는데"
+                            pbr_reason_tag = "한국 주식은 이익 변동이 커서 회사 순재산(PBR) 기준으로 계산"
+                            val_c1 = "한국 주식은 매년 이익이 출렁여서 회사 순재산(PBR)으로 보는데"
                         elif is_china_tw:
-                            pbr_reason_tag = "대만·홍콩·중국 주식은 순자산(PBR) 기준으로 계산함"
-                            val_c1 = "대만·홍콩·중국 주식은 순자산인 PBR로 계산하는데"
+                            pbr_reason_tag = "대만·홍콩·중국 주식은 회사 순재산(PBR) 기준으로 계산"
+                            val_c1 = "대만·홍콩 주식은 회사 순재산(PBR) 기준으로 계산하는데"
                         else:
-                            pbr_reason_tag = "경기민감주 특성상 순자산(PBR) 기준으로 계산함"
-                            val_c1 = "경기민감주는 이익 변동이 커서 PBR로 계산하는데"
-                        val_c2 = f"현재 장부가의 {f_pbr:.2f}배로 10년 평균({a_pbr:.2f}배) 대비"
+                            pbr_reason_tag = "경기민감 업종은 이익 변동이 커서 회사 순재산(PBR)으로 계산"
+                            val_c1 = "경기민감 업종은 이익이 출렁여서 회사 순재산(PBR)으로 보는데"
+                        val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
                     else:
-                        pbr_reason_tag = "미국 우량주 기준 순이익 회수 기간(PER)으로 계산함"
-                        val_c1 = f"지금 인수하면 본전 뽑는 데 {f_pe:.1f}년(PER) 걸리는데"
-                        val_c2 = f"평소 10년 평균인 {a_pe:.1f}년과 비교해보면"
+                        pbr_reason_tag = "가게를 통째로 인수했을 때 순수익으로 본전 뽑는 기간(PER) 계산"
+                        val_c1 = f"이 회사를 가게 통째로 인수하면 본전 뽑는 데 {f_pe:.1f}년 걸리는데"
+                        val_c2 = f"평소 10년 평균 본전 회수 기간인 {a_pe:.1f}년과 비교해보면"
 
-                    # 2. 돈 버는 마진 & 복리 속도
+                    # 2. 초보자용 장사 마진 & 은행 예금 대비 돈 불리는 속도 설명
                     margin_won = max(1, int(round(op_m)))
                     bank_mult = max(1.0, roe / 3.5) if roe > 0 else 0
                     if is_financial:
-                        moat_c1 = "시중 은행 예금이 연 3.5% 이자를 줄 때"
-                        moat_c2 = f"자기자본을 연 {roe:.1f}%(ROE) 속도로 불려주고 있어서"
-                        moat_c3 = f"은행 예금의 {bank_mult:.1f}배 복리 속도를 기록했음"
+                        moat_c1 = "버핏이 중시하는 돈 불리는 복리 속도를 보면"
+                        moat_c2 = f"은행 예금이 3.5% 이자 줄 때 내 돈을 연 {roe:.1f}%씩 불려줘서"
+                        moat_c3 = f"은행 예금보다 {bank_mult:.1f}배 빠른 속도로 돈을 불리고 있음"
                     else:
-                        moat_c1 = f"100원어치 팔면 {margin_won}원이 남는 장사 구조이고"
-                        moat_c2 = f"내 돈 불리는 속도 ROE는 연 {roe:.1f}% 수준이라"
-                        moat_c3 = (f"은행 예금 이자의 {bank_mult:.0f}배 속도로 불려주고 있음" if roe >= 7 else f"투하자본수익률 ROIC는 연 {roic_val:.1f}%를 기록했음")
+                        moat_c1 = "버핏이 제일 먼저 보는 건 가게 마진인데"
+                        moat_c2 = f"100원어치 팔면 재료비·월급 다 빼고 {margin_won}원이 순수하게 남고"
+                        moat_c3 = (f"돈 불리는 속도도 연 {roe:.1f}%라 은행 예금의 {bank_mult:.0f}배 속도임" if roe >= 7 else f"회사 자본을 굴려 연 {roe:.1f}%씩 돈을 불리고 있음")
 
-                    # 3. DCF 요구 성장률 vs 실제 과거 성장률 비교
+                    # 3. 초보자용 DCF 설명 (주가에 담긴 미래 기대치 vs 실제 커온 속도)
                     if not is_financial and implied_g_shorts is not None:
-                        dcf_c1 = f"현 주가가 설명되려면 매년 {imp_g_pct:.1f}%씩 커야 하는데"
-                        dcf_c2 = f"이 회사의 실제 과거 성장률은 연 {hist_fcf_g_pct:.1f}% 수준이었고"
+                        dcf_c1 = f"지금 주가가 거품이 아니려면 매년 돈을 {imp_g_pct:.1f}%씩 더 벌어야 하는데"
+                        dcf_c2 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}% 수준이었고"
                     else:
-                        dcf_c1 = f"회사의 실제 과거 성장률은 연 {hist_fcf_g_pct:.1f}%를 기록했고"
-                        dcf_c2 = f"자기자본이익률 연 {roe:.1f}%로 순자산을 불려왔는데"
+                        dcf_c1 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}%를 기록했고"
+                        dcf_c2 = f"매년 연 {roe:.1f}% 속도로 회사 재산을 꾸준히 불려왔는데"
 
-                    # --- [시청자 눈높이 13컷 자막 리스트 (5대 기준 종류 명시)] ---
+                    # --- [주식을 전혀 몰라도 100% 이해되는 13컷 자막 리스트] ---
                     pop_chunks = [
-                        # SCENE 1: 현재가 & PBR/PER 계산 기준 설명 (4컷)
-                        (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
+                        # SCENE 1: 현재 주가 & 가게 인수 시 본전 뽑는 시간 (4컷)
+                        (f"현재 {comp_name} 1주 가격은 {p_str}인데", "SCENE_1"),
                         (val_c1, "SCENE_1"),
                         (val_c2, "SCENE_1"),
-                        (f"과거 평균보다 약 {disc_txt} 구간임", "SCENE_1"),
+                        (f"평소보다 약 {disc_txt} 구간임", "SCENE_1"),
 
-                        # SCENE 2: 돈 버는 마진 & 복리 속도 (3컷)
+                        # SCENE 2: 100원 팔면 남는 마진 & 은행 예금 대비 복리 속도 (3컷)
                         (moat_c1, "SCENE_2"),
                         (moat_c2, "SCENE_2"),
                         (moat_c3, "SCENE_2"),
 
-                        # SCENE 3: 국채 이자 비교 & 주주 보너스 (2컷)
-                        (f"기대 이익률은 연 {ey:.1f}%로 미국채 금리({ty:.1f}%)와 {erp:+.1f}%p 차이 나고", "SCENE_3"),
-                        (f"배당과 자사주 소각으로 매년 {tsy_total:.1f}%를 주주에게 돌려줌", "SCENE_3"),
+                        # SCENE 3: 안전한 미국 국채 이자 비교 & 주주 보너스 (2컷)
+                        (f"안전한 미국 국채 이자({ty:.1f}%)와 비교하면 기대 수익률은 연 {ey:.1f}%이고", "SCENE_3"),
+                        (f"가만히 들고만 있어도 배당과 주식소각으로 매년 {tsy_total:.1f}% 보너스를 줌", "SCENE_3"),
 
-                        # SCENE 4: DCF 성장률 비교 & 가치투자 5대 기준 종류와 부합 개수 (4컷)
+                        # SCENE 4: 주가가 요구하는 성장 속도 vs 실제 성장 속도 & 버핏 5대 기준 (4컷)
                         (dcf_c1, "SCENE_4"),
                         (dcf_c2, "SCENE_4"),
-                        ("가치투자 5대 기준인 수익성·주주환원·가격할인·현금체력·국채비교 중", "SCENE_4"),
-                        (f"현재 총 {pass_cnt}개 항목이 기준에 부합하는 걸로 나왔다고 함", "SCENE_4")
+                        ("버핏의 5대 기준인 장사마진·주주보너스·할인가격·현금체력·국채비교 중", "SCENE_4"),
+                        (f"현재 총 {pass_cnt}개 기준에 부합하는 걸로 나왔다고 함", "SCENE_4")
                     ]
 
-                    # [핵심!] SK하이닉스를 '슼'으로 읽는 문제를 막는 TTS 전용 발음 교정 사전
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
-                        # 달러($) 및 퍼센트포인트(%p) 자연스러운 한글 발음 변환
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
-                        # 대문자 영문 기업명 및 재무 약어 발음 매핑 (긴 단어 우선 치환)
                         pron_map = [
                             ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
                             ("NAVER", "네이버"), ("KAKAO", "카카오"), ("HYUNDAI", "현대"),
@@ -6507,7 +6506,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             s = s.replace(eng_k, kor_v)
                         return s
 
-                    # 파이썬 내장 파형 합성기로 최신 쇼츠 트렌드 배경음악(BGM) 생성 (외부 파일 불필요!)
                     def _generate_trendy_bgm_wav(out_wav_path, duration_sec, bgm_style_str):
                         import wave, struct, math
                         sr = 24000
@@ -6516,9 +6514,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         is_lofi = "로파이" in bgm_style_str
                         bpm = 122.0 if is_synth else (88.0 if is_lofi else 128.0)
                         beat_sec = 60.0 / bpm
-                        step_sec = beat_sec / 2.0  # 8분음표 간격
+                        step_sec = beat_sec / 2.0
 
-                        # 트렌디 마이너 아르페지오 주파수 (Am -> F -> C -> G)
                         notes = [220.0, 261.63, 329.63, 440.0, 174.61, 220.0, 261.63, 349.23,
                                  261.63, 329.63, 392.0, 523.25, 196.0, 246.94, 293.66, 392.0]
                         bass_notes = [55.0, 43.65, 65.41, 49.0]
@@ -6532,13 +6529,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             step_idx = int(t_sec / step_sec)
                             local_t = t_sec - (step_idx * step_sec)
 
-                            # 1. 묵직한 서브 베이스 & 킥 펄스
                             b_freq = bass_notes[(step_idx // 4) % 4]
                             kick_env = math.exp(-local_t * 14.0) if (step_idx % 2 == 0) else 0.0
                             kick_freq = b_freq * (1.0 + 1.8 * math.exp(-local_t * 35.0))
                             sub_wave = math.sin(two_pi * kick_freq * local_t) * kick_env * 0.55
 
-                            # 2. 플럭(Pluck) 신스 코드 멜로디
                             n_freq = notes[step_idx % len(notes)]
                             pluck_env = math.exp(-local_t * (9.0 if is_lofi else 13.0))
                             harm = 0.3 * math.sin(two_pi * (n_freq * 2.0) * local_t) if is_synth else 0.15 * math.sin(two_pi * (n_freq * 1.5) * local_t)
@@ -6630,7 +6625,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # 4대 핵심 씬 렌더러 (PBR 안내 + 5대 가치투자 성적표 시각화 포함)
+                    # 초보자 눈높이 4대 씬 렌더러 (쉬운 한글 용어 + PBR 안내 + 버핏 5대 기준 성적표)
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
@@ -6650,84 +6645,82 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for gy in range(360, 1040, 120):
                             draw.line([(0, gy), (W, gy)], fill=(19, 26, 38), width=1)
 
-                        draw.rounded_rectangle([32, 270, 310, 314], radius=8, fill=(23, 31, 46), outline=(255, 230, 0), width=2)
-                        _fit_single_line(draw, 171, 292, 265, "가치투자 5대 기준 재무 해부", get_font, start_sz=18, min_sz=14, fill=(255, 230, 0))
+                        draw.rounded_rectangle([32, 270, 320, 314], radius=8, fill=(23, 31, 46), outline=(255, 230, 0), width=2)
+                        _fit_single_line(draw, 176, 292, 275, "워런 버핏식 초보자 눈높이 분석", get_font, start_sz=18, min_sz=14, fill=(255, 230, 0))
 
                         draw.rounded_rectangle([W-220, 270, W-32, 314], radius=8, fill=(23, 31, 46))
                         _fit_single_line(draw, W-126, 292, 175, f"{comp_name[:6]} ({clean_tk})", get_font, start_sz=18, min_sz=14, fill=(148, 163, 184))
 
                         if scene_code == "SCENE_1":
-                            # 핵심 1: 현재 주가 + PBR/PER 기준 설명 + 10년 평균 비교
+                            # 핵심 1: 현재 주가 + 쉬운 인수 비유 (본전 뽑는 시간 or 회사 재산 대비 가격)
                             draw.rounded_rectangle([44, 340, W-44, 810], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
-                            _fit_single_line(draw, W//2, 390, W-110, f"현재 주가 : {p_str}", get_font, start_sz=42, min_sz=26, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 390, W-110, f"현재 1주 가격 : {p_str}", get_font, start_sz=40, min_sz=24, fill=(255, 255, 255))
 
-                            # 한국·대만·홍콩·시클리컬·금융주 PBR 적용 안내 배지
-                            draw.rounded_rectangle([68, 432, W-68, 476], radius=10, fill=(30, 58, 138))
-                            _fit_single_line(draw, W//2, 454, W-160, pbr_reason_tag, get_font, start_sz=20, min_sz=14, fill=(147, 197, 253))
+                            draw.rounded_rectangle([64, 432, W-64, 476], radius=10, fill=(30, 58, 138))
+                            _fit_single_line(draw, W//2, 454, W-150, pbr_reason_tag, get_font, start_sz=19, min_sz=13, fill=(147, 197, 253))
 
                             cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
                             avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
-                            m_title_s = "순자산 대비 가격 (PBR)" if use_pbr_m else "본전 뽑는 시간 (PER)"
+                            m_title_s = "회사 재산 대비 가격(PBR)" if use_pbr_m else "본전 뽑는 데 걸리는 시간"
 
                             draw.rounded_rectangle([68, 495, 340, 705], radius=18, fill=(30, 41, 59))
-                            _fit_single_line(draw, 204, 540, 240, "10년 평소 평균", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 204, 540, 240, "최근 10년 평소 평균", get_font, start_sz=22, min_sz=15, fill=(148, 163, 184))
                             _fit_single_line(draw, 204, 625, 240, avg_m_str, get_font, start_sz=50, min_sz=28, fill=(203, 213, 225))
 
                             draw.rounded_rectangle([380, 495, W-68, 705], radius=18, fill=(23, 37, 84), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, 516, 540, 240, m_title_s, get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
+                            _fit_single_line(draw, 516, 540, 240, m_title_s, get_font, start_sz=21, min_sz=14, fill=(255, 230, 0))
                             _fit_single_line(draw, 516, 625, 240, cur_m_str, get_font, start_sz=50, min_sz=28, fill=(255, 255, 255))
 
                             badge_c = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
                             draw.rounded_rectangle([68, 725, W-68, 785], radius=12, fill=badge_c)
-                            _fit_single_line(draw, W//2, 755, W-160, f"10년 평균 대비 {disc_txt}", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 755, W-160, f"10년 평소 평균보다 {disc_txt}", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_2":
-                            # 핵심 2: 100원 팔면 남는 돈 & 자본 불리는 복리 속도
+                            # 핵심 2: 100원 팔면 남는 돈 & 은행 예금 대비 돈 불리는 속도
                             draw.rounded_rectangle([44, 345, 344, 695], radius=22, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
-                            _fit_single_line(draw, 194, 415, 260, "100원 팔면 남는 마진", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 194, 415, 260, "100원 팔면 남는 순마진", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
                             _fit_single_line(draw, 194, 530, 260, f"{op_m:.1f}원", get_font, start_sz=62, min_sz=34, fill=(56, 189, 248))
-                            _fit_single_line(draw, 194, 635, 260, f"ROIC {roic_val:.1f}%", get_font, start_sz=23, min_sz=15, fill=(203, 213, 225))
+                            _fit_single_line(draw, 194, 635, 260, "(재료비·월급 다 뺀 마진)", get_font, start_sz=20, min_sz=14, fill=(203, 213, 225))
 
                             draw.rounded_rectangle([376, 345, W-44, 695], radius=22, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
-                            _fit_single_line(draw, 526, 415, 260, "내 돈 불리는 속도 (ROE)", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 526, 415, 260, "내 돈 불려주는 속도", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
                             _fit_single_line(draw, 526, 530, 260, f"연 {roe:.1f}%", get_font, start_sz=62, min_sz=34, fill=(0, 230, 118))
-                            _fit_single_line(draw, 526, 635, 260, f"은행 예금(3.5%)의 {bank_mult:.1f}배", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
+                            _fit_single_line(draw, 526, 635, 260, f"은행 예금(3.5%)의 {bank_mult:.1f}배 속도", get_font, start_sz=21, min_sz=14, fill=(255, 230, 0))
 
                             draw.rounded_rectangle([44, 715, W-44, 795], radius=14, fill=(23, 35, 55))
-                            _fit_single_line(draw, W//2, 755, W-110, "경제적 해자 : 높은 마진율과 자본 복리 엔진", get_font, start_sz=24, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 755, W-110, "버핏의 제1원칙 : 마진이 높고 돈을 빨리 불리는 회사", get_font, start_sz=24, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_3":
-                            # 핵심 3: 미국채 금리 비교 & 주주 환원율 (배당+소각)
+                            # 핵심 3: 안전한 국채 이자와 비교 & 가만히 있어도 받는 주주 보너스
                             draw.rounded_rectangle([44, 345, 344, 790], radius=22, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, 194, 415, 260, "주식 기대 이익수익률", get_font, start_sz=23, min_sz=16, fill=(255, 230, 0))
+                            _fit_single_line(draw, 194, 415, 260, "이 주식의 기대 이자율", get_font, start_sz=23, min_sz=15, fill=(255, 230, 0))
                             _fit_single_line(draw, 194, 540, 260, f"연 {ey:.1f}%", get_font, start_sz=60, min_sz=34, fill=(255, 255, 255))
-                            _fit_single_line(draw, 194, 665, 260, f"미국채({ty:.1f}%) 대비 {erp:+.1f}%p", get_font, start_sz=22, min_sz=15, fill=(0, 230, 118) if erp >= 0 else (255, 100, 100))
+                            _fit_single_line(draw, 194, 665, 260, f"미국채 이자({ty:.1f}%)와 비교", get_font, start_sz=21, min_sz=14, fill=(0, 230, 118) if erp >= 0 else (255, 100, 100))
 
                             draw.rounded_rectangle([376, 345, W-44, 790], radius=22, fill=(17, 24, 39), outline=(192, 132, 252), width=3)
-                            _fit_single_line(draw, 526, 415, 260, "주주 환원 (배당+소각)", get_font, start_sz=23, min_sz=16, fill=(192, 132, 252))
+                            _fit_single_line(draw, 526, 415, 260, "매년 받는 주주 보너스", get_font, start_sz=23, min_sz=16, fill=(192, 132, 252))
                             _fit_single_line(draw, 526, 540, 260, f"연 {tsy_total:.1f}%", get_font, start_sz=60, min_sz=34, fill=(255, 230, 0))
-                            _fit_single_line(draw, 526, 665, 260, f"배당 {div:.1f}% / 소각 {bb_yield:+.1f}%", get_font, start_sz=22, min_sz=15, fill=(203, 213, 225))
+                            _fit_single_line(draw, 526, 665, 260, f"배당금 {div:.1f}% + 주식소각 {bb_yield:+.1f}%", get_font, start_sz=21, min_sz=14, fill=(203, 213, 225))
 
                         else:
-                            # 핵심 4: DCF 요구 성장률 vs 실제 성장률 비교 + 가치투자 5대 기준 5칸 성적표!
+                            # 핵심 4: 주가가 요구하는 성장 속도 vs 실제 성장 속도 + 버핏 5대 기준 성적표!
                             draw.rounded_rectangle([44, 340, W-44, 815], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, W//2, 382, W-110, "DCF 검증 : 주가가 요구하는 성장률 vs 실제 성장률", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
+                            _fit_single_line(draw, W//2, 382, W-110, "지금 주가가 요구하는 성장 속도 vs 실제 커온 속도", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
 
                             draw.rounded_rectangle([64, 415, 344, 585], radius=16, fill=(30, 41, 59), outline=(255, 82, 82), width=3)
-                            _fit_single_line(draw, 204, 452, 250, "주가에 반영된 요구 성장률", get_font, start_sz=19, min_sz=14, fill=(252, 165, 165))
+                            _fit_single_line(draw, 204, 452, 250, "주가가 요구하는 성장 속도", get_font, start_sz=19, min_sz=14, fill=(252, 165, 165))
                             _fit_single_line(draw, 204, 525, 250, imp_g_fmt, get_font, start_sz=44, min_sz=24, fill=(255, 255, 255))
 
                             draw.rounded_rectangle([376, 415, W-64, 585], radius=16, fill=(6, 78, 59), outline=(0, 230, 118), width=3)
-                            _fit_single_line(draw, 516, 452, 250, "회사의 실제 과거 성장률", get_font, start_sz=19, min_sz=14, fill=(110, 231, 183))
+                            _fit_single_line(draw, 516, 452, 250, "실제 그동안 커온 속도", get_font, start_sz=19, min_sz=14, fill=(110, 231, 183))
                             _fit_single_line(draw, 516, 525, 250, actual_g_fmt, get_font, start_sz=44, min_sz=24, fill=(0, 230, 118))
 
-                            # 시청자가 한눈에 이해하는 [가치투자 5대 기준 성적표 (5칸 배지)]
-                            _fit_single_line(draw, W//2, 622, W-100, f"가치투자 5대 기준 점검 결과 : 5개 중 {pass_cnt}개 부합", get_font, start_sz=24, min_sz=16, fill=(255, 230, 0))
+                            _fit_single_line(draw, W//2, 622, W-100, f"워런 버핏의 5대 기준 점검 : 5개 중 {pass_cnt}개 통과", get_font, start_sz=24, min_sz=16, fill=(255, 230, 0))
 
                             five_pillars = [
-                                ("1.수익성", c1_st),
-                                ("2.주주환원", c2_st),
-                                ("3.가격할인", c3_st),
+                                ("1.장사마진", c1_st),
+                                ("2.주주보너스", c2_st),
+                                ("3.할인가격", c3_st),
                                 ("4.현금체력", c4_st),
                                 ("5.국채비교", c5_st)
                             ]
@@ -6738,15 +6731,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 px1 = start_px + p_i * (pw + gap_p)
                                 py1, py2 = 655, 785
                                 if p_st == "pass":
-                                    p_bg, p_bd, p_mark, p_col = (6, 95, 70), (16, 185, 129), "충족(O)", (110, 231, 183)
+                                    p_bg, p_bd, p_mark, p_col = (6, 95, 70), (16, 185, 129), "통과(O)", (110, 231, 183)
                                 elif p_st == "warn":
                                     p_bg, p_bd, p_mark, p_col = (120, 53, 15), (245, 158, 11), "보통(△)", (253, 224, 71)
                                 else:
-                                    p_bg, p_bd, p_mark, p_col = (127, 29, 29), (239, 68, 68), "미달(X)", (252, 165, 165)
+                                    p_bg, p_bd, p_mark, p_col = (127, 29, 29), (239, 68, 68), "아쉬움(X)", (252, 165, 165)
 
                                 draw.rounded_rectangle([px1, py1, px1 + pw, py2], radius=12, fill=p_bg, outline=p_bd, width=2)
-                                _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 8, p_name, get_font, start_sz=18, min_sz=12, fill=(255, 255, 255))
-                                _fit_single_line(draw, px1 + pw//2, py1 + 92, pw - 8, p_mark, get_font, start_sz=21, min_sz=14, fill=p_col)
+                                _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 6, p_name, get_font, start_sz=17, min_sz=12, fill=(255, 255, 255))
+                                _fit_single_line(draw, px1 + pw//2, py1 + 92, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
 
                         # 3. 하단 1줄 가변폭 블랙 자막 박스 ('툭툭' 팝업)
                         sub_clean = str(sub_text).strip()
@@ -6766,16 +6759,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
                         draw.text((W//2, 915), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
-                        # 4. 하단 블랙 레터박스 (깔끔한 1줄 면책 고지)
+                        # 4. 하단 블랙 레터박스 (법적 안전 1줄 고지)
                         draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
-                        _fit_single_line(draw, W//2, 1120, W-50, "본 영상은 공시 데이터 교육용 요약이며 특정 종목의 매수·매도 추천이 아닙니다", get_font, start_sz=19, min_sz=14, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 1120, W-50, "워런 버핏의 공개된 투자 원칙을 대입한 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
 
                         return img
 
-                    if st.button("🎬 트렌드 BGM + 13컷 핵심 쇼츠(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 초보자 눈높이 버핏 쇼츠(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("트렌드 BGM 합성 및 13컷 쇼츠(.mp4)를 초고속 병렬 렌더링 중입니다..."):
+                            with st.spinner("트렌드 BGM 합성 및 13컷 초보자 눈높이 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
@@ -6822,7 +6815,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 out_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                 cleanup_files.append(out_mp4)
 
-                                # 배경음악(BGM) 믹싱 처리
                                 if "없음" not in bgm_choice:
                                     res_dur = subprocess.run([ffmpeg_exe, "-i", merged_no_bgm], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
                                     m_dur = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_dur.stderr)
@@ -6842,12 +6834,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     out_mp4 = merged_no_bgm
 
                                 with open(out_mp4, "rb") as vf: mp4_b = vf.read()
-                                st.success("🎉 트렌드 BGM + 영문발음 교정 + 가치투자 5대 기준 쇼츠(.mp4)가 완성되었습니다!")
+                                st.success("🎉 주식을 전혀 모르는 사람도 이해하는 워런 버핏식 쇼츠(.mp4)가 완성되었습니다!")
                                 st.video(mp4_b)
                                 st.download_button(
                                     label="📥 완성형 쇼츠(.mp4) 다운로드",
                                     data=mp4_b,
-                                    file_name=f"Shorts_{clean_tk}.mp4",
+                                    file_name=f"Easy_Buffett_{clean_tk}.mp4",
                                     mime="video/mp4",
                                     use_container_width=True
                                 )
@@ -6858,7 +6850,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
-                    st.markdown("#### 📜 13컷 핵심 자막 대본")
+                    st.markdown("#### 📜 초보자 눈높이 13컷 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # =====================================================================
                 st.divider()
@@ -8225,6 +8217,448 @@ with tab_vs:
                         st.warning(f"비교 쇼츠 생성 오류: {e}")
 
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(vs_pop_chunks)]), language="text")
+# ==========================================
+# [신규 탭 1] 핀비즈 히트맵 (Finviz S&P 500 & KR Market Map)
+# ==========================================
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
+    if market_type == "US":
+        # Finviz S&P 500 표준 섹터 -> 산업 -> (티커, 한글명, 시가총액 가중치 B$)
+        finviz_universe = [
+            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "MSFT", "마이크로소프트", 3380),
+            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "ORCL", "오라클", 520),
+            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "PANW", "팔로알토", 130),
+            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "CRWD", "크라우드스트라이크", 95),
+            ("TECHNOLOGY", "SOFTWARE - INFRASTRUCTURE", "PLTR", "팔란티어", 180),
+            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "CRM", "세일즈포스", 330),
+            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "ADBE", "어도비", 240),
+            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "NOW", "서비스나우", 210),
+            ("TECHNOLOGY", "SOFTWARE - APPLICATION", "INTU", "인튜이트", 190),
+            ("TECHNOLOGY", "CONSUMER ELECTRONICS", "AAPL", "애플", 3450),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "NVDA", "엔비디아", 3520),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "AVGO", "브로드컴", 950),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "AMD", "AMD", 260),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "MU", "마이크론", 130),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "TXN", "텍사스인스트루먼트", 185),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "QCOM", "퀄컴", 195),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "INTC", "인텔", 105),
+            ("TECHNOLOGY", "SEMICONDUCTORS", "MRVL", "마벨", 85),
+            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "AMAT", "어플라이드", 160),
+            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "LRCX", "램리서치", 110),
+            ("TECHNOLOGY", "SEMICONDUCTOR EQUIPMENT", "KLAC", "KLA", 105),
+            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "DELL", "델", 90),
+            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "CSCO", "시스코", 235),
+            ("TECHNOLOGY", "COMPUTER HARDWARE & IT", "IBM", "IBM", 210),
+
+            ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO", "GOOGL", "구글(알파벳)", 2210),
+            ("COMMUNICATION SERVICES", "INTERNET CONTENT & INFO", "META", "메타", 1420),
+            ("COMMUNICATION SERVICES", "ENTERTAINMENT", "NFLX", "넷플릭스", 340),
+            ("COMMUNICATION SERVICES", "ENTERTAINMENT", "DIS", "디즈니", 200),
+            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "TMUS", "T-모바일", 250),
+            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "VZ", "버라이즌", 180),
+            ("COMMUNICATION SERVICES", "TELECOM SERVICES", "T", "AT&T", 160),
+
+            ("CONSUMER CYCLICAL", "INTERNET RETAIL", "AMZN", "아마존", 2150),
+            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "TSLA", "테슬라", 810),
+            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "GM", "GM", 60),
+            ("CONSUMER CYCLICAL", "AUTO MANUFACTURERS", "F", "포드", 45),
+            ("CONSUMER CYCLICAL", "HOME IMPROVEMENT", "HD", "홈디포", 410),
+            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "MCD", "맥도날드", 215),
+            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "SBUX", "스타벅스", 110),
+            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "NKE", "나이키", 120),
+            ("CONSUMER CYCLICAL", "RESTAURANTS & APPAREL", "TJX", "TJX", 135),
+            ("CONSUMER CYCLICAL", "TRAVEL & LODGING", "BKNG", "부킹홀딩스", 155),
+            ("CONSUMER CYCLICAL", "TRAVEL & LODGING", "MAR", "메리어트", 80),
+
+            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "WMT", "월마트", 750),
+            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "COST", "코스트코", 430),
+            ("CONSUMER DEFENSIVE", "DISCOUNT STORES", "TGT", "타겟", 70),
+            ("CONSUMER DEFENSIVE", "HOUSEHOLD & PERSONAL", "PG", "P&G", 400),
+            ("CONSUMER DEFENSIVE", "BEVERAGES", "KO", "코카콜라", 295),
+            ("CONSUMER DEFENSIVE", "BEVERAGES", "PEP", "펩시코", 230),
+            ("CONSUMER DEFENSIVE", "TOBACCO", "PM", "필립모리스", 195),
+            ("CONSUMER DEFENSIVE", "TOBACCO", "MO", "알트리아", 90),
+
+            ("FINANCIAL", "BANKS - DIVERSIFIED", "JPM", "JP모건", 700),
+            ("FINANCIAL", "BANKS - DIVERSIFIED", "BAC", "뱅크오브아메리카", 350),
+            ("FINANCIAL", "BANKS - DIVERSIFIED", "WFC", "웰스파고", 240),
+            ("FINANCIAL", "BANKS - DIVERSIFIED", "C", "씨티그룹", 130),
+            ("FINANCIAL", "CREDIT SERVICES", "V", "비자", 600),
+            ("FINANCIAL", "CREDIT SERVICES", "MA", "마스터카드", 500),
+            ("FINANCIAL", "CREDIT SERVICES", "AXP", "아멕스", 200),
+            ("FINANCIAL", "INSURANCE", "BRK-B", "버크셔해서웨이", 1050),
+            ("FINANCIAL", "INSURANCE", "PGR", "프로그레시브", 150),
+            ("FINANCIAL", "INSURANCE", "CB", "처브", 115),
+            ("FINANCIAL", "CAPITAL MARKETS", "GS", "골드만삭스", 180),
+            ("FINANCIAL", "CAPITAL MARKETS", "MS", "모건스탠리", 190),
+            ("FINANCIAL", "CAPITAL MARKETS", "BLK", "블랙록", 150),
+            ("FINANCIAL", "CAPITAL MARKETS", "SPGI", "S&P글로벌", 160),
+            ("FINANCIAL", "CAPITAL MARKETS", "MCO", "무디스", 90),
+
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "LLY", "일라이릴리", 920),
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "JNJ", "존슨앤드존슨", 390),
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "ABBV", "애브비", 360),
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "MRK", "머크", 280),
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "PFE", "화이자", 160),
+            ("HEALTHCARE", "DRUG MANUFACTURERS", "AMGN", "암젠", 175),
+            ("HEALTHCARE", "HEALTHCARE PLANS", "UNH", "유나이티드헬스", 540),
+            ("HEALTHCARE", "HEALTHCARE PLANS", "ELV", "엘리번스헬스", 110),
+            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "TMO", "써모피셔", 230),
+            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "ABT", "애보트", 210),
+            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "ISRG", "인튜이티브서지컬", 185),
+            ("HEALTHCARE", "MEDICAL DEVICES & DIAG", "SYK", "스트라이커", 145),
+
+            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "GE", "GE에어로스페이스", 200),
+            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "RTX", "RTX", 165),
+            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "LMT", "록히드마틴", 135),
+            ("INDUSTRIALS", "AEROSPACE & DEFENSE", "BA", "보잉", 115),
+            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "CAT", "캐터필러", 190),
+            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "DE", "디어앤컴퍼니", 115),
+            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "UNP", "유니온퍼시픽", 150),
+            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "UBER", "우버", 165),
+            ("INDUSTRIALS", "MACHINERY & TRANSPORT", "ETN", "이튼", 140),
+
+            ("ENERGY", "OIL & GAS INTEGRATED", "XOM", "엑손모빌", 550),
+            ("ENERGY", "OIL & GAS INTEGRATED", "CVX", "셰브론", 290),
+            ("ENERGY", "OIL & GAS E&P", "COP", "코노코필립스", 135),
+            ("ENERGY", "OIL & GAS E&P", "EOG", "EOG리소시스", 75),
+            ("ENERGY", "OIL & GAS E&P", "SLB", "슐룸베르거", 65),
+
+            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "PLD", "프로로지스", 115),
+            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "AMT", "아메리칸타워", 100),
+            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "NEE", "넥스테라에너지", 170),
+            ("REAL ESTATE & UTILITIES", "REIT & UTILITIES", "SO", "서던컴퍼니", 95),
+            ("REAL ESTATE & UTILITIES", "BASIC MATERIALS", "LIN", "린데", 220),
+            ("REAL ESTATE & UTILITIES", "BASIC MATERIALS", "FCX", "프리포트맥모란", 70)
+        ]
+    else:
+        finviz_universe = [
+            ("IT·반도체", "메모리·파운드리", "005930.KS", "삼성전자", 420),
+            ("IT·반도체", "메모리·파운드리", "000660.KS", "SK하이닉스", 160),
+            ("IT·반도체", "반도체장비·부품", "042700.KS", "한미반도체", 12),
+            ("IT·반도체", "반도체장비·부품", "009150.KS", "삼성전기", 11),
+            ("IT·반도체", "플랫폼·게임", "035420.KS", "NAVER", 30),
+            ("IT·반도체", "플랫폼·게임", "035720.KS", "카카오", 18),
+            ("IT·반도체", "플랫폼·게임", "259960.KS", "크래프톤", 16),
+            ("2차전지·화학", "배터리셀·소재", "373220.KS", "LG에너지솔루션", 90),
+            ("2차전지·화학", "배터리셀·소재", "006400.KS", "삼성SDI", 22),
+            ("2차전지·화학", "배터리셀·소재", "051910.KS", "LG화학", 23),
+            ("2차전지·화학", "배터리셀·소재", "247540.KQ", "에코프로비엠", 15),
+            ("2차전지·화학", "철강·제련", "005490.KS", "POSCO홀딩스", 30),
+            ("2차전지·화학", "철강·제련", "010130.KS", "고려아연", 16),
+            ("자동차·중공업·방산", "완성차·부품", "005380.KS", "현대차", 55),
+            ("자동차·중공업·방산", "완성차·부품", "000270.KS", "기아", 42),
+            ("자동차·중공업·방산", "완성차·부품", "012330.KS", "현대모비스", 22),
+            ("자동차·중공업·방산", "방산·조선·전력", "012450.KS", "한화에어로스페이스", 20),
+            ("자동차·중공업·방산", "방산·조선·전력", "329180.KS", "HD현대중공업", 18),
+            ("자동차·중공업·방산", "방산·조선·전력", "034020.KS", "두산에너빌리티", 14),
+            ("자동차·중공업·방산", "방산·조선·전력", "267260.KS", "HD현대일렉트릭", 12),
+            ("바이오·헬스케어", "바이오의약품", "207940.KS", "삼성바이오로직스", 72),
+            ("바이오·헬스케어", "바이오의약품", "068270.KS", "셀트리온", 40),
+            ("바이오·헬스케어", "바이오의약품", "196170.KQ", "알테오젠", 18),
+            ("바이오·헬스케어", "바이오의약품", "000100.KS", "유한양행", 11),
+            ("금융·지주·소비재", "은행·금융지주", "105560.KS", "KB금융", 36),
+            ("금융·지주·소비재", "은행·금융지주", "055550.KS", "신한지주", 28),
+            ("금융·지주·소비재", "은행·금융지주", "086790.KS", "하나금융지주", 19),
+            ("금융·지주·소비재", "은행·금융지주", "138040.KS", "메리츠금융지주", 20),
+            ("금융·지주·소비재", "보험·지주·필수소비", "032830.KS", "삼성생명", 19),
+            ("금융·지주·소비재", "보험·지주·필수소비", "028260.KS", "삼성물산", 24),
+            ("금융·지주·소비재", "보험·지주·필수소비", "033780.KS", "KT&G", 14),
+            ("금융·지주·소비재", "보험·지주·필수소비", "003230.KS", "삼양식품", 9)
+        ]
+
+    tickers_list = [item[2] for item in finviz_universe]
+    dl_period = "1y" if period_mode == "YTD" else ("2mo" if period_mode == "1M" else "10d")
+    pct_map = {}
+
+    try:
+        raw_df = yf.download(tickers_list, period=dl_period, group_by="ticker", threads=True, progress=False)
+        curr_year = datetime.now().year
+        for tk_sym in tickers_list:
+            try:
+                sub = raw_df[tk_sym]['Close'].dropna() if len(tickers_list) > 1 else raw_df['Close'].dropna()
+                if len(sub) >= 2:
+                    now_p = float(sub.iloc[-1])
+                    if period_mode == "1D":
+                        base_p = float(sub.iloc[-2])
+                    elif period_mode == "1W":
+                        base_p = float(sub.iloc[max(0, len(sub) - 6)])
+                    elif period_mode == "1M":
+                        base_p = float(sub.iloc[max(0, len(sub) - 22)])
+                    else:  # YTD
+                        ytd_sub = sub[sub.index.year == curr_year]
+                        prev_yr_sub = sub[sub.index.year < curr_year]
+                        base_p = float(prev_yr_sub.iloc[-1]) if not prev_yr_sub.empty else float(ytd_sub.iloc[0])
+                    pct_map[tk_sym] = ((now_p - base_p) / base_p) * 100.0 if base_p > 0 else 0.0
+                else:
+                    pct_map[tk_sym] = 0.0
+            except Exception:
+                pct_map[tk_sym] = 0.0
+    except Exception:
+        for tk_sym in tickers_list:
+            pct_map[tk_sym] = 0.0
+
+    rows = []
+    for sec, ind, tk_sym, kor_nm, mcap_w in finviz_universe:
+        chg = pct_map.get(tk_sym, 0.0)
+        disp_tk = kor_nm if market_type == "KR" else tk_sym
+        sign = "+" if chg > 0 else ""
+        rows.append({
+            "market": "S&P 500" if market_type == "US" else "KOSPI / KOSDAQ",
+            "sector": sec,
+            "industry": ind,
+            "ticker": tk_sym,
+            "kor_name": kor_nm,
+            "label": f"<b>{disp_tk}</b><br>{sign}{chg:.2f}%",
+            "mcap": mcap_w,
+            "chg": round(chg, 2)
+        })
+    return pd.DataFrame(rows)
+
+with tab_heatmap:
+    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 실시간 마켓 히트맵", "🗺️ Finviz Style Real-Time Market Heatmap"))
+    st.caption(t("박스의 크기는 각 기업의 시가총액 비중을 나타내며, 색상은 등락률(초록=상승, 빨강=하락)을 실시간으로 보여줍니다. 박스를 클릭하면 확대해서 볼 수 있습니다.", "Box size represents Market Cap; color represents % performance."))
+
+    hm_c1, hm_c2 = st.columns([1.5, 2.0])
+    with hm_c1:
+        hm_mkt = st.radio(
+            "시장 선택",
+            ["🇺🇸 미국 S&P 500 (Finviz 원본 스타일)", "🇰🇷 한국 대표주 (KOSPI·KOSDAQ)"],
+            horizontal=True,
+            key="hm_mkt_sel"
+        )
+    with hm_c2:
+        hm_prd = st.radio(
+            "등락률 기준 기간",
+            ["1D (일간 실시간)", "1W (최근 1주일)", "1M (최근 1개월)", "YTD (연초 대비)"],
+            horizontal=True,
+            key="hm_prd_sel"
+        )
+
+    mkt_code = "US" if "미국" in hm_mkt else "KR"
+    prd_code = hm_prd.split(" ")[0]
+
+    with st.spinner("실시간 섹터별 시가총액 및 등락률 히트맵을 렌더링 중입니다..."):
+        df_hm = fetch_finviz_heatmap_data(mkt_code, prd_code)
+
+        if not df_hm.empty:
+            import plotly.express as px
+            # Finviz 시그니처 다크 레드 -> 다크 차콜 -> 브라이트 그린 컬러 스케일
+            finviz_colorscale = [
+                [0.0, "#b71c1c"],
+                [0.25, "#7f1d1d"],
+                [0.5, "#262931"],
+                [0.75, "#14532d"],
+                [1.0, "#16a34a"]
+            ]
+            c_range = 3.0 if prd_code == "1D" else (6.0 if prd_code == "1W" else (12.0 if prd_code == "1M" else 25.0))
+
+            fig_hm = px.treemap(
+                df_hm,
+                path=[px.Constant("S&P 500 MAP" if mkt_code == "US" else "KOREA MARKET MAP"), "sector", "industry", "label"],
+                values="mcap",
+                color="chg",
+                color_continuous_scale=finviz_colorscale,
+                range_color=[-c_range, c_range],
+                custom_data=["kor_name", "ticker", "chg", "mcap"]
+            )
+            fig_hm.update_traces(
+                textinfo="label",
+                textposition="middle center",
+                textfont=dict(family="Pretendard, Arial Black, sans-serif", size=15, color="#ffffff"),
+                marker=dict(line=dict(width=1.5, color="#0b0e14"), cornerradius=2),
+                hovertemplate="<b>%{customdata[0]} (%{customdata[1]})</b><br>등락률: %{customdata[2]:+.2f}%<extra></extra>"
+            )
+            fig_hm.update_layout(
+                height=720,
+                margin=dict(t=10, l=4, r=4, b=10),
+                paper_bgcolor="#0b0e14",
+                plot_bgcolor="#0b0e14",
+                coloraxis_showscale=False
+            )
+            st.plotly_chart(fig_hm, use_container_width=True)
+            st.caption("출처: Finviz 섹터 분류 체계 및 Yahoo Finance 실시간 시세 연동")
+
+
+# ==========================================
+# [신규 탭 2] S&P 500 업종 성과 (1W · 기준일/1M · YTD)
+# ==========================================
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_sp500_sector_performance(ref_date_str):
+    # 첨부 사진 2번(미증시 현황 - S&P500 업종 성과)의 15개 항목 순서 100% 동일 매핑
+    sector_etfs = [
+        ("SP500", "SPY", "S&P 500 지수"),
+        ("Nasdaq", "QQQ", "나스닥 100"),
+        ("금융", "XLF", "금융 섹터"),
+        ("에너지", "XLE", "에너지 섹터"),
+        ("테크", "XLK", "기술(IT) 섹터"),
+        ("임의소비", "XLY", "임의소비재"),
+        ("필수소비", "XLP", "필수소비재"),
+        ("유틸리티", "XLU", "유틸리티(전력·가스)"),
+        ("산업재", "XLI", "산업재(기계·방산)"),
+        ("통신서비스", "XLC", "통신·미디어"),
+        ("소재", "XLB", "소재·화학"),
+        ("헬스케어", "XLV", "헬스케어·제약"),
+        ("부동산", "XLRE", "리츠·부동산"),
+        ("중소형주", "IWM", "러셀 2000 중소형주"),
+        ("SP500\nEQW", "RSP", "S&P 500 동일가중")
+    ]
+    tks = [x[1] for x in sector_etfs]
+    res_rows = []
+    curr_yr = datetime.now().year
+
+    try:
+        raw_s = yf.download(tks, period="1y", group_by="ticker", threads=True, progress=False)
+        for kor_lbl, tk_s, desc_s in sector_etfs:
+            try:
+                s_close = raw_s[tk_s]['Close'].dropna()
+                if len(s_close) >= 2:
+                    p_now = float(s_close.iloc[-1])
+                    # 1. 1W (최근 5거래일)
+                    p_1w = float(s_close.iloc[max(0, len(s_close) - 6)])
+                    ret_1w = ((p_now - p_1w) / p_1w) * 100.0 if p_1w > 0 else 0.0
+
+                    # 2. 지정 기준일(예: 09월 11일 또는 1개월 전) 이후 수익률
+                    sub_ref = s_close[s_close.index >= ref_date_str]
+                    p_ref = float(sub_ref.iloc[0]) if not sub_ref.empty else float(s_close.iloc[max(0, len(s_close) - 22)])
+                    ret_ref = ((p_now - p_ref) / p_ref) * 100.0 if p_ref > 0 else 0.0
+
+                    # 3. YTD (연초 대비 수익률)
+                    prev_y = s_close[s_close.index.year < curr_yr]
+                    curr_y = s_close[s_close.index.year == curr_yr]
+                    p_ytd = float(prev_y.iloc[-1]) if not prev_y.empty else float(curr_y.iloc[0])
+                    ret_ytd = ((p_now - p_ytd) / p_ytd) * 100.0 if p_ytd > 0 else 0.0
+                else:
+                    ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
+            except Exception:
+                ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
+
+            res_rows.append({
+                "업종": kor_lbl,
+                "업종_한줄": kor_lbl.replace("\n", " "),
+                "ETF": tk_s,
+                "설명": desc_s,
+                "1W": round(ret_1w, 2),
+                "REF": round(ret_ref, 2),
+                "YTD": round(ret_ytd, 2)
+            })
+    except Exception:
+        pass
+    return pd.DataFrame(res_rows)
+
+with tab_sector:
+    st.subheader(t("📊 미증시 현황 : S&P 500 업종별 성과 (1W · 기준일 · YTD)", "📊 S&P 500 Sector Performance"))
+    st.caption(t("S&P 500 11대 핵심 업종과 나스닥·중소형주·동일가중 지수의 주간(1W), 특정 기준일 이후(기본 1개월), 연초 대비(YTD) 수익률을 한눈에 비교합니다.", "Compare 1W, Reference Date, and YTD returns across all S&P 500 sectors."))
+
+    from datetime import timedelta
+    default_ref_dt = (datetime.now() - timedelta(days=30)).date()
+    sc_col1, sc_col2 = st.columns([1.3, 2.7])
+    with sc_col1:
+        user_ref_dt = st.date_input(
+            "📅 초록색 막대 기준일 선택 (기본: 1개월 전)",
+            value=default_ref_dt,
+            key="sp500_sec_ref_dt"
+        )
+    ref_label_str = user_ref_dt.strftime("%m월 %d일")
+    today_fmt_str = datetime.now().strftime("%Y.%m.%d")
+
+    with st.spinner("S&P 500 15개 대표 지수 및 업종 ETF 수익률을 계산 중입니다..."):
+        df_sec = fetch_sp500_sector_performance(user_ref_dt.strftime("%Y-%m-%d"))
+
+        if not df_sec.empty:
+            fig_sec = go.Figure()
+
+            # 1. 빨간색 막대: 1W (주간 수익률)
+            fig_sec.add_trace(go.Bar(
+                x=df_sec["업종"],
+                y=df_sec["1W"],
+                name="1W",
+                marker_color="#e61919",
+                text=[f"{v:.2f}%" for v in df_sec["1W"]],
+                textposition="outside",
+                textfont=dict(size=11, color="#e61919", family="Pretendard, sans-serif")
+            ))
+
+            # 2. 초록색 막대: 기준일(예: 09월 11일) 이후 수익률
+            fig_sec.add_trace(go.Bar(
+                x=df_sec["업종"],
+                y=df_sec["REF"],
+                name=ref_label_str,
+                marker_color="#1b7837",
+                text=[f"{v:.2f}%" for v in df_sec["REF"]],
+                textposition="outside",
+                textfont=dict(size=11, color="#1b7837", family="Pretendard, sans-serif")
+            ))
+
+            # 3. 파란색 막대: YTD (연초 대비 수익률)
+            fig_sec.add_trace(go.Bar(
+                x=df_sec["업종"],
+                y=df_sec["YTD"],
+                name="YTD",
+                marker_color="#0020cc",
+                text=[f"<b>{v:.2f}%</b>" for v in df_sec["YTD"]],
+                textposition="outside",
+                textfont=dict(size=11, color="#0020cc", family="Pretendard, sans-serif")
+            ))
+
+            max_y = max(df_sec[["1W", "REF", "YTD"]].max().max(), 15.0) + 8.0
+            min_y = min(df_sec[["1W", "REF", "YTD"]].min().min(), -5.0) - 6.0
+
+            fig_sec.update_layout(
+                title=dict(
+                    text=f"<b>S&P500 업종 성과 (USD, {today_fmt_str})</b>",
+                    font=dict(size=18, color="#202124"),
+                    x=0.02, y=0.96
+                ),
+                barmode="group",
+                bargap=0.22,
+                bargroupgap=0.08,
+                height=560,
+                paper_bgcolor="#ffffff",
+                plot_bgcolor="#ffffff",
+                font=dict(color="#202124", family="Pretendard, Noto Sans KR, sans-serif"),
+                yaxis=dict(
+                    range=[min_y, max_y],
+                    ticksuffix="%",
+                    gridcolor="#e5e7eb",
+                    zeroline=True,
+                    zerolinecolor="#9ca3af",
+                    zerolinewidth=1.5,
+                    tickfont=dict(color="#4b5563", size=12)
+                ),
+                xaxis=dict(
+                    tickfont=dict(color="#111827", size=12, weight="bold"),
+                    showgrid=False
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top", y=0.96,
+                    xanchor="right", x=0.98,
+                    bgcolor="rgba(255,255,255,0.8)",
+                    font=dict(size=13, color="#111827")
+                ),
+                margin=dict(l=50, r=30, t=65, b=50)
+            )
+            st.plotly_chart(fig_sec, use_container_width=True)
+
+            # 하단 초보자용 업종 순환매 한 줄 해설 & 상세 수치 표
+            best_ytd_row = df_sec.loc[df_sec["YTD"].idxmax()]
+            worst_1w_row = df_sec.loc[df_sec["1W"].idxmin()]
+            st.info(
+                f"💡 **초보자 눈높이 업종 해설:** 올해 연초 대비(YTD, 파란 막대) 가장 돈이 많이 몰린 1등 업종은 **{best_ytd_row['업종_한줄']} ({best_ytd_row['YTD']:+.2f}%)**이며, "
+                f"최근 1주일(1W, 빨간 막대) 동안 가장 많이 조정을 받은 업종은 **{worst_1w_row['업종_한줄']} ({worst_1w_row['1W']:+.2f}%)**입니다. "
+                f"워런 버핏은 남들이 모두 몰려가 파란 막대가 지나치게 높아진 업종보다, 일시적 소외로 가격이 싸진 우량 업종에서 기회를 찾습니다."
+            )
+
+            with st.expander("📋 S&P 500 15개 업종별 상세 수익률 표 보기"):
+                disp_sec_df = df_sec[["업종_한줄", "ETF", "설명", "1W", "REF", "YTD"]].rename(columns={
+                    "업종_한줄": "업종명",
+                    "ETF": "대표 ETF 티커",
+                    "1W": "1주일 (1W, %)",
+                    "REF": f"{ref_label_str} 이후 (%)",
+                    "YTD": "연초 대비 (YTD, %)"
+                })
+                st.dataframe(disp_sec_df, use_container_width=True, hide_index=True)
 # ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
 st.divider()
 lbl_disc_title = t('[법적 고지 및 면책 조항 / Legal Disclaimer]', '[Legal Disclaimer]')
