@@ -7930,11 +7930,11 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
             # =====================================================================
-            # [참고영상 점프컷 보이스 + 20컷 확장] 📊 1:1 종목 비교 쇼츠 스튜디오
+            # [시청자 눈높이 + 버핏·멍거 기준] 📊 1:1 종목 비교 쇼츠 스튜디오 (20컷)
             # =====================================================================
             st.divider()
-            with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 트렌디 1:1 비교 쇼츠(.mp4) 스튜디오 (20컷 풀버전)", "🎬 1:1 Quant Comparison Shorts Studio"), expanded=True):
-                st.info("💡 **참고 영상 점프컷 보이스 + 20컷 풀버전 비교:** 두 기업의 주가, 선행/10년 평균 PER·PBR, ROE·ROIC, 배당+자사주 소각 환원율, 안전마진, 최종 정량 점수까지 1줄 팝업 자막으로 촘촘하게 비교합니다.")
+            with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 버핏·멍거 기준 1:1 비교 쇼츠(.mp4) 스튜디오", "🎬 Buffett & Munger 1:1 Comparison Shorts Studio"), expanded=True):
+                st.info("💡 **시청자 눈높이 완벽 반영:** 어려운 재무 약어와 자체 앱 점수를 모두 빼고, **'워런 버핏이 두 회사 중 한 곳을 통째로 인수한다면 어디를 고를까?'**라는 주제로 돈 불리는 속도, 본전 뽑는 시간, 주주 보너스, 안전마진을 누구나 이해할 수 있게 비교합니다.")
 
                 vs_col1, vs_col2 = st.columns(2)
                 with vs_col1:
@@ -7953,54 +7953,52 @@ with tab_vs:
 
                 na, nb = res_a['name'], res_b['name']
                 w_roe = na if res_a['roe'] >= res_b['roe'] else nb
-                w_roic = na if res_a['roic'] >= res_b['roic'] else nb
                 w_pe = na if (0 < res_a['f_pe'] <= res_b['f_pe']) or (res_b['f_pe'] <= 0 and res_a['f_pe'] > 0) else nb
-                w_pbr = na if (0 < res_a['f_pbr'] <= res_b['f_pbr']) else nb
                 w_tsy = na if res_a['tsy'] >= res_b['tsy'] else nb
                 w_mos = na if res_a['mos'] >= res_b['mos'] else nb
                 w_final = na if res_a['score'] >= res_b['score'] else nb
 
                 vs_pop_chunks = [
-                    # VS_1: 오프닝 & 주가 (3컷)
-                    (f"{na}랑 {nb} 중에", "VS_1"),
-                    ("어디가 더 낫냐고 물어보는데", "VS_1"),
-                    ("10년 치 장부 데이터로 정밀 비교해봤음", "VS_1"),
+                    # VS_1: 오프닝 (3컷)
+                    (f"만약 워런 버핏이 {na}랑 {nb} 중에", "VS_1"),
+                    ("딱 한 회사만 통째로 인수한다면 어디를 고를지", "VS_1"),
+                    ("10년 치 장부 데이터로 쉽게 비교해봤음", "VS_1"),
 
-                    # VS_2: 선행 PER & 10년 평균 PER 비교 (4컷)
-                    ("먼저 본전 회수 기간인 선행 PER은", "VS_2"),
-                    (f"{na} {res_a['f_pe']:.1f}배 대 {nb} {res_b['f_pe']:.1f}배인데", "VS_2"),
-                    (f"10년 평균 PER {res_a['a_pe']:.1f}배, {res_b['a_pe']:.1f}배와 비교해도", "VS_2"),
-                    (f"멀티플 부담은 {w_pe} 쪽이 더 낮았음", "VS_2"),
+                    # VS_2: 돈 불리는 복리 속도 비교 (4컷)
+                    ("첫째로 회사가 내 돈을 불려주는 복리 속도는", "VS_2"),
+                    (f"{na} 연 {res_a['roe']:.1f}% 대 {nb} 연 {res_b['roe']:.1f}%였고", "VS_2"),
+                    (f"부채 착시를 뺀 순수 수익률도 {res_a['roic']:.1f}% 대 {res_b['roic']:.1f}%라", "VS_2"),
+                    (f"돈 버는 엔진은 {w_roe} 쪽이 더 강력했음", "VS_2"),
 
-                    # VS_3: 선행 PBR & 안전마진 할인율 (3컷)
-                    (f"장부가 대비 선행 PBR은 {res_a['f_pbr']:.2f}배 대 {res_b['f_pbr']:.2f}배였고", "VS_3"),
-                    (f"평소 대비 가격 안전마진은 {res_a['mos']:+.1f}% 대 {res_b['mos']:+.1f}%로", "VS_3"),
-                    (f"가격 매력도는 {w_mos} 쪽이 앞섰음", "VS_3"),
+                    # VS_3: 본전 뽑는 데 걸리는 시간 비교 (4컷)
+                    ("둘째로 지금 가격에 인수했을 때 본전 뽑는 시간은", "VS_3"),
+                    (f"{na} {res_a['f_pe']:.1f}년 대 {nb} {res_b['f_pe']:.1f}년이 걸리는데", "VS_3"),
+                    (f"각자의 10년 평소 평균인 {res_a['a_pe']:.1f}년, {res_b['a_pe']:.1f}년과 비교해도", "VS_3"),
+                    (f"본전 회수 속도는 {w_pe} 쪽이 더 빨랐음", "VS_3"),
 
-                    # VS_4: ROE & ROIC 비즈니스 해자 비교 (4컷)
-                    ("핵심인 돈 버는 복리 속도를 보면", "VS_4"),
-                    (f"자본수익률 ROE는 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%였고", "VS_4"),
-                    (f"투하자본수익률 ROIC도 {res_a['roic']:.1f}% 대 {res_b['roic']:.1f}%라", "VS_4"),
-                    (f"비즈니스 해자는 {w_roe} 쪽이 우위였음", "VS_4"),
+                    # VS_4: 평소 대비 가격 할인 폭 (안전마진) (3컷)
+                    ("셋째로 버핏이 가장 중요하게 보는 가격 할인율은", "VS_4"),
+                    (f"평소 평균 대비 {res_a['mos']:+.1f}% 대 {res_b['mos']:+.1f}% 수준이라", "VS_4"),
+                    (f"안전마진 여유는 {w_mos} 쪽이 더 앞섰음", "VS_4"),
 
-                    # VS_5: 총주주환원율 (배당 + 자사주 소각) (3컷)
-                    ("배당과 자사주 소각을 합친 주주환원율은", "VS_5"),
-                    (f"{na} 연 {res_a['tsy']:.1f}% 대 {nb} 연 {res_b['tsy']:.1f}%로", "VS_5"),
-                    (f"주주 보너스는 {w_tsy} 쪽이 더 높았음", "VS_5"),
+                    # VS_5: 매년 주주에게 돌려주는 보너스 (3컷)
+                    ("넷째로 배당금과 주식 소각을 합친 주주 보너스는", "VS_5"),
+                    (f"매년 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%를 돌려주고 있어서", "VS_5"),
+                    (f"주주 환원은 {w_tsy} 쪽이 더 후했음", "VS_5"),
 
-                    # VS_6: 최종 정량 점수 결론 (3컷)
-                    ("모든 지표를 합산한 월가 정량 총점은", "VS_6"),
-                    (f"{na} {res_a['score']}점 대 {nb} {res_b['score']}점으로", "VS_6"),
-                    (f"최종 판정은 {w_final} 우위로 나왔다고 함", "VS_6")
+                    # VS_6: 버핏·멍거 기준 최종 요약 (3컷)
+                    ("다섯 가지 버핏 인수 기준을 종합해보면", "VS_6"),
+                    ("비즈니스 해자와 현재 가격 안전마진에서", "VS_6"),
+                    (f"현재 시점 판정은 {w_final} 쪽이 더 유리하게 나왔다고 함", "VS_6")
                 ]
                 vs_full_script = " ".join([c[0] for c in vs_pop_chunks])
 
-                if st.button("🎬 20컷 트렌디 1:1 비교 쇼츠(.mp4) 바로 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
+                if st.button("🎬 버핏·멍거 기준 1:1 비교 쇼츠(.mp4) 바로 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
                         import imageio_ffmpeg, subprocess, tempfile, os
 
-                        with st.spinner(f"[{na} vs {nb}] 참고 영상 점프컷 보이스 + 20컷 팝업 자막 쇼츠(.mp4)를 병렬 렌더링 중입니다..."):
+                        with st.spinner(f"[{na} vs {nb}] 시청자 눈높이 버핏 기준 20컷 쇼츠(.mp4)를 병렬 렌더링 중입니다..."):
                             font_dir = tempfile.gettempdir()
                             bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                             if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
@@ -8015,7 +8013,7 @@ with tab_vs:
                                         except Exception: continue
                                 return ImageFont.load_default()
 
-                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=18, fill=(255,255,255)):
+                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=16, fill=(255,255,255)):
                                 t_s = str(text).strip()
                                 for sz in range(start_sz, min_sz - 1, -2):
                                     f = _gf(sz)
@@ -8066,25 +8064,25 @@ with tab_vs:
                                 draw = ImageDraw.Draw(img)
 
                                 _fit_line(draw, W//2, 92, W-60, f"{na} vs {nb}", start_sz=50, min_sz=26, fill=(255, 255, 255))
-                                _fit_line(draw, W//2, 172, W-60, "10년 장부 역산해본 결과", start_sz=52, min_sz=28, fill=(255, 230, 0))
+                                _fit_line(draw, W//2, 172, W-60, "버핏 기준으로 비교해본 결과", start_sz=52, min_sz=28, fill=(255, 230, 0))
                                 draw.rectangle([0, 236, W, 244], fill=(40, 40, 40))
                                 draw.rectangle([0, 236, int(W * ((c_idx+1)/n_vs)), 244], fill=(255, 230, 0))
 
                                 draw.rectangle([0, 244, W, 1040], fill=(11, 15, 23))
                                 if sc_code == "VS_1":
-                                    m_lbl, va, vb, sa, sb = "CURRENT PRICE (현재 주가)", res_a['p_str'], res_b['p_str'], f"DCF {res_a['iv_str']}", f"DCF {res_b['iv_str']}"
+                                    m_lbl, va, vb, sa, sb = "비교 1. 현재 1주당 가격표", res_a['p_str'], res_b['p_str'], f"적정가 {res_a['iv_str']}", f"적정가 {res_b['iv_str']}"
                                 elif sc_code == "VS_2":
-                                    m_lbl, va, vb, sa, sb = "FORWARD PER (선행 멀티플)", f"{res_a['f_pe']:.1f}배", f"{res_b['f_pe']:.1f}배", f"10Y평균 {res_a['a_pe']:.1f}배", f"10Y평균 {res_b['a_pe']:.1f}배"
+                                    m_lbl, va, vb, sa, sb = "비교 2. 내 돈 불려주는 복리 속도", f"연 {res_a['roe']:.1f}%", f"연 {res_b['roe']:.1f}%", f"순수수익률 {res_a['roic']:.1f}%", f"순수수익률 {res_b['roic']:.1f}%"
                                 elif sc_code == "VS_3":
-                                    m_lbl, va, vb, sa, sb = "PBR & MARGIN OF SAFETY", f"{res_a['f_pbr']:.2f}배", f"{res_b['f_pbr']:.2f}배", f"안전마진 {res_a['mos']:+.1f}%", f"안전마진 {res_b['mos']:+.1f}%"
+                                    m_lbl, va, vb, sa, sb = "비교 3. 본전 뽑는 데 걸리는 시간", f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년", f"10년평균 {res_a['a_pe']:.1f}년", f"10년평균 {res_b['a_pe']:.1f}년"
                                 elif sc_code == "VS_4":
-                                    m_lbl, va, vb, sa, sb = "ROE & ROIC (복리 수익성)", f"{res_a['roe']:.1f}%", f"{res_b['roe']:.1f}%", f"ROIC {res_a['roic']:.1f}%", f"ROIC {res_b['roic']:.1f}%"
+                                    m_lbl, va, vb, sa, sb = "비교 4. 평소 대비 가격 할인율", f"{res_a['mos']:+.1f}%", f"{res_b['mos']:+.1f}%", f"순자산의 {res_a['f_pbr']:.2f}배", f"순자산의 {res_b['f_pbr']:.2f}배"
                                 elif sc_code == "VS_5":
-                                    m_lbl, va, vb, sa, sb = "SHAREHOLDER YIELD (주주환원)", f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"배당 {res_a['div']:.1f}%", f"배당 {res_b['div']:.1f}%"
+                                    m_lbl, va, vb, sa, sb = "비교 5. 매년 주주에게 주는 보너스", f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"배당 {res_a['div']:.1f}%+소각", f"배당 {res_b['div']:.1f}%+소각"
                                 else:
-                                    m_lbl, va, vb, sa, sb = "FINAL QUANT SCORE (총점)", f"{res_a['score']}점", f"{res_b['score']}점", res_a['op_title'].split('(')[0], res_b['op_title'].split('(')[0]
+                                    m_lbl, va, vb, sa, sb = "최종 결론. 버핏·멍거 기준 우위 기업", (f"우위!" if w_final==na else "아쉬움"), (f"우위!" if w_final==nb else "아쉬움"), res_a['op_title'].split('(')[0], res_b['op_title'].split('(')[0]
 
-                                _fit_line(draw, W//2, 305, W-80, m_lbl, start_sz=26, min_sz=18, fill=(56, 189, 248))
+                                _fit_line(draw, W//2, 305, W-80, m_lbl, start_sz=28, min_sz=18, fill=(255, 230, 0))
 
                                 draw.rounded_rectangle([40, 355, 344, 795], radius=22, fill=(17, 24, 39), outline=(49, 130, 246), width=3)
                                 _fit_line(draw, 192, 435, 270, na, start_sz=36, min_sz=20, fill=(255, 255, 255))
@@ -8100,7 +8098,7 @@ with tab_vs:
                                 sf = _gf(40)
                                 bb = draw.textbbox((0, 0), sub_c, font=sf)
                                 tw = bb[2] - bb[0]
-                                while tw > (W - 64) and sf.size > 24:
+                                while tw > (W - 64) and sf.size > 22:
                                     sf = _gf(sf.size - 2)
                                     bb = draw.textbbox((0, 0), sub_c, font=sf)
                                     tw = bb[2] - bb[0]
@@ -8111,7 +8109,7 @@ with tab_vs:
                                 draw.text((W//2, 915), sub_c, font=sf, fill=(255, 255, 255), anchor="mm")
 
                                 draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
-                                _fit_line(draw, W//2, 1125, W-60, "공시 기반 정량 시뮬레이션이며 매수·매도 추천이 아닙니다", start_sz=18, min_sz=14, fill=(100, 116, 139))
+                                _fit_line(draw, W//2, 1125, W-60, "공시 기반 가치투자 시뮬레이션이며 매수·매도 추천이 아닙니다", start_sz=18, min_sz=14, fill=(100, 116, 139))
                                 return img
 
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -8153,12 +8151,12 @@ with tab_vs:
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                             with open(out_vs_mp4, "rb") as vf: vs_mp4_b = vf.read()
-                            st.success(f"🎉 [{na} vs {nb}] 20컷 점프컷 보이스 쇼츠(.mp4)가 완성되었습니다!")
+                            st.success(f"🎉 [{na} vs {nb}] 시청자 눈높이 버핏 기준 20컷 쇼츠(.mp4)가 완성되었습니다!")
                             st.video(vs_mp4_b)
                             st.download_button(
-                                label=f"📥 [{na}_vs_{nb}] 20컷 쇼츠(.mp4) 다운로드",
+                                label=f"📥 [{na}_vs_{nb}] 버핏 기준 쇼츠(.mp4) 다운로드",
                                 data=vs_mp4_b,
-                                file_name=f"AGIE_VS_{res_a['tk']}_{res_b['tk']}_20cut_shorts.mp4",
+                                file_name=f"Buffett_VS_{res_a['tk']}_{res_b['tk']}_shorts.mp4",
                                 mime="video/mp4",
                                 use_container_width=True
                             )
@@ -8170,7 +8168,6 @@ with tab_vs:
                         st.warning(f"비교 쇼츠 생성 오류: {e}")
 
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(vs_pop_chunks)]), language="text")
-            st.error(t("종목 데이터를 불러오지 못했습니다. 티커나 종목명을 다시 확인해 주세요.", "Failed to load stock data. Please check the ticker."))
 # ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
 st.divider()
 lbl_disc_title = t('[법적 고지 및 면책 조항 / Legal Disclaimer]', '[Legal Disclaimer]')
