@@ -6672,7 +6672,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         draw.rounded_rectangle([54, 850, W-54, 1020], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=4)
                         _fit_single_line(draw, W//2, 905, W-140, "가치투자 5대 핵심 재무 기준 (버핏·멍거 서한 참고)", get_font, start_sz=26, min_sz=16, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 기준치 충족! (15초 요약)", get_font, start_sz=44, min_sz=24, fill=(255, 230, 0))
+                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 기준치 충족! (", get_font, start_sz=44, min_sz=24, fill=(255, 230, 0))
 
                         _fit_single_line(draw, W//2, 1130, W-50, "학술·교육용 공시 데이터 분석이며 특정 종목 매수·매도 추천이 아닙니다", get_font, start_sz=19, min_sz=13, fill=(100, 116, 139))
                         return img
@@ -9027,7 +9027,7 @@ with st.expander("🎨 유튜브 채널 프로필 로고(800x800) & 상단 표�
     lg_c1, lg_c2, lg_c3 = st.columns([1.3, 1.3, 1.4])
     with lg_c1:
         ch_main_title = st.text_input("채널 로고 메인 문구 (줄바꿈은 / 입력)", value="버핏의/장부해부", key="logo_main_txt")
-        ch_sub_badge = st.text_input("로고 상단 포인트 배지", value="15초 팩트체크", key="logo_sub_txt")
+        ch_sub_badge = st.text_input("로고 상단 포인트 배지", value="45초 팩트체크", key="logo_sub_txt")
     with lg_c2:
         ch_banner_title = st.text_input("채널 표지(배너) 메인 타이틀", value="워런 버핏의 시선으로 뜯어보는 10년 장부", key="banner_main_txt")
         ch_banner_sub = st.text_input("채널 표지(배너) 서브 슬로건", value="주식을 종잇조각이 아니라, 가게 하나를 통째로 인수하는 것처럼 보라", key="banner_sub_txt")
