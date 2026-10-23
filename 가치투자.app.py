@@ -8822,7 +8822,6 @@ with tab_heatmap:
             top5_str = " · ".join([f"<span style='color:#facc15;'><b>{idx+1}위 {r['kor_name']}</b></span> ({r['mcap']:,.1f}{unit_label}, {r['chg']:+.2f}%)" for idx, (_, r) in enumerate(top5_df.iterrows())])
             st.markdown(f"<div style='background:#111827; padding:12px; border-radius:10px; font-size:0.95rem; color:#f8fafc; text-align:center; border:1px solid #374151;'>🏆 <b>현재 시가총액 TOP 5:</b> {top5_str}</div>", unsafe_allow_html=True)
 
-
 # ==========================================
 # [에러 수리 완료] S&P 500 업종 성과 데이터 수집 함수 + 탭 UI 통합본
 # ==========================================
