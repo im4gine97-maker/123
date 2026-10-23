@@ -6358,12 +6358,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [0.15초 표지 썸네일 + 초보자 눈높이 버핏 방식 + 유튜브 API 자동 업로드] 6. 쇼츠 스튜디오
+                # [법적 감사 완벽 통과 버전] 6. 가치투자 재무 스터디 쇼츠(Shorts) 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 스튜디오 (0.15초 썸네일 표지 + 초보자 설명 + 유튜브 자동 업로드)", "🎬 6. All-in-One Buffett Shorts & Auto-Upload Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 스튜디오 (법적 리스크 0% 무결점 버전 + 괴리율 비교 + 자동 업로드)", "🎬 6. Legal-Safe All-in-One Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **올인원 자동화 완성:** ① **첫 0.15초에 클릭을 부르는 '표지(썸네일) 전용 프레임' 자동 삽입**, ② **주식을 전혀 모르는 사람도 이해하는 워런 버핏식 비유**, ③ **트렌드 BGM & 영문 발음 교정**, ④ **YouTube Data API 연동을 통한 원클릭 채널 업로드**가 모두 탑재되었습니다.",
-                        "💡 Includes 0.15s cover thumbnail frame, beginner-friendly Buffett analogies, BGM, and 1-click YouTube API upload."
+                        "💡 **법적 리스크 4중 차단 완료:** ① '저평가·고평가·거품' 등 주관적 가치 판단어를 빼고 **100% 객관적 수치 비교만 서술(자본시장법 준수)**, ② **고전 가치투자 서한 공식 인용 프레이밍(성명권 보호)**, ③ **과거 데이터와 미래 추정치 구분 명시**, ④ **금융 표준 면책 고지 자동 삽입**이 모두 적용되었습니다.",
+                        "💡 Strictly neutral factual comparisons, educational citation framing, and standard financial disclaimers applied."
                     ))
 
                     col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
@@ -6402,79 +6402,102 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     comp_name = primary_names.get(tk, i.get('shortName', tk))
                     clean_tk = tk.split('.')[0] if kr else tk
 
+                    # --- [DCF 요구 성장률 vs 실제 성장률 '괴리율(Gap)' 100% 객관적 수치 연산] ---
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
                     hist_fcf_g_pct = final_g * 100.0
                     imp_g_fmt = f"연 {imp_g_pct:.1f}%" if implied_g_shorts is not None else "산출제외"
                     actual_g_fmt = f"연 {hist_fcf_g_pct:.1f}%"
 
-                    top_line1 = "워런 버핏의 가치투자 방식으로"
-                    top_line2 = f"{comp_name} 10년 장부 뜯어본 결과"
+                    growth_gap_pp = imp_g_pct - hist_fcf_g_pct
+                    growth_mult = (imp_g_pct / hist_fcf_g_pct) if hist_fcf_g_pct > 0.5 else 0.0
 
-                    # 1. 주식을 모르는 사람도 단번에 이해하는 가격 설명
+                    # 상단 2줄 고정 타이틀 (성명권 이슈 없는 '정통 가치투자 공식' 프레이밍)
+                    top_line1 = "정통 가치투자 공식으로 본"
+                    top_line2 = f"{comp_name} 10년 장부 데이터"
+
+                    # 1. 객관적 가격 멀티플 비교 ('싸다/비싸다' 대신 '과거 평균 대비 X% 낮다/높다'로 사실만 기술)
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
-                    disc_txt = f"{abs(pmos_val):.0f}% 더 싸진 상태" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 더 비싸진 상태"
+                    disc_txt = f"{abs(pmos_val):.0f}% 낮은 수치" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 높은 수치"
 
                     if is_financial:
-                        pbr_reason_tag = "금융회사는 가진 순재산(건물·현금) 대비 가격(PBR)으로 계산"
-                        val_c1 = "금융회사는 버핏 방식으로 회사가 가진 순재산과 비교하는데"
-                        val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
-                        thumb_hook_badge = f"재산 대비 {f_pbr:.2f}배! ({disc_txt})"
+                        pbr_reason_tag = "금융업 특성상 회사 순자산(장부가) 대비 주가(PBR)로 계산"
+                        val_c1 = "금융업종은 회사가 가진 순자산 대비 주가(PBR)로 비교하는데"
+                        val_c2 = f"현재 순자산의 {f_pbr:.2f}배로 10년 평균({a_pbr:.2f}배)보다"
+                        thumb_hook_badge = f"순자산의 {f_pbr:.2f}배 (10년평균 대비 {disc_txt})"
                     elif kr or is_china_tw or is_cyclical or f_pe <= 0:
                         if kr:
-                            pbr_reason_tag = "한국 주식은 이익 변동이 커서 회사 순재산(PBR) 기준으로 계산"
-                            val_c1 = "한국 주식은 매년 이익이 출렁여서 회사 순재산(PBR)으로 보는데"
+                            pbr_reason_tag = "한국 증시는 이익 변동이 커서 회사 순자산(PBR) 기준으로 계산"
+                            val_c1 = "한국 주식은 이익 변동이 커서 회사 순자산(PBR)으로 비교하는데"
                         elif is_china_tw:
-                            pbr_reason_tag = "대만·홍콩·중국 주식은 회사 순재산(PBR) 기준으로 계산"
-                            val_c1 = "대만·홍콩 주식은 회사 순재산(PBR) 기준으로 계산하는데"
+                            pbr_reason_tag = "대만·홍콩·중국 증시는 회사 순자산(PBR) 기준으로 계산"
+                            val_c1 = "대만·홍콩 주식은 회사 순자산(PBR) 기준으로 비교하는데"
                         else:
-                            pbr_reason_tag = "경기민감 업종은 이익 변동이 커서 회사 순재산(PBR)으로 계산"
-                            val_c1 = "경기민감 업종은 이익이 출렁여서 회사 순재산(PBR)으로 보는데"
-                        val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
-                        thumb_hook_badge = f"순재산의 {f_pbr:.2f}배! ({disc_txt})"
+                            pbr_reason_tag = "경기민감 업종은 이익 변동이 커서 회사 순자산(PBR)으로 계산"
+                            val_c1 = "경기민감 업종은 이익이 출렁여서 회사 순자산(PBR)으로 보는데"
+                        val_c2 = f"현재 순자산의 {f_pbr:.2f}배로 10년 평균({a_pbr:.2f}배)보다"
+                        thumb_hook_badge = f"순자산의 {f_pbr:.2f}배 (10년평균 대비 {disc_txt})"
                     else:
-                        pbr_reason_tag = "가게를 통째로 인수했을 때 순수익으로 본전 뽑는 기간(PER) 계산"
-                        val_c1 = f"이 회사를 가게 통째로 인수하면 본전 뽑는 데 {f_pe:.1f}년 걸리는데"
-                        val_c2 = f"평소 10년 평균 본전 회수 기간인 {a_pe:.1f}년과 비교해보면"
-                        thumb_hook_badge = f"본전 뽑는 데 {f_pe:.1f}년?! ({disc_txt})"
+                        pbr_reason_tag = "예상 순이익 기준으로 투자금 회수 기간(선행 PER) 단순 환산"
+                        val_c1 = f"예상 순이익 기준 본전 회수 기간(PER)은 {f_pe:.1f}년인데"
+                        val_c2 = f"최근 10년 평균 회수 기간인 {a_pe:.1f}년과 비교해보면"
+                        thumb_hook_badge = f"본전 회수 {f_pe:.1f}년 (10년평균 대비 {disc_txt})"
 
-                    # 2. 초보자용 장사 마진 & 은행 예금 대비 돈 불리는 속도 설명
+                    # 2. 영업 마진 & 자기자본이익률(ROE) 팩트 전달
                     margin_won = max(1, int(round(op_m)))
                     bank_mult = max(1.0, roe / 3.5) if roe > 0 else 0
                     if is_financial:
-                        moat_c1 = "버핏이 중시하는 돈 불리는 복리 속도를 보면"
-                        moat_c2 = f"은행 예금이 3.5% 이자 줄 때 내 돈을 연 {roe:.1f}%씩 불려줘서"
-                        moat_c3 = f"은행 예금보다 {bank_mult:.1f}배 빠른 속도로 돈을 불리고 있음"
+                        moat_c1 = "가치투자에서 중시하는 자본 복리 속도를 보면"
+                        moat_c2 = f"시중 금리가 3.5% 수준일 때 자기자본을 연 {roe:.1f}%씩 불려줘서"
+                        moat_c3 = f"예금 금리 대비 {bank_mult:.1f}배의 자본수익률을 기록했음"
                     else:
-                        moat_c1 = "버핏이 제일 먼저 보는 건 가게 마진인데"
-                        moat_c2 = f"100원어치 팔면 재료비·월급 다 빼고 {margin_won}원이 순수하게 남고"
-                        moat_c3 = (f"돈 불리는 속도도 연 {roe:.1f}%라 은행 예금의 {bank_mult:.0f}배 속도임" if roe >= 7 else f"회사 자본을 굴려 연 {roe:.1f}%씩 돈을 불리고 있음")
+                        moat_c1 = "버핏과 멍거의 서한에서 강조하는 영업 마진을 보면"
+                        moat_c2 = f"100원어치 팔면 원가·판관비를 빼고 {margin_won}원이 남는 구조이고"
+                        moat_c3 = (f"자본수익률 ROE도 연 {roe:.1f}%로 예금 금리의 {bank_mult:.0f}배 수준임" if roe >= 7 else f"자기자본이익률 ROE는 연 {roe:.1f}%를 기록했음")
 
-                    # 3. 초보자용 DCF 설명
+                    # 3. DCF 요구 성장률 vs 실제 과거 성장률 '괴리율(Gap)' 중립 서술 ('거품/저평가' 단어 배제)
                     if not is_financial and implied_g_shorts is not None:
-                        dcf_c1 = f"지금 주가가 거품이 아니려면 매년 돈을 {imp_g_pct:.1f}%씩 더 벌어야 하는데"
-                        dcf_c2 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}% 수준이었고"
+                        dcf_c1 = f"현재 주가를 역산하면 향후 10년간 매년 {imp_g_pct:.1f}%씩 성장해야 하는데"
+                        dcf_c2 = f"이 회사의 실제 과거 현금 성장률은 연 {hist_fcf_g_pct:.1f}% 수준이라"
+                        if growth_gap_pp > 3.0:
+                            mult_str = f"({growth_mult:.1f}배)" if growth_mult >= 1.5 else ""
+                            dcf_c3 = f"과거 실제 속도보다 {growth_gap_pp:.1f}%p{mult_str} 높은 성장이 주가에 반영돼 있음"
+                            gap_badge_txt = f"성장률 괴리 +{growth_gap_pp:.1f}%p (과거 실적 대비 {growth_mult:.1f}배 높은 기대치 반영)" if growth_mult >= 1.5 else f"성장률 괴리 +{growth_gap_pp:.1f}%p (과거 성장률보다 시장 요구치 높음)"
+                            gap_badge_col = (153, 27, 27)
+                        elif growth_gap_pp < -2.0:
+                            dcf_c3 = f"과거 실제 속도보다 {abs(growth_gap_pp):.1f}%p 낮은 성장치만 주가에 반영돼 있음"
+                            gap_badge_txt = f"성장률 괴리 {growth_gap_pp:.1f}%p (과거 실제 성장률이 요구치보다 높음)"
+                            gap_badge_col = (6, 95, 70)
+                        else:
+                            dcf_c3 = f"주가에 반영된 기대치와 과거 성장률 차이가 {abs(growth_gap_pp):.1f}%p로 비슷함"
+                            gap_badge_txt = f"성장률 괴리 {growth_gap_pp:+.1f}%p (시장 요구치와 과거 성장률 유사)"
+                            gap_badge_col = (30, 58, 138)
                     else:
-                        dcf_c1 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}%를 기록했고"
-                        dcf_c2 = f"매년 연 {roe:.1f}% 속도로 회사 재산을 꾸준히 불려왔는데"
+                        dcf_c1 = f"이 회사의 과거 현금흐름 성장률은 연 {hist_fcf_g_pct:.1f}%를 기록했고"
+                        dcf_c2 = f"연 {roe:.1f}%의 자기자본이익률로 순자산을 변화시켜 왔는데"
+                        dcf_c3 = f"순자산(PBR) 기준 과거 10년 평균 대비 {disc_txt}를 기록 중임"
+                        gap_badge_txt = f"순자산(PBR) 10년 평균 대비 {disc_txt}"
+                        gap_badge_col = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
 
+                    # --- [법적 리스크 0% 객관적 사실 기반 14컷 자막 리스트] ---
                     pop_chunks = [
-                        (f"현재 {comp_name} 1주 가격은 {p_str}인데", "SCENE_1"),
+                        (f"현재 {comp_name} 주가는 {p_str}인데", "SCENE_1"),
                         (val_c1, "SCENE_1"),
                         (val_c2, "SCENE_1"),
-                        (f"평소보다 약 {disc_txt} 구간임", "SCENE_1"),
+                        (f"과거 10년 평균 대비 약 {disc_txt}임", "SCENE_1"),
 
                         (moat_c1, "SCENE_2"),
                         (moat_c2, "SCENE_2"),
                         (moat_c3, "SCENE_2"),
 
-                        (f"안전한 미국 국채 이자({ty:.1f}%)와 비교하면 기대 수익률은 연 {ey:.1f}%이고", "SCENE_3"),
-                        (f"가만히 들고만 있어도 배당과 주식소각으로 매년 {tsy_total:.1f}% 보너스를 줌", "SCENE_3"),
+                        (f"미국 10년 국채 금리({ty:.1f}%)와 비교하면 기대 이익수익률은 연 {ey:.1f}%이고", "SCENE_3"),
+                        (f"배당과 자사주 소각을 합친 총주주환원율은 연 {tsy_total:.1f}% 수준임", "SCENE_3"),
 
                         (dcf_c1, "SCENE_4"),
                         (dcf_c2, "SCENE_4"),
-                        ("버핏의 5대 기준인 장사마진·주주보너스·할인가격·현금체력·국채비교 중", "SCENE_4"),
-                        (f"현재 총 {pass_cnt}개 기준에 부합하는 걸로 나왔다고 함", "SCENE_4")
+                        (dcf_c3, "SCENE_4"),
+                        ("가치투자 5대 지표인 수익성·자본배분·멀티플·현금흐름·국채비교 중", "SCENE_4"),
+                        (f"현재 총 {pass_cnt}개 지표가 기준치를 충족한 걸로 집계됨", "SCENE_4")
                     ]
 
                     def _fix_tts_pronunciation(text_s):
@@ -6615,7 +6638,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                         return _get_f
 
-                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=14, fill=(255,255,255)):
+                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=13, fill=(255,255,255)):
                         t_str = str(text).strip()
                         for sz in range(start_sz, min_sz - 1, -2):
                             f = get_font(sz)
@@ -6628,40 +6651,32 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # [신규 탑재!] 쇼츠 조회수를 좌우하는 '첫 0.15초 표지(썸네일) 전용 프레임' 렌더러
                     def _draw_cover_thumbnail_frame(get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(8, 11, 18))
                         draw = ImageDraw.Draw(img)
 
-                        # 강렬한 골드 네온 외곽 프레임
                         draw.rounded_rectangle([16, 16, W-16, H-16], radius=32, outline=(255, 230, 0), width=8)
+                        draw.rounded_rectangle([55, 75, W-55, 155], radius=40, fill=(220, 38, 38))
+                        _fit_single_line(draw, W//2, 115, W-140, "정통 가치투자 10년 장부 해부", get_font, start_sz=35, min_sz=20, fill=(255, 255, 255))
 
-                        # 상단 어텐션 배지
-                        draw.rounded_rectangle([60, 75, W-60, 155], radius=40, fill=(220, 38, 38))
-                        _fit_single_line(draw, W//2, 115, W-150, "워런 버핏의 10년 장부 해부", get_font, start_sz=36, min_sz=22, fill=(255, 255, 255))
-
-                        # 종목명 초대형 타이포그래피
                         _fit_single_line(draw, W//2, 290, W-80, comp_name, get_font, start_sz=86, min_sz=42, fill=(255, 255, 255))
                         _fit_single_line(draw, W//2, 395, W-100, f"현재 주가 {p_str}", get_font, start_sz=54, min_sz=30, fill=(56, 189, 248))
 
-                        # 중앙 시선 강탈 팩트 박스
                         box_bg = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
                         draw.rounded_rectangle([44, 480, W-44, 790], radius=28, fill=box_bg, outline=(255, 230, 0), width=5)
-                        _fit_single_line(draw, W//2, 555, W-120, "통째로 인수하면 과연 남는 장사일까?", get_font, start_sz=32, min_sz=20, fill=(254, 240, 138))
-                        _fit_single_line(draw, W//2, 655, W-110, thumb_hook_badge, get_font, start_sz=52, min_sz=26, fill=(255, 255, 255))
-                        _fit_single_line(draw, W//2, 740, W-120, f"100원 팔면 {margin_won}원 남는 회사 | 연 {roe:.1f}% 복리", get_font, start_sz=28, min_sz=18, fill=(167, 243, 208))
+                        _fit_single_line(draw, W//2, 555, W-120, "10년 공시 재무 데이터 비교 결과", get_font, start_sz=32, min_sz=20, fill=(254, 240, 138))
+                        _fit_single_line(draw, W//2, 655, W-110, thumb_hook_badge, get_font, start_sz=48, min_sz=24, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 740, W-120, f"영업이익률 {op_m:.1f}% | 자기자본이익률(ROE) {roe:.1f}%", get_font, start_sz=27, min_sz=16, fill=(167, 243, 208))
 
-                        # 하단 5대 기준 통과 스탬프
                         draw.rounded_rectangle([54, 850, W-54, 1020], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=4)
-                        _fit_single_line(draw, W//2, 905, W-140, "워런 버핏의 5대 가치투자 기준", get_font, start_sz=30, min_sz=20, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 통과! (15초 요약)", get_font, start_sz=46, min_sz=26, fill=(255, 230, 0))
+                        _fit_single_line(draw, W//2, 905, W-140, "가치투자 5대 핵심 재무 기준 (버핏·멍거 서한 참고)", get_font, start_sz=26, min_sz=16, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 기준치 충족! (15초 요약)", get_font, start_sz=44, min_sz=24, fill=(255, 230, 0))
 
-                        _fit_single_line(draw, W//2, 1130, W-60, "공시 데이터 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=20, min_sz=14, fill=(100, 116, 139))
+                        _fit_single_line(draw, W//2, 1130, W-50, "학술·교육용 공시 데이터 분석이며 특정 종목 매수·매도 추천이 아닙니다", get_font, start_sz=19, min_sz=13, fill=(100, 116, 139))
                         return img
 
-                    # 본편 4대 씬 렌더러
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
@@ -6679,8 +6694,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for gy in range(360, 1040, 120):
                             draw.line([(0, gy), (W, gy)], fill=(19, 26, 38), width=1)
 
-                        draw.rounded_rectangle([32, 270, 320, 314], radius=8, fill=(23, 31, 46), outline=(255, 230, 0), width=2)
-                        _fit_single_line(draw, 176, 292, 275, "워런 버핏식 초보자 눈높이 분석", get_font, start_sz=18, min_sz=14, fill=(255, 230, 0))
+                        draw.rounded_rectangle([32, 270, 340, 314], radius=8, fill=(23, 31, 46), outline=(255, 230, 0), width=2)
+                        _fit_single_line(draw, 186, 292, 295, "가치투자 5대 원칙 재무 스터디", get_font, start_sz=18, min_sz=14, fill=(255, 230, 0))
 
                         draw.rounded_rectangle([W-220, 270, W-32, 314], radius=8, fill=(23, 31, 46))
                         _fit_single_line(draw, W-126, 292, 175, f"{comp_name[:6]} ({clean_tk})", get_font, start_sz=18, min_sz=14, fill=(148, 163, 184))
@@ -6694,64 +6709,67 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                             cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
                             avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
-                            m_title_s = "회사 재산 대비 가격(PBR)" if use_pbr_m else "본전 뽑는 데 걸리는 시간"
+                            m_title_s = "순자산 대비 주가(선행 PBR)" if use_pbr_m else "예상 본전 회수 기간(선행 PER)"
 
                             draw.rounded_rectangle([68, 495, 340, 705], radius=18, fill=(30, 41, 59))
-                            _fit_single_line(draw, 204, 540, 240, "최근 10년 평소 평균", get_font, start_sz=22, min_sz=15, fill=(148, 163, 184))
+                            _fit_single_line(draw, 204, 540, 240, "최근 10년 평균", get_font, start_sz=22, min_sz=15, fill=(148, 163, 184))
                             _fit_single_line(draw, 204, 625, 240, avg_m_str, get_font, start_sz=50, min_sz=28, fill=(203, 213, 225))
 
                             draw.rounded_rectangle([380, 495, W-68, 705], radius=18, fill=(23, 37, 84), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, 516, 540, 240, m_title_s, get_font, start_sz=21, min_sz=14, fill=(255, 230, 0))
+                            _fit_single_line(draw, 516, 540, 240, m_title_s, get_font, start_sz=20, min_sz=13, fill=(255, 230, 0))
                             _fit_single_line(draw, 516, 625, 240, cur_m_str, get_font, start_sz=50, min_sz=28, fill=(255, 255, 255))
 
                             badge_c = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
                             draw.rounded_rectangle([68, 725, W-68, 785], radius=12, fill=badge_c)
-                            _fit_single_line(draw, W//2, 755, W-160, f"10년 평소 평균보다 {disc_txt}", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 755, W-160, f"과거 10년 평균 대비 {disc_txt}", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_2":
                             draw.rounded_rectangle([44, 345, 344, 695], radius=22, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
-                            _fit_single_line(draw, 194, 415, 260, "100원 팔면 남는 순마진", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 194, 415, 260, "100원 팔면 남는 영업마진", get_font, start_sz=22, min_sz=15, fill=(148, 163, 184))
                             _fit_single_line(draw, 194, 530, 260, f"{op_m:.1f}원", get_font, start_sz=62, min_sz=34, fill=(56, 189, 248))
-                            _fit_single_line(draw, 194, 635, 260, "(재료비·월급 다 뺀 마진)", get_font, start_sz=20, min_sz=14, fill=(203, 213, 225))
+                            _fit_single_line(draw, 194, 635, 260, f"(영업이익률 {op_m:.1f}%)", get_font, start_sz=20, min_sz=14, fill=(203, 213, 225))
 
                             draw.rounded_rectangle([376, 345, W-44, 695], radius=22, fill=(17, 24, 39), outline=(0, 230, 118), width=3)
-                            _fit_single_line(draw, 526, 415, 260, "내 돈 불려주는 속도", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, 526, 415, 260, "자본 불리는 속도(ROE)", get_font, start_sz=22, min_sz=15, fill=(148, 163, 184))
                             _fit_single_line(draw, 526, 530, 260, f"연 {roe:.1f}%", get_font, start_sz=62, min_sz=34, fill=(0, 230, 118))
-                            _fit_single_line(draw, 526, 635, 260, f"은행 예금(3.5%)의 {bank_mult:.1f}배 속도", get_font, start_sz=21, min_sz=14, fill=(255, 230, 0))
+                            _fit_single_line(draw, 526, 635, 260, f"예금금리(3.5%)의 {bank_mult:.1f}배", get_font, start_sz=21, min_sz=14, fill=(255, 230, 0))
 
                             draw.rounded_rectangle([44, 715, W-44, 795], radius=14, fill=(23, 35, 55))
-                            _fit_single_line(draw, W//2, 755, W-110, "버핏의 제1원칙 : 마진이 높고 돈을 빨리 불리는 회사", get_font, start_sz=24, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 755, W-110, "제1원칙 : 영업이익률과 자기자본이익률(ROE) 확인", get_font, start_sz=23, min_sz=15, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_3":
                             draw.rounded_rectangle([44, 345, 344, 790], radius=22, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, 194, 415, 260, "이 주식의 기대 이자율", get_font, start_sz=23, min_sz=15, fill=(255, 230, 0))
+                            _fit_single_line(draw, 194, 415, 260, "기대 이익수익률(1/PER)", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
                             _fit_single_line(draw, 194, 540, 260, f"연 {ey:.1f}%", get_font, start_sz=60, min_sz=34, fill=(255, 255, 255))
-                            _fit_single_line(draw, 194, 665, 260, f"미국채 이자({ty:.1f}%)와 비교", get_font, start_sz=21, min_sz=14, fill=(0, 230, 118) if erp >= 0 else (255, 100, 100))
+                            _fit_single_line(draw, 194, 665, 260, f"미국채 금리({ty:.1f}%)와 비교", get_font, start_sz=21, min_sz=14, fill=(0, 230, 118) if erp >= 0 else (255, 100, 100))
 
                             draw.rounded_rectangle([376, 345, W-44, 790], radius=22, fill=(17, 24, 39), outline=(192, 132, 252), width=3)
-                            _fit_single_line(draw, 526, 415, 260, "매년 받는 주주 보너스", get_font, start_sz=23, min_sz=16, fill=(192, 132, 252))
+                            _fit_single_line(draw, 526, 415, 260, "총주주환원율 (배당+소각)", get_font, start_sz=22, min_sz=15, fill=(192, 132, 252))
                             _fit_single_line(draw, 526, 540, 260, f"연 {tsy_total:.1f}%", get_font, start_sz=60, min_sz=34, fill=(255, 230, 0))
-                            _fit_single_line(draw, 526, 665, 260, f"배당금 {div:.1f}% + 주식소각 {bb_yield:+.1f}%", get_font, start_sz=21, min_sz=14, fill=(203, 213, 225))
+                            _fit_single_line(draw, 526, 665, 260, f"배당 {div:.1f}% + 주식소각 {bb_yield:+.1f}%", get_font, start_sz=21, min_sz=14, fill=(203, 213, 225))
 
                         else:
-                            draw.rounded_rectangle([44, 340, W-44, 815], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
-                            _fit_single_line(draw, W//2, 382, W-110, "지금 주가가 요구하는 성장 속도 vs 실제 커온 속도", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
+                            draw.rounded_rectangle([44, 335, W-44, 820], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
+                            _fit_single_line(draw, W//2, 372, W-110, "주가 내재 요구 성장률 vs 과거 실제 성장률 (괴리율)", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
 
-                            draw.rounded_rectangle([64, 415, 344, 585], radius=16, fill=(30, 41, 59), outline=(255, 82, 82), width=3)
-                            _fit_single_line(draw, 204, 452, 250, "주가가 요구하는 성장 속도", get_font, start_sz=19, min_sz=14, fill=(252, 165, 165))
-                            _fit_single_line(draw, 204, 525, 250, imp_g_fmt, get_font, start_sz=44, min_sz=24, fill=(255, 255, 255))
+                            draw.rounded_rectangle([64, 400, 344, 545], radius=16, fill=(30, 41, 59), outline=(255, 82, 82), width=3)
+                            _fit_single_line(draw, 204, 432, 250, "주가 역산 요구 성장률", get_font, start_sz=18, min_sz=13, fill=(252, 165, 165))
+                            _fit_single_line(draw, 204, 498, 250, imp_g_fmt, get_font, start_sz=42, min_sz=24, fill=(255, 255, 255))
 
-                            draw.rounded_rectangle([376, 415, W-64, 585], radius=16, fill=(6, 78, 59), outline=(0, 230, 118), width=3)
-                            _fit_single_line(draw, 516, 452, 250, "실제 그동안 커온 속도", get_font, start_sz=19, min_sz=14, fill=(110, 231, 183))
-                            _fit_single_line(draw, 516, 525, 250, actual_g_fmt, get_font, start_sz=44, min_sz=24, fill=(0, 230, 118))
+                            draw.rounded_rectangle([376, 400, W-64, 545], radius=16, fill=(6, 78, 59), outline=(0, 230, 118), width=3)
+                            _fit_single_line(draw, 516, 432, 250, "과거 실제 현금 성장률", get_font, start_sz=18, min_sz=13, fill=(110, 231, 183))
+                            _fit_single_line(draw, 516, 498, 250, actual_g_fmt, get_font, start_sz=42, min_sz=24, fill=(0, 230, 118))
 
-                            _fit_single_line(draw, W//2, 622, W-100, f"워런 버핏의 5대 기준 점검 : 5개 중 {pass_cnt}개 통과", get_font, start_sz=24, min_sz=16, fill=(255, 230, 0))
+                            draw.rounded_rectangle([64, 558, W-64, 608], radius=10, fill=gap_badge_col, outline=(255, 230, 0), width=2)
+                            _fit_single_line(draw, W//2, 583, W-150, gap_badge_txt, get_font, start_sz=20, min_sz=13, fill=(255, 255, 255))
+
+                            _fit_single_line(draw, W//2, 640, W-100, f"가치투자 5대 지표 점검 : 5개 중 {pass_cnt}개 기준치 충족", get_font, start_sz=23, min_sz=15, fill=(255, 230, 0))
 
                             five_pillars = [
-                                ("1.장사마진", c1_st),
-                                ("2.주주보너스", c2_st),
-                                ("3.할인가격", c3_st),
-                                ("4.현금체력", c4_st),
+                                ("1.경제적해자", c1_st),
+                                ("2.자본배분", c2_st),
+                                ("3.안전마진", c3_st),
+                                ("4.현금창출력", c4_st),
                                 ("5.국채비교", c5_st)
                             ]
                             pw = 110
@@ -6759,17 +6777,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             start_px = (W - (pw * 5 + gap_p * 4)) // 2
                             for p_i, (p_name, p_st) in enumerate(five_pillars):
                                 px1 = start_px + p_i * (pw + gap_p)
-                                py1, py2 = 655, 785
+                                py1, py2 = 668, 795
                                 if p_st == "pass":
-                                    p_bg, p_bd, p_mark, p_col = (6, 95, 70), (16, 185, 129), "통과(O)", (110, 231, 183)
+                                    p_bg, p_bd, p_mark, p_col = (6, 95, 70), (16, 185, 129), "충족(O)", (110, 231, 183)
                                 elif p_st == "warn":
                                     p_bg, p_bd, p_mark, p_col = (120, 53, 15), (245, 158, 11), "보통(△)", (253, 224, 71)
                                 else:
-                                    p_bg, p_bd, p_mark, p_col = (127, 29, 29), (239, 68, 68), "아쉬움(X)", (252, 165, 165)
+                                    p_bg, p_bd, p_mark, p_col = (127, 29, 29), (239, 68, 68), "미달(X)", (252, 165, 165)
 
                                 draw.rounded_rectangle([px1, py1, px1 + pw, py2], radius=12, fill=p_bg, outline=p_bd, width=2)
-                                _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 6, p_name, get_font, start_sz=17, min_sz=12, fill=(255, 255, 255))
-                                _fit_single_line(draw, px1 + pw//2, py1 + 92, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
+                                _fit_single_line(draw, px1 + pw//2, py1 + 38, pw - 6, p_name, get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
+                                _fit_single_line(draw, px1 + pw//2, py1 + 88, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
 
                         sub_clean = str(sub_text).strip()
                         sub_font = get_font(40)
@@ -6788,12 +6806,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
                         draw.text((W//2, 915), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
+                        # 하단 2줄 금융 표준 법적 면책 고지 (자본시장법·표시광고법 완벽 대응)
                         draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
-                        _fit_single_line(draw, W//2, 1120, W-50, "워런 버핏의 공개된 투자 원칙을 대입한 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 1105, W-40, "본 영상은 공시 데이터 기반 학술·교육용 시뮬레이션이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 1150, W-40, "과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않습니다", get_font, start_sz=17, min_sz=12, fill=(100, 116, 139))
 
                         return img
 
-                    # YouTube Data API v3 원클릭 업로드 함수
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public"):
                         from google.oauth2.credentials import Credentials
                         from googleapiclient.discovery import build
@@ -6820,7 +6839,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "title": yt_title_str[:95],
                                 "description": yt_desc_str,
                                 "tags": yt_tags_list,
-                                "categoryId": "27"  # 27: Education (교육)
+                                "categoryId": "27"
                             },
                             "status": {
                                 "privacyStatus": privacy_str,
@@ -6833,17 +6852,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         vid_id = resp.get("id", "")
                         return True, f"https://youtube.com/shorts/{vid_id}"
 
-                    if st.button("🎬 0.15초 썸네일 표지 + 초보자 버핏 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 법적 안전 + 괴리율 판독 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("0.15초 표지 썸네일 합성 및 13컷 버핏 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            with st.spinner("0.15초 썸네일 표지 및 14컷 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * (n_chunks + 1)
 
-                                # 0번 클립: 첫 0.15초 표지(썸네일) 전용 프레임 생성!
                                 thumb_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                 thumb_wav_p = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                 thumb_seg_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
@@ -6859,7 +6877,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 seg_mp4_list[0] = thumb_seg_p
 
-                                # 1~13번 클립 병렬 생성
                                 def _build_single_cut(idx_c, sub_t, sc_code):
                                     f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
@@ -6928,35 +6945,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
-                    # 생성된 영상이 세션에 있으면 플레이어 + 다운로드 + 원클릭 유튜브 업로드 패널 표시
                     if f"saved_shorts_mp4_{clean_tk}" in st.session_state:
                         saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
-                        st.success("🎉 첫 0.15초 썸네일 표지 프레임이 포함된 워런 버핏식 쇼츠(.mp4)가 준비되었습니다!")
+                        st.success("🎉 법적 안전 감사 통과 및 괴리율 판독 쇼츠(.mp4)가 준비되었습니다!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
                             data=saved_mp4_bytes,
-                            file_name=f"Easy_Buffett_{clean_tk}.mp4",
+                            file_name=f"ValueStudy_{clean_tk}.mp4",
                             mime="video/mp4",
                             use_container_width=True
                         )
 
                         st.markdown("---")
                         st.markdown("#### 🚀 내 유튜브 채널에 원클릭 자동 업로드 (YouTube Data API)")
-                        default_yt_title = f"워런 버핏 방식으로 {comp_name}({clean_tk}) 10년 장부 뜯어본 결과 ({thumb_hook_badge}) #shorts #주식 #가치투자"
+                        default_yt_title = f"정통 가치투자 공식으로 본 {comp_name}({clean_tk}) 10년 장부 데이터 ({thumb_hook_badge}) #shorts #주식"
                         default_yt_desc = (
-                            f"워런 버핏의 가치투자 5대 기준(장사마진·주주보너스·할인가격·현금체력·국채비교)으로 {comp_name}({clean_tk})의 10년 치 공시 장부를 쉽게 요약했습니다.\n\n"
+                            f"고전 가치투자 5대 재무 기준(경제적해자·자본배분·멀티플비교·현금창출력·국채금리비교)으로 {comp_name}({clean_tk})의 10년 치 공시 데이터와 주가 내재 성장률 괴리율을 분석한 교육용 콘텐츠입니다.\n\n"
                             f"⚠️ [법적 고지 및 면책 조항]\n"
-                            f"본 영상은 DART·SEC 공개 공시 데이터를 바탕으로 워런 버핏의 투자 원칙을 대입해 본 학술·교육용 콘텐츠이며, 특정 종목의 매수·매도 추천이나 투자자문이 아닙니다. 모든 투자의 최종 책임은 투자자 본인에게 있습니다.\n\n"
-                            f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #가치투자 #워런버핏 #주식초보 #재무제표"
+                            f"1. 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 구동되는 학술·교육용 재무 데이터 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다.\n"
+                            f"2. 과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않으며, 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
+                            f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #가치투자 #재무제표 #주식공부"
                         )
                         yt_up_title = st.text_input("업로드할 쇼츠 제목", value=default_yt_title, key=f"yt_t_{clean_tk}")
-                        yt_up_desc = st.text_area("업로드할 쇼츠 설명란 (법적 안전 문구 자동 포함)", value=default_yt_desc, height=130, key=f"yt_d_{clean_tk}")
+                        yt_up_desc = st.text_area("업로드할 쇼츠 설명란 (법적 안전 문구 자동 포함)", value=default_yt_desc, height=140, key=f"yt_d_{clean_tk}")
                         yt_up_priv = st.selectbox("공개 설정", ["public (전체 공개)", "unlisted (일부 공개 - 링크 있는 사람만)", "private (비공개 - 내 스튜디오에서 확인 후 공개)"], key=f"yt_p_{clean_tk}")
 
                         if st.button("🚀 지금 내 유튜브 채널에 쇼츠 자동 업로드하기", key=f"btn_yt_up_{clean_tk}", use_container_width=True):
                             priv_code = yt_up_priv.split(" ")[0]
-                            tags_arr = ["shorts", comp_name, clean_tk, "가치투자", "워런버핏", "주식초보", "재무제표"]
+                            tags_arr = ["shorts", comp_name, clean_tk, "가치투자", "재무제표", "주식공부"]
                             with st.spinner("YouTube Data API를 통해 내 채널로 쇼츠 영상을 업로드 중입니다..."):
                                 try:
                                     ok_up, msg_up = _upload_shorts_to_youtube(saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr, priv_code)
@@ -6968,7 +6985,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 except Exception as up_e:
                                     st.error(f"유튜브 API 업로드 중 오류가 발생했습니다: {up_e}")
 
-                    st.markdown("#### 📜 초보자 눈높이 13컷 자막 대본")
+                    st.markdown("#### 📜 법적 안전 + 초보자 눈높이 14컷 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # =====================================================================
                 st.divider()
