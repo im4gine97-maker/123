@@ -8725,74 +8725,46 @@ def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
     return pd.DataFrame(rows)
 
 with tab_heatmap:
-    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 동적 시가총액 히트맵 (글씨 확대 버전)", "🗺️ Finviz Style Dynamic Market Cap Heatmap"))
-    st.caption(t("글씨가 한눈에 크게 보이도록 박스 계층을 단순화하고 굵은 고대비 폰트를 적용했습니다. 특정 섹터 제목을 클릭하면 해당 섹터만 전체 화면으로 크게 확대됩니다!", "Click any sector header to zoom in full-screen."))
+    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 실시간 마켓 히트맵", "🗺️ Finviz Style Real-Time Market Heatmap"))
+    st.caption(t("박스의 크기는 각 기업의 시가총액 비중을 나타내며, 색상은 등락률(초록=상승, 빨강=하락)을 실시간으로 보여줍니다. 박스를 클릭하면 확대해서 볼 수 있습니다.", "Box size represents Market Cap; color represents % performance."))
 
-    hm_c1, hm_c2, hm_c3, hm_c4 = st.columns([1.3, 1.5, 1.1, 0.7])
+    hm_c1, hm_c2 = st.columns([1.5, 2.0])
     with hm_c1:
         hm_mkt = st.radio(
             "시장 선택",
-            ["🇺🇸 미국 시총 상위", "🇰🇷 한국 시총 상위"],
+            ["🇺🇸 미국 S&P 500 (Finviz 원본 스타일)", "🇰🇷 한국 대표주 (KOSPI·KOSDAQ)"],
             horizontal=True,
             key="hm_mkt_sel"
         )
     with hm_c2:
         hm_prd = st.radio(
-            "등락률 기간",
-            ["1D (일간)", "1W (1주)", "1M (1달)", "YTD (연초대비)"],
+            "등락률 기준 기간",
+            ["1D (일간 실시간)", "1W (최근 1주일)", "1M (최근 1개월)", "YTD (연초 대비)"],
             horizontal=True,
             key="hm_prd_sel"
         )
-    with hm_c3:
-        hm_cnt_mode = st.selectbox(
-            "표시 종목 수 (글씨 크기 조절)",
-            ["🔥 시총 TOP 30 (글씨 2배 크게 보기 - 추천)", "📊 시총 TOP 50 (중간 크기)", "🌐 전체 보기 (TOP 85)"],
-            key="hm_cnt_sel"
-        )
-    with hm_c4:
-        st.write("")
-        if st.button("🔄 새로고침", use_container_width=True, key="btn_refresh_hm"):
-            fetch_finviz_heatmap_data.clear()
-            st.rerun()
 
     mkt_code = "US" if "미국" in hm_mkt else "KR"
     prd_code = hm_prd.split(" ")[0]
-    unit_label = "십억 달러 ($B)" if mkt_code == "US" else "조 원"
-    max_items = 30 if "30" in hm_cnt_mode else (50 if "50" in hm_cnt_mode else 85)
 
-    with st.spinner("실시간 시가총액 순위와 등락률 데이터를 불러오는 중입니다..."):
-        df_hm_raw = fetch_finviz_heatmap_data(mkt_code, prd_code)
+    with st.spinner("실시간 섹터별 시가총액 및 등락률 히트맵을 렌더링 중입니다..."):
+        df_hm = fetch_finviz_heatmap_data(mkt_code, prd_code)
 
-        if not df_hm_raw.empty:
+        if not df_hm.empty:
             import plotly.express as px
-            # 시가총액 상위 N개만 필터링하여 박스 면적과 글씨 크기를 대폭 확대!
-            df_hm = df_hm_raw.sort_values(by="mcap", ascending=False).head(max_items).copy()
-
-            # 미국 주식도 한글 기업명과 티커, 등락률이 크고 선명하게 보이도록 라벨 구성
-            def _make_big_label(row):
-                s_sign = "+" if row["chg"] > 0 else ""
-                if mkt_code == "US":
-                    k_short = str(row["kor_name"])[:6]
-                    return f"<b>{row['ticker']}</b> ({k_short})<br><b>{s_sign}{row['chg']:.2f}%</b>"
-                else:
-                    return f"<b>{row['kor_name']}</b><br><b>{s_sign}{row['chg']:.2f}%</b>"
-
-            df_hm["big_label"] = df_hm.apply(_make_big_label, axis=1)
-
-            # 고대비 Finviz 컬러 스케일 (흰색 글씨가 가장 잘 보이는 톤)
+            # Finviz 시그니처 다크 레드 -> 다크 차콜 -> 브라이트 그린 컬러 스케일
             finviz_colorscale = [
-                [0.0, "#d32f2f"],
-                [0.25, "#881337"],
-                [0.5, "#1e293b"],
-                [0.75, "#065f46"],
-                [1.0, "#15803d"]
+                [0.0, "#b71c1c"],
+                [0.25, "#7f1d1d"],
+                [0.5, "#262931"],
+                [0.75, "#14532d"],
+                [1.0, "#16a34a"]
             ]
             c_range = 3.0 if prd_code == "1D" else (6.0 if prd_code == "1W" else (12.0 if prd_code == "1M" else 25.0))
 
-            # 중간 'industry' 단계를 제거하고 [섹터 -> 종목] 2단 구조로 만들어 글씨 크기 2배 확대!
             fig_hm = px.treemap(
                 df_hm,
-                path=["sector", "big_label"],
+                path=[px.Constant("S&P 500 MAP" if mkt_code == "US" else "KOREA MARKET MAP"), "sector", "industry", "label"],
                 values="mcap",
                 color="chg",
                 color_continuous_scale=finviz_colorscale,
@@ -8802,25 +8774,19 @@ with tab_heatmap:
             fig_hm.update_traces(
                 textinfo="label",
                 textposition="middle center",
-                textfont=dict(family="Pretendard, Malgun Gothic, Arial Black, sans-serif", size=22, color="#ffffff"),
-                marker=dict(line=dict(width=2.5, color="#090d16"), cornerradius=4),
-                pathbar=dict(visible=True, textfont=dict(size=18, color="#facc15")),
-                hovertemplate=f"<b>%{{customdata[0]}} (%{{customdata[1]}})</b><br>시가총액: %{{customdata[3]:,.1f}} {unit_label}<br>등락률: <b>%{{customdata[2]:+.2f}}%</b><extra></extra>"
+                textfont=dict(family="Pretendard, Arial Black, sans-serif", size=15, color="#ffffff"),
+                marker=dict(line=dict(width=1.5, color="#0b0e14"), cornerradius=2),
+                hovertemplate="<b>%{customdata[0]} (%{customdata[1]})</b><br>등락률: %{customdata[2]:+.2f}%<extra></extra>"
             )
             fig_hm.update_layout(
-                height=760,
-                margin=dict(t=35, l=6, r=6, b=10),
-                paper_bgcolor="#090d16",
-                plot_bgcolor="#090d16",
-                font=dict(family="Pretendard, Malgun Gothic, sans-serif", size=18, color="#ffffff"),
-                uniformtext=dict(minsize=14, mode="show"),
+                height=720,
+                margin=dict(t=10, l=4, r=4, b=10),
+                paper_bgcolor="#0b0e14",
+                plot_bgcolor="#0b0e14",
                 coloraxis_showscale=False
             )
             st.plotly_chart(fig_hm, use_container_width=True)
-
-            top5_df = df_hm.head(5)
-            top5_str = " · ".join([f"<span style='color:#facc15;'><b>{idx+1}위 {r['kor_name']}</b></span> ({r['mcap']:,.1f}{unit_label}, {r['chg']:+.2f}%)" for idx, (_, r) in enumerate(top5_df.iterrows())])
-            st.markdown(f"<div style='background:#111827; padding:12px; border-radius:10px; font-size:0.95rem; color:#f8fafc; text-align:center; border:1px solid #374151;'>🏆 <b>현재 시가총액 TOP 5:</b> {top5_str}</div>", unsafe_allow_html=True)
+            st.caption("출처: Finviz 섹터 분류 체계 및 Yahoo Finance 실시간 시세 연동")
 
 # ==========================================
 # [에러 수리 완료] S&P 500 업종 성과 데이터 수집 함수 + 탭 UI 통합본
