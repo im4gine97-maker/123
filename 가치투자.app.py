@@ -6672,7 +6672,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         draw.rounded_rectangle([54, 850, W-54, 1020], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=4)
                         _fit_single_line(draw, W//2, 905, W-140, "가치투자 5대 핵심 재무 기준 (버핏·멍거 서한 참고)", get_font, start_sz=26, min_sz=16, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 기준치 충족! (", get_font, start_sz=44, min_sz=24, fill=(255, 230, 0))
+                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 기준치 충족! ", get_font, start_sz=44, min_sz=24, fill=(255, 230, 0))
 
                         _fit_single_line(draw, W//2, 1130, W-50, "학술·교육용 공시 데이터 분석이며 특정 종목 매수·매도 추천이 아닙니다", get_font, start_sz=19, min_sz=13, fill=(100, 116, 139))
                         return img
