@@ -6358,12 +6358,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [초보자 눈높이 100% 일상어 + 워런 버핏 방식 + 트렌드 BGM] 6. 쇼츠 스튜디오
+                # [0.15초 표지 썸네일 + 초보자 눈높이 버핏 방식 + 유튜브 API 자동 업로드] 6. 쇼츠 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (초보자 눈높이 설명 + 워런 버핏 방식 + 트렌드 BGM)", "🎬 6. Beginner-Friendly Buffett Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 올인원 스튜디오 (0.15초 썸네일 표지 + 초보자 설명 + 유튜브 자동 업로드)", "🎬 6. All-in-One Buffett Shorts & Auto-Upload Studio"), expanded=False):
                     st.info(t(
-                        "💡 **주식을 전혀 모르는 시청자 눈높이 완성:** 어려운 영어 약어(PER·PBR·ROE·DCF)를 대본에서 완전히 없애고 **'동네 가게 통째로 인수하기', '100원 팔면 남는 돈', '은행 예금 이자와 비교'**처럼 초등학생도 이해하는 비유와 **워런 버핏의 5가지 기준 성적표**로 설명합니다.",
-                        "💡 Explains Warren Buffett's 5 criteria using everyday analogies without complex financial jargon."
+                        "💡 **올인원 자동화 완성:** ① **첫 0.15초에 클릭을 부르는 '표지(썸네일) 전용 프레임' 자동 삽입**, ② **주식을 전혀 모르는 사람도 이해하는 워런 버핏식 비유**, ③ **트렌드 BGM & 영문 발음 교정**, ④ **YouTube Data API 연동을 통한 원클릭 채널 업로드**가 모두 탑재되었습니다.",
+                        "💡 Includes 0.15s cover thumbnail frame, beginner-friendly Buffett analogies, BGM, and 1-click YouTube API upload."
                     ))
 
                     col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
@@ -6402,7 +6402,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     comp_name = primary_names.get(tk, i.get('shortName', tk))
                     clean_tk = tk.split('.')[0] if kr else tk
 
-                    # DCF 요구 성장률 vs 실제 과거 성장률 데이터
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
                     hist_fcf_g_pct = final_g * 100.0
@@ -6412,7 +6411,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     top_line1 = "워런 버핏의 가치투자 방식으로"
                     top_line2 = f"{comp_name} 10년 장부 뜯어본 결과"
 
-                    # 1. 주식을 모르는 사람도 단번에 이해하는 가격 설명 (한국·대만·홍콩·시클리컬·금융주 PBR 이유 포함)
+                    # 1. 주식을 모르는 사람도 단번에 이해하는 가격 설명
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
                     disc_txt = f"{abs(pmos_val):.0f}% 더 싸진 상태" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 더 비싸진 상태"
 
@@ -6420,6 +6419,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pbr_reason_tag = "금융회사는 가진 순재산(건물·현금) 대비 가격(PBR)으로 계산"
                         val_c1 = "금융회사는 버핏 방식으로 회사가 가진 순재산과 비교하는데"
                         val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
+                        thumb_hook_badge = f"재산 대비 {f_pbr:.2f}배! ({disc_txt})"
                     elif kr or is_china_tw or is_cyclical or f_pe <= 0:
                         if kr:
                             pbr_reason_tag = "한국 주식은 이익 변동이 커서 회사 순재산(PBR) 기준으로 계산"
@@ -6431,10 +6431,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             pbr_reason_tag = "경기민감 업종은 이익 변동이 커서 회사 순재산(PBR)으로 계산"
                             val_c1 = "경기민감 업종은 이익이 출렁여서 회사 순재산(PBR)으로 보는데"
                         val_c2 = f"현재 회사 재산의 {f_pbr:.2f}배 가격으로 10년 평균({a_pbr:.2f}배)보다"
+                        thumb_hook_badge = f"순재산의 {f_pbr:.2f}배! ({disc_txt})"
                     else:
                         pbr_reason_tag = "가게를 통째로 인수했을 때 순수익으로 본전 뽑는 기간(PER) 계산"
                         val_c1 = f"이 회사를 가게 통째로 인수하면 본전 뽑는 데 {f_pe:.1f}년 걸리는데"
                         val_c2 = f"평소 10년 평균 본전 회수 기간인 {a_pe:.1f}년과 비교해보면"
+                        thumb_hook_badge = f"본전 뽑는 데 {f_pe:.1f}년?! ({disc_txt})"
 
                     # 2. 초보자용 장사 마진 & 은행 예금 대비 돈 불리는 속도 설명
                     margin_won = max(1, int(round(op_m)))
@@ -6448,7 +6450,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         moat_c2 = f"100원어치 팔면 재료비·월급 다 빼고 {margin_won}원이 순수하게 남고"
                         moat_c3 = (f"돈 불리는 속도도 연 {roe:.1f}%라 은행 예금의 {bank_mult:.0f}배 속도임" if roe >= 7 else f"회사 자본을 굴려 연 {roe:.1f}%씩 돈을 불리고 있음")
 
-                    # 3. 초보자용 DCF 설명 (주가에 담긴 미래 기대치 vs 실제 커온 속도)
+                    # 3. 초보자용 DCF 설명
                     if not is_financial and implied_g_shorts is not None:
                         dcf_c1 = f"지금 주가가 거품이 아니려면 매년 돈을 {imp_g_pct:.1f}%씩 더 벌어야 하는데"
                         dcf_c2 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}% 수준이었고"
@@ -6456,24 +6458,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         dcf_c1 = f"이 회사가 실제로 그동안 커온 속도는 연 {hist_fcf_g_pct:.1f}%를 기록했고"
                         dcf_c2 = f"매년 연 {roe:.1f}% 속도로 회사 재산을 꾸준히 불려왔는데"
 
-                    # --- [주식을 전혀 몰라도 100% 이해되는 13컷 자막 리스트] ---
                     pop_chunks = [
-                        # SCENE 1: 현재 주가 & 가게 인수 시 본전 뽑는 시간 (4컷)
                         (f"현재 {comp_name} 1주 가격은 {p_str}인데", "SCENE_1"),
                         (val_c1, "SCENE_1"),
                         (val_c2, "SCENE_1"),
                         (f"평소보다 약 {disc_txt} 구간임", "SCENE_1"),
 
-                        # SCENE 2: 100원 팔면 남는 마진 & 은행 예금 대비 복리 속도 (3컷)
                         (moat_c1, "SCENE_2"),
                         (moat_c2, "SCENE_2"),
                         (moat_c3, "SCENE_2"),
 
-                        # SCENE 3: 안전한 미국 국채 이자 비교 & 주주 보너스 (2컷)
                         (f"안전한 미국 국채 이자({ty:.1f}%)와 비교하면 기대 수익률은 연 {ey:.1f}%이고", "SCENE_3"),
                         (f"가만히 들고만 있어도 배당과 주식소각으로 매년 {tsy_total:.1f}% 보너스를 줌", "SCENE_3"),
 
-                        # SCENE 4: 주가가 요구하는 성장 속도 vs 실제 성장 속도 & 버핏 5대 기준 (4컷)
                         (dcf_c1, "SCENE_4"),
                         (dcf_c2, "SCENE_4"),
                         ("버핏의 5대 기준인 장사마진·주주보너스·할인가격·현금체력·국채비교 중", "SCENE_4"),
@@ -6505,6 +6502,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for eng_k, kor_v in pron_map:
                             s = s.replace(eng_k, kor_v)
                         return s
+
+                    def _generate_silent_wav(out_wav_path, dur_sec=0.15):
+                        import wave
+                        sr = 24000
+                        n_s = int(sr * dur_sec)
+                        with wave.open(out_wav_path, 'wb') as wf:
+                            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
+                            wf.writeframes(b'\x00\x00' * n_s)
 
                     def _generate_trendy_bgm_wav(out_wav_path, duration_sec, bgm_style_str):
                         import wave, struct, math
@@ -6543,9 +6548,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             buf.extend(pack_h(int(val * 32767)))
 
                         with wave.open(out_wav_path, 'wb') as wf:
-                            wf.setnchannels(1)
-                            wf.setsampwidth(2)
-                            wf.setframerate(sr)
+                            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
                             wf.writeframes(buf)
 
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe):
@@ -6625,20 +6628,51 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # 초보자 눈높이 4대 씬 렌더러 (쉬운 한글 용어 + PBR 안내 + 버핏 5대 기준 성적표)
+                    # [신규 탑재!] 쇼츠 조회수를 좌우하는 '첫 0.15초 표지(썸네일) 전용 프레임' 렌더러
+                    def _draw_cover_thumbnail_frame(get_font):
+                        from PIL import Image, ImageDraw
+                        W, H = 720, 1280
+                        img = Image.new("RGB", (W, H), color=(8, 11, 18))
+                        draw = ImageDraw.Draw(img)
+
+                        # 강렬한 골드 네온 외곽 프레임
+                        draw.rounded_rectangle([16, 16, W-16, H-16], radius=32, outline=(255, 230, 0), width=8)
+
+                        # 상단 어텐션 배지
+                        draw.rounded_rectangle([60, 75, W-60, 155], radius=40, fill=(220, 38, 38))
+                        _fit_single_line(draw, W//2, 115, W-150, "워런 버핏의 10년 장부 해부", get_font, start_sz=36, min_sz=22, fill=(255, 255, 255))
+
+                        # 종목명 초대형 타이포그래피
+                        _fit_single_line(draw, W//2, 290, W-80, comp_name, get_font, start_sz=86, min_sz=42, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 395, W-100, f"현재 주가 {p_str}", get_font, start_sz=54, min_sz=30, fill=(56, 189, 248))
+
+                        # 중앙 시선 강탈 팩트 박스
+                        box_bg = (6, 95, 70) if pmos_val >= 0 else (153, 27, 27)
+                        draw.rounded_rectangle([44, 480, W-44, 790], radius=28, fill=box_bg, outline=(255, 230, 0), width=5)
+                        _fit_single_line(draw, W//2, 555, W-120, "통째로 인수하면 과연 남는 장사일까?", get_font, start_sz=32, min_sz=20, fill=(254, 240, 138))
+                        _fit_single_line(draw, W//2, 655, W-110, thumb_hook_badge, get_font, start_sz=52, min_sz=26, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 740, W-120, f"100원 팔면 {margin_won}원 남는 회사 | 연 {roe:.1f}% 복리", get_font, start_sz=28, min_sz=18, fill=(167, 243, 208))
+
+                        # 하단 5대 기준 통과 스탬프
+                        draw.rounded_rectangle([54, 850, W-54, 1020], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=4)
+                        _fit_single_line(draw, W//2, 905, W-140, "워런 버핏의 5대 가치투자 기준", get_font, start_sz=30, min_sz=20, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 970, W-140, f"5개 중 {pass_cnt}개 통과! (15초 요약)", get_font, start_sz=46, min_sz=26, fill=(255, 230, 0))
+
+                        _fit_single_line(draw, W//2, 1130, W-60, "공시 데이터 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=20, min_sz=14, fill=(100, 116, 139))
+                        return img
+
+                    # 본편 4대 씬 렌더러
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 2줄 블랙&옐로우 타이틀 + 진행 바
                         _fit_single_line(draw, W//2, 92, W-60, top_line1, get_font, start_sz=50, min_sz=26, fill=(255, 255, 255))
                         _fit_single_line(draw, W//2, 172, W-60, top_line2, get_font, start_sz=52, min_sz=26, fill=(255, 230, 0))
                         draw.rectangle([0, 236, W, 244], fill=(40, 40, 40))
                         draw.rectangle([0, 236, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 244], fill=(255, 230, 0))
 
-                        # 2. 중앙 다크 캔버스 (Y: 244 ~ 1040)
                         draw.rectangle([0, 244, W, 1040], fill=(11, 15, 23))
                         for gx in range(120, W, 120):
                             draw.line([(gx, 244), (gx, 1040)], fill=(19, 26, 38), width=1)
@@ -6652,7 +6686,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W-126, 292, 175, f"{comp_name[:6]} ({clean_tk})", get_font, start_sz=18, min_sz=14, fill=(148, 163, 184))
 
                         if scene_code == "SCENE_1":
-                            # 핵심 1: 현재 주가 + 쉬운 인수 비유 (본전 뽑는 시간 or 회사 재산 대비 가격)
                             draw.rounded_rectangle([44, 340, W-44, 810], radius=24, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
                             _fit_single_line(draw, W//2, 390, W-110, f"현재 1주 가격 : {p_str}", get_font, start_sz=40, min_sz=24, fill=(255, 255, 255))
 
@@ -6676,7 +6709,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 755, W-160, f"10년 평소 평균보다 {disc_txt}", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_2":
-                            # 핵심 2: 100원 팔면 남는 돈 & 은행 예금 대비 돈 불리는 속도
                             draw.rounded_rectangle([44, 345, 344, 695], radius=22, fill=(17, 24, 39), outline=(56, 189, 248), width=3)
                             _fit_single_line(draw, 194, 415, 260, "100원 팔면 남는 순마진", get_font, start_sz=23, min_sz=16, fill=(148, 163, 184))
                             _fit_single_line(draw, 194, 530, 260, f"{op_m:.1f}원", get_font, start_sz=62, min_sz=34, fill=(56, 189, 248))
@@ -6691,7 +6723,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 755, W-110, "버핏의 제1원칙 : 마진이 높고 돈을 빨리 불리는 회사", get_font, start_sz=24, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_3":
-                            # 핵심 3: 안전한 국채 이자와 비교 & 가만히 있어도 받는 주주 보너스
                             draw.rounded_rectangle([44, 345, 344, 790], radius=22, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
                             _fit_single_line(draw, 194, 415, 260, "이 주식의 기대 이자율", get_font, start_sz=23, min_sz=15, fill=(255, 230, 0))
                             _fit_single_line(draw, 194, 540, 260, f"연 {ey:.1f}%", get_font, start_sz=60, min_sz=34, fill=(255, 255, 255))
@@ -6703,7 +6734,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 526, 665, 260, f"배당금 {div:.1f}% + 주식소각 {bb_yield:+.1f}%", get_font, start_sz=21, min_sz=14, fill=(203, 213, 225))
 
                         else:
-                            # 핵심 4: 주가가 요구하는 성장 속도 vs 실제 성장 속도 + 버핏 5대 기준 성적표!
                             draw.rounded_rectangle([44, 340, W-44, 815], radius=24, fill=(17, 24, 39), outline=(255, 230, 0), width=3)
                             _fit_single_line(draw, W//2, 382, W-110, "지금 주가가 요구하는 성장 속도 vs 실제 커온 속도", get_font, start_sz=22, min_sz=15, fill=(255, 230, 0))
 
@@ -6741,7 +6771,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 6, p_name, get_font, start_sz=17, min_sz=12, fill=(255, 255, 255))
                                 _fit_single_line(draw, px1 + pw//2, py1 + 92, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
 
-                        # 3. 하단 1줄 가변폭 블랙 자막 박스 ('툭툭' 팝업)
                         sub_clean = str(sub_text).strip()
                         sub_font = get_font(40)
                         bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
@@ -6759,22 +6788,78 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
                         draw.text((W//2, 915), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
-                        # 4. 하단 블랙 레터박스 (법적 안전 1줄 고지)
                         draw.rectangle([0, 1040, W, 1046], fill=(255, 230, 0))
                         _fit_single_line(draw, W//2, 1120, W-50, "워런 버핏의 공개된 투자 원칙을 대입한 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
 
                         return img
 
-                    if st.button("🎬 초보자 눈높이 버핏 쇼츠(.mp4) 바로 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    # YouTube Data API v3 원클릭 업로드 함수
+                    def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public"):
+                        from google.oauth2.credentials import Credentials
+                        from googleapiclient.discovery import build
+                        from googleapiclient.http import MediaIoBaseUpload
+                        import io
+
+                        cid = st.secrets.get("YOUTUBE_CLIENT_ID", "")
+                        csec = st.secrets.get("YOUTUBE_CLIENT_SECRET", "")
+                        rtok = st.secrets.get("YOUTUBE_REFRESH_TOKEN", "")
+                        if not (cid and csec and rtok):
+                            return False, "스트림릿 Secrets에 YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN 3가지를 먼저 등록해 주세요."
+
+                        creds = Credentials(
+                            token=None,
+                            refresh_token=rtok,
+                            token_uri="https://oauth2.googleapis.com/token",
+                            client_id=cid,
+                            client_secret=csec,
+                            scopes=["https://www.googleapis.com/auth/youtube.upload"]
+                        )
+                        youtube = build("youtube", "v3", credentials=creds)
+                        body_dict = {
+                            "snippet": {
+                                "title": yt_title_str[:95],
+                                "description": yt_desc_str,
+                                "tags": yt_tags_list,
+                                "categoryId": "27"  # 27: Education (교육)
+                            },
+                            "status": {
+                                "privacyStatus": privacy_str,
+                                "selfDeclaredMadeForKids": False
+                            }
+                        }
+                        media_body = MediaIoBaseUpload(io.BytesIO(mp4_bytes_data), mimetype="video/mp4", chunksize=-1, resumable=True)
+                        req = youtube.videos().insert(part="snippet,status", body=body_dict, media_body=media_body)
+                        resp = req.execute()
+                        vid_id = resp.get("id", "")
+                        return True, f"https://youtube.com/shorts/{vid_id}"
+
+                    if st.button("🎬 0.15초 썸네일 표지 + 초보자 버핏 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("트렌드 BGM 합성 및 13컷 초보자 눈높이 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            with st.spinner("0.15초 표지 썸네일 합성 및 13컷 버핏 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
-                                seg_mp4_list = [None] * n_chunks
+                                seg_mp4_list = [None] * (n_chunks + 1)
 
+                                # 0번 클립: 첫 0.15초 표지(썸네일) 전용 프레임 생성!
+                                thumb_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                thumb_wav_p = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                                thumb_seg_p = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                cleanup_files.extend([thumb_img_p, thumb_wav_p, thumb_seg_p])
+
+                                _draw_cover_thumbnail_frame(get_font).save(thumb_img_p)
+                                _generate_silent_wav(thumb_wav_p, dur_sec=0.15)
+                                subprocess.run([
+                                    ffmpeg_exe, "-y", "-loop", "1", "-i", thumb_img_p, "-i", thumb_wav_p,
+                                    "-c:v", "libx264", "-tune", "stillimage", "-r", "30",
+                                    "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
+                                    "-shortest", thumb_seg_p
+                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                seg_mp4_list[0] = thumb_seg_p
+
+                                # 1~13번 클립 병렬 생성
                                 def _build_single_cut(idx_c, sub_t, sc_code):
                                     f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
@@ -6790,7 +6875,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
                                         "-shortest", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                    return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
+                                    return idx_c + 1, f_seg, [f_img, f_raw, f_wav, f_seg]
 
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = [ex.submit(_build_single_cut, i_c, st_c, sc_c) for i_c, (st_c, sc_c) in enumerate(pop_chunks)]
@@ -6833,22 +6918,55 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 else:
                                     out_mp4 = merged_no_bgm
 
-                                with open(out_mp4, "rb") as vf: mp4_b = vf.read()
-                                st.success("🎉 주식을 전혀 모르는 사람도 이해하는 워런 버핏식 쇼츠(.mp4)가 완성되었습니다!")
-                                st.video(mp4_b)
-                                st.download_button(
-                                    label="📥 완성형 쇼츠(.mp4) 다운로드",
-                                    data=mp4_b,
-                                    file_name=f"Easy_Buffett_{clean_tk}.mp4",
-                                    mime="video/mp4",
-                                    use_container_width=True
-                                )
+                                with open(out_mp4, "rb") as vf:
+                                    st.session_state[f"saved_shorts_mp4_{clean_tk}"] = vf.read()
+
                                 for p_rm in cleanup_files:
                                     if os.path.exists(p_rm):
                                         try: os.remove(p_rm)
                                         except Exception: pass
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
+
+                    # 생성된 영상이 세션에 있으면 플레이어 + 다운로드 + 원클릭 유튜브 업로드 패널 표시
+                    if f"saved_shorts_mp4_{clean_tk}" in st.session_state:
+                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
+                        st.success("🎉 첫 0.15초 썸네일 표지 프레임이 포함된 워런 버핏식 쇼츠(.mp4)가 준비되었습니다!")
+                        st.video(saved_mp4_bytes)
+                        st.download_button(
+                            label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
+                            data=saved_mp4_bytes,
+                            file_name=f"Easy_Buffett_{clean_tk}.mp4",
+                            mime="video/mp4",
+                            use_container_width=True
+                        )
+
+                        st.markdown("---")
+                        st.markdown("#### 🚀 내 유튜브 채널에 원클릭 자동 업로드 (YouTube Data API)")
+                        default_yt_title = f"워런 버핏 방식으로 {comp_name}({clean_tk}) 10년 장부 뜯어본 결과 ({thumb_hook_badge}) #shorts #주식 #가치투자"
+                        default_yt_desc = (
+                            f"워런 버핏의 가치투자 5대 기준(장사마진·주주보너스·할인가격·현금체력·국채비교)으로 {comp_name}({clean_tk})의 10년 치 공시 장부를 쉽게 요약했습니다.\n\n"
+                            f"⚠️ [법적 고지 및 면책 조항]\n"
+                            f"본 영상은 DART·SEC 공개 공시 데이터를 바탕으로 워런 버핏의 투자 원칙을 대입해 본 학술·교육용 콘텐츠이며, 특정 종목의 매수·매도 추천이나 투자자문이 아닙니다. 모든 투자의 최종 책임은 투자자 본인에게 있습니다.\n\n"
+                            f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #가치투자 #워런버핏 #주식초보 #재무제표"
+                        )
+                        yt_up_title = st.text_input("업로드할 쇼츠 제목", value=default_yt_title, key=f"yt_t_{clean_tk}")
+                        yt_up_desc = st.text_area("업로드할 쇼츠 설명란 (법적 안전 문구 자동 포함)", value=default_yt_desc, height=130, key=f"yt_d_{clean_tk}")
+                        yt_up_priv = st.selectbox("공개 설정", ["public (전체 공개)", "unlisted (일부 공개 - 링크 있는 사람만)", "private (비공개 - 내 스튜디오에서 확인 후 공개)"], key=f"yt_p_{clean_tk}")
+
+                        if st.button("🚀 지금 내 유튜브 채널에 쇼츠 자동 업로드하기", key=f"btn_yt_up_{clean_tk}", use_container_width=True):
+                            priv_code = yt_up_priv.split(" ")[0]
+                            tags_arr = ["shorts", comp_name, clean_tk, "가치투자", "워런버핏", "주식초보", "재무제표"]
+                            with st.spinner("YouTube Data API를 통해 내 채널로 쇼츠 영상을 업로드 중입니다..."):
+                                try:
+                                    ok_up, msg_up = _upload_shorts_to_youtube(saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr, priv_code)
+                                    if ok_up:
+                                        st.balloons()
+                                        st.success(f"✅ 유튜브 채널 업로드 성공! 바로가기 링크: {msg_up}")
+                                    else:
+                                        st.warning(msg_up)
+                                except Exception as up_e:
+                                    st.error(f"유튜브 API 업로드 중 오류가 발생했습니다: {up_e}")
 
                     st.markdown("#### 📜 초보자 눈높이 13컷 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
@@ -8607,51 +8725,74 @@ def fetch_finviz_heatmap_data(market_type="US", period_mode="1D"):
     return pd.DataFrame(rows)
 
 with tab_heatmap:
-    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 동적 시가총액 히트맵", "🗺️ Finviz Style Dynamic Market Cap Heatmap"))
-    st.caption(t("무료 공개 스캐너 API를 통해 호출 시점의 **시가총액 상위 종목과 실제 시가총액 크기(박스 면적)**가 자동으로 반영됩니다. 특정 기업의 시총이 커지거나 순위가 바뀌면 히트맵도 함께 변경됩니다.", "Automatically updates market cap rankings and box sizes via free public APIs."))
+    st.subheader(t("🗺️ 핀비즈(Finviz) 스타일 동적 시가총액 히트맵 (글씨 확대 버전)", "🗺️ Finviz Style Dynamic Market Cap Heatmap"))
+    st.caption(t("글씨가 한눈에 크게 보이도록 박스 계층을 단순화하고 굵은 고대비 폰트를 적용했습니다. 특정 섹터 제목을 클릭하면 해당 섹터만 전체 화면으로 크게 확대됩니다!", "Click any sector header to zoom in full-screen."))
 
-    hm_c1, hm_c2, hm_c3 = st.columns([1.4, 1.8, 0.8])
+    hm_c1, hm_c2, hm_c3, hm_c4 = st.columns([1.3, 1.5, 1.1, 0.7])
     with hm_c1:
         hm_mkt = st.radio(
             "시장 선택",
-            ["🇺🇸 미국 시총 상위 (S&P·나스닥)", "🇰🇷 한국 시총 상위 (코스피·코스닥)"],
+            ["🇺🇸 미국 시총 상위", "🇰🇷 한국 시총 상위"],
             horizontal=True,
             key="hm_mkt_sel"
         )
     with hm_c2:
         hm_prd = st.radio(
-            "등락률 기준 기간",
-            ["1D (일간)", "1W (1주일)", "1M (1개월)", "YTD (연초대비)"],
+            "등락률 기간",
+            ["1D (일간)", "1W (1주)", "1M (1달)", "YTD (연초대비)"],
             horizontal=True,
             key="hm_prd_sel"
         )
     with hm_c3:
+        hm_cnt_mode = st.selectbox(
+            "표시 종목 수 (글씨 크기 조절)",
+            ["🔥 시총 TOP 30 (글씨 2배 크게 보기 - 추천)", "📊 시총 TOP 50 (중간 크기)", "🌐 전체 보기 (TOP 85)"],
+            key="hm_cnt_sel"
+        )
+    with hm_c4:
         st.write("")
-        if st.button("🔄 시총·순위 새로고침", use_container_width=True, key="btn_refresh_hm"):
+        if st.button("🔄 새로고침", use_container_width=True, key="btn_refresh_hm"):
             fetch_finviz_heatmap_data.clear()
             st.rerun()
 
     mkt_code = "US" if "미국" in hm_mkt else "KR"
     prd_code = hm_prd.split(" ")[0]
     unit_label = "십억 달러 ($B)" if mkt_code == "US" else "조 원"
+    max_items = 30 if "30" in hm_cnt_mode else (50 if "50" in hm_cnt_mode else 85)
 
-    with st.spinner("무료 API에서 현재 시가총액 순위와 등락률 데이터를 불러오는 중입니다..."):
-        df_hm = fetch_finviz_heatmap_data(mkt_code, prd_code)
+    with st.spinner("실시간 시가총액 순위와 등락률 데이터를 불러오는 중입니다..."):
+        df_hm_raw = fetch_finviz_heatmap_data(mkt_code, prd_code)
 
-        if not df_hm.empty:
+        if not df_hm_raw.empty:
             import plotly.express as px
+            # 시가총액 상위 N개만 필터링하여 박스 면적과 글씨 크기를 대폭 확대!
+            df_hm = df_hm_raw.sort_values(by="mcap", ascending=False).head(max_items).copy()
+
+            # 미국 주식도 한글 기업명과 티커, 등락률이 크고 선명하게 보이도록 라벨 구성
+            def _make_big_label(row):
+                s_sign = "+" if row["chg"] > 0 else ""
+                if mkt_code == "US":
+                    k_short = str(row["kor_name"])[:6]
+                    return f"<b>{row['ticker']}</b> ({k_short})<br><b>{s_sign}{row['chg']:.2f}%</b>"
+                else:
+                    return f"<b>{row['kor_name']}</b><br><b>{s_sign}{row['chg']:.2f}%</b>"
+
+            df_hm["big_label"] = df_hm.apply(_make_big_label, axis=1)
+
+            # 고대비 Finviz 컬러 스케일 (흰색 글씨가 가장 잘 보이는 톤)
             finviz_colorscale = [
-                [0.0, "#b71c1c"],
-                [0.25, "#7f1d1d"],
-                [0.5, "#262931"],
-                [0.75, "#14532d"],
-                [1.0, "#16a34a"]
+                [0.0, "#d32f2f"],
+                [0.25, "#881337"],
+                [0.5, "#1e293b"],
+                [0.75, "#065f46"],
+                [1.0, "#15803d"]
             ]
             c_range = 3.0 if prd_code == "1D" else (6.0 if prd_code == "1W" else (12.0 if prd_code == "1M" else 25.0))
 
+            # 중간 'industry' 단계를 제거하고 [섹터 -> 종목] 2단 구조로 만들어 글씨 크기 2배 확대!
             fig_hm = px.treemap(
                 df_hm,
-                path=[px.Constant("US MARKET CAP MAP" if mkt_code == "US" else "KOREA MARKET CAP MAP"), "sector", "industry", "label"],
+                path=["sector", "big_label"],
                 values="mcap",
                 color="chg",
                 color_continuous_scale=finviz_colorscale,
@@ -8661,103 +8802,48 @@ with tab_heatmap:
             fig_hm.update_traces(
                 textinfo="label",
                 textposition="middle center",
-                textfont=dict(family="Pretendard, Arial Black, sans-serif", size=15, color="#ffffff"),
-                marker=dict(line=dict(width=1.5, color="#0b0e14"), cornerradius=2),
-                hovertemplate=f"<b>%{{customdata[0]}} (%{{customdata[1]}})</b><br>시가총액: %{{customdata[3]:,.1f}} {unit_label}<br>등락률: %{{customdata[2]:+.2f}}%<extra></extra>"
+                textfont=dict(family="Pretendard, Malgun Gothic, Arial Black, sans-serif", size=22, color="#ffffff"),
+                marker=dict(line=dict(width=2.5, color="#090d16"), cornerradius=4),
+                pathbar=dict(visible=True, textfont=dict(size=18, color="#facc15")),
+                hovertemplate=f"<b>%{{customdata[0]}} (%{{customdata[1]}})</b><br>시가총액: %{{customdata[3]:,.1f}} {unit_label}<br>등락률: <b>%{{customdata[2]:+.2f}}%</b><extra></extra>"
             )
             fig_hm.update_layout(
-                height=720,
-                margin=dict(t=10, l=4, r=4, b=10),
-                paper_bgcolor="#0b0e14",
-                plot_bgcolor="#0b0e14",
+                height=760,
+                margin=dict(t=35, l=6, r=6, b=10),
+                paper_bgcolor="#090d16",
+                plot_bgcolor="#090d16",
+                font=dict(family="Pretendard, Malgun Gothic, sans-serif", size=18, color="#ffffff"),
+                uniformtext=dict(minsize=14, mode="show"),
                 coloraxis_showscale=False
             )
             st.plotly_chart(fig_hm, use_container_width=True)
 
-            # 현재 시총 TOP 5 순위 요약 배지 표시 (시총 변동 확인용)
-            top5_df = df_hm.sort_values(by="mcap", ascending=False).head(5)
-            top5_str = " · ".join([f"<b>{idx+1}위 {r['kor_name']}</b> ({r['mcap']:,.1f}{unit_label})" for idx, (_, r) in enumerate(top5_df.iterrows())])
-            st.markdown(f"<div style='font-size:0.85rem; color:#8892b0; text-align:center;'>🏆 <b>현재 히트맵 반영 시가총액 TOP 5:</b> {top5_str}</div>", unsafe_allow_html=True)
+            top5_df = df_hm.head(5)
+            top5_str = " · ".join([f"<span style='color:#facc15;'><b>{idx+1}위 {r['kor_name']}</b></span> ({r['mcap']:,.1f}{unit_label}, {r['chg']:+.2f}%)" for idx, (_, r) in enumerate(top5_df.iterrows())])
+            st.markdown(f"<div style='background:#111827; padding:12px; border-radius:10px; font-size:0.95rem; color:#f8fafc; text-align:center; border:1px solid #374151;'>🏆 <b>현재 시가총액 TOP 5:</b> {top5_str}</div>", unsafe_allow_html=True)
 
-# ==========================================
-# [신규 탭 2] S&P 500 업종 성과 (1W · 기준일/1M · YTD)
-# ==========================================
-@st.cache_data(ttl=300, show_spinner=False)
-def fetch_sp500_sector_performance(ref_date_str):
-    # 첨부 사진 2번(미증시 현황 - S&P500 업종 성과)의 15개 항목 순서 100% 동일 매핑
-    sector_etfs = [
-        ("SP500", "SPY", "S&P 500 지수"),
-        ("Nasdaq", "QQQ", "나스닥 100"),
-        ("금융", "XLF", "금융 섹터"),
-        ("에너지", "XLE", "에너지 섹터"),
-        ("테크", "XLK", "기술(IT) 섹터"),
-        ("임의소비", "XLY", "임의소비재"),
-        ("필수소비", "XLP", "필수소비재"),
-        ("유틸리티", "XLU", "유틸리티(전력·가스)"),
-        ("산업재", "XLI", "산업재(기계·방산)"),
-        ("통신서비스", "XLC", "통신·미디어"),
-        ("소재", "XLB", "소재·화학"),
-        ("헬스케어", "XLV", "헬스케어·제약"),
-        ("부동산", "XLRE", "리츠·부동산"),
-        ("중소형주", "IWM", "러셀 2000 중소형주"),
-        ("SP500\nEQW", "RSP", "S&P 500 동일가중")
-    ]
-    tks = [x[1] for x in sector_etfs]
-    res_rows = []
-    curr_yr = datetime.now().year
-
-    try:
-        raw_s = yf.download(tks, period="1y", group_by="ticker", threads=True, progress=False)
-        for kor_lbl, tk_s, desc_s in sector_etfs:
-            try:
-                s_close = raw_s[tk_s]['Close'].dropna()
-                if len(s_close) >= 2:
-                    p_now = float(s_close.iloc[-1])
-                    # 1. 1W (최근 5거래일)
-                    p_1w = float(s_close.iloc[max(0, len(s_close) - 6)])
-                    ret_1w = ((p_now - p_1w) / p_1w) * 100.0 if p_1w > 0 else 0.0
-
-                    # 2. 지정 기준일(예: 09월 11일 또는 1개월 전) 이후 수익률
-                    sub_ref = s_close[s_close.index >= ref_date_str]
-                    p_ref = float(sub_ref.iloc[0]) if not sub_ref.empty else float(s_close.iloc[max(0, len(s_close) - 22)])
-                    ret_ref = ((p_now - p_ref) / p_ref) * 100.0 if p_ref > 0 else 0.0
-
-                    # 3. YTD (연초 대비 수익률)
-                    prev_y = s_close[s_close.index.year < curr_yr]
-                    curr_y = s_close[s_close.index.year == curr_yr]
-                    p_ytd = float(prev_y.iloc[-1]) if not prev_y.empty else float(curr_y.iloc[0])
-                    ret_ytd = ((p_now - p_ytd) / p_ytd) * 100.0 if p_ytd > 0 else 0.0
-                else:
-                    ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
-            except Exception:
-                ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
-
-            res_rows.append({
-                "업종": kor_lbl,
-                "업종_한줄": kor_lbl.replace("\n", " "),
-                "ETF": tk_s,
-                "설명": desc_s,
-                "1W": round(ret_1w, 2),
-                "REF": round(ret_ref, 2),
-                "YTD": round(ret_ytd, 2)
-            })
-    except Exception:
-        pass
-    return pd.DataFrame(res_rows)
 
 with tab_sector:
-    st.subheader(t("📊 미증시 현황 : S&P 500 업종별 성과 (1W · 기준일 · YTD)", "📊 S&P 500 Sector Performance"))
-    st.caption(t("S&P 500 11대 핵심 업종과 나스닥·중소형주·동일가중 지수의 주간(1W), 특정 기준일 이후(기본 1개월), 연초 대비(YTD) 수익률을 한눈에 비교합니다.", "Compare 1W, Reference Date, and YTD returns across all S&P 500 sectors."))
+    st.subheader(t("📊 미증시 현황 : S&P 500 업종별 성과 (고대비 큰 글씨 버전)", "📊 S&P 500 Sector Performance"))
+    st.caption(t("숫자와 업종명이 선명하게 보이도록 고대비 다크 테마와 굵은 폰트를 적용했습니다. 모바일이나 작은 화면에서는 '가로형 큰 글씨 차트'를 선택하시면 숫자가 훨씬 크게 보입니다.", "High-contrast dark chart with large bold labels."))
 
     from datetime import timedelta
     default_ref_dt = (datetime.now() - timedelta(days=30)).date()
-    sc_col1, sc_col2 = st.columns([1.3, 2.7])
+    sc_col1, sc_col2 = st.columns([1.3, 1.7])
     with sc_col1:
         user_ref_dt = st.date_input(
             "📅 초록색 막대 기준일 선택 (기본: 1개월 전)",
             value=default_ref_dt,
             key="sp500_sec_ref_dt"
         )
+    with sc_col2:
+        chart_dir_mode = st.radio(
+            "차트 보기 방식 (글씨 크기 최적화)",
+            ["📊 세로형 묶음 차트 (방송 화면 원본 스타일)", "📱 가로형 큰 글씨 차트 (모바일·한눈에 보기 추천)"],
+            horizontal=True,
+            key="sp500_chart_dir"
+        )
+
     ref_label_str = user_ref_dt.strftime("%m월 %d일")
     today_fmt_str = datetime.now().strftime("%Y.%m.%d")
 
@@ -8766,98 +8852,282 @@ with tab_sector:
 
         if not df_sec.empty:
             fig_sec = go.Figure()
+            is_horiz = ("가로형" in chart_dir_mode)
 
-            # 1. 빨간색 막대: 1W (주간 수익률)
-            fig_sec.add_trace(go.Bar(
-                x=df_sec["업종"],
-                y=df_sec["1W"],
-                name="1W",
-                marker_color="#e61919",
-                text=[f"{v:.2f}%" for v in df_sec["1W"]],
-                textposition="outside",
-                textfont=dict(size=11, color="#e61919", family="Pretendard, sans-serif")
-            ))
+            if not is_horiz:
+                # 1. 세로형 차트 (어두운 배경에 네온 컬러 + 굵고 큰 글씨로 가독성 극대화)
+                fig_sec.add_trace(go.Bar(
+                    x=df_sec["업종_한줄"],
+                    y=df_sec["1W"],
+                    name="1W (최근 1주)",
+                    marker_color="#ff4d4f",
+                    text=[f"<b>{v:+.1f}%</b>" for v in df_sec["1W"]],
+                    textposition="outside",
+                    cliponaxis=False,
+                    textfont=dict(size=13, color="#ff7875", family="Pretendard, Arial Black, sans-serif")
+                ))
+                fig_sec.add_trace(go.Bar(
+                    x=df_sec["업종_한줄"],
+                    y=df_sec["REF"],
+                    name=f"{ref_label_str} 이후",
+                    marker_color="#00e676",
+                    text=[f"<b>{v:+.1f}%</b>" for v in df_sec["REF"]],
+                    textposition="outside",
+                    cliponaxis=False,
+                    textfont=dict(size=13, color="#69f0ae", family="Pretendard, Arial Black, sans-serif")
+                ))
+                fig_sec.add_trace(go.Bar(
+                    x=df_sec["업종_한줄"],
+                    y=df_sec["YTD"],
+                    name="YTD (연초대비)",
+                    marker_color="#38bdf8",
+                    text=[f"<b>{v:+.1f}%</b>" for v in df_sec["YTD"]],
+                    textposition="outside",
+                    cliponaxis=False,
+                    textfont=dict(size=14, color="#facc15", family="Pretendard, Arial Black, sans-serif")
+                ))
 
-            # 2. 초록색 막대: 기준일(예: 09월 11일) 이후 수익률
-            fig_sec.add_trace(go.Bar(
-                x=df_sec["업종"],
-                y=df_sec["REF"],
-                name=ref_label_str,
-                marker_color="#1b7837",
-                text=[f"{v:.2f}%" for v in df_sec["REF"]],
-                textposition="outside",
-                textfont=dict(size=11, color="#1b7837", family="Pretendard, sans-serif")
-            ))
+                max_y = max(df_sec[["1W", "REF", "YTD"]].max().max(), 15.0) + 12.0
+                min_y = min(df_sec[["1W", "REF", "YTD"]].min().min(), -5.0) - 10.0
 
-            # 3. 파란색 막대: YTD (연초 대비 수익률)
-            fig_sec.add_trace(go.Bar(
-                x=df_sec["업종"],
-                y=df_sec["YTD"],
-                name="YTD",
-                marker_color="#0020cc",
-                text=[f"<b>{v:.2f}%</b>" for v in df_sec["YTD"]],
-                textposition="outside",
-                textfont=dict(size=11, color="#0020cc", family="Pretendard, sans-serif")
-            ))
+                fig_sec.update_layout(
+                    title=dict(
+                        text=f"<b>S&P 500 업종별 수익률 현황 (기준일: {today_fmt_str})</b>",
+                        font=dict(size=22, color="#ffffff"),
+                        x=0.02, y=0.96
+                    ),
+                    barmode="group",
+                    bargap=0.20,
+                    bargroupgap=0.06,
+                    height=640,
+                    paper_bgcolor="#0f172a",
+                    plot_bgcolor="#0f172a",
+                    font=dict(color="#ffffff", family="Pretendard, Malgun Gothic, sans-serif"),
+                    yaxis=dict(
+                        range=[min_y, max_y],
+                        ticksuffix="%",
+                        gridcolor="#334155",
+                        zeroline=True,
+                        zerolinecolor="#f8fafc",
+                        zerolinewidth=2,
+                        tickfont=dict(color="#e2e8f0", size=14)
+                    ),
+                    xaxis=dict(
+                        tickfont=dict(color="#facc15", size=15),
+                        tickangle=0,
+                        showgrid=False
+                    ),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top", y=0.96,
+                        xanchor="right", x=0.98,
+                        bgcolor="rgba(15, 23, 42, 0.9)",
+                        bordercolor="#475569",
+                        borderwidth=1,
+                        font=dict(size=15, color="#ffffff")
+                    ),
+                    margin=dict(l=55, r=30, t=75, b=60)
+                )
+            else:
+                # 2. 가로형 차트 (글씨가 절대 겹치지 않고 16pt 크기로 시원하게 보임)
+                df_rev = df_sec.iloc[::-1]
+                fig_sec.add_trace(go.Bar(
+                    y=df_rev["업종_한줄"], x=df_rev["1W"], orientation="h", name="1W (최근 1주)",
+                    marker_color="#ff4d4f", text=[f"<b>{v:+.2f}%</b>" for v in df_rev["1W"]],
+                    textposition="outside", cliponaxis=False, textfont=dict(size=14, color="#ff7875")
+                ))
+                fig_sec.add_trace(go.Bar(
+                    y=df_rev["업종_한줄"], x=df_rev["REF"], orientation="h", name=f"{ref_label_str} 이후",
+                    marker_color="#00e676", text=[f"<b>{v:+.2f}%</b>" for v in df_rev["REF"]],
+                    textposition="outside", cliponaxis=False, textfont=dict(size=14, color="#69f0ae")
+                ))
+                fig_sec.add_trace(go.Bar(
+                    y=df_rev["업종_한줄"], x=df_rev["YTD"], orientation="h", name="YTD (연초대비)",
+                    marker_color="#38bdf8", text=[f"<b>{v:+.2f}%</b>" for v in df_rev["YTD"]],
+                    textposition="outside", cliponaxis=False, textfont=dict(size=15, color="#facc15")
+                ))
+                max_x = max(df_sec[["1W", "REF", "YTD"]].max().max(), 15.0) + 12.0
+                min_x = min(df_sec[["1W", "REF", "YTD"]].min().min(), -5.0) - 10.0
+                fig_sec.update_layout(
+                    title=dict(text=f"<b>S&P 500 업종별 수익률 한눈에 보기 ({today_fmt_str})</b>", font=dict(size=22, color="#ffffff"), x=0.02, y=0.98),
+                    barmode="group", height=920, paper_bgcolor="#0f172a", plot_bgcolor="#0f172a",
+                    xaxis=dict(range=[min_x, max_x], ticksuffix="%", gridcolor="#334155", zeroline=True, zerolinecolor="#f8fafc", zerolinewidth=2, tickfont=dict(color="#e2e8f0", size=14)),
+                    yaxis=dict(tickfont=dict(color="#facc15", size=16)),
+                    legend=dict(orientation="h", yanchor="top", y=0.98, xanchor="right", x=0.98, font=dict(size=15, color="#ffffff")),
+                    margin=dict(l=110, r=60, t=70, b=40)
+                )
 
-            max_y = max(df_sec[["1W", "REF", "YTD"]].max().max(), 15.0) + 8.0
-            min_y = min(df_sec[["1W", "REF", "YTD"]].min().min(), -5.0) - 6.0
-
-            fig_sec.update_layout(
-                title=dict(
-                    text=f"<b>S&P500 업종 성과 (USD, {today_fmt_str})</b>",
-                    font=dict(size=18, color="#202124"),
-                    x=0.02, y=0.96
-                ),
-                barmode="group",
-                bargap=0.22,
-                bargroupgap=0.08,
-                height=560,
-                paper_bgcolor="#ffffff",
-                plot_bgcolor="#ffffff",
-                font=dict(color="#202124", family="Pretendard, Noto Sans KR, sans-serif"),
-                yaxis=dict(
-                    range=[min_y, max_y],
-                    ticksuffix="%",
-                    gridcolor="#e5e7eb",
-                    zeroline=True,
-                    zerolinecolor="#9ca3af",
-                    zerolinewidth=1.5,
-                    tickfont=dict(color="#4b5563", size=12)
-                ),
-                xaxis=dict(
-                    tickfont=dict(color="#111827", size=12, weight="bold"),
-                    showgrid=False
-                ),
-                legend=dict(
-                    orientation="h",
-                    yanchor="top", y=0.96,
-                    xanchor="right", x=0.98,
-                    bgcolor="rgba(255,255,255,0.8)",
-                    font=dict(size=13, color="#111827")
-                ),
-                margin=dict(l=50, r=30, t=65, b=50)
-            )
             st.plotly_chart(fig_sec, use_container_width=True)
 
-            # 하단 초보자용 업종 순환매 한 줄 해설 & 상세 수치 표
-            best_ytd_row = df_sec.loc[df_sec["YTD"].idxmax()]
-            worst_1w_row = df_sec.loc[df_sec["1W"].idxmin()]
-            st.info(
-                f"💡 **초보자 눈높이 업종 해설:** 올해 연초 대비(YTD, 파란 막대) 가장 돈이 많이 몰린 1등 업종은 **{best_ytd_row['업종_한줄']} ({best_ytd_row['YTD']:+.2f}%)**이며, "
-                f"최근 1주일(1W, 빨간 막대) 동안 가장 많이 조정을 받은 업종은 **{worst_1w_row['업종_한줄']} ({worst_1w_row['1W']:+.2f}%)**입니다. "
-                f"워런 버핏은 남들이 모두 몰려가 파란 막대가 지나치게 높아진 업종보다, 일시적 소외로 가격이 싸진 우량 업종에서 기회를 찾습니다."
-            )
+            # 눈이 편안한 큼직한 컬러 요약 카드 보드 추가
+            st.markdown("#### 📋 업종별 수익률 한눈에 보기 (글씨 확대 표)")
+            cards_sec_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; margin-bottom:20px;'>"
+            for _, r_s in df_sec.iterrows():
+                c_1w = "#ff4d4f" if r_s["1W"] < 0 else "#4ade80"
+                c_ref = "#ff4d4f" if r_s["REF"] < 0 else "#4ade80"
+                c_ytd = "#ff4d4f" if r_s["YTD"] < 0 else "#38bdf8"
+                cards_sec_html += (
+                    f"<div style='background:#1e293b; border:1.5px solid #334155; border-radius:12px; padding:12px; text-align:center;'>"
+                    f"<div style='font-size:1.1rem; font-weight:900; color:#facc15; margin-bottom:6px;'>{r_s['업종_한줄']} <span style='font-size:0.8rem; color:#94a3b8;'>({r_s['ETF']})</span></div>"
+                    f"<div style='font-size:0.9rem; color:#e2e8f0; margin:3px 0;'>1주(1W): <b style='color:{c_1w}; font-size:1.0rem;'>{r_s['1W']:+.2f}%</b></div>"
+                    f"<div style='font-size:0.9rem; color:#e2e8f0; margin:3px 0;'>{ref_label_str}: <b style='color:{c_ref}; font-size:1.0rem;'>{r_s['REF']:+.2f}%</b></div>"
+                    f"<div style='font-size:0.95rem; color:#e2e8f0; margin-top:4px; padding-top:4px; border-top:1px solid #334155;'>연초대비(YTD): <b style='color:{c_ytd}; font-size:1.1rem;'>{r_s['YTD']:+.2f}%</b></div>"
+                    f"</div>"
+                )
+            cards_sec_html += "</div>"
+            st.markdown(cards_sec_html, unsafe_allow_html=True)
+# ==========================================
+# [신규 도구] 🎨 유튜브 채널 프로필 로고(800x800) & 채널 표지 배너(2560x1440) 생성기
+# ==========================================
+st.divider()
+with st.expander("🎨 유튜브 채널 프로필 로고(800x800) & 상단 표지 배너(2560x1440) 원클릭 제작기", expanded=False):
+    st.info("💡 기본 보라색 프로필 아이콘 대신 유튜브 스튜디오에 바로 업로드할 수 있는 **정사각형 고화질 로고(800x800px)**와 **채널 상단 표지 배너(2560x1440px, 모바일·PC 안전 영역 완벽 맞춤)**를 즉석에서 생성해 드립니다.")
 
-            with st.expander("📋 S&P 500 15개 업종별 상세 수익률 표 보기"):
-                disp_sec_df = df_sec[["업종_한줄", "ETF", "설명", "1W", "REF", "YTD"]].rename(columns={
-                    "업종_한줄": "업종명",
-                    "ETF": "대표 ETF 티커",
-                    "1W": "1주일 (1W, %)",
-                    "REF": f"{ref_label_str} 이후 (%)",
-                    "YTD": "연초 대비 (YTD, %)"
-                })
-                st.dataframe(disp_sec_df, use_container_width=True, hide_index=True)
+    lg_c1, lg_c2, lg_c3 = st.columns([1.3, 1.3, 1.4])
+    with lg_c1:
+        ch_main_title = st.text_input("채널 로고 메인 문구 (줄바꿈은 / 입력)", value="버핏의/장부해부", key="logo_main_txt")
+        ch_sub_badge = st.text_input("로고 상단 포인트 배지", value="15초 팩트체크", key="logo_sub_txt")
+    with lg_c2:
+        ch_banner_title = st.text_input("채널 표지(배너) 메인 타이틀", value="워런 버핏의 시선으로 뜯어보는 10년 장부", key="banner_main_txt")
+        ch_banner_sub = st.text_input("채널 표지(배너) 서브 슬로건", value="주식을 종잇조각이 아니라, 가게 하나를 통째로 인수하는 것처럼 보라", key="banner_sub_txt")
+    with lg_c3:
+        logo_theme = st.selectbox(
+            "디자인 컬러 테마 선택",
+            [
+                "👑 테마 1: 월스트리트 네이비 & 로열 골드 (신뢰감 1위 추천)",
+                "⚡ 테마 2: 블룸버그 매트 블랙 & 네온 그린 (트렌디 퀀트 감성)",
+                "🔮 테마 3: 딥 바이올렛 & 골드 차트 (고급스러운 보라·골드 톤)"
+            ],
+            key="logo_theme_sel"
+        )
+
+    if st.button("🎨 내 유튜브 로고 & 채널 표지 이미지 생성하기", use_container_width=True, type="primary"):
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            import io, os, tempfile
+
+            # 나눔고딕 ExtraBold 폰트 로드
+            font_dir = tempfile.gettempdir()
+            bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+            if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
+                r = requests.get("https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf", timeout=8)
+                if r.status_code == 200:
+                    with open(bold_p, "wb") as f:
+                        f.write(r.content)
+
+            def _get_logo_font(sz):
+                for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                    if os.path.exists(c):
+                        try:
+                            return ImageFont.truetype(c, sz)
+                        except Exception:
+                            continue
+                return ImageFont.load_default()
+
+            if "테마 1" in logo_theme:
+                bg_c, ring_c, acc_c, bar_c = (10, 18, 38), (250, 204, 21), (250, 204, 21), (56, 189, 248)
+            elif "테마 2" in logo_theme:
+                bg_c, ring_c, acc_c, bar_c = (9, 13, 20), (0, 230, 118), (0, 230, 118), (56, 189, 248)
+            else:
+                bg_c, ring_c, acc_c, bar_c = (38, 16, 65), (250, 204, 21), (250, 204, 21), (192, 132, 252)
+
+            # ---------------------------------------------------------
+            # 1. 유튜브 프로필 로고 (800 x 800 px) 생성 (원형 크롭 안전 영역 준수)
+            # ---------------------------------------------------------
+            LW, LH = 800, 800
+            logo_img = Image.new("RGB", (LW, LH), color=bg_c)
+            ldraw = ImageDraw.Draw(logo_img)
+
+            # 유튜브 원형 프로필 테두리에 맞춘 2중 골드/네온 링
+            ldraw.ellipse([24, 24, LW-24, LH-24], fill=bg_c, outline=ring_c, width=16)
+            ldraw.ellipse([48, 48, LW-48, LH-48], outline=(255, 255, 255, 80), width=3)
+
+            # 배경 상승 차트 바 그래픽 (장부·가치투자 상징)
+            bars_x = [190, 275, 360, 445, 530]
+            bars_h = [110, 160, 135, 210, 280]
+            for bx, bh in zip(bars_x, bars_h):
+                by2 = 665
+                by1 = by2 - bh
+                ldraw.rounded_rectangle([bx, by1, bx + 52, by2], radius=10, fill=(25, 42, 75) if "테마 1" in logo_theme else (22, 35, 45), outline=bar_c, width=3)
+
+            # 상단 포인트 캡슐 배지
+            ldraw.rounded_rectangle([190, 130, LW-190, 205], radius=35, fill=acc_c)
+            ldraw.text((LW//2, 167), ch_sub_badge.strip(), font=_get_logo_font(38), fill=(10, 15, 25), anchor="mm")
+
+            # 중앙 초대형 채널명 타이포그래피 (1줄 또는 2줄 자동 대응)
+            parts = [p.strip() for p in ch_main_title.split("/") if p.strip()]
+            if len(parts) == 1:
+                ldraw.text((LW//2 + 4, 424), parts[0], font=_get_logo_font(125), fill=(0, 0, 0), anchor="mm")
+                ldraw.text((LW//2, 420), parts[0], font=_get_logo_font(125), fill=(255, 255, 255), anchor="mm")
+            else:
+                # 첫 줄(흰색), 둘째 줄(골드/네온)
+                ldraw.text((LW//2 + 4, 344), parts[0], font=_get_logo_font(112), fill=(0, 0, 0), anchor="mm")
+                ldraw.text((LW//2, 340), parts[0], font=_get_logo_font(112), fill=(255, 255, 255), anchor="mm")
+                ldraw.text((LW//2 + 4, 484), parts[1], font=_get_logo_font(116), fill=(0, 0, 0), anchor="mm")
+                ldraw.text((LW//2, 480), parts[1], font=_get_logo_font(116), fill=acc_c, anchor="mm")
+
+            # 하단 워런 버핏 가치투자 태그
+            ldraw.rounded_rectangle([220, 600, LW-220, 665], radius=16, fill=(15, 23, 42), outline=ring_c, width=3)
+            ldraw.text((LW//2, 632), "VALUE INVESTING", font=_get_logo_font(28), fill=ring_c, anchor="mm")
+
+            # ---------------------------------------------------------
+            # 2. 유튜브 채널 상단 표지 배너 (2560 x 1440 px) 생성
+            #    - 유튜브 모든 기기(모바일·PC·TV) 안전 영역: 중앙 1546 x 423 px 안에 모든 글씨 배치!
+            # ---------------------------------------------------------
+            BW, BH = 2560, 1440
+            ban_img = Image.new("RGB", (BW, BH), color=bg_c)
+            bdraw = ImageDraw.Draw(ban_img)
+
+            # 배경 그리드 라인
+            for gx in range(0, BW, 160):
+                bdraw.line([(gx, 0), (gx, BH)], fill=(20, 30, 52), width=2)
+            for gy in range(0, BH, 160):
+                bdraw.line([(0, gy), (BW, gy)], fill=(20, 30, 52), width=2)
+
+            # 중앙 안전 영역 박스 (X: 507 ~ 2053, Y: 508 ~ 931)
+            sx1, sy1, sx2, sy2 = 507, 508, 2053, 931
+            bdraw.rounded_rectangle([sx1, sy1, sx2, sy2], radius=36, fill=(14, 22, 42), outline=ring_c, width=6)
+
+            # 좌측 미니 엠블럼 포인트
+            bdraw.rounded_rectangle([sx1 + 50, sy1 + 55, sx1 + 310, sy1 + 125], radius=30, fill=acc_c)
+            bdraw.text((sx1 + 180, sy1 + 90), ch_sub_badge.strip(), font=_get_logo_font(34), fill=(10, 15, 25), anchor="mm")
+
+            # 배너 메인 타이틀 & 서브 슬로건
+            bdraw.text((BW//2, sy1 + 215), ch_banner_title.strip(), font=_get_logo_font(64), fill=(255, 255, 255), anchor="mm")
+            bdraw.text((BW//2, sy1 + 320), f"“ {ch_banner_sub.strip()} ”", font=_get_logo_font(36), fill=acc_c, anchor="mm")
+
+            # 버퍼 저장
+            buf_logo = io.BytesIO()
+            logo_img.save(buf_logo, format="PNG")
+            logo_bytes = buf_logo.getvalue()
+
+            buf_ban = io.BytesIO()
+            ban_img.save(buf_ban, format="PNG")
+            ban_bytes = buf_ban.getvalue()
+
+            res_c1, res_c2 = st.columns([1, 1.8])
+            with res_c1:
+                st.markdown("##### 👤 1. 채널 프로필 로고 (800x800)")
+                st.image(logo_bytes, width=260)
+                st.download_button(
+                    label="📥 프로필 로고(.png) 다운로드",
+                    data=logo_bytes,
+                    file_name="YouTube_Profile_Logo.png",
+                    mime="image/png",
+                    use_container_width=True
+                )
+            with res_c2:
+                st.markdown("##### 🖼️ 2. 채널 상단 표지 배너 (2560x1440 공식 규격)")
+                st.image(ban_bytes, use_container_width=True)
+                st.download_button(
+                    label="📥 채널 상단 표지 배너(.png) 다운로드",
+                    data=ban_bytes,
+                    file_name="YouTube_Channel_Banner_2560x1440.png",
+                    mime="image/png",
+                    use_container_width=True
+                )
+        except Exception as e:
+            st.error(f"로고 생성 중 오류 발생: {e}")
 # ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
 st.divider()
 lbl_disc_title = t('[법적 고지 및 면책 조항 / Legal Disclaimer]', '[Legal Disclaimer]')
