@@ -8823,6 +8823,68 @@ with tab_heatmap:
             st.markdown(f"<div style='background:#111827; padding:12px; border-radius:10px; font-size:0.95rem; color:#f8fafc; text-align:center; border:1px solid #374151;'>🏆 <b>현재 시가총액 TOP 5:</b> {top5_str}</div>", unsafe_allow_html=True)
 
 
+# ==========================================
+# [에러 수리 완료] S&P 500 업종 성과 데이터 수집 함수 + 탭 UI 통합본
+# ==========================================
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_sp500_sector_performance(ref_date_str):
+    sector_etfs = [
+        ("SP500", "SPY", "S&P 500 지수"),
+        ("Nasdaq", "QQQ", "나스닥 100"),
+        ("금융", "XLF", "금융 섹터"),
+        ("에너지", "XLE", "에너지 섹터"),
+        ("테크", "XLK", "기술(IT) 섹터"),
+        ("임의소비", "XLY", "임의소비재"),
+        ("필수소비", "XLP", "필수소비재"),
+        ("유틸리티", "XLU", "유틸리티(전력·가스)"),
+        ("산업재", "XLI", "산업재(기계·방산)"),
+        ("통신서비스", "XLC", "통신·미디어"),
+        ("소재", "XLB", "소재·화학"),
+        ("헬스케어", "XLV", "헬스케어·제약"),
+        ("부동산", "XLRE", "리츠·부동산"),
+        ("중소형주", "IWM", "러셀 2000 중소형주"),
+        ("SP500\nEQW", "RSP", "S&P 500 동일가중")
+    ]
+    tks = [x[1] for x in sector_etfs]
+    res_rows = []
+    curr_yr = datetime.now().year
+
+    try:
+        raw_s = yf.download(tks, period="1y", group_by="ticker", threads=True, progress=False)
+        for kor_lbl, tk_s, desc_s in sector_etfs:
+            try:
+                s_close = raw_s[tk_s]['Close'].dropna()
+                if len(s_close) >= 2:
+                    p_now = float(s_close.iloc[-1])
+                    p_1w = float(s_close.iloc[max(0, len(s_close) - 6)])
+                    ret_1w = ((p_now - p_1w) / p_1w) * 100.0 if p_1w > 0 else 0.0
+
+                    sub_ref = s_close[s_close.index >= ref_date_str]
+                    p_ref = float(sub_ref.iloc[0]) if not sub_ref.empty else float(s_close.iloc[max(0, len(s_close) - 22)])
+                    ret_ref = ((p_now - p_ref) / p_ref) * 100.0 if p_ref > 0 else 0.0
+
+                    prev_y = s_close[s_close.index.year < curr_yr]
+                    curr_y = s_close[s_close.index.year == curr_yr]
+                    p_ytd = float(prev_y.iloc[-1]) if not prev_y.empty else float(curr_y.iloc[0])
+                    ret_ytd = ((p_now - p_ytd) / p_ytd) * 100.0 if p_ytd > 0 else 0.0
+                else:
+                    ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
+            except Exception:
+                ret_1w, ret_ref, ret_ytd = 0.0, 0.0, 0.0
+
+            res_rows.append({
+                "업종": kor_lbl,
+                "업종_한줄": kor_lbl.replace("\n", " "),
+                "ETF": tk_s,
+                "설명": desc_s,
+                "1W": round(ret_1w, 2),
+                "REF": round(ret_ref, 2),
+                "YTD": round(ret_ytd, 2)
+            })
+    except Exception:
+        pass
+    return pd.DataFrame(res_rows)
+
 with tab_sector:
     st.subheader(t("📊 미증시 현황 : S&P 500 업종별 성과 (고대비 큰 글씨 버전)", "📊 S&P 500 Sector Performance"))
     st.caption(t("숫자와 업종명이 선명하게 보이도록 고대비 다크 테마와 굵은 폰트를 적용했습니다. 모바일이나 작은 화면에서는 '가로형 큰 글씨 차트'를 선택하시면 숫자가 훨씬 크게 보입니다.", "High-contrast dark chart with large bold labels."))
@@ -8855,7 +8917,6 @@ with tab_sector:
             is_horiz = ("가로형" in chart_dir_mode)
 
             if not is_horiz:
-                # 1. 세로형 차트 (어두운 배경에 네온 컬러 + 굵고 큰 글씨로 가독성 극대화)
                 fig_sec.add_trace(go.Bar(
                     x=df_sec["업종_한줄"],
                     y=df_sec["1W"],
@@ -8929,7 +8990,6 @@ with tab_sector:
                     margin=dict(l=55, r=30, t=75, b=60)
                 )
             else:
-                # 2. 가로형 차트 (글씨가 절대 겹치지 않고 16pt 크기로 시원하게 보임)
                 df_rev = df_sec.iloc[::-1]
                 fig_sec.add_trace(go.Bar(
                     y=df_rev["업종_한줄"], x=df_rev["1W"], orientation="h", name="1W (최근 1주)",
@@ -8959,7 +9019,6 @@ with tab_sector:
 
             st.plotly_chart(fig_sec, use_container_width=True)
 
-            # 눈이 편안한 큼직한 컬러 요약 카드 보드 추가
             st.markdown("#### 📋 업종별 수익률 한눈에 보기 (글씨 확대 표)")
             cards_sec_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:10px; margin-bottom:20px;'>"
             for _, r_s in df_sec.iterrows():
