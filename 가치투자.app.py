@@ -6459,12 +6459,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
 """
                     st.code(t(share_ko, share_en), language="text")
                 # =====================================================================
-                # [100% 단문 음슴체 + 충청도 청년 박창수 보이스 + 모던 매거진 UI] 6. 쇼츠 스튜디오
+                # [워런 버핏의 관점 + 초반 3초 하이라이트 후킹 + 프리미엄 썸네일] 6. 쇼츠 올인원 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 유튜브 쇼츠(Shorts) 스튜디오 (100% 음슴체 + 박창수 청년 보이스 + 프리미엄 썸네일)", "🎬 6. Modern Magazine Style Shorts Studio"), expanded=False):
+                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (워런 버핏의 관점 + 초반 3초 후킹 + 3대 플랫폼 업로드)", "🎬 6. Warren Buffett Perspective Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **업그레이드 완료:** ① `~인데/하는데`를 모두 없앤 **100% 깔끔한 단문 음슴체(`~임/~함/~집계됨`)**, ② **'충청도 청년 박창수' 스타일의 젊고 찰진 보이스 튜닝**, ③ **싼티 나지 않고 가독성 높은 '모던 매거진 & 토스 스타일' 카드 디자인**, ④ **법적 리스크 0% 객관적 수치 비교**가 적용되었습니다.",
-                        "💡 Features 100% concise noun-ending sentences, young energetic voice tuning, and high-contrast magazine UI."
+                        "💡 **업그레이드 핵심:** ① **'워런 버핏의 관점으로 보면 어떨까?' + 핵심 숫자를 첫 3초에 바로 던지는 두괄식 후킹**, ② `~인데`를 없앤 **100% 단문 음슴체**, ③ **충청도 청년 박창수 보이스**, ④ **싼티 안 나는 블랙&골드 매거진 썸네일 표지**, ⑤ **법적 리스크 0% 준수**가 모두 적용되었습니다.",
+                        "💡 Features 3-second highlight hook from Warren Buffett's perspective, concise script, and multi-platform upload."
                     ))
 
                     col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
@@ -6503,7 +6503,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     comp_name = primary_names.get(tk, i.get('shortName', tk))
                     clean_tk = tk.split('.')[0] if kr else tk
 
-                    # --- [DCF 요구 성장률 vs 실제 성장률 괴리율 연산] ---
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
                     hist_fcf_g_pct = final_g * 100.0
@@ -6513,19 +6512,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     growth_gap_pp = imp_g_pct - hist_fcf_g_pct
                     growth_mult = (imp_g_pct / hist_fcf_g_pct) if hist_fcf_g_pct > 0.5 else 0.0
 
-                    # 상단 2줄 고정 타이틀
-                    top_line1 = f"{comp_name} 10년 치 장부"
-                    top_line2 = "가치투자 공식으로 뜯어본 결과"
+                    # 상단 2줄 고정 타이틀 ('워런 버핏의 관점' 명시 - 법적 안전 학술/비평 프레이밍)
+                    top_line1 = "워런 버핏의 관점으로 뜯어본"
+                    top_line2 = f"{comp_name} 10년 장부 팩트체크"
 
-                    # 1. 가격 멀티플 비교 ('~인데' 완전 제거, 100% 단문 음슴체)
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
                     disc_txt = f"{abs(pmos_val):.0f}% 낮은 수치" if pmos_val >= 0 else f"{abs(pmos_val):.0f}% 높은 수치"
+                    margin_won = max(1, int(round(op_m)))
+                    bank_mult = max(1.0, roe / 3.5) if roe > 0 else 0
 
+                    # --- [초반 3초(컷1~컷2) 도파민 하이라이트 선배치 & PBR/PER 설명] ---
                     if is_financial:
                         pbr_reason_tag = "금융업 특성상 회사 순자산(PBR) 기준으로 계산함"
+                        hook_3sec_line = f"순자산의 {f_pbr:.2f}배 가격이고 연 {roe:.1f}%씩 자본을 불림"
                         val_c1 = "금융업종 특성상 회사 순자산 대비 주가(PBR)로 비교함"
                         val_c2 = f"현재 순자산의 {f_pbr:.2f}배, 10년 평균은 {a_pbr:.2f}배 수준임"
-                        thumb_hook_badge = f"순자산의 {f_pbr:.2f}배 (10년평균 대비 {disc_txt})"
+                        thumb_main_stat = f"순자산의 {f_pbr:.2f}배 · ROE {roe:.1f}%"
+                        thumb_sub_stat = f"10년 평균 대비 {disc_txt}"
                     elif kr or is_china_tw or is_cyclical or f_pe <= 0:
                         if kr:
                             pbr_reason_tag = "한국 증시는 이익 변동이 커서 순자산(PBR) 기준으로 계산함"
@@ -6536,17 +6539,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             pbr_reason_tag = "경기민감 업종은 이익 변동이 커서 순자산(PBR)으로 계산함"
                             val_c1 = "경기민감 업종은 이익이 출렁여서 순자산(PBR)으로 비교함"
+                        hook_3sec_line = f"100원 팔면 {margin_won}원 남고 순자산의 {f_pbr:.2f}배 가격임"
                         val_c2 = f"현재 순자산의 {f_pbr:.2f}배, 10년 평균은 {a_pbr:.2f}배 수준임"
-                        thumb_hook_badge = f"순자산의 {f_pbr:.2f}배 (10년평균 대비 {disc_txt})"
+                        thumb_main_stat = f"순자산의 {f_pbr:.2f}배 · 마진 {margin_won}%"
+                        thumb_sub_stat = f"10년 평균 대비 {disc_txt}"
                     else:
                         pbr_reason_tag = "예상 순이익 기준 투자금 회수 기간(선행 PER) 환산"
-                        val_c1 = f"예상 순이익 기준 본전 회수 기간(PER)은 {f_pe:.1f}년 걸림"
+                        hook_3sec_line = f"100원 팔면 {margin_won}원 남고 본전 회수에 {f_pe:.1f}년 걸림"
+                        val_c1 = f"현재 1주 가격은 {p_str}, 예상 본전 회수는 {f_pe:.1f}년임"
                         val_c2 = f"최근 10년 평균 회수 기간은 {a_pe:.1f}년 수준임"
-                        thumb_hook_badge = f"본전 회수 {f_pe:.1f}년 (10년평균 대비 {disc_txt})"
+                        thumb_main_stat = f"본전 회수 {f_pe:.1f}년 · 마진 {margin_won}%"
+                        thumb_sub_stat = f"10년 평균 대비 {disc_txt}"
 
-                    # 2. 영업 마진 & 자기자본이익률(ROE) (100% 음슴체)
-                    margin_won = max(1, int(round(op_m)))
-                    bank_mult = max(1.0, roe / 3.5) if roe > 0 else 0
                     if is_financial:
                         moat_c1 = "시중 예금 금리가 연 3.5% 수준일 때"
                         moat_c2 = f"이 회사는 자기자본을 연 {roe:.1f}%씩 복리로 불려줌"
@@ -6556,7 +6560,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         moat_c2 = f"내 돈을 불려주는 복리 속도(ROE)는 연 {roe:.1f}% 수준임"
                         moat_c3 = (f"시중 예금 금리의 약 {bank_mult:.0f}배 속도로 자본을 불림" if roe >= 7 else f"투하자본수익률(ROIC)은 연 {roic_val:.1f}% 기록함")
 
-                    # 3. DCF 요구 성장률 vs 실제 성장률 괴리율 (100% 음슴체)
                     if not is_financial and implied_g_shorts is not None:
                         dcf_c1 = f"현 주가를 역산하면 향후 10년간 매년 {imp_g_pct:.1f}%씩 커야 함"
                         dcf_c2 = f"실제 과거 현금흐름 성장 속도는 연 {hist_fcf_g_pct:.1f}% 수준임"
@@ -6580,25 +6583,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         gap_badge_txt = f"순자산(PBR) 10년 평균 대비 {disc_txt}"
                         gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
-                    # --- [연결어미 Zero! 100% 깔끔한 단문 음슴체 14컷 자막 리스트] ---
+                    # --- [초반 3초 결론 선배치 + 100% 단문 음슴체 14컷 자막 리스트] ---
                     pop_chunks = [
-                        (f"현재 {comp_name} 1주 가격 {p_str}임", "SCENE_1"),
-                        ("정통 가치투자 공식으로 10년 장부 뜯어봄", "SCENE_1"),
+                        # 초반 3초 후킹 (컷 1~2): 워런 버핏의 관점 질문 + 핵심 결론 숫자 즉시 투하!
+                        (f"워런 버핏의 관점으로 {comp_name} 장부를 보면 어떨까?", "SCENE_HOOK"),
+                        (hook_3sec_line, "SCENE_HOOK"),
+
+                        # 본론 1: 가격 멀티플 비교 (컷 3~5)
                         (val_c1, "SCENE_1"),
                         (val_c2, "SCENE_1"),
                         (f"과거 10년 평균 대비 약 {disc_txt}임", "SCENE_1"),
 
+                        # 본론 2: 경제적 해자 & 복리 속도 (컷 6~8)
                         (moat_c1, "SCENE_2"),
                         (moat_c2, "SCENE_2"),
                         (moat_c3, "SCENE_2"),
 
+                        # 본론 3: 국채 금리 비교 & 주주환원 (컷 9~10)
                         (f"미국 10년 국채 금리({ty:.1f}%) 대비 기대 이익수익률은 연 {ey:.1f}%임", "SCENE_3"),
                         (f"배당과 주식 소각을 합친 주주환원율은 연 {tsy_total:.1f}% 수준임", "SCENE_3"),
 
+                        # 본론 4: DCF 괴리율 & 버핏 5대 기준 결론 (컷 11~14)
                         (dcf_c1, "SCENE_4"),
                         (dcf_c2, "SCENE_4"),
                         (dcf_c3, "SCENE_4"),
-                        (f"5대 기준(해자·환원·할인·현금·국채비교) 중 총 {pass_cnt}개 충족함", "SCENE_4")
+                        (f"버핏의 5대 기준(해자·환원·할인·현금·국채) 중 총 {pass_cnt}개 충족함", "SCENE_4")
                     ]
 
                     def _fix_tts_pronunciation(text_s):
@@ -6675,11 +6684,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
                             wf.writeframes(buf)
 
-                    # '충청도 청년 박창수' 전용 젊고 찰진 보이스 튜닝 엔진
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe):
                         tts_ready_text = _fix_tts_pronunciation(text_line)
                         if "박창수" in voice_choice:
-                            # 아재 느낌 없이 젊고 에너제틱한 청년 톤 (+2Hz 피치 + 중고음 선명도 부스트)
                             voice_id, pitch_str = "ko-KR-InJoonNeural", "+2Hz"
                             eq_str = "equalizer=f=2200:width_type=h:width=1000:g=4,equalizer=f=350:width_type=h:width=200:g=2"
                             pad_t = "0.03"
@@ -6762,65 +6769,77 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # [프리미엄 매거진 스타일 0.15초 썸네일 표지] (싼티 Zero, 클릭률 극대화)
+                    # [싼티 Zero + 클릭률 극대화] 포브스·블룸버그 비즈니스위크 스타일 0.15초 썸네일 표지
                     def _draw_cover_thumbnail_frame(get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        img = Image.new("RGB", (W, H), color=(12, 14, 20))
+                        img = Image.new("RGB", (W, H), color=(9, 11, 16))
                         draw = ImageDraw.Draw(img)
 
-                        # 세련된 샴페인 골드 & 토스 블루 포인트 카드
-                        draw.rounded_rectangle([28, 36, W-28, H-36], radius=36, fill=(18, 22, 32), outline=(250, 204, 21), width=4)
+                        # 고급스러운 샴페인 골드 외곽 라인
+                        draw.rounded_rectangle([24, 28, W-24, H-28], radius=36, fill=(14, 18, 26), outline=(250, 204, 21), width=5)
 
-                        # 상단 골드 캡슐 태그
-                        draw.rounded_rectangle([160, 95, W-160, 160], radius=32, fill=(250, 204, 21))
-                        _fit_single_line(draw, W//2, 127, 360, "10Y FINANCIAL REPORT", get_font, start_sz=26, min_sz=18, fill=(12, 14, 20))
+                        # 상단 골드 포인트 태그 ('워런 버핏의 관점')
+                        draw.rounded_rectangle([110, 82, W-110, 152], radius=35, fill=(250, 204, 21))
+                        _fit_single_line(draw, W//2, 117, W-250, "워런 버핏의 관점으로 본 10년 장부", get_font, start_sz=29, min_sz=18, fill=(9, 11, 16))
 
-                        # 기업명 초대형 타이포그래피 & 현재 주가
-                        _fit_single_line(draw, W//2, 275, W-100, comp_name, get_font, start_sz=88, min_sz=44, fill=(255, 255, 255))
-                        _fit_single_line(draw, W//2, 385, W-120, p_str, get_font, start_sz=62, min_sz=36, fill=(56, 189, 248))
+                        # 중앙 초대형 기업명 & 현재가
+                        _fit_single_line(draw, W//2, 265, W-90, comp_name, get_font, start_sz=92, min_sz=44, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 375, W-110, f"현재 주가 {p_str}", get_font, start_sz=52, min_sz=30, fill=(56, 189, 248))
 
-                        # 중앙 하이콘트라스트 핵심 팩트 카드
-                        draw.rounded_rectangle([56, 465, W-56, 785], radius=28, fill=(26, 32, 46), outline=(56, 189, 248), width=3)
-                        _fit_single_line(draw, W//2, 535, W-150, "워런 버핏의 가치투자 공식 대입", get_font, start_sz=30, min_sz=20, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 635, W-140, thumb_hook_badge, get_font, start_sz=46, min_sz=24, fill=(250, 204, 21))
+                        # 메인 하이라이트 다크 카드 (시선 집중 구간)
+                        accent_bd = (16, 185, 129) if pmos_val >= 0 else (244, 63, 94)
+                        draw.rounded_rectangle([48, 445, W-48, 800], radius=28, fill=(22, 29, 43), outline=accent_bd, width=4)
+                        _fit_single_line(draw, W//2, 515, W-130, "10년 공시 재무 데이터 핵심 요약", get_font, start_sz=28, min_sz=18, fill=(148, 163, 184))
+                        _fit_single_line(draw, W//2, 610, W-120, thumb_main_stat, get_font, start_sz=54, min_sz=26, fill=(250, 204, 21))
 
-                        # 2단 미니 스펙 필(Pill)
-                        draw.rounded_rectangle([85, 700, 345, 755], radius=14, fill=(16, 185, 129))
-                        _fit_single_line(draw, 215, 727, 240, f"마진율 {op_m:.1f}%", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
-                        draw.rounded_rectangle([375, 700, W-85, 755], radius=14, fill=(59, 130, 246))
-                        _fit_single_line(draw, 505, 727, 240, f"ROE 연 {roe:.1f}%", get_font, start_sz=25, min_sz=16, fill=(255, 255, 255))
+                        pill_bg = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                        draw.rounded_rectangle([80, 685, W-80, 760], radius=16, fill=pill_bg)
+                        _fit_single_line(draw, W//2, 722, W-190, thumb_sub_stat, get_font, start_sz=32, min_sz=18, fill=(255, 255, 255))
 
-                        # 하단 5대 기준 통과 요약 보드
-                        draw.rounded_rectangle([56, 830, W-56, 1020], radius=28, fill=(12, 14, 20), outline=(250, 204, 21), width=3)
-                        _fit_single_line(draw, W//2, 885, W-150, "가치투자 5대 핵심 기준 점검", get_font, start_sz=28, min_sz=18, fill=(203, 213, 225))
-                        _fit_single_line(draw, W//2, 958, W-150, f"5개 중 {pass_cnt}개 기준 충족", get_font, start_sz=52, min_sz=28, fill=(250, 204, 21))
+                        # 하단 5대 기준 통과 스코어 보드
+                        draw.rounded_rectangle([48, 840, W-48, 1030], radius=28, fill=(11, 14, 22), outline=(250, 204, 21), width=3)
+                        _fit_single_line(draw, W//2, 895, W-140, "버핏식 5대 가치투자 기준 점검", get_font, start_sz=28, min_sz=18, fill=(203, 213, 225))
+                        _fit_single_line(draw, W//2, 968, W-140, f"5개 중 {pass_cnt}개 기준 충족", get_font, start_sz=52, min_sz=28, fill=(250, 204, 21))
 
-                        _fit_single_line(draw, W//2, 1140, W-80, "공시 데이터 교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=19, min_sz=13, fill=(100, 116, 139))
+                        _fit_single_line(draw, W//2, 1140, W-70, "공시 데이터 기반 학술·교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(100, 116, 139))
                         return img
 
-                    # [본편 모던 매거진 & 토스 스타일 카드뉴스 렌더러] (격자무늬 삭제, 깔끔한 벤토 카드)
+                    # 본편 5대 씬 렌더러 (SCENE_HOOK 포함)
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(9, 11, 16))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 모던 헤더 + 진행 바
                         _fit_single_line(draw, W//2, 88, W-60, top_line1, get_font, start_sz=48, min_sz=26, fill=(255, 255, 255))
                         _fit_single_line(draw, W//2, 165, W-60, top_line2, get_font, start_sz=50, min_sz=26, fill=(250, 204, 21))
                         draw.rounded_rectangle([40, 222, W-40, 232], radius=5, fill=(30, 41, 59))
                         draw.rounded_rectangle([40, 222, 40 + int((W-80) * ((chunk_idx + 1) / max(1, total_chunks))), 232], radius=5, fill=(250, 204, 21))
 
-                        # 2. 메인 벤토(Bento) 카드 컨테이너 (Y: 255 ~ 830)
                         draw.rounded_rectangle([32, 255, W-32, 830], radius=32, fill=(18, 23, 35), outline=(45, 55, 72), width=2)
 
-                        # 카드 상단 미니 캡슐 태그
-                        draw.rounded_rectangle([56, 282, 315, 326], radius=22, fill=(30, 41, 59))
-                        _fit_single_line(draw, 185, 304, 240, "워런 버핏식 5대 원칙", get_font, start_sz=19, min_sz=14, fill=(250, 204, 21))
+                        draw.rounded_rectangle([56, 282, 330, 326], radius=22, fill=(30, 41, 59))
+                        _fit_single_line(draw, 193, 304, 255, "워런 버핏의 관점 · 5대 기준", get_font, start_sz=18, min_sz=13, fill=(250, 204, 21))
                         _fit_single_line(draw, W-135, 304, 160, f"{comp_name[:6]} ({clean_tk})", get_font, start_sz=20, min_sz=14, fill=(148, 163, 184))
 
-                        if scene_code == "SCENE_1":
+                        if scene_code == "SCENE_HOOK":
+                            # 초반 3초 전용 임팩트 대시보드 (핵심 숫자 3개를 한눈에 크게 타격!)
+                            _fit_single_line(draw, W//2, 385, W-100, f"{comp_name} ({p_str})", get_font, start_sz=48, min_sz=28, fill=(255, 255, 255))
+
+                            draw.rounded_rectangle([56, 440, W-56, 610], radius=22, fill=(26, 35, 54), outline=(250, 204, 21), width=4)
+                            _fit_single_line(draw, W//2, 485, W-140, "워런 버핏의 관점 핵심 팩트", get_font, start_sz=24, min_sz=16, fill=(148, 163, 184))
+                            _fit_single_line(draw, W//2, 555, W-130, thumb_main_stat, get_font, start_sz=48, min_sz=26, fill=(250, 204, 21))
+
+                            draw.rounded_rectangle([56, 635, 344, 795], radius=20, fill=(28, 36, 52), outline=(16, 185, 129), width=2)
+                            _fit_single_line(draw, 200, 680, 250, "자본 복리 속도(ROE)", get_font, start_sz=21, min_sz=14, fill=(148, 163, 184))
+                            _fit_single_line(draw, 200, 745, 250, f"연 {roe:.1f}%", get_font, start_sz=44, min_sz=24, fill=(16, 185, 129))
+
+                            draw.rounded_rectangle([376, 635, W-56, 795], radius=20, fill=(28, 36, 52), outline=(56, 189, 248), width=2)
+                            _fit_single_line(draw, 520, 680, 250, "버핏 5대 기준", get_font, start_sz=21, min_sz=14, fill=(148, 163, 184))
+                            _fit_single_line(draw, 520, 745, 250, f"{pass_cnt}/5 충족", get_font, start_sz=44, min_sz=24, fill=(56, 189, 248))
+
+                        elif scene_code == "SCENE_1":
                             _fit_single_line(draw, W//2, 380, W-110, f"현재 1주 가격  {p_str}", get_font, start_sz=44, min_sz=26, fill=(255, 255, 255))
 
                             draw.rounded_rectangle([56, 425, W-56, 472], radius=12, fill=(29, 78, 216))
@@ -6854,7 +6873,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 520, 640, 250, f"예금금리(3.5%)의 {bank_mult:.1f}배", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
 
                             draw.rounded_rectangle([56, 725, W-56, 795], radius=16, fill=(30, 41, 59))
-                            _fit_single_line(draw, W//2, 760, W-140, "핵심 1 : 높은 영업마진과 자본 복리 엔진", get_font, start_sz=26, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 760, W-140, "버핏의 제1원칙 : 높은 마진과 자본 복리 엔진", get_font, start_sz=26, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_3":
                             draw.rounded_rectangle([56, 355, 344, 795], radius=24, fill=(28, 36, 52), outline=(250, 204, 21), width=3)
@@ -6881,7 +6900,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([56, 560, W-56, 612], radius=12, fill=gap_badge_col)
                             _fit_single_line(draw, W//2, 586, W-140, gap_badge_txt, get_font, start_sz=21, min_sz=13, fill=(255, 255, 255))
 
-                            _fit_single_line(draw, W//2, 645, W-100, f"가치투자 5대 기준 점검 : 5개 중 {pass_cnt}개 충족", get_font, start_sz=24, min_sz=15, fill=(250, 204, 21))
+                            _fit_single_line(draw, W//2, 645, W-100, f"버핏의 5대 기준 점검 : 5개 중 {pass_cnt}개 충족", get_font, start_sz=24, min_sz=15, fill=(250, 204, 21))
 
                             five_pillars = [
                                 ("1.경제적해자", c1_st),
@@ -6907,7 +6926,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 6, p_name, get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
                                 _fit_single_line(draw, px1 + pw//2, py1 + 90, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
 
-                        # 3. 하단 1줄 팝업 자막 박스 (라운드 캡슐 + 노란색 보더 포인트)
                         sub_clean = str(sub_text).strip()
                         sub_font = get_font(40)
                         bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
@@ -6925,7 +6943,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rounded_rectangle([bx1, by1, bx2, by2], radius=18, fill=(0, 0, 0), outline=(250, 204, 21), width=3)
                         draw.text((W//2, 925), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
 
-                        # 4. 하단 법적 면책 고지
                         _fit_single_line(draw, W//2, 1105, W-40, "본 영상은 공시 데이터 기반 학술·교육용 시뮬레이션이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
                         _fit_single_line(draw, W//2, 1145, W-40, "과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않습니다", get_font, start_sz=17, min_sz=12, fill=(100, 116, 139))
 
@@ -6970,10 +6987,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         vid_id = resp.get("id", "")
                         return True, f"https://youtube.com/shorts/{vid_id}"
 
-                    if st.button("🎬 100% 음슴체 + 박창수 청년 보이스 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 워런 버핏의 관점 + 초반 3초 후킹 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("0.15초 프리미엄 표지 및 14컷 음슴체 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            with st.spinner("0.15초 프리미엄 표지 및 14컷 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
@@ -7063,47 +7080,133 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
-                    if f"saved_shorts_mp4_{clean_tk}" in st.session_state:
+                    st.markdown("---")
+                    st.markdown("#### 🚀 2단계: 유튜브 쇼츠 · 인스타그램 릴스 · 틱톡 원클릭 자동 업로드")
+
+                    default_yt_title = f"워런 버핏의 관점으로 본 {comp_name}({clean_tk}) 10년 장부 #shorts #주식 #가치투자"
+                    default_yt_desc = (
+                        f"워런 버핏의 가치투자 5대 기준(경제적해자·자본배분·멀티플비교·현금창출력·국채금리비교) 관점으로 {comp_name}({clean_tk})의 10년 치 공시 데이터와 주가 내재 성장률 괴리율을 분석한 교육용 콘텐츠임.\n\n"
+                        f"⚠️ [법적 고지 및 면책 조항]\n"
+                        f"1. 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 워런 버핏의 공개된 투자 원칙을 대입해 본 학술·교육용 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다.\n"
+                        f"2. 과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않으며, 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
+                        f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #워런버핏 #가치투자 #재무제표 #주식공부"
+                    )
+
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_{clean_tk}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션 (유튜브·인스타·틱톡 공통 적용)", value=default_yt_desc, height=130, key=f"yt_d_{clean_tk}")
+                    yt_up_priv = st.selectbox("유튜브 공개 설정", ["public (전체 공개)", "unlisted (일부 공개)", "private (비공개)"], key=f"yt_p_{clean_tk}")
+
+                    has_video_ready = (f"saved_shorts_mp4_{clean_tk}" in st.session_state)
+                    if has_video_ready:
                         saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
-                        st.success("🎉 100% 음슴체 + 프리미엄 매거진 쇼츠(.mp4)가 준비되었습니다!")
+                        st.success("🎉 영상 생성 완료! 아래에서 바로 확인·다운로드하거나 3대 플랫폼으로 즉시 업로드하세요.")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
                             data=saved_mp4_bytes,
-                            file_name=f"ValueStudy_{clean_tk}.mp4",
+                            file_name=f"BuffettView_{clean_tk}.mp4",
                             mime="video/mp4",
                             use_container_width=True
                         )
+                    else:
+                        st.caption("ℹ️ 먼저 위쪽의 **[🎬 1단계: 쇼츠(.mp4) 생성]** 버튼을 눌러 영상을 생성하면 아래 3개 업로드 버튼이 즉시 활성화됩니다.")
 
-                        st.markdown("---")
-                        st.markdown("#### 🚀 내 유튜브 채널에 원클릭 자동 업로드 (YouTube Data API)")
-                        default_yt_title = f"{comp_name}({clean_tk}) 10년 치 장부 뜯어본 결과 ({thumb_hook_badge}) #shorts #주식"
-                        default_yt_desc = (
-                            f"고전 가치투자 5대 재무 기준(경제적해자·자본배분·멀티플비교·현금창출력·국채금리비교)으로 {comp_name}({clean_tk})의 10년 치 공시 데이터와 주가 내재 성장률 괴리율을 분석한 교육용 콘텐츠임.\n\n"
-                            f"⚠️ [법적 고지 및 면책 조항]\n"
-                            f"1. 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 구동되는 학술·교육용 재무 데이터 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다.\n"
-                            f"2. 과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않으며, 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
-                            f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #가치투자 #재무제표 #주식공부"
-                        )
-                        yt_up_title = st.text_input("업로드할 쇼츠 제목", value=default_yt_title, key=f"yt_t_{clean_tk}")
-                        yt_up_desc = st.text_area("업로드할 쇼츠 설명란 (법적 안전 문구 자동 포함)", value=default_yt_desc, height=140, key=f"yt_d_{clean_tk}")
-                        yt_up_priv = st.selectbox("공개 설정", ["public (전체 공개)", "unlisted (일부 공개 - 링크 있는 사람만)", "private (비공개 - 내 스튜디오에서 확인 후 공개)"], key=f"yt_p_{clean_tk}")
-
-                        if st.button("🚀 지금 내 유튜브 채널에 쇼츠 자동 업로드하기", key=f"btn_yt_up_{clean_tk}", use_container_width=True):
+                    up_col1, up_col2, up_col3 = st.columns(3)
+                    with up_col1:
+                        if st.button("▶️ 유튜브 쇼츠 업로드 (하루 6개 무료)", key=f"btn_yt_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             priv_code = yt_up_priv.split(" ")[0]
-                            tags_arr = ["shorts", comp_name, clean_tk, "가치투자", "재무제표", "주식공부"]
-                            with st.spinner("YouTube Data API를 통해 내 채널로 쇼츠 영상을 업로드 중입니다..."):
+                            tags_arr = ["shorts", comp_name, clean_tk, "워런버핏", "가치투자", "재무제표", "주식공부"]
+                            with st.spinner("YouTube Data API로 업로드 중..."):
                                 try:
                                     ok_up, msg_up = _upload_shorts_to_youtube(saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr, priv_code)
                                     if ok_up:
                                         st.balloons()
-                                        st.success(f"✅ 유튜브 채널 업로드 성공! 바로가기 링크: {msg_up}")
+                                        st.success(f"✅ 유튜브 업로드 성공! 링크: {msg_up}")
                                     else:
                                         st.warning(msg_up)
                                 except Exception as up_e:
-                                    st.error(f"유튜브 API 업로드 중 오류가 발생했습니다: {up_e}")
+                                    st.error(f"유튜브 업로드 오류: {up_e}")
 
-                    st.markdown("#### 📜 100% 단문 음슴체 14컷 자막 대본")
+                    with up_col2:
+                        if st.button("📸 인스타 릴스 업로드 (하루 50개 무료)", key=f"btn_ig_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                            ig_uid = st.secrets.get("IG_USER_ID", "")
+                            ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
+                            if not (ig_uid and ig_tok):
+                                st.warning("스트림릿 Secrets에 `IG_USER_ID`와 `IG_ACCESS_TOKEN`을 먼저 등록해 주세요.")
+                            else:
+                                with st.spinner("Instagram Graph API로 릴스 발행 중..."):
+                                    try:
+                                        up_res = requests.post(
+                                            "https://tmpfiles.org/api/v1/upload",
+                                            files={"file": (f"{clean_tk}.mp4", saved_mp4_bytes, "video/mp4")},
+                                            timeout=30
+                                        )
+                                        raw_url = up_res.json().get("data", {}).get("url", "")
+                                        dl_video_url = raw_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
+
+                                        ig_api_base = f"https://graph.facebook.com/v20.0/{ig_uid}"
+                                        c_res = requests.post(f"{ig_api_base}/media", data={
+                                            "media_type": "REELS",
+                                            "video_url": dl_video_url,
+                                            "caption": f"{yt_up_title}\n\n{yt_up_desc}",
+                                            "access_token": ig_tok
+                                        }, timeout=20).json()
+                                        creation_id = c_res.get("id")
+
+                                        if creation_id:
+                                            for _ in range(12):
+                                                time.sleep(5)
+                                                st_chk = requests.get(f"https://graph.facebook.com/v20.0/{creation_id}", params={"fields": "status_code", "access_token": ig_tok}).json()
+                                                if st_chk.get("status_code") == "FINISHED":
+                                                    break
+                                            pub_res = requests.post(f"{ig_api_base}/media_publish", data={"creation_id": creation_id, "access_token": ig_tok}).json()
+                                            if "id" in pub_res:
+                                                st.balloons()
+                                                st.success(f"✅ 인스타 릴스 업로드 완료! (ID: {pub_res['id']})")
+                                            else:
+                                                st.error(f"릴스 발행 오류: {pub_res}")
+                                        else:
+                                            st.error(f"컨테이너 오류: {c_res}")
+                                    except Exception as ig_e:
+                                        st.error(f"인스타 업로드 실패: {ig_e}")
+
+                    with up_col3:
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                            tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
+                            if not tt_tok:
+                                st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
+                            else:
+                                with st.spinner("TikTok API로 영상 전송 중..."):
+                                    try:
+                                        v_size = len(saved_mp4_bytes)
+                                        init_res = requests.post(
+                                            "https://open.tiktokapis.com/v2/post/publish/video/init/",
+                                            headers={"Authorization": f"Bearer {tt_tok}", "Content-Type": "application/json; charset=UTF-8"},
+                                            json={
+                                                "post_info": {"title": yt_up_title[:140], "privacy_level": "SELF_ONLY"},
+                                                "source_info": {"source": "FILE_UPLOAD", "video_size": v_size, "chunk_size": v_size, "total_chunk_count": 1}
+                                            },
+                                            timeout=15
+                                        ).json()
+                                        upload_url = init_res.get("data", {}).get("upload_url", "")
+                                        if upload_url:
+                                            put_r = requests.put(
+                                                upload_url,
+                                                headers={"Content-Range": f"bytes 0-{v_size-1}/{v_size}", "Content-Type": "video/mp4"},
+                                                data=saved_mp4_bytes,
+                                                timeout=60
+                                            )
+                                            if put_r.status_code in [200, 201]:
+                                                st.balloons()
+                                                st.success("✅ 틱톡 업로드 성공! (틱톡 앱에서 즉시 확인 가능)")
+                                            else:
+                                                st.error(f"틱톡 전송 오류: {put_r.text}")
+                                        else:
+                                            st.error(f"틱톡 초기화 오류: {init_res}")
+                                    except Exception as tt_e:
+                                        st.error(f"틱톡 업로드 실패: {tt_e}")
+
+                    st.markdown("#### 📜 초반 3초 하이라이트 + 100% 음슴체 14컷 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # =====================================================================
                 st.divider()
