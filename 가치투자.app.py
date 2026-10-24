@@ -6737,170 +6737,217 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "-ar", "24000", "-ac", "1", tuned_wav_path
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
+                    # [업그레이드] 고딕체(제목용) + 명조체(빨간 따옴표 대사용) 동시 자동 로더
                     def _load_korean_pil_fonts():
                         import os, tempfile
                         from PIL import ImageFont
                         font_dir = tempfile.gettempdir()
                         bold_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                        serif_path = os.path.join(font_dir, "NanumMyeongjo-Bold.ttf")
+
                         if not os.path.exists(bold_path) or os.path.getsize(bold_path) < 10000:
                             try:
                                 r = requests.get("https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf", timeout=8)
                                 if r.status_code == 200:
                                     with open(bold_path, "wb") as f: f.write(r.content)
-                            except Exception: pass
-                        def _get_f(size):
-                            for c in [bold_path, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                            except Exception:
+                                pass
+
+                        if not os.path.exists(serif_path) or os.path.getsize(serif_path) < 10000:
+                            try:
+                                r2 = requests.get("https://github.com/google/fonts/raw/main/ofl/nanummyeongjo/NanumMyeongjo-Bold.ttf", timeout=8)
+                                if r2.status_code == 200:
+                                    with open(serif_path, "wb") as f: f.write(r2.content)
+                            except Exception:
+                                pass
+
+                        def _get_f(size, is_serif=False):
+                            if is_serif:
+                                candidates = [serif_path, "C:/Windows/Fonts/batang.ttc", "C:/Windows/Fonts/malgunbd.ttf", bold_path]
+                            else:
+                                candidates = [bold_path, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]
+                            for c in candidates:
                                 if os.path.exists(c):
-                                    try: return ImageFont.truetype(c, size)
-                                    except Exception: continue
+                                    try:
+                                        return ImageFont.truetype(c, size)
+                                    except Exception:
+                                        continue
                             return ImageFont.load_default()
                         return _get_f
 
-                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=13, fill=(255,255,255)):
+                    def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=13, fill=(255,255,255), is_serif=False):
                         t_str = str(text).strip()
                         for sz in range(start_sz, min_sz - 1, -2):
-                            f = get_font(sz)
+                            f = get_font(sz, is_serif=is_serif)
                             bb = draw.textbbox((0, 0), t_str, font=f)
                             if (bb[2] - bb[0]) <= max_w:
                                 draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                                 return f, bb[2] - bb[0], bb[3] - bb[1]
-                        f = get_font(min_sz)
+                        f = get_font(min_sz, is_serif=is_serif)
                         bb = draw.textbbox((0, 0), t_str, font=f)
                         draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    # [싼티 Zero + 클릭률 극대화] 포브스·블룸버그 비즈니스위크 스타일 0.15초 썸네일 표지
+                    # =========================================================================
+                    # [참고 이미지 100% 재현] 964만 뷰 스타일 0.15초 썸네일 표지 렌더러
+                    # - 상단 블랙 여백 + 흰색/노란색 2줄 빅타이틀
+                    # - 중앙 화이트 정사각형 캔버스 + 일러스트형 데이터 카드
+                    # - 캔버스 하단 검은색 직사각형 박스 + 빨간색 명조체 큰따옴표(“ ”) 대사
+                    # - 하단 순수 블랙 레터박스
+                    # =========================================================================
                     def _draw_cover_thumbnail_frame(get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        img = Image.new("RGB", (W, H), color=(9, 11, 16))
+                        img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 고급스러운 샴페인 골드 외곽 라인
-                        draw.rounded_rectangle([24, 28, W-24, H-28], radius=36, fill=(14, 18, 26), outline=(250, 204, 21), width=5)
+                        # 1. 상단 순수 블랙 영역 (Y: 0 ~ 250) + 테두리 없는 초특대 2줄 임팩트 제목
+                        cov_line1 = f"버핏의 관점으로 {comp_name}"
+                        cov_line2 = "장부 뜯어본 진짜 이유"
+                        _fit_single_line(draw, W//2, 82, W-40, cov_line1, get_font, start_sz=64, min_sz=34, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 178, W-36, cov_line2, get_font, start_sz=76, min_sz=38, fill=(255, 240, 0))
 
-                        # 상단 골드 포인트 태그 ('워런 버핏의 관점')
-                        draw.rounded_rectangle([110, 82, W-110, 152], radius=35, fill=(250, 204, 21))
-                        _fit_single_line(draw, W//2, 117, W-250, "워런 버핏의 관점으로 본 10년 장부", get_font, start_sz=29, min_sz=18, fill=(9, 11, 16))
+                        # 2. 중앙 화이트 정사각형 캔버스 (Y: 250 ~ 930)
+                        draw.rectangle([0, 250, W, 930], fill=(255, 255, 255))
 
-                        # 중앙 초대형 기업명 & 현재가
-                        _fit_single_line(draw, W//2, 265, W-90, comp_name, get_font, start_sz=92, min_sz=44, fill=(255, 255, 255))
-                        _fit_single_line(draw, W//2, 375, W-110, f"현재 주가 {p_str}", get_font, start_sz=52, min_sz=30, fill=(56, 189, 248))
+                        # 화이트 캔버스 내부: 깔끔하고 직관적인 화이트&네이비 스펙 보드
+                        draw.rounded_rectangle([48, 290, W-48, 775], radius=28, fill=(248, 250, 252), outline=(203, 213, 225), width=4)
 
-                        # 메인 하이라이트 다크 카드 (시선 집중 구간)
-                        accent_bd = (16, 185, 129) if pmos_val >= 0 else (244, 63, 94)
-                        draw.rounded_rectangle([48, 445, W-48, 800], radius=28, fill=(22, 29, 43), outline=accent_bd, width=4)
-                        _fit_single_line(draw, W//2, 515, W-130, "10년 공시 재무 데이터 핵심 요약", get_font, start_sz=28, min_sz=18, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 610, W-120, thumb_main_stat, get_font, start_sz=54, min_sz=26, fill=(250, 204, 21))
+                        # 종목명 & 현재 주가 배지
+                        draw.rounded_rectangle([85, 325, W-85, 415], radius=18, fill=(15, 23, 42))
+                        _fit_single_line(draw, W//2, 370, W-200, f"{comp_name} ({clean_tk})  |  {p_str}", get_font, start_sz=36, min_sz=20, fill=(255, 255, 255))
 
-                        pill_bg = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
-                        draw.rounded_rectangle([80, 685, W-80, 760], radius=16, fill=pill_bg)
-                        _fit_single_line(draw, W//2, 722, W-190, thumb_sub_stat, get_font, start_sz=32, min_sz=18, fill=(255, 255, 255))
+                        # 핵심 팩트 숫자 2단 비교 (화이트 배경 위 고대비 다크 텍스트)
+                        _fit_single_line(draw, W//2, 475, W-130, "10년 공시 재무 데이터 핵심 팩트", get_font, start_sz=28, min_sz=18, fill=(71, 85, 105))
+                        _fit_single_line(draw, W//2, 560, W-110, thumb_main_stat, get_font, start_sz=54, min_sz=26, fill=(15, 23, 42))
 
-                        # 하단 5대 기준 통과 스코어 보드
-                        draw.rounded_rectangle([48, 840, W-48, 1030], radius=28, fill=(11, 14, 22), outline=(250, 204, 21), width=3)
-                        _fit_single_line(draw, W//2, 895, W-140, "버핏식 5대 가치투자 기준 점검", get_font, start_sz=28, min_sz=18, fill=(203, 213, 225))
-                        _fit_single_line(draw, W//2, 968, W-140, f"5개 중 {pass_cnt}개 기준 충족", get_font, start_sz=52, min_sz=28, fill=(250, 204, 21))
+                        pill_c = (22, 101, 52) if pmos_val >= 0 else (185, 28, 28)
+                        draw.rounded_rectangle([85, 635, W-85, 735], radius=16, fill=pill_c)
+                        _fit_single_line(draw, W//2, 685, W-200, f"버핏 5대 기준 중 {pass_cnt}개 충족 ({thumb_sub_stat})", get_font, start_sz=30, min_sz=18, fill=(255, 255, 255))
 
-                        _fit_single_line(draw, W//2, 1140, W-70, "공시 데이터 기반 학술·교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(100, 116, 139))
+                        # 3. [핵심 포인트!] 화이트 캔버스 하단 검은 박스 + 주황/빨간색 명조체 큰따옴표 대사 (Y: 855)
+                        if not is_financial and op_m >= 15:
+                            red_quote = f"“100원 팔면 {margin_won}원이 남는다고?”"
+                        elif use_pbr_m:
+                            red_quote = f"“회사 순자산의 {f_pbr:.2f}배 가격이라고?”"
+                        else:
+                            red_quote = f"“본전 뽑는 데 {f_pe:.1f}년 걸린다고?”"
+
+                        q_font = get_font(42, is_serif=True)
+                        q_bb = draw.textbbox((0, 0), red_quote, font=q_font)
+                        q_w = q_bb[2] - q_bb[0]
+                        while q_w > (W - 70) and q_font.size > 24:
+                            q_font = get_font(q_font.size - 2, is_serif=True)
+                            q_bb = draw.textbbox((0, 0), red_quote, font=q_font)
+                            q_w = q_bb[2] - q_bb[0]
+                        q_h = q_bb[3] - q_bb[1]
+                        q_bx1 = max(20, (W - q_w)//2 - 22)
+                        q_bx2 = min(W - 20, (W + q_w)//2 + 22)
+                        q_by1 = 855 - q_h//2 - 14
+                        q_by2 = 855 + q_h//2 + 14
+
+                        draw.rectangle([q_bx1, q_by1, q_bx2, q_by2], fill=(0, 0, 0))
+                        draw.text((W//2, 855), red_quote, font=q_font, fill=(255, 65, 35), anchor="mm")
+
+                        # 4. 하단 순수 블랙 레터박스 (Y: 930 ~ 1280) + 미세 면책 문구
+                        _fit_single_line(draw, W//2, 1180, W-60, "공시 데이터 기반 학술·교육용 분석이며 매수·매도 추천이 아닙니다", get_font, start_sz=17, min_sz=12, fill=(90, 90, 90))
                         return img
 
-                    # 본편 5대 씬 렌더러 (SCENE_HOOK 포함)
+                    # =========================================================================
+                    # [본편 프레임] 참고 영상과 100% 동일한 상·하단 블랙 레터박스 + 중앙 화이트 카드 + 1줄 블랙 자막
+                    # =========================================================================
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        img = Image.new("RGB", (W, H), color=(9, 11, 16))
+                        img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        _fit_single_line(draw, W//2, 88, W-60, top_line1, get_font, start_sz=48, min_sz=26, fill=(255, 255, 255))
-                        _fit_single_line(draw, W//2, 165, W-60, top_line2, get_font, start_sz=50, min_sz=26, fill=(250, 204, 21))
-                        draw.rounded_rectangle([40, 222, W-40, 232], radius=5, fill=(30, 41, 59))
-                        draw.rounded_rectangle([40, 222, 40 + int((W-80) * ((chunk_idx + 1) / max(1, total_chunks))), 232], radius=5, fill=(250, 204, 21))
+                        # 1. 상단 순수 블랙 레터박스 (Y: 0 ~ 250) + 흰색/형광노란색 2줄 고정 빅타이틀
+                        _fit_single_line(draw, W//2, 82, W-40, f"버핏의 관점으로 {comp_name}", get_font, start_sz=62, min_sz=32, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 178, W-36, "장부 뜯어본 진짜 이유", get_font, start_sz=74, min_sz=36, fill=(255, 240, 0))
 
-                        draw.rounded_rectangle([32, 255, W-32, 830], radius=32, fill=(18, 23, 35), outline=(45, 55, 72), width=2)
+                        # 2. 중앙 화이트 정사각형 캔버스 (Y: 250 ~ 930)
+                        draw.rectangle([0, 250, W, 930], fill=(255, 255, 255))
+                        # 상단 얇은 진행률 게이지
+                        draw.rectangle([0, 250, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 258], fill=(255, 65, 35))
 
-                        draw.rounded_rectangle([56, 282, 330, 326], radius=22, fill=(30, 41, 59))
-                        _fit_single_line(draw, 193, 304, 255, "워런 버핏의 관점 · 5대 기준", get_font, start_sz=18, min_sz=13, fill=(250, 204, 21))
-                        _fit_single_line(draw, W-135, 304, 160, f"{comp_name[:6]} ({clean_tk})", get_font, start_sz=20, min_sz=14, fill=(148, 163, 184))
+                        # 화이트 캔버스 내부 메인 카드 (Y: 280 ~ 785)
+                        draw.rounded_rectangle([40, 280, W-40, 785], radius=26, fill=(248, 250, 252), outline=(203, 213, 225), width=3)
+
+                        # 상단 종목 바
+                        draw.rounded_rectangle([64, 304, W-64, 360], radius=12, fill=(15, 23, 42))
+                        _fit_single_line(draw, W//2, 332, W-160, f"{comp_name} ({clean_tk})  |  현재가 {p_str}", get_font, start_sz=26, min_sz=16, fill=(255, 240, 0))
 
                         if scene_code == "SCENE_HOOK":
-                            # 초반 3초 전용 임팩트 대시보드 (핵심 숫자 3개를 한눈에 크게 타격!)
-                            _fit_single_line(draw, W//2, 385, W-100, f"{comp_name} ({p_str})", get_font, start_sz=48, min_sz=28, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 420, W-120, "워런 버핏의 관점 핵심 요약", get_font, start_sz=28, min_sz=18, fill=(71, 85, 105))
+                            _fit_single_line(draw, W//2, 510, W-100, thumb_main_stat, get_font, start_sz=52, min_sz=26, fill=(15, 23, 42))
 
-                            draw.rounded_rectangle([56, 440, W-56, 610], radius=22, fill=(26, 35, 54), outline=(250, 204, 21), width=4)
-                            _fit_single_line(draw, W//2, 485, W-140, "워런 버핏의 관점 핵심 팩트", get_font, start_sz=24, min_sz=16, fill=(148, 163, 184))
-                            _fit_single_line(draw, W//2, 555, W-130, thumb_main_stat, get_font, start_sz=48, min_sz=26, fill=(250, 204, 21))
+                            draw.rounded_rectangle([64, 585, 344, 755], radius=18, fill=(255, 255, 255), outline=(16, 185, 129), width=3)
+                            _fit_single_line(draw, 204, 630, 250, "돈 불리는 속도(ROE)", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
+                            _fit_single_line(draw, 204, 700, 250, f"연 {roe:.1f}%", get_font, start_sz=46, min_sz=24, fill=(5, 122, 85))
 
-                            draw.rounded_rectangle([56, 635, 344, 795], radius=20, fill=(28, 36, 52), outline=(16, 185, 129), width=2)
-                            _fit_single_line(draw, 200, 680, 250, "자본 복리 속도(ROE)", get_font, start_sz=21, min_sz=14, fill=(148, 163, 184))
-                            _fit_single_line(draw, 200, 745, 250, f"연 {roe:.1f}%", get_font, start_sz=44, min_sz=24, fill=(16, 185, 129))
-
-                            draw.rounded_rectangle([376, 635, W-56, 795], radius=20, fill=(28, 36, 52), outline=(56, 189, 248), width=2)
-                            _fit_single_line(draw, 520, 680, 250, "버핏 5대 기준", get_font, start_sz=21, min_sz=14, fill=(148, 163, 184))
-                            _fit_single_line(draw, 520, 745, 250, f"{pass_cnt}/5 충족", get_font, start_sz=44, min_sz=24, fill=(56, 189, 248))
+                            draw.rounded_rectangle([376, 585, W-64, 755], radius=18, fill=(255, 255, 255), outline=(37, 99, 235), width=3)
+                            _fit_single_line(draw, 516, 630, 250, "버핏 5대 기준", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
+                            _fit_single_line(draw, 516, 700, 250, f"{pass_cnt}/5 충족", get_font, start_sz=46, min_sz=24, fill=(29, 78, 216))
 
                         elif scene_code == "SCENE_1":
-                            _fit_single_line(draw, W//2, 380, W-110, f"현재 1주 가격  {p_str}", get_font, start_sz=44, min_sz=26, fill=(255, 255, 255))
-
-                            draw.rounded_rectangle([56, 425, W-56, 472], radius=12, fill=(29, 78, 216))
-                            _fit_single_line(draw, W//2, 448, W-140, pbr_reason_tag, get_font, start_sz=20, min_sz=13, fill=(255, 255, 255))
+                            draw.rounded_rectangle([64, 378, W-64, 424], radius=10, fill=(224, 242, 254))
+                            _fit_single_line(draw, W//2, 401, W-150, pbr_reason_tag, get_font, start_sz=20, min_sz=13, fill=(3, 105, 161))
 
                             cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
                             avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
                             m_title_s = "현재 순자산 배수(PBR)" if use_pbr_m else "현재 본전 회수(PER)"
 
-                            draw.rounded_rectangle([56, 492, 344, 705], radius=22, fill=(28, 36, 52))
-                            _fit_single_line(draw, 200, 540, 250, "최근 10년 평균", get_font, start_sz=23, min_sz=15, fill=(148, 163, 184))
-                            _fit_single_line(draw, 200, 630, 250, avg_m_str, get_font, start_sz=54, min_sz=28, fill=(203, 213, 225))
+                            draw.rounded_rectangle([64, 442, 344, 665], radius=18, fill=(255, 255, 255), outline=(148, 163, 184), width=2)
+                            _fit_single_line(draw, 204, 490, 250, "최근 10년 평균", get_font, start_sz=23, min_sz=15, fill=(100, 116, 139))
+                            _fit_single_line(draw, 204, 585, 250, avg_m_str, get_font, start_sz=52, min_sz=28, fill=(51, 65, 85))
 
-                            draw.rounded_rectangle([376, 492, W-56, 705], radius=22, fill=(23, 37, 84), outline=(250, 204, 21), width=3)
-                            _fit_single_line(draw, 520, 540, 250, m_title_s, get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
-                            _fit_single_line(draw, 520, 630, 250, cur_m_str, get_font, start_sz=54, min_sz=28, fill=(255, 255, 255))
+                            draw.rounded_rectangle([376, 442, W-64, 665], radius=18, fill=(254, 252, 232), outline=(234, 179, 8), width=4)
+                            _fit_single_line(draw, 516, 490, 250, m_title_s, get_font, start_sz=22, min_sz=14, fill=(161, 98, 7))
+                            _fit_single_line(draw, 516, 585, 250, cur_m_str, get_font, start_sz=52, min_sz=28, fill=(15, 23, 42))
 
                             badge_c = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
-                            draw.rounded_rectangle([56, 725, W-56, 795], radius=16, fill=badge_c)
-                            _fit_single_line(draw, W//2, 760, W-140, f"10년 평균 대비 {disc_txt}", get_font, start_sz=27, min_sz=16, fill=(255, 255, 255))
+                            draw.rounded_rectangle([64, 685, W-64, 760], radius=14, fill=badge_c)
+                            _fit_single_line(draw, W//2, 722, W-150, f"10년 평균 대비 {disc_txt}", get_font, start_sz=27, min_sz=16, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_2":
-                            draw.rounded_rectangle([56, 355, 344, 700], radius=24, fill=(28, 36, 52), outline=(56, 189, 248), width=3)
-                            _fit_single_line(draw, 200, 420, 250, "100원 팔면 남는 돈", get_font, start_sz=24, min_sz=15, fill=(148, 163, 184))
-                            _fit_single_line(draw, 200, 535, 250, f"{op_m:.1f}원", get_font, start_sz=64, min_sz=34, fill=(56, 189, 248))
-                            _fit_single_line(draw, 200, 640, 250, f"영업이익률 {op_m:.1f}%", get_font, start_sz=22, min_sz=14, fill=(203, 213, 225))
+                            draw.rounded_rectangle([64, 380, 344, 675], radius=20, fill=(255, 255, 255), outline=(37, 99, 235), width=3)
+                            _fit_single_line(draw, 204, 435, 250, "100원 팔면 남는 돈", get_font, start_sz=23, min_sz=15, fill=(71, 85, 105))
+                            _fit_single_line(draw, 204, 535, 250, f"{op_m:.1f}원", get_font, start_sz=60, min_sz=32, fill=(29, 78, 216))
+                            _fit_single_line(draw, 204, 625, 250, f"영업이익률 {op_m:.1f}%", get_font, start_sz=21, min_sz=14, fill=(100, 116, 139))
 
-                            draw.rounded_rectangle([376, 355, W-56, 700], radius=24, fill=(28, 36, 52), outline=(16, 185, 129), width=3)
-                            _fit_single_line(draw, 520, 420, 250, "돈 불리는 속도(ROE)", get_font, start_sz=24, min_sz=15, fill=(148, 163, 184))
-                            _fit_single_line(draw, 520, 535, 250, f"연 {roe:.1f}%", get_font, start_sz=64, min_sz=34, fill=(16, 185, 129))
-                            _fit_single_line(draw, 520, 640, 250, f"예금금리(3.5%)의 {bank_mult:.1f}배", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
+                            draw.rounded_rectangle([376, 380, W-64, 675], radius=20, fill=(255, 255, 255), outline=(5, 122, 85), width=3)
+                            _fit_single_line(draw, 516, 435, 250, "돈 불리는 속도(ROE)", get_font, start_sz=23, min_sz=15, fill=(71, 85, 105))
+                            _fit_single_line(draw, 516, 535, 250, f"연 {roe:.1f}%", get_font, start_sz=60, min_sz=32, fill=(5, 122, 85))
+                            _fit_single_line(draw, 516, 625, 250, f"예금금리(3.5%)의 {bank_mult:.1f}배", get_font, start_sz=21, min_sz=14, fill=(180, 83, 9))
 
-                            draw.rounded_rectangle([56, 725, W-56, 795], radius=16, fill=(30, 41, 59))
-                            _fit_single_line(draw, W//2, 760, W-140, "버핏의 제1원칙 : 높은 마진과 자본 복리 엔진", get_font, start_sz=26, min_sz=16, fill=(255, 255, 255))
+                            draw.rounded_rectangle([64, 695, W-64, 760], radius=14, fill=(15, 23, 42))
+                            _fit_single_line(draw, W//2, 727, W-150, "버핏의 제1원칙 : 높은 마진과 자본 복리 엔진", get_font, start_sz=25, min_sz=15, fill=(255, 240, 0))
 
                         elif scene_code == "SCENE_3":
-                            draw.rounded_rectangle([56, 355, 344, 795], radius=24, fill=(28, 36, 52), outline=(250, 204, 21), width=3)
-                            _fit_single_line(draw, 200, 425, 250, "주식 기대 이익수익률", get_font, start_sz=23, min_sz=15, fill=(250, 204, 21))
-                            _fit_single_line(draw, 200, 555, 250, f"연 {ey:.1f}%", get_font, start_sz=62, min_sz=34, fill=(255, 255, 255))
-                            _fit_single_line(draw, 200, 685, 250, f"미국채({ty:.1f}%)와 비교", get_font, start_sz=22, min_sz=14, fill=(16, 185, 129) if erp >= 0 else (248, 113, 113))
+                            draw.rounded_rectangle([64, 380, 344, 755], radius=20, fill=(255, 255, 255), outline=(217, 119, 6), width=3)
+                            _fit_single_line(draw, 204, 440, 250, "주식 기대 이익수익률", get_font, start_sz=23, min_sz=15, fill=(180, 83, 9))
+                            _fit_single_line(draw, 204, 560, 250, f"연 {ey:.1f}%", get_font, start_sz=58, min_sz=32, fill=(15, 23, 42))
+                            _fit_single_line(draw, 204, 680, 250, f"미국채({ty:.1f}%)와 비교", get_font, start_sz=22, min_sz=14, fill=(5, 122, 85) if erp >= 0 else (185, 28, 28))
 
-                            draw.rounded_rectangle([376, 355, W-56, 795], radius=24, fill=(28, 36, 52), outline=(192, 132, 252), width=3)
-                            _fit_single_line(draw, 520, 425, 250, "주주환원 (배당+소각)", get_font, start_sz=23, min_sz=15, fill=(192, 132, 252))
-                            _fit_single_line(draw, 520, 555, 250, f"연 {tsy_total:.1f}%", get_font, start_sz=62, min_sz=34, fill=(250, 204, 21))
-                            _fit_single_line(draw, 520, 685, 250, f"배당 {div:.1f}% + 소각 {bb_yield:+.1f}%", get_font, start_sz=22, min_sz=14, fill=(203, 213, 225))
+                            draw.rounded_rectangle([376, 380, W-64, 755], radius=20, fill=(255, 255, 255), outline=(124, 58, 237), width=3)
+                            _fit_single_line(draw, 516, 440, 250, "주주환원 (배당+소각)", get_font, start_sz=23, min_sz=15, fill=(109, 40, 217))
+                            _fit_single_line(draw, 516, 560, 250, f"연 {tsy_total:.1f}%", get_font, start_sz=58, min_sz=32, fill=(109, 40, 217))
+                            _fit_single_line(draw, 516, 680, 250, f"배당 {div:.1f}% + 소각 {bb_yield:+.1f}%", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
 
                         else:
-                            _fit_single_line(draw, W//2, 365, W-110, "주가 내재 요구 성장률 vs 과거 실제 성장률", get_font, start_sz=24, min_sz=15, fill=(250, 204, 21))
+                            draw.rounded_rectangle([64, 375, 344, 520], radius=16, fill=(255, 255, 255), outline=(220, 38, 38), width=3)
+                            _fit_single_line(draw, 204, 408, 250, "주가 역산 요구 성장률", get_font, start_sz=19, min_sz=13, fill=(185, 28, 28))
+                            _fit_single_line(draw, 204, 472, 250, imp_g_fmt, get_font, start_sz=42, min_sz=24, fill=(15, 23, 42))
 
-                            draw.rounded_rectangle([56, 398, 344, 545], radius=18, fill=(28, 36, 52), outline=(248, 113, 113), width=3)
-                            _fit_single_line(draw, 200, 432, 250, "주가 역산 요구 성장률", get_font, start_sz=19, min_sz=13, fill=(252, 165, 165))
-                            _fit_single_line(draw, 200, 498, 250, imp_g_fmt, get_font, start_sz=44, min_sz=24, fill=(255, 255, 255))
+                            draw.rounded_rectangle([376, 375, W-64, 520], radius=16, fill=(255, 255, 255), outline=(5, 122, 85), width=3)
+                            _fit_single_line(draw, 516, 408, 250, "과거 실제 현금 성장률", get_font, start_sz=19, min_sz=13, fill=(5, 122, 85))
+                            _fit_single_line(draw, 516, 472, 250, actual_g_fmt, get_font, start_sz=42, min_sz=24, fill=(5, 122, 85))
 
-                            draw.rounded_rectangle([376, 398, W-56, 545], radius=18, fill=(28, 36, 52), outline=(16, 185, 129), width=3)
-                            _fit_single_line(draw, 520, 432, 250, "과거 실제 현금 성장률", get_font, start_sz=19, min_sz=13, fill=(110, 231, 183))
-                            _fit_single_line(draw, 520, 498, 250, actual_g_fmt, get_font, start_sz=44, min_sz=24, fill=(16, 185, 129))
+                            draw.rounded_rectangle([64, 535, W-64, 588], radius=10, fill=gap_badge_col)
+                            _fit_single_line(draw, W//2, 561, W-150, gap_badge_txt, get_font, start_sz=20, min_sz=13, fill=(255, 255, 255))
 
-                            draw.rounded_rectangle([56, 560, W-56, 612], radius=12, fill=gap_badge_col)
-                            _fit_single_line(draw, W//2, 586, W-140, gap_badge_txt, get_font, start_sz=21, min_sz=13, fill=(255, 255, 255))
-
-                            _fit_single_line(draw, W//2, 645, W-100, f"버핏의 5대 기준 점검 : 5개 중 {pass_cnt}개 충족", get_font, start_sz=24, min_sz=15, fill=(250, 204, 21))
+                            _fit_single_line(draw, W//2, 622, W-100, f"버핏의 5대 기준 점검 : 5개 중 {pass_cnt}개 충족", get_font, start_sz=24, min_sz=15, fill=(15, 23, 42))
 
                             five_pillars = [
                                 ("1.경제적해자", c1_st),
@@ -6909,42 +6956,47 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ("4.현금창출력", c4_st),
                                 ("5.국채비교", c5_st)
                             ]
-                            pw = 112
+                            pw = 110
                             gap_p = 8
                             start_px = (W - (pw * 5 + gap_p * 4)) // 2
                             for p_i, (p_name, p_st) in enumerate(five_pillars):
                                 px1 = start_px + p_i * (pw + gap_p)
-                                py1, py2 = 675, 805
+                                py1, py2 = 650, 768
                                 if p_st == "pass":
                                     p_bg, p_bd, p_mark, p_col = (5, 122, 85), (16, 185, 129), "충족(O)", (255, 255, 255)
                                 elif p_st == "warn":
-                                    p_bg, p_bd, p_mark, p_col = (146, 64, 14), (245, 158, 11), "보통(△)", (254, 240, 138)
+                                    p_bg, p_bd, p_mark, p_col = (180, 83, 9), (245, 158, 11), "보통(△)", (254, 240, 138)
                                 else:
-                                    p_bg, p_bd, p_mark, p_col = (153, 27, 27), (239, 68, 68), "미달(X)", (254, 202, 202)
+                                    p_bg, p_bd, p_mark, p_col = (185, 28, 28), (239, 68, 68), "미달(X)", (254, 202, 202)
 
-                                draw.rounded_rectangle([px1, py1, px1 + pw, py2], radius=14, fill=p_bg, outline=p_bd, width=2)
-                                _fit_single_line(draw, px1 + pw//2, py1 + 40, pw - 6, p_name, get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
-                                _fit_single_line(draw, px1 + pw//2, py1 + 90, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
+                                draw.rounded_rectangle([px1, py1, px1 + pw, py2], radius=12, fill=p_bg, outline=p_bd, width=2)
+                                _fit_single_line(draw, px1 + pw//2, py1 + 36, pw - 6, p_name, get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
+                                _fit_single_line(draw, px1 + pw//2, py1 + 82, pw - 6, p_mark, get_font, start_sz=20, min_sz=13, fill=p_col)
 
+                        # 3. 화이트 캔버스 하단 검은색 직사각형 자막 박스 (Y: 855 - 참고 영상 위치와 100% 동일!)
                         sub_clean = str(sub_text).strip()
-                        sub_font = get_font(40)
+                        # 첫 2컷(초반 3초 후킹 구간)은 참고 썸네일처럼 빨간/노란 강렬한 포인트 컬러로 표시!
+                        is_hook_cut = (chunk_idx <= 1)
+                        sub_font = get_font(40, is_serif=is_hook_cut)
                         bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
                         tw = bb[2] - bb[0]
-                        while tw > (W - 64) and sub_font.size > 22:
-                            sub_font = get_font(sub_font.size - 2)
+                        while tw > (W - 60) and sub_font.size > 22:
+                            sub_font = get_font(sub_font.size - 2, is_serif=is_hook_cut)
                             bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
                             tw = bb[2] - bb[0]
                         th = bb[3] - bb[1]
-                        bx1 = max(18, (W - tw)//2 - 28)
-                        bx2 = min(W - 18, (W + tw)//2 + 28)
-                        by1 = 925 - th//2 - 20
-                        by2 = 925 + th//2 + 20
+                        bx1 = max(16, (W - tw)//2 - 22)
+                        bx2 = min(W - 16, (W + tw)//2 + 22)
+                        by1 = 855 - th//2 - 14
+                        by2 = 855 + th//2 + 14
 
-                        draw.rounded_rectangle([bx1, by1, bx2, by2], radius=18, fill=(0, 0, 0), outline=(250, 204, 21), width=3)
-                        draw.text((W//2, 925), sub_clean, font=sub_font, fill=(255, 255, 255), anchor="mm")
+                        draw.rectangle([bx1, by1, bx2, by2], fill=(0, 0, 0))
+                        txt_col = (255, 65, 35) if chunk_idx == 1 else ((255, 240, 0) if chunk_idx == 0 else (255, 255, 255))
+                        draw.text((W//2, 855), sub_clean, font=sub_font, fill=txt_col, anchor="mm")
 
-                        _fit_single_line(draw, W//2, 1105, W-40, "본 영상은 공시 데이터 기반 학술·교육용 시뮬레이션이며 매수·매도 추천이 아닙니다", get_font, start_sz=18, min_sz=13, fill=(148, 163, 184))
-                        _fit_single_line(draw, W//2, 1145, W-40, "과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않습니다", get_font, start_sz=17, min_sz=12, fill=(100, 116, 139))
+                        # 4. 하단 순수 블랙 레터박스 (Y: 930 ~ 1280) + 법적 면책 고지
+                        _fit_single_line(draw, W//2, 1140, W-40, "본 영상은 공시 데이터 기반 학술·교육용 시뮬레이션이며 매수·매도 추천이 아닙니다", get_font, start_sz=17, min_sz=12, fill=(110, 110, 110))
+                        _fit_single_line(draw, W//2, 1180, W-40, "과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않습니다", get_font, start_sz=16, min_sz=12, fill=(85, 85, 85))
 
                         return img
 
