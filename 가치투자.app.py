@@ -6565,9 +6565,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         gap_badge_txt = f"순자산(PBR) 10년 평균 대비 {disc_txt}"
                         gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
-                    # =========================================================================
-                    # [데이터 최적화 10컷 (약 16~17초)] 군더더기 Zero! 평균 시청 지속률 140% 달성용 대본
-                    # =========================================================================
+                    # [수정] 미국채 금리 vs 기대 이익수익률 격차(%p) 직관적 비교 문장 생성
+                    ey_gap = ey - ty
+                    if ey_gap >= 0.1:
+                        ey_cut6 = f"기대 수익률 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)보다 {ey_gap:.1f}%p 더 높음"
+                    elif ey_gap <= -0.1:
+                        ey_cut6 = f"기대 수익률 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)보다 {abs(ey_gap):.1f}%p 더 낮음"
+                    else:
+                        ey_cut6 = f"기대 수익률 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)와 같은 수준임"
+
                     pop_chunks = [
                         # 컷 1~2 (0~3초): 초반 스와이프 이탈을 막는 질문 훅 + 핵심 숫자 직격타
                         (f"워런 버핏의 관점으로 {comp_name} 장부 뜯어봄", "SCENE_HOOK"),
@@ -6580,8 +6586,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         (moat_cut4, "SCENE_2"),
                         (moat_cut5, "SCENE_2"),
 
-                        # 컷 6~7 (8.5~11.5초): 미국 국채 금리 비교 & 주주 보너스(배당+소각)
-                        (f"미국채 금리({ty:.1f}%) 대비 기대 이익수익률은 연 {ey:.1f}%임", "SCENE_3"),
+                        # 컷 6~7 (8.5~11.5초): 미국 국채 금리 격차(%p) 비교 & 주주 보너스(배당+소각)
+                        (ey_cut6, "SCENE_3"),
                         (f"배당과 자사주 소각 합친 주주환원율은 연 {tsy_total:.1f}%임", "SCENE_3"),
 
                         # 컷 8~10 (11.5~16.5초): DCF 괴리율 팩트폭격 + 버핏 5대 기준 결론 & 루프 유도
@@ -6870,8 +6876,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([64, 380, 344, 755], radius=20, fill=(255, 255, 255), outline=(217, 119, 6), width=3)
                             _fit_single_line(draw, 204, 440, 250, "주식 기대 이익수익률", get_font, start_sz=23, min_sz=15, fill=(180, 83, 9))
                             _fit_single_line(draw, 204, 560, 250, f"연 {ey:.1f}%", get_font, start_sz=58, min_sz=32, fill=(15, 23, 42))
-                            _fit_single_line(draw, 204, 680, 250, f"미국채({ty:.1f}%)와 비교", get_font, start_sz=22, min_sz=14, fill=(5, 122, 85) if erp >= 0 else (185, 28, 28))
-
+                            _fit_single_line(draw, 204, 680, 250, f"국채({ty:.1f}%) 대비 {ey - ty:+.1f}%p", get_font, start_sz=22, min_sz=14, fill=(5, 122, 85) if (ey - ty) >= 0 else (185, 28, 28))
                             draw.rounded_rectangle([376, 380, W-64, 755], radius=20, fill=(255, 255, 255), outline=(124, 58, 237), width=3)
                             _fit_single_line(draw, 516, 440, 250, "주주환원 (배당+소각)", get_font, start_sz=23, min_sz=15, fill=(109, 40, 217))
                             _fit_single_line(draw, 516, 560, 250, f"연 {tsy_total:.1f}%", get_font, start_sz=58, min_sz=32, fill=(109, 40, 217))
