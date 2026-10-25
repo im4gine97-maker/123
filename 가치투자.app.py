@@ -6534,17 +6534,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         disc_txt = "10년 평균과 같은 수준"
                         disc_short_badge = "10년 평균과 동일 수준!"
 
+                    # [팩트 교정] 한국 상장사 평균 영업이익률(8원) vs 미국 S&P500 평균 영업이익률(12원) 자동 분리
+                    avg_margin_bench = 8.0 if kr else 12.0
                     margin_won = max(0, int(round(op_m)))
-                    margin_diff = op_m - 8.0
+                    margin_diff = op_m - avg_margin_bench
                     bank_mult = max(0.1, roe / 3.5) if roe > 0 else 0.0
                     roe_vs_buffett = roe - 15.0
                     tsy_vs_mkt = tsy_total - 2.5
 
+                    # PBR(순자산 1만원당 주가) & PER(순이익 1만원당 주가) 원화 환산
                     cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
-                    pe_diff_yr = abs(f_pe - a_pe)
+                    cur_pe_won = int(round(f_pe * 10, 0) * 1000)
+                    avg_pe_won = int(round(a_pe * 10, 0) * 1000)
 
-                    # --- [1. 썸네일 & 컷 1~3: 괄호 전혀 없는 직관적 가격 비교] ---
+                    # --- [1. 썸네일 & 컷 1~3: PER도 기아(PBR)와 100% 동일한 방식으로 통일] ---
                     if is_financial:
                         pbr_reason_tag = "금융업 특성상 장부 순자산 기준으로 10년 평균과 비교함"
                         thumb_compare_bar = f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
@@ -6557,7 +6561,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pbr_reason_tag = "이익 변동성을 고려해 장부 순자산 기준으로 10년 평균과 비교함"
                         thumb_compare_bar = f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
                         thumb_giant_num = disc_short_badge
-                        if pmos_val >= 5 and margin_won >= 8:
+                        if pmos_val >= 5 and margin_won >= avg_margin_bench:
                             thumb_red_quote = f"“100원에 {margin_won}원 남는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
                         elif pmos_val <= -5:
                             thumb_red_quote = f"“장부가가 평소보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
@@ -6567,44 +6571,41 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         val_cut3 = f"순자산 1만원당 평소 {avg_pbr_won:,}원, 지금은 {cur_pbr_won:,}원임"
 
                     else:
-                        pbr_reason_tag = "예상 순이익 기준 본전 회수 기간을 10년 평균과 비교함"
-                        thumb_compare_bar = f"본전 회수 기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
-                        if pmos_val >= 3.0:
-                            thumb_giant_num = f"본전회수 평소보다 {abs_pmos:.0f}% 단축!"
-                            thumb_red_quote = f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년 줄었다고?”"
-                            hook_cut2 = f"본전 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 짧아짐"
-                            val_cut3 = f"평소 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년임"
-                        elif pmos_val <= -3.0:
-                            thumb_giant_num = f"본전회수 평소보다 {abs_pmos:.0f}% 늘어남!"
-                            thumb_red_quote = f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년 길어졌다고?”"
-                            hook_cut2 = f"본전 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 길어짐"
-                            val_cut3 = f"평소 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년임"
+                        # [핵심 변경] PER 평가 기업도 기아(PBR)처럼 '순이익 대비 주가 배수 & 1만원당 가격'으로 통일!
+                        pbr_reason_tag = "연간 순이익 대비 주가 배수를 10년 평균과 비교함"
+                        thumb_compare_bar = f"순이익 대비 주가 : 10년 평균 {a_pe:.1f}배 ➔ 현재 {f_pe:.1f}배"
+                        thumb_giant_num = disc_short_badge
+                        if pmos_val >= 5 and margin_won >= avg_margin_bench:
+                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 주가배수는 {abs_pmos:.0f}% 낮다고?”"
+                        elif pmos_val >= 5:
+                            thumb_red_quote = f"“순이익 대비 주가가 평소보다 {abs_pmos:.0f}% 낮다고?”"
+                        elif pmos_val <= -5:
+                            thumb_red_quote = f"“주가배수가 평소보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
                         else:
-                            thumb_giant_num = f"본전 회수 {f_pe:.1f}년 · 평균 일치"
-                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 본전 회수는 {f_pe:.1f}년?”"
-                            hook_cut2 = f"본전 회수 기간이 10년 평균과 같은 {f_pe:.1f}년임"
-                            val_cut3 = f"10년 평균 {a_pe:.1f}년 대비 현재 {f_pe:.1f}년으로 동일함"
+                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 주가배수는 평소 수준?”"
+                        hook_cut2 = f"순이익 대비 주가는 10년 평균보다 {disc_txt}임"
+                        val_cut3 = f"순이익 1만원당 평소 {avg_pe_won:,}원, 지금은 {cur_pe_won:,}원임"
 
-                    # --- [2. 컷 4~5: 괄호 제거 & 0.0원 모순 해결 마진·복리 비교] ---
+                    # --- [2. 컷 4~5: 한국(8원) vs 미국(12원) 기준 분리 적용] ---
                     if is_financial:
-                        moat_cut4 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 예금의 {bank_mult:.1f}배임" if roe > 0 else f"현재 자본수익률 연 {roe:.1f}%로 적자 구간임"
+                        moat_cut4 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임" if roe > 0 else f"현재 자본수익률 연 {roe:.1f}%로 적자 구간임"
                         moat_cut5 = f"금융권 우량 기준 10%보다 {abs(roe - 10.0):.1f}%p {'높음' if roe >= 10 else '낮음'}"
                     else:
                         if abs(margin_diff) < 0.5:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 기업 8원과 비슷함"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원과 비슷함"
                         elif margin_diff >= 0.5:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 8원보다 {margin_diff:.1f}원 높음"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원보다 {margin_diff:.1f}원 높음"
                         elif op_m > 0:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 8원보다 {abs(margin_diff):.1f}원 낮음"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원보다 {abs(margin_diff):.1f}원 낮음"
                         else:
                             moat_cut4 = f"현재 영업이익률 {op_m:.1f}%로 적자 구간에 머묾"
 
                         if roe >= 15.0:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
                         elif roe > 0:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
                         else:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%로 수익성 회복 필요함"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%로 수익성 회복 필요함"
 
                     # --- [3. 컷 6~7: 괄호 제거 국채 비교 & 주주환원율] ---
                     ey_gap = ey - ty
@@ -6868,7 +6869,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             _fit_single_line(draw, 202, 582, 268, "100원 팔면 남는 순수 마진", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                             _fit_single_line(draw, 202, 624, 268, f"{op_m:.1f}원", get_font, start_sz=38, min_sz=22, fill=(29, 78, 216) if op_m >= 8.0 else (185, 28, 28))
-                            m_cmp_txt = f"평균 8원보다 {abs(margin_diff):.1f}원 {'더 남김' if margin_diff >= 0 else '적음'}" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                            m_cmp_txt = f"평균 {avg_margin_bench:.0f}원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 {avg_margin_bench:.0f}원보다 {abs(margin_diff):.1f}원 {'높음' if margin_diff >= 0 else '낮음'}"
                             _fit_single_line(draw, 202, 658, 268, m_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                         draw.rounded_rectangle([372, 554, W-56, 678], radius=16, fill=(255, 255, 255), outline=(203, 213, 225), width=3)
@@ -6926,7 +6927,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             else:
                                 _fit_single_line(draw, 202, 582, 268, "100원 팔면 남는 순수 마진", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                                 _fit_single_line(draw, 202, 624, 268, f"{op_m:.1f}원", get_font, start_sz=38, min_sz=22, fill=(29, 78, 216) if op_m >= 8.0 else (185, 28, 28))
-                                m_cmp_txt = f"평균 8원보다 {abs(margin_diff):.1f}원 {'더 남김' if margin_diff >= 0 else '적음'}" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                                m_cmp_txt = f"평균 {avg_margin_bench:.0f}원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 {avg_margin_bench:.0f}원보다 {abs(margin_diff):.1f}원 {'높음' if margin_diff >= 0 else '낮음'}"
                                 _fit_single_line(draw, 202, 658, 268, m_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                             draw.rounded_rectangle([372, 554, W-56, 678], radius=16, fill=(255, 255, 255), outline=(203, 213, 225), width=3)
@@ -6943,11 +6944,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([60, 388, W-60, 434], radius=10, fill=(224, 242, 254))
                             _fit_single_line(draw, W//2, 411, W-140, pbr_reason_tag, get_font, start_sz=20, min_sz=13, fill=(3, 105, 161))
 
-                            cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
-                            avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
-                            m_title_s = "현재 순자산 배수" if use_pbr_m else "현재 본전 회수 기간"
-                            sub_avg_s = f"순자산 1만원당 {avg_pbr_won:,}원" if use_pbr_m else "과거 10년 평균 회수기간"
-                            sub_cur_s = f"순자산 1만원당 {cur_pbr_won:,}원" if use_pbr_m else f"평소 대비 {f_pe - a_pe:+.1f}년 차이"
+                            cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}배"
+                            avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}배"
+                            m_title_s = "현재 순자산 배수 PBR" if use_pbr_m else "현재 순이익 배수 PER"
+                            sub_avg_s = f"순자산 1만원당 {avg_pbr_won:,}원" if use_pbr_m else f"순이익 1만원당 {avg_pe_won:,}원"
+                            sub_cur_s = f"순자산 1만원당 {cur_pbr_won:,}원" if use_pbr_m else f"순이익 1만원당 {cur_pe_won:,}원"
 
                             draw.rounded_rectangle([60, 448, 346, 680], radius=18, fill=(255, 255, 255), outline=(148, 163, 184), width=2)
                             _fit_single_line(draw, 203, 488, 260, "최근 10년 평균", get_font, start_sz=23, min_sz=15, fill=(100, 116, 139))
@@ -6967,7 +6968,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([60, 392, 346, 688], radius=20, fill=(255, 255, 255), outline=(37, 99, 235), width=3)
                             _fit_single_line(draw, 203, 440, 260, "100원 팔면 남는 순수 마진", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
                             _fit_single_line(draw, 203, 540, 260, f"{op_m:.1f}원", get_font, start_sz=58, min_sz=30, fill=(29, 78, 216))
-                            m_sub_s = f"평균 기업 8원 대비 {margin_diff:+.1f}원" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                            m_sub_s = f"평균 {avg_margin_bench:.0f}원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 {avg_margin_bench:.0f}원 대비 {margin_diff:+.1f}원"
                             _fit_single_line(draw, 203, 636, 260, m_sub_s, get_font, start_sz=19, min_sz=13, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                             draw.rounded_rectangle([374, 392, W-60, 688], radius=20, fill=(255, 255, 255), outline=(5, 122, 85), width=3)
