@@ -6593,265 +6593,238 @@ AI Opinion: {op_title} ({total_score_val} pts)
                       tsy_total - 2.5
                   )  # 시장 평균 총주주환원율(약 2.5%) 대비 격차
 
-                  # 순자산 1만 원당 주가 환산 (초보자가 0.89배의 의미를 1초 만에 이해하도록 원화로 환산)
-                  cur_pbr_won = int(round(f_pbr * 10000))
-                  avg_pbr_won = int(round(a_pbr * 10000))
-                  pe_diff_yr = abs(f_pe - a_pe)
+                  # 100원 단위로 깔끔하게 반올림 (6,143원 -> 6,100원)
+                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
+                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
+                    pe_diff_yr = abs(f_pe - a_pe)
 
-                  # --- [초보자·4060 직관형 썸네일 문구 및 초반 3초 훅 설계] ---
-                  if is_financial:
-                    pbr_reason_tag = (
-                        "금융업 특성상 장부 순자산(PBR) 기준으로 10년 평균과 비교함"
-                    )
-                    thumb_compare_bar = (
-                        f"장부 순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
-                    )
-                    thumb_giant_num = disc_short_badge
-                    if pmos_val >= 10:
-                      thumb_red_quote = (
-                          f"“돈은 연 {roe:.1f}% 불리는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
+                    # --- [1. 썸네일 & 컷 1~3: 군더더기 뺀 직관적 가격 비교] ---
+                    if is_financial:
+                      pbr_reason_tag = (
+                          "금융업 특성상 장부 순자산(PBR) 기준으로 10년 평균과 비교함"
                       )
-                    elif pmos_val <= -10:
-                      thumb_red_quote = (
-                          f"“장부가가 10년 평균보다 {abs_pmos:.0f}% 높은데 괜찮을까?”"
+                      thumb_compare_bar = (
+                          f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
                       )
-                    else:
+                      thumb_giant_num = disc_short_badge
                       thumb_red_quote = (
-                          f"“은행 이자보다 {bank_mult:.1f}배 빨리 자본을 불린다고?”"
-                      )
-
-                    hook_cut2 = (
-                        f"장부 순자산 대비 주가가 10년 평균보다 {disc_txt}임"
-                    )
-                    val_cut3 = (
-                        f"순자산 1만 원당 주가가 평소 {avg_pbr_won:,}원({a_pbr:.2f}배)인데 지금은 {cur_pbr_won:,}원({f_pbr:.2f}배)임"
-                    )
-
-                  elif use_pbr_m:
-                    pbr_reason_tag = (
-                        "이익 변동성을 고려해 장부 순자산(PBR) 기준으로 10년 평균과 비교함"
-                    )
-                    thumb_compare_bar = (
-                        f"장부 순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
-                    )
-                    thumb_giant_num = disc_short_badge
-                    if pmos_val >= 10 and margin_won >= 8:
-                      thumb_red_quote = (
-                          f"“100원에 {margin_won}원 남는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
-                      )
-                    elif pmos_val >= 10:
-                      thumb_red_quote = (
-                          f"“장부가가 10년 평균보다 {abs_pmos:.0f}%나 낮다고?”"
-                      )
-                    elif pmos_val <= -10:
-                      thumb_red_quote = (
-                          f"“장부가가 10년 평균보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
-                      )
-                    else:
-                      thumb_red_quote = (
-                          f"“100원 팔면 {margin_won}원 남는데 장부가는 적정 수준일까?”"
-                      )
-
-                    hook_cut2 = (
-                        f"장부 순자산 대비 주가가 10년 평균보다 {disc_txt}임"
-                    )
-                    val_cut3 = (
-                        f"순자산 1만 원당 주가가 평소 {avg_pbr_won:,}원({a_pbr:.2f}배)인데 지금은 {cur_pbr_won:,}원({f_pbr:.2f}배)임"
-                    )
-
-                  else:
-                    pbr_reason_tag = (
-                        "예상 순이익 기준 본전 회수 기간(선행 PER)을 10년 평균과 비교함"
-                    )
-                    thumb_compare_bar = (
-                        f"투자금 본전 회수 기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
-                    )
-                    if pmos_val >= 3.0:
-                      thumb_giant_num = f"본전회수 평소보다 {abs_pmos:.0f}% 단축!"
-                      thumb_red_quote = (
-                          f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년이나 줄었다고?”"
+                          f"“연 {roe:.1f}% 불리는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
+                          if pmos_val >= 5
+                          else f"“은행 이자보다 {bank_mult:.1f}배 빨리 불린다고?”"
                       )
                       hook_cut2 = (
-                          f"투자금 본전 뽑는 기간이 10년 평균보다 {abs_pmos:.0f}%({pe_diff_yr:.1f}년) 더 짧아짐"
+                          f"순자산 대비 주가는 10년 평균보다 {disc_txt}임"
                       )
                       val_cut3 = (
-                          f"10년 평균 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년으로 {pe_diff_yr:.1f}년 단축됨"
+                          f"순자산 1만원당 평소 {avg_pbr_won:,}원, 지금은 {cur_pbr_won:,}원임"
                       )
-                    elif pmos_val <= -3.0:
-                      thumb_giant_num = f"본전회수 평소보다 {abs_pmos:.0f}% 늘어남!"
-                      thumb_red_quote = (
-                          f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년 더 길어졌다고?”"
+
+                    elif use_pbr_m:
+                      pbr_reason_tag = (
+                          "이익 변동성을 고려해 장부 순자산(PBR) 기준으로 10년 평균과 비교함"
                       )
+                      thumb_compare_bar = (
+                          f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
+                      )
+                      thumb_giant_num = disc_short_badge
+                      if pmos_val >= 5 and margin_won >= 8:
+                        thumb_red_quote = (
+                            f"“100원에 {margin_won}원 남는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
+                        )
+                      elif pmos_val <= -5:
+                        thumb_red_quote = (
+                            f"“장부가가 평소보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
+                        )
+                      else:
+                        thumb_red_quote = (
+                            f"“100원 팔면 {margin_won}원 남는데 장부가는 평소 수준?”"
+                        )
                       hook_cut2 = (
-                          f"투자금 본전 뽑는 기간이 10년 평균보다 {abs_pmos:.0f}%({pe_diff_yr:.1f}년) 더 길어짐"
+                          f"순자산 대비 주가는 10년 평균보다 {disc_txt}임"
                       )
                       val_cut3 = (
-                          f"10년 평균 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년으로 {pe_diff_yr:.1f}년 늘어남"
+                          f"순자산 1만원당 평소 {avg_pbr_won:,}원, 지금은 {cur_pbr_won:,}원임"
+                      )
+
+                    else:
+                      pbr_reason_tag = (
+                          "예상 순이익 기준 본전 회수 기간(선행 PER)을 10년 평균과 비교함"
+                      )
+                      thumb_compare_bar = (
+                          f"본전 회수 기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
+                      )
+                      if pmos_val >= 3.0:
+                        thumb_giant_num = (
+                            f"본전회수 평소보다 {abs_pmos:.0f}% 단축!"
+                        )
+                        thumb_red_quote = (
+                            f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년 줄었다고?”"
+                        )
+                        hook_cut2 = (
+                            f"본전 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 짧아짐"
+                        )
+                        val_cut3 = (
+                            f"평소 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년임"
+                        )
+                      elif pmos_val <= -3.0:
+                        thumb_giant_num = (
+                            f"본전회수 평소보다 {abs_pmos:.0f}% 늘어남!"
+                        )
+                        thumb_red_quote = (
+                            f"“본전 뽑는 기간이 평소보다 {pe_diff_yr:.1f}년 길어졌다고?”"
+                        )
+                        hook_cut2 = (
+                            f"본전 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 길어짐"
+                        )
+                        val_cut3 = (
+                            f"평소 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년임"
+                        )
+                      else:
+                        thumb_giant_num = f"본전 회수 {f_pe:.1f}년 (평균 일치)"
+                        thumb_red_quote = (
+                            f"“100원에 {margin_won}원 남는데 본전 회수는 {f_pe:.1f}년?”"
+                        )
+                        hook_cut2 = (
+                            f"본전 회수 기간이 10년 평균과 같은 {f_pe:.1f}년임"
+                        )
+                        val_cut3 = (
+                            f"10년 평균 {a_pe:.1f}년 대비 현재 {f_pe:.1f}년으로 동일함"
+                        )
+
+                    # --- [2. 컷 4~5: 0.0원 모순 제거 & 25자 이내 초단문 마진·ROE 비교] ---
+                    if is_financial:
+                      moat_cut4 = (
+                          f"돈 불리는 속도(ROE) 연 {roe:.1f}%, 예금의 {bank_mult:.1f}배임"
+                          if roe > 0
+                          else f"현재 자본수익률(ROE) 연 {roe:.1f}%로 적자 구간임"
+                      )
+                      moat_cut5 = (
+                          f"금융권 우량 기준(10%)보다 {abs(roe - 10.0):.1f}%p {'높음' if roe >= 10 else '낮음'}"
                       )
                     else:
-                      thumb_giant_num = f"본전 회수 {f_pe:.1f}년 (평균 일치)"
-                      thumb_red_quote = (
-                          f"“100원 팔면 {margin_won}원 남는데 본전 회수는 {f_pe:.1f}년 걸린다고?”"
-                      )
-                      hook_cut2 = (
-                          f"투자금 본전 뽑는 기간이 10년 평균({a_pe:.1f}년)과 거의 같은 {f_pe:.1f}년임"
-                      )
-                      val_cut3 = (
-                          f"10년 평균 {a_pe:.1f}년 대비 현재 {f_pe:.1f}년으로 평소 수준을 유지 중임"
-                      )
+                      if abs(margin_diff) < 0.5:
+                        moat_cut4 = (
+                            f"100원 팔면 {op_m:.1f}원 남아 평균 기업(8원)과 비슷함"
+                        )
+                      elif margin_diff >= 0.5:
+                        moat_cut4 = (
+                            f"100원 팔면 {op_m:.1f}원 남아 평균(8원)보다 {margin_diff:.1f}원 높음"
+                        )
+                      elif op_m > 0:
+                        moat_cut4 = (
+                            f"100원 팔면 {op_m:.1f}원 남아 평균(8원)보다 {abs(margin_diff):.1f}원 낮음"
+                        )
+                      else:
+                        moat_cut4 = (
+                            f"현재 영업이익률 {op_m:.1f}%로 적자 구간에 머묾"
+                        )
 
-                  # --- [컷 4~5: 비즈니스 해자 & 복리 속도 비교 문장 (얼마나 높거나 낮은지 명시)] ---
-                  if is_financial:
-                    if roe >= 12.0:
-                      moat_cut4 = (
-                          f"자본 불리는 속도(ROE)가 연 {roe:.1f}%로 은행 예금(3.5%)보다 {bank_mult:.1f}배 빠름"
-                      )
-                      moat_cut5 = (
-                          f"금융권 우량 기준(10%)보다도 {roe - 10.0:.1f}%p 더 높은 수익성을 기록함"
-                      )
-                    elif roe > 0:
-                      moat_cut4 = (
-                          f"자본 불리는 속도(ROE)는 연 {roe:.1f}%로 은행 예금(3.5%)의 {bank_mult:.1f}배 수준임"
-                      )
-                      moat_cut5 = (
-                          f"금융권 우량 기준(10%)과 비교하면 {abs(10.0 - roe):.1f}%p {'높은' if roe >= 10 else '낮은'} 수치임"
+                      if roe >= 15.0:
+                        moat_cut5 = (
+                            f"돈 불리는 속도(ROE) 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
+                        )
+                      elif roe > 0:
+                        moat_cut5 = (
+                            f"돈 불리는 속도(ROE) 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
+                        )
+                      else:
+                        moat_cut5 = (
+                            f"돈 불리는 속도(ROE) 연 {roe:.1f}%로 수익성 회복 필요함"
+                        )
+
+                    # --- [3. 컷 6~7: 국채 비교 & 주주환원율 초단문 압축] ---
+                    ey_gap = ey - ty
+                    if abs(ey_gap) < 0.2:
+                      ey_cut6 = (
+                          f"기대수익률 연 {ey:.1f}%, 미국채({ty:.1f}%)와 비슷함"
                       )
                     else:
-                      moat_cut4 = (
-                          f"현재 자본수익률(ROE)이 연 {roe:.1f}%로 적자 구간에 머물러 있음"
+                      ey_cut6 = (
+                          f"기대수익률 연 {ey:.1f}%, 미국채보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}"
                       )
-                      moat_cut5 = (
-                          "금융권 우량 기준(10%)에 크게 미달해 수익성 회복 확인이 필요함"
+
+                    if abs(tsy_vs_mkt) < 0.3:
+                      tsy_cut7 = (
+                          f"배당·자사주 환원 연 {tsy_total:.1f}%, 시장평균(2.5%) 수준임"
                       )
-                  else:
-                    if op_m >= 16.0:
-                      moat_cut4 = (
-                          f"100원 팔면 원가 빼고 {op_m:.1f}원이 남아 평균 기업(8원)보다 마진이 {op_m/8.0:.1f}배 높음"
+                    elif tsy_total > 0:
+                      tsy_cut7 = (
+                          f"배당·자사주 환원 연 {tsy_total:.1f}%, 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높음' if tsy_vs_mkt > 0 else '낮음'}"
                       )
-                    elif op_m >= 8.0:
-                      moat_cut4 = (
-                          f"100원 팔면 원가 빼고 {op_m:.1f}원이 남아 평균 기업(8원)보다 {margin_diff:.1f}원 더 남김"
+                    elif tsy_total == 0:
+                      tsy_cut7 = "배당·자사주 환원 0%로 사내 재투자에 집중함"
+                    else:
+                      tsy_cut7 = (
+                          f"주식 발행으로 유통주식이 연 {abs(tsy_total):.1f}% 늘어남"
                       )
-                    elif op_m > 0:
-                      moat_cut4 = (
-                          f"100원 팔아도 남는 돈이 {op_m:.1f}원이라 평균 기업(8원)보다 마진이 {abs(margin_diff):.1f}원 낮음"
+
+                    # --- [4. 컷 8~10: 음수(-8.6%) 역산 DCF 자연스러운 한국어 변환 & 깔끔한 결론] ---
+                    if not is_financial and implied_g_shorts is not None:
+                      if imp_g_pct < 0:
+                        dcf_cut8 = (
+                            f"현금이 매년 {abs(imp_g_pct):.1f}%씩 줄어도 현 주가가 설명됨"
+                        )
+                      else:
+                        dcf_cut8 = (
+                            f"현 주가 기준 매년 {imp_g_pct:.1f}%씩 현금이 늘어야 함"
+                        )
+
+                      if growth_gap_pp > 3.0:
+                        dcf_cut9 = (
+                            f"과거 성장률({hist_fcf_g_pct:.1f}%)보다 요구치가 {growth_gap_pp:.1f}%p 높음"
+                        )
+                        gap_badge_txt = (
+                            f"요구치가 실제 성장률보다 +{growth_gap_pp:.1f}%p 높음 (기대치 선반영)"
+                        )
+                        gap_badge_col = (185, 28, 28)
+                      elif growth_gap_pp < -2.0:
+                        dcf_cut9 = (
+                            f"실제는 연 {hist_fcf_g_pct:.1f}%씩 늘어 요구치보다 {abs(growth_gap_pp):.1f}%p 높음"
+                        )
+                        gap_badge_txt = (
+                            f"실제 성장률이 요구치보다 +{abs(growth_gap_pp):.1f}%p 높음 (실적 여유)"
+                        )
+                        gap_badge_col = (5, 122, 85)
+                      else:
+                        dcf_cut9 = (
+                            f"과거 실제 성장률({hist_fcf_g_pct:.1f}%)과 요구치가 거의 일치함"
+                        )
+                        gap_badge_txt = (
+                            f"요구치와 실제 성장률 격차 {growth_gap_pp:+.1f}%p (기대치 부합)"
+                        )
+                        gap_badge_col = (29, 78, 216)
+                    else:
+                      dcf_cut8 = (
+                          f"최근 10년 실제 현금 성장률은 연 {hist_fcf_g_pct:.1f}%임"
+                      )
+                      dcf_cut9 = f"순자산(PBR)은 10년 평균 대비 {disc_txt}임"
+                      gap_badge_txt = f"순자산(PBR) 10년 평균 대비 {disc_txt}"
+                      gap_badge_col = (
+                          (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                      )
+
+                    fail_cnt = 5 - pass_cnt - warn_cnt
+                    if pass_cnt == 5:
+                      end_cut10 = (
+                          "버핏 5대 기준 5개 모두 충족함! 여러분 생각은 어떰?"
                       )
                     else:
-                      moat_cut4 = (
-                          f"현재 영업이익률이 {op_m:.1f}% 적자 상태라 평균 기업(8원) 대비 마진이 훼손됨"
+                      end_cut10 = (
+                          f"버핏 5대 기준 중 {pass_cnt}개 충족함, 여러분 생각은 어떰?"
                       )
 
-                    if roe >= 15.0:
-                      moat_cut5 = (
-                          f"돈 불리는 복리 속도(ROE)도 연 {roe:.1f}%로 예금의 {bank_mult:.1f}배이자 버핏 기준(15%)보다 {roe_vs_buffett:.1f}%p 높음"
-                      )
-                    elif roe >= 7.0:
-                      moat_cut5 = (
-                          f"돈 불리는 속도(ROE)는 연 {roe:.1f}%로 예금의 {bank_mult:.1f}배지만 버핏 기준(15%)보단 {abs(roe_vs_buffett):.1f}%p 낮음"
-                      )
-                    elif roe > 0:
-                      moat_cut5 = (
-                          f"돈 불리는 속도(ROE)는 연 {roe:.1f}%로 버핏 우량 기준(15%)보다 {abs(roe_vs_buffett):.1f}%p 낮은 수준임"
-                      )
-                    else:
-                      moat_cut5 = (
-                          f"현재 자본수익률(ROE)이 연 {roe:.1f}%로 버핏 기준(15%)에 미달하는 적자 구간임"
-                      )
-
-                  # --- [컷 6~7: 미국채 10년물 이자 비교 & 주주환원율 시장평균 비교] ---
-                  ey_gap = ey - ty
-                  if ey_gap >= 0.1:
-                    ey_cut6 = (
-                        f"주식 기대 수익률은 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)보다 {ey_gap:.1f}%p 더 높음"
-                    )
-                  elif ey_gap <= -0.1:
-                    ey_cut6 = (
-                        f"주식 기대 수익률은 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)보다 {abs(ey_gap):.1f}%p 더 낮음"
-                    )
-                  else:
-                    ey_cut6 = (
-                        f"주식 기대 수익률은 연 {ey:.1f}%로 미국채 이자({ty:.1f}%)와 같은 수준임"
-                    )
-
-                  if tsy_total >= 3.0:
-                    tsy_cut7 = (
-                        f"배당·자사주 소각 합친 주주환원은 연 {tsy_total:.1f}%로 시장 평균(2.5%)보다 {tsy_vs_mkt:.1f}%p 높음"
-                    )
-                  elif tsy_total >= 1.8:
-                    tsy_cut7 = (
-                        f"배당·자사주 소각 합친 주주환원은 연 {tsy_total:.1f}%로 시장 평균(2.5%)과 비슷한 수준임"
-                    )
-                  elif tsy_total > 0:
-                    tsy_cut7 = (
-                        f"배당·자사주 소각 합친 주주환원은 연 {tsy_total:.1f}%로 시장 평균(2.5%)보다 {abs(tsy_vs_mkt):.1f}%p 낮음"
-                    )
-                  elif tsy_total == 0:
-                    tsy_cut7 = (
-                        "현재 배당과 자사주 소각이 0%로 주주환원보다 사내 재투자에 집중함"
-                    )
-                  else:
-                    tsy_cut7 = (
-                        f"주식 발행으로 유통주식이 연 {abs(tsy_total):.1f}% 늘어나 주주가치가 희석됨"
-                    )
-
-                  # --- [컷 8~10: 역산 DCF 요구 성장률 vs 실제 성장률 비교 & 완주 유도 최종 판정] ---
-                  if not is_financial and implied_g_shorts is not None:
-                    dcf_cut8 = (
-                        f"현 주가를 정당화하려면 앞으로 매년 {imp_g_pct:.1f}%씩 현금이 성장해야 함"
-                    )
-                    if growth_gap_pp > 3.0:
-                      dcf_cut9 = (
-                          f"과거 실제 성장률({hist_fcf_g_pct:.1f}%)보다 요구치가 {growth_gap_pp:.1f}%p 더 높아서 기대치가 선반영됨"
-                      )
-                      gap_badge_txt = (
-                          f"요구치가 과거 실제 성장률보다 +{growth_gap_pp:.1f}%p 높음 (높은 기대치 선반영)"
-                      )
-                      gap_badge_col = (185, 28, 28)
-                    elif growth_gap_pp < -2.0:
-                      dcf_cut9 = (
-                          f"과거 실제 성장률({hist_fcf_g_pct:.1f}%)보다 요구치가 {abs(growth_gap_pp):.1f}%p 더 낮아서 실적 여유가 있음"
-                      )
-                      gap_badge_txt = (
-                          f"요구치가 과거 실제 성장률보다 {abs(growth_gap_pp):.1f}%p 낮음 (실제 실적이 상회)"
-                      )
-                      gap_badge_col = (5, 122, 85)
-                    else:
-                      dcf_cut9 = (
-                          f"과거 실제 성장률({hist_fcf_g_pct:.1f}%)과 시장 요구치가 {abs(growth_gap_pp):.1f}%p 차이로 거의 일치함"
-                      )
-                      gap_badge_txt = (
-                          f"요구치와 과거 실제 성장률 격차 {growth_gap_pp:+.1f}%p (시장 기대치와 부합)"
-                      )
-                      gap_badge_col = (29, 78, 216)
-                  else:
-                    dcf_cut8 = (
-                        f"최근 10년간 실제 현금 복리 성장 속도는 연 {hist_fcf_g_pct:.1f}%를 기록함"
-                    )
-                    dcf_cut9 = f"장부 순자산(PBR) 기준으로는 10년 평균 대비 {disc_txt}에 위치함"
-                    gap_badge_txt = f"장부 순자산(PBR) 10년 평균 대비 {disc_txt}"
-                    gap_badge_col = (
-                        (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
-                    )
-
-                  fail_cnt = 5 - pass_cnt - warn_cnt
-                  pop_chunks = [
-                      (
-                          f"워런 버핏이 가게 인수하듯 {comp_name} 10년 장부 뜯어봄",
-                          "SCENE_HOOK",
-                      ),
-                      (hook_cut2, "SCENE_HOOK"),
-                      (val_cut3, "SCENE_1"),
-                      (moat_cut4, "SCENE_2"),
-                      (moat_cut5, "SCENE_2"),
-                      (ey_cut6, "SCENE_3"),
-                      (tsy_cut7, "SCENE_3"),
-                      (dcf_cut8, "SCENE_4"),
-                      (dcf_cut9, "SCENE_4"),
-                      (
-                          f"버핏 5대 기준 대입 결과 통과 {pass_cnt}개·보통 {warn_cnt}개·미달 {fail_cnt}개임, 여러분 생각은 어떰?",
-                          "SCENE_4",
-                      ),
-                  ]
+                    pop_chunks = [
+                        (f"버핏 관점으로 {comp_name} 10년 장부 뜯어봄", "SCENE_HOOK"),
+                        (hook_cut2, "SCENE_HOOK"),
+                        (val_cut3, "SCENE_1"),
+                        (moat_cut4, "SCENE_2"),
+                        (moat_cut5, "SCENE_2"),
+                        (ey_cut6, "SCENE_3"),
+                        (tsy_cut7, "SCENE_3"),
+                        (dcf_cut8, "SCENE_4"),
+                        (dcf_cut9, "SCENE_4"),
+                        (end_cut10, "SCENE_4"),
+                    ]
 
                   def _fix_tts_pronunciation(text_s):
                     s = str(text_s)
@@ -7376,7 +7349,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         518,
                         582,
                         268,
-                        "내 돈 불리는 속도 (ROE)",
+                        "내 돈 불리는 속도",
                         get_font,
                         start_sz=19,
                         min_sz=13,
@@ -8230,45 +8203,87 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             fill=p_col,
                         )
 
-                    # 3. 캔버스 하단 검은 직사각형 자막 박스 (Y: 870)
-                    sub_clean = str(sub_text).strip()
-                    is_hook_cut = chunk_idx <= 1
-                    sub_font = get_font(40, is_serif=is_hook_cut)
-                    bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
-                    tw = bb[2] - bb[0]
-                    while tw > (W - 56) and sub_font.size > 20:
-                      sub_font = get_font(
-                          sub_font.size - 2, is_serif=is_hook_cut
-                      )
-                      bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
-                      tw = bb[2] - bb[0]
-                    th = bb[3] - bb[1]
-                    draw.rectangle(
-                        [
-                            max(14, (W - tw) // 2 - 22),
-                            870 - th // 2 - 14,
-                            min(W - 14, (W + tw) // 2 + 22),
-                            870 + th // 2 + 14,
-                        ],
-                        fill=(0, 0, 0),
-                    )
-                    txt_col = (
-                        (255, 60, 30)
-                        if chunk_idx == 1
-                        else (
-                            (255, 240, 0)
-                            if chunk_idx in [0, total_chunks - 1]
-                            else (255, 255, 255)
+                    # 3. 캔버스 하단 검은 직사각형 자막 박스 (절대 안 잘리는 자동 축소 & 2줄 분할 엔진)
+                        sub_clean = str(sub_text).strip()
+                        is_hook_cut = chunk_idx <= 1
+                        txt_col = (
+                            (255, 60, 30)
+                            if chunk_idx == 1
+                            else (
+                                (255, 240, 0)
+                                if chunk_idx in [0, total_chunks - 1]
+                                else (255, 255, 255)
+                            )
                         )
-                    )
-                    draw.text(
-                        (W // 2, 870),
-                        sub_clean,
-                        font=sub_font,
-                        fill=txt_col,
-                        anchor="mm",
-                    )
+                        max_sub_w = W - 64  # 좌우 안전 여백 확보 (최대 폭 656px)
 
+                        sub_font = get_font(38, is_serif=is_hook_cut)
+                        bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
+                        tw = bb[2] - bb[0]
+                        while tw > max_sub_w and sub_font.size > 22:
+                          sub_font = get_font(
+                              sub_font.size - 2, is_serif=is_hook_cut
+                          )
+                          bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
+                          tw = bb[2] - bb[0]
+
+                        # 만약 22px로 줄여도 길면 자연스럽게 2줄로 자동 분할하여 절대 잘리지 않게 처리
+                        if tw > max_sub_w and " " in sub_clean:
+                          words = sub_clean.split(" ")
+                          mid = len(words) // 2
+                          line1 = " ".join(words[:mid])
+                          line2 = " ".join(words[mid:])
+                          sub_font = get_font(28, is_serif=is_hook_cut)
+                          bb1 = draw.textbbox((0, 0), line1, font=sub_font)
+                          bb2 = draw.textbbox((0, 0), line2, font=sub_font)
+                          tw = max(bb1[2] - bb1[0], bb2[2] - bb2[0])
+                          draw.rectangle(
+                              [
+                                  max(12, (W - tw) // 2 - 20),
+                                  828,
+                                  min(W - 12, (W + tw) // 2 + 20),
+                                  914,
+                              ],
+                              fill=(0, 0, 0),
+                          )
+                          draw.text(
+                              (W // 2, 852),
+                              line1,
+                              font=sub_font,
+                              fill=txt_col,
+                              anchor="mm",
+                          )
+                          draw.text(
+                              (W // 2, 890),
+                              line2,
+                              font=sub_font,
+                              fill=txt_col,
+                              anchor="mm",
+                          )
+                        else:
+                          while tw > max_sub_w and sub_font.size > 14:
+                            sub_font = get_font(
+                                sub_font.size - 1, is_serif=is_hook_cut
+                            )
+                            bb = draw.textbbox((0, 0), sub_clean, font=sub_font)
+                            tw = bb[2] - bb[0]
+                          th = bb[3] - bb[1]
+                          draw.rectangle(
+                              [
+                                  max(12, (W - tw) // 2 - 20),
+                                  870 - th // 2 - 14,
+                                  min(W - 12, (W + tw) // 2 + 20),
+                                  870 + th // 2 + 14,
+                              ],
+                              fill=(0, 0, 0),
+                          )
+                          draw.text(
+                              (W // 2, 870),
+                              sub_clean,
+                              font=sub_font,
+                              fill=txt_col,
+                              anchor="mm",
+                          )
                     # 4. 하단 블랙 레터박스 면책 고지
                     _fit_single_line(
                         draw,
@@ -9956,32 +9971,64 @@ with tab_vs:
                     def_vs_spd = 26 if "박창수" in vs_voice else 28
                     vs_speed = st.slider("3️⃣ 말하기 배속", 10, 45, def_vs_spd, 1, format="+%d%%", key="vs_shorts_spd")
 
-                na, nb = res_a['name'], res_b['name']
-                is_kr_or_pbr = (res_a['tk'].endswith(('.KS', '.KQ')) or res_b['tk'].endswith(('.KS', '.KQ')) or res_a['is_fin'] or res_b['is_fin'])
-                w_roe = na if res_a['roe'] >= res_b['roe'] else nb
-                w_mos = na if res_a['mos'] >= res_b['mos'] else nb
+                na, nb = res_a["name"], res_b["name"]
+                is_kr_or_pbr = (
+                    res_a["tk"].endswith((".KS", ".KQ"))
+                    or res_b["tk"].endswith((".KS", ".KQ"))
+                    or res_a["is_fin"]
+                    or res_b["is_fin"]
+                )
+                w_roe = na if res_a["roe"] >= res_b["roe"] else nb
+                w_mos = na if res_a["mos"] >= res_b["mos"] else nb
+                w_tsy = na if res_a["tsy"] >= res_b["tsy"] else nb
+
+                roe_gap = abs(res_a["roe"] - res_b["roe"])
+                mos_gap = abs(res_a["mos"] - res_b["mos"])
+                tsy_gap = abs(res_a["tsy"] - res_b["tsy"])
 
                 if is_kr_or_pbr:
-                    m_line_vs = f"순자산 대비 주가(PBR)는 {res_a['f_pbr']:.2f}배 대 {res_b['f_pbr']:.2f}배임"
+                  wa_won = int(round(res_a["f_pbr"] * 100, 0) * 100)
+                  wb_won = int(round(res_b["f_pbr"] * 100, 0) * 100)
+                  m_line_vs = f"순자산 1만원당 주가는 {wa_won:,}원 대 {wb_won:,}원임"
                 else:
-                    m_line_vs = f"예상 본전 회수 기간(PER)은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년임"
+                  m_line_vs = f"본전 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년임"
 
                 vs_pop_chunks = [
-                    (f"{na} 대 {nb} 10년 장부 비교해봄", "VS_1"),
-                    ("가치투자 4대 핵심 공식 그대로 대입함", "VS_1"),
+                    (f"버핏 기준으로 {na} 대 {nb} 비교해봄", "VS_1"),
                     (m_line_vs, "VS_1"),
-
-                    (f"10년 평균 대비 할인폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}% 수준임", "VS_2"),
-                    (f"과거 평균 대비 가격 할인율은 {w_mos} 쪽이 더 큼", "VS_2"),
-
-                    ("돈을 불려주는 자본 복리 속도(ROE) 확인해봄", "VS_3"),
-                    (f"연 {res_a['roe']:.1f}% 대 연 {res_b['roe']:.1f}% 기록함", "VS_3"),
-                    (f"자본 수익률 수치는 {w_roe} 쪽이 더 높음", "VS_3"),
-
-                    (f"배당과 소각을 합친 환원율은 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%임", "VS_4"),
-                    (f"복리 속도는 {w_roe}, 할인율은 {w_mos} 쪽이 앞선 걸로 집계됨", "VS_4")
+                    (
+                        f"10년 평균 대비 할인율은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%임",
+                        "VS_2",
+                    ),
+                    (
+                        f"평소 대비 가격 매력은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높음",
+                        "VS_2",
+                    ),
+                    (
+                        f"돈 불리는 속도(ROE)는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%임",
+                        "VS_3",
+                    ),
+                    (
+                        f"자본 복리 속도는 {w_roe} 쪽이 {roe_gap:.1f}%p 더 빠름",
+                        "VS_3",
+                    ),
+                    (
+                        f"배당·소각 주주환원은 연 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%임",
+                        "VS_4",
+                    ),
+                    (
+                        f"주주환원율은 {w_tsy} 쪽이 {tsy_gap:.1f}%p 더 높음",
+                        "VS_4",
+                    ),
+                    (
+                        f"요약하면 수익성은 {w_roe}, 가격은 {w_mos} 우위임",
+                        "VS_4",
+                    ),
+                    (
+                        f"10년 장부 대결, 여러분이라면 어디 선택함?",
+                        "VS_4",
+                    ),
                 ]
-
                 if st.button("🎬 100% 음슴체 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
@@ -10095,57 +10142,272 @@ with tab_vs:
                             n_vs = len(vs_pop_chunks)
 
                             def _draw_vs_pop_frame(c_idx, sub_txt, sc_code):
-                                W, H = 720, 1280
-                                img = Image.new("RGB", (W, H), color=(9, 11, 16))
-                                draw = ImageDraw.Draw(img)
+                              W, H = 720, 1280
+                              img = Image.new("RGB", (W, H), color=(0, 0, 0))
+                              draw = ImageDraw.Draw(img)
 
-                                _fit_line(draw, W//2, 88, W-60, f"{na} vs {nb}", start_sz=50, min_sz=26, fill=(255, 255, 255))
-                                _fit_line(draw, W//2, 165, W-60, "10년 치 장부 비교 결과", start_sz=50, min_sz=28, fill=(250, 204, 21))
-                                draw.rounded_rectangle([40, 222, W-40, 232], radius=5, fill=(30, 41, 59))
-                                draw.rounded_rectangle([40, 222, 40 + int((W-80) * ((c_idx+1)/n_vs)), 232], radius=5, fill=(250, 204, 21))
+                              # 1. 상단 0~110px 크롭 안전 여백 확보
+                              _fit_line(
+                                  draw,
+                                  W // 2,
+                                  148,
+                                  W - 48,
+                                  "워런 버핏의 관점으로 본",
+                                  start_sz=50,
+                                  min_sz=28,
+                                  fill=(255, 255, 255),
+                              )
+                              _fit_line(
+                                  draw,
+                                  W // 2,
+                                  224,
+                                  W - 36,
+                                  f"{na} vs {nb}",
+                                  start_sz=68,
+                                  min_sz=34,
+                                  fill=(255, 240, 0),
+                              )
 
-                                draw.rounded_rectangle([32, 255, W-32, 830], radius=32, fill=(18, 23, 35), outline=(45, 55, 72), width=2)
-                                if sc_code == "VS_1":
-                                    if is_kr_or_pbr:
-                                        m_lbl, va, vb, sa, sb = "비교 1. 순자산 대비 주가 (PBR)", f"{res_a['f_pbr']:.2f}배", f"{res_b['f_pbr']:.2f}배", f"주가 {res_a['p_str']}", f"주가 {res_b['p_str']}"
-                                    else:
-                                        m_lbl, va, vb, sa, sb = "비교 1. 본전 회수 기간 (PER)", f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년", f"주가 {res_a['p_str']}", f"주가 {res_b['p_str']}"
-                                elif sc_code == "VS_2":
-                                    m_lbl, va, vb, sa, sb = "비교 2. 10년 평균 대비 할인율", f"{res_a['mos']:+.0f}%", f"{res_b['mos']:+.0f}%", f"10년평균 PBR {res_a['a_pbr']:.2f}배" if is_kr_or_pbr else f"10년평균 {res_a['a_pe']:.1f}년", f"10년평균 PBR {res_b['a_pbr']:.2f}배" if is_kr_or_pbr else f"10년평균 {res_b['a_pe']:.1f}년"
-                                elif sc_code == "VS_3":
-                                    m_lbl, va, vb, sa, sb = "비교 3. 돈 불리는 복리 속도 (ROE)", f"연 {res_a['roe']:.1f}%", f"연 {res_b['roe']:.1f}%", f"ROIC {res_a['roic']:.1f}%", f"ROIC {res_b['roic']:.1f}%"
+                              # 2. 중앙 화이트 캔버스 (Y: 272 ~ 945)
+                              draw.rectangle(
+                                  [0, 272, W, 945], fill=(255, 255, 255)
+                              )
+                              draw.rectangle(
+                                  [
+                                      0,
+                                      272,
+                                      int(W * ((c_idx + 1) / max(1, n_vs))),
+                                      280,
+                                  ],
+                                  fill=(255, 60, 30),
+                              )
+                              draw.rounded_rectangle(
+                                  [36, 296, W - 36, 792],
+                                  radius=26,
+                                  fill=(248, 250, 252),
+                                  outline=(203, 213, 225),
+                                  width=3,
+                              )
+
+                              if sc_code == "VS_1":
+                                if is_kr_or_pbr:
+                                  m_lbl = "비교 1. 순자산 대비 주가 (PBR)"
+                                  va, vb = (
+                                      f"{res_a['f_pbr']:.2f}배",
+                                      f"{res_b['f_pbr']:.2f}배",
+                                  )
+                                  sa, sb = (
+                                      f"1만원당 {int(round(res_a['f_pbr']*100,0)*100):,}원",
+                                      f"1만원당 {int(round(res_b['f_pbr']*100,0)*100):,}원",
+                                  )
                                 else:
-                                    m_lbl, va, vb, sa, sb = "비교 4. 주주 환원율 (배당+소각)", f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%", f"할인율 {res_a['mos']:+.0f}%", f"할인율 {res_b['mos']:+.0f}%"
+                                  m_lbl = "비교 1. 본전 회수 기간 (PER)"
+                                  va, vb = (
+                                      f"{res_a['f_pe']:.1f}년",
+                                      f"{res_b['f_pe']:.1f}년",
+                                  )
+                                  sa, sb = (
+                                      f"현재가 {res_a['p_str']}",
+                                      f"현재가 {res_b['p_str']}",
+                                  )
+                                badge_vs = m_line_vs
+                              elif sc_code == "VS_2":
+                                m_lbl = "비교 2. 10년 평균 대비 할인율"
+                                va, vb = (
+                                    f"{res_a['mos']:+.0f}%",
+                                    f"{res_b['mos']:+.0f}%",
+                                )
+                                sa = (
+                                    f"10년평균 {res_a['a_pbr']:.2f}배"
+                                    if is_kr_or_pbr
+                                    else f"10년평균 {res_a['a_pe']:.1f}년"
+                                )
+                                sb = (
+                                    f"10년평균 {res_b['a_pbr']:.2f}배"
+                                    if is_kr_or_pbr
+                                    else f"10년평균 {res_b['a_pe']:.1f}년"
+                                )
+                                badge_vs = (
+                                    f"가격 할인폭 우위 : {w_mos} (+{mos_gap:.0f}%p)"
+                                )
+                              elif sc_code == "VS_3":
+                                m_lbl = "비교 3. 돈 불리는 복리 속도 (ROE)"
+                                va, vb = (
+                                    f"연 {res_a['roe']:.1f}%",
+                                    f"연 {res_b['roe']:.1f}%",
+                                )
+                                sa, sb = (
+                                    f"예금의 {max(0.1, res_a['roe']/3.5):.1f}배",
+                                    f"예금의 {max(0.1, res_b['roe']/3.5):.1f}배",
+                                )
+                                badge_vs = (
+                                    f"자본 수익성 우위 : {w_roe} (+{roe_gap:.1f}%p)"
+                                )
+                              else:
+                                m_lbl = "비교 4. 주주환원율 (배당+자사주 소각)"
+                                va, vb = (
+                                    f"연 {res_a['tsy']:.1f}%",
+                                    f"연 {res_b['tsy']:.1f}%",
+                                )
+                                sa, sb = (
+                                    f"종합 {res_a['score']}점",
+                                    f"종합 {res_b['score']}점",
+                                )
+                                badge_vs = (
+                                    f"수익성은 {w_roe} · 가격할인은 {w_mos} 우위"
+                                )
 
-                                _fit_line(draw, W//2, 310, W-80, m_lbl, start_sz=28, min_sz=18, fill=(250, 204, 21))
+                              draw.rounded_rectangle(
+                                  [60, 314, W - 60, 370],
+                                  radius=14,
+                                  fill=(15, 23, 42),
+                              )
+                              _fit_line(
+                                  draw,
+                                  W // 2,
+                                  342,
+                                  W - 150,
+                                  m_lbl,
+                                  start_sz=26,
+                                  min_sz=16,
+                                  fill=(255, 240, 0),
+                              )
 
-                                draw.rounded_rectangle([52, 360, 344, 795], radius=24, fill=(28, 36, 52), outline=(56, 189, 248), width=3)
-                                _fit_line(draw, 198, 440, 260, na, start_sz=36, min_sz=20, fill=(255, 255, 255))
-                                _fit_line(draw, 198, 575, 260, va, start_sz=54, min_sz=26, fill=(56, 189, 248))
-                                _fit_line(draw, 198, 710, 260, sa, start_sz=24, min_sz=15, fill=(148, 163, 184))
+                              draw.rounded_rectangle(
+                                  [56, 390, 346, 684],
+                                  radius=20,
+                                  fill=(255, 255, 255),
+                                  outline=(37, 99, 235),
+                                  width=3,
+                              )
+                              _fit_line(
+                                  draw,
+                                  201,
+                                  442,
+                                  260,
+                                  na,
+                                  start_sz=34,
+                                  min_sz=18,
+                                  fill=(15, 23, 42),
+                              )
+                              _fit_line(
+                                  draw,
+                                  201,
+                                  545,
+                                  260,
+                                  va,
+                                  start_sz=54,
+                                  min_sz=26,
+                                  fill=(29, 78, 216),
+                              )
+                              _fit_line(
+                                  draw,
+                                  201,
+                                  638,
+                                  260,
+                                  sa,
+                                  start_sz=21,
+                                  min_sz=13,
+                                  fill=(100, 116, 139),
+                              )
 
-                                draw.rounded_rectangle([376, 360, W-52, 795], radius=24, fill=(28, 36, 52), outline=(16, 185, 129), width=3)
-                                _fit_line(draw, 522, 440, 260, nb, start_sz=36, min_sz=20, fill=(255, 255, 255))
-                                _fit_line(draw, 522, 575, 260, vb, start_sz=54, min_sz=26, fill=(16, 185, 129))
-                                _fit_line(draw, 522, 710, 260, sb, start_sz=24, min_sz=15, fill=(148, 163, 184))
+                              draw.rounded_rectangle(
+                                  [374, 390, W - 56, 684],
+                                  radius=20,
+                                  fill=(255, 255, 255),
+                                  outline=(5, 122, 85),
+                                  width=3,
+                              )
+                              _fit_line(
+                                  draw,
+                                  519,
+                                  442,
+                                  260,
+                                  nb,
+                                  start_sz=34,
+                                  min_sz=18,
+                                  fill=(15, 23, 42),
+                              )
+                              _fit_line(
+                                  draw,
+                                  519,
+                                  545,
+                                  260,
+                                  vb,
+                                  start_sz=54,
+                                  min_sz=26,
+                                  fill=(5, 122, 85),
+                              )
+                              _fit_line(
+                                  draw,
+                                  519,
+                                  638,
+                                  260,
+                                  sb,
+                                  start_sz=21,
+                                  min_sz=13,
+                                  fill=(100, 116, 139),
+                              )
 
-                                sub_c = str(sub_txt).strip()
-                                sf = _gf(40)
+                              draw.rounded_rectangle(
+                                  [56, 702, W - 56, 772],
+                                  radius=14,
+                                  fill=(15, 23, 42),
+                              )
+                              _fit_line(
+                                  draw,
+                                  W // 2,
+                                  737,
+                                  W - 140,
+                                  badge_vs,
+                                  start_sz=26,
+                                  min_sz=15,
+                                  fill=(255, 255, 255),
+                              )
+
+                              # 3. 하단 자막 박스 (절대 안 잘리는 자동 축소 엔진)
+                              sub_c = str(sub_txt).strip()
+                              sf = _gf(38)
+                              bb = draw.textbbox((0, 0), sub_c, font=sf)
+                              tw = bb[2] - bb[0]
+                              while tw > (W - 64) and sf.size > 15:
+                                sf = _gf(sf.size - 2)
                                 bb = draw.textbbox((0, 0), sub_c, font=sf)
                                 tw = bb[2] - bb[0]
-                                while tw > (W - 64) and sf.size > 22:
-                                    sf = _gf(sf.size - 2)
-                                    bb = draw.textbbox((0, 0), sub_c, font=sf)
-                                    tw = bb[2] - bb[0]
-                                th = bb[3] - bb[1]
-                                bx1, bx2 = max(18, (W - tw)//2 - 28), min(W - 18, (W + tw)//2 + 28)
-                                by1, by2 = 925 - th//2 - 20, 925 + th//2 + 20
-                                draw.rounded_rectangle([bx1, by1, bx2, by2], radius=18, fill=(0, 0, 0), outline=(250, 204, 21), width=3)
-                                draw.text((W//2, 925), sub_c, font=sf, fill=(255, 255, 255), anchor="mm")
+                              th = bb[3] - bb[1]
+                              draw.rectangle(
+                                  [
+                                      max(12, (W - tw) // 2 - 20),
+                                      870 - th // 2 - 14,
+                                      min(W - 12, (W + tw) // 2 + 20),
+                                      870 + th // 2 + 14,
+                                  ],
+                                  fill=(0, 0, 0),
+                              )
+                              sub_col = (
+                                  (255, 240, 0)
+                                  if c_idx in [0, n_vs - 1]
+                                  else (255, 255, 255)
+                              )
+                              draw.text(
+                                  (W // 2, 870),
+                                  sub_c,
+                                  font=sf,
+                                  fill=sub_col,
+                                  anchor="mm",
+                              )
 
-                                _fit_line(draw, W//2, 1120, W-50, "공시 데이터 기반 교육용 비교이며 매수·매도 추천이 아닙니다", start_sz=18, min_sz=13, fill=(148, 163, 184))
-                                return img
-
+                              _fit_line(
+                                  draw,
+                                  W // 2,
+                                  1080,
+                                  W - 50,
+                                  "공시 데이터 기반 학술·교육용 비교이며 매수·매도 추천이 아닙니다",
+                                  start_sz=17,
+                                  min_sz=12,
+                                  fill=(100, 100, 100),
+                              )
+                              return img
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                             cleans = []
                             seg_list = [None] * n_vs
