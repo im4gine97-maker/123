@@ -6458,13 +6458,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
-# =====================================================================
-                # [초보자·4060 직관형 비교 썸네일 + 괄호 음성 제거 + 자막 잘림 해결] 6. 쇼츠 스튜디오
                 # =====================================================================
-                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (직관형 비교 썸네일 + 괄호읽기 방지 + 3대 플랫폼 업로드)", "🎬 6. Safe-Margin 10-Cut Shorts Studio"), expanded=False):
+                # [괄호 발음 100% 제거 + 자막 잘림 방지 + 초보자 직관형 비교 썸네일] 6. 쇼츠 스튜디오
+                # =====================================================================
+                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (상단 잘림 해결 + 964만뷰 스타일 + 3대 플랫폼 업로드)", "🎬 6. Safe-Margin 10-Cut Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **업그레이드 완료:** ① 대본에서 괄호 기호를 완전히 제거하여 AI 성우가 **'괄호열고/괄호닫고'라고 읽는 현상 100% 차단**, ② 모호한 `0.00배` 대신 **10년 평균 대비 얼마나 낮거나 높은지 1초 만에 이해되는 직관형 비교 썸네일** 적용, ③ 긴 문장 **자동 크기 축소 및 2줄 분할**로 글자 잘림을 완벽히 해결했습니다.",
-                        "💡 Fixed parenthesis TTS reading issue, upgraded comparison thumbnail, and prevented subtitle clipping."
+                        "💡 **업그레이드 완료:** ① 대본 및 TTS에서 괄호를 완전히 제거해 **'괄호 열고/닫고' 발음 오류 100% 차단**, ② 모호한 `0.89배` 대신 **10년 평균·예금·국채 대비 얼마나 높거나 낮은지** 직관적으로 비교하는 썸네일 적용[cite: 1], ③ 글자가 길어져도 절대 안 잘리는 **자동 축소·2줄 분할 자막 엔진**이 적용되었습니다.",
+                        "💡 Upgraded thumbnail, removed parentheses from TTS, and prevented subtitle clipping."
                     ))
 
                     col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
@@ -6544,7 +6544,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
                     pe_diff_yr = abs(f_pe - a_pe)
 
-                    # --- [1. 썸네일 & 컷 1~3: 괄호 전혀 없는 직관적 가격 비교] ---
+                    # --- [괄호 완전 제거 & 25자 이내 초단문 비교 대본 생성] ---
                     if is_financial:
                         pbr_reason_tag = "금융업 특성상 장부 순자산 기준으로 10년 평균과 비교함"
                         thumb_compare_bar = f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
@@ -6580,18 +6580,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             hook_cut2 = f"본전 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 길어짐"
                             val_cut3 = f"평소 {a_pe:.1f}년 걸리던 본전 회수가 지금은 {f_pe:.1f}년임"
                         else:
-                            thumb_giant_num = f"본전 회수 {f_pe:.1f}년 · 평균 일치"
+                            thumb_giant_num = f"본전 회수 {f_pe:.1f}년"
                             thumb_red_quote = f"“100원에 {margin_won}원 남는데 본전 회수는 {f_pe:.1f}년?”"
                             hook_cut2 = f"본전 회수 기간이 10년 평균과 같은 {f_pe:.1f}년임"
                             val_cut3 = f"10년 평균 {a_pe:.1f}년 대비 현재 {f_pe:.1f}년으로 동일함"
 
-                    # --- [2. 컷 4~5: 괄호 제거 & 0.0원 모순 해결 마진·복리 비교] ---
+                    # --- [컷 4~5: 괄호 없는 마진·ROE 비교] ---
                     if is_financial:
-                        moat_cut4 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 예금의 {bank_mult:.1f}배임" if roe > 0 else f"현재 자본수익률 연 {roe:.1f}%로 적자 구간임"
+                        moat_cut4 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임" if roe > 0 else f"현재 자본수익률 연 {roe:.1f}%로 적자 구간임"
                         moat_cut5 = f"금융권 우량 기준 10%보다 {abs(roe - 10.0):.1f}%p {'높음' if roe >= 10 else '낮음'}"
                     else:
                         if abs(margin_diff) < 0.5:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 기업 8원과 비슷함"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 8원과 비슷함"
                         elif margin_diff >= 0.5:
                             moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 8원보다 {margin_diff:.1f}원 높음"
                         elif op_m > 0:
@@ -6600,21 +6600,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             moat_cut4 = f"현재 영업이익률 {op_m:.1f}%로 적자 구간에 머묾"
 
                         if roe >= 15.0:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
                         elif roe > 0:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
                         else:
-                            moat_cut5 = f"돈 불리는 복리 속도 연 {roe:.1f}%로 수익성 회복 필요함"
+                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%로 수익성 회복 필요함"
 
-                    # --- [3. 컷 6~7: 괄호 제거 국채 비교 & 주주환원율] ---
+                    # --- [컷 6~7: 괄호 없는 국채 비교 & 주주환원율] ---
                     ey_gap = ey - ty
                     if abs(ey_gap) < 0.2:
-                        ey_cut6 = f"기대수익률 연 {ey:.1f}%, 미국채 금리 {ty:.1f}%와 비슷함"
+                        ey_cut6 = f"기대수익률 연 {ey:.1f}%, 미국채 금리와 비슷함"
                     else:
                         ey_cut6 = f"기대수익률 연 {ey:.1f}%, 미국채보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}"
 
                     if abs(tsy_vs_mkt) < 0.3:
-                        tsy_cut7 = f"배당·자사주 환원 연 {tsy_total:.1f}%, 시장평균 2.5% 수준임"
+                        tsy_cut7 = f"배당·자사주 환원 연 {tsy_total:.1f}%, 시장평균 수준임"
                     elif tsy_total > 0:
                         tsy_cut7 = f"배당·자사주 환원 연 {tsy_total:.1f}%, 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높음' if tsy_vs_mkt > 0 else '낮음'}"
                     elif tsy_total == 0:
@@ -6622,7 +6622,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         tsy_cut7 = f"주식 발행으로 유통주식이 연 {abs(tsy_total):.1f}% 늘어남"
 
-                    # --- [4. 컷 8~10: 괄호 제거 & 음수 역산 DCF 자연스러운 변환] ---
+                    # --- [컷 8~10: 괄호 없는 역산 DCF 비교 & 결론] ---
                     if not is_financial and implied_g_shorts is not None:
                         if imp_g_pct < 0:
                             dcf_cut8 = f"현금이 매년 {abs(imp_g_pct):.1f}%씩 줄어도 현 주가가 설명됨"
@@ -6630,20 +6630,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             dcf_cut8 = f"현 주가 기준 매년 {imp_g_pct:.1f}%씩 현금이 늘어야 함"
 
                         if growth_gap_pp > 3.0:
-                            dcf_cut9 = f"과거 성장률 연 {hist_fcf_g_pct:.1f}%보다 요구치가 {growth_gap_pp:.1f}%p 높음"
-                            gap_badge_txt = f"요구치가 실제 성장률보다 +{growth_gap_pp:.1f}%p 높음"
+                            dcf_cut9 = f"실제는 연 {hist_fcf_g_pct:.1f}%씩 늘어 요구치가 {growth_gap_pp:.1f}%p 더 높음"
+                            gap_badge_txt = f"요구치가 실제 성장률보다 +{growth_gap_pp:.1f}%p 높음 (기대치 선반영)"
                             gap_badge_col = (185, 28, 28)
                         elif growth_gap_pp < -2.0:
                             dcf_cut9 = f"실제는 연 {hist_fcf_g_pct:.1f}%씩 늘어 요구치보다 {abs(growth_gap_pp):.1f}%p 높음"
-                            gap_badge_txt = f"실제 성장률이 요구치보다 +{abs(growth_gap_pp):.1f}%p 높음"
+                            gap_badge_txt = f"실제 성장률이 요구치보다 +{abs(growth_gap_pp):.1f}%p 높음 (실적 여유)"
                             gap_badge_col = (5, 122, 85)
                         else:
-                            dcf_cut9 = f"과거 실제 성장률 연 {hist_fcf_g_pct:.1f}%와 요구치가 일치함"
-                            gap_badge_txt = f"요구치와 실제 성장률 격차 {growth_gap_pp:+.1f}%p"
+                            dcf_cut9 = f"실제 성장률 연 {hist_fcf_g_pct:.1f}%와 시장 요구치가 일치함"
+                            gap_badge_txt = f"요구치와 실제 성장률 격차 {growth_gap_pp:+.1f}%p (기대치 부합)"
                             gap_badge_col = (29, 78, 216)
                     else:
                         dcf_cut8 = f"최근 10년 실제 현금 성장률은 연 {hist_fcf_g_pct:.1f}%임"
-                        dcf_cut9 = f"순자산 배수는 10년 평균 대비 {disc_txt}임"
+                        dcf_cut9 = f"순자산 기준 주가는 10년 평균 대비 {disc_txt}임"
                         gap_badge_txt = f"순자산 10년 평균 대비 {disc_txt}"
                         gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
@@ -6668,10 +6668,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
-                        # [핵심 수리] 괄호 기호를 모두 공백으로 치환하여 '괄호열고/괄호닫고' 발음 원천 차단!
-                        s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
+                        # [핵심] 괄호 안의 영문 약어나 기호가 '괄호 열고/닫고'로 읽히지 않도록 완전 제거
+                        s = re.sub(r'\(\s*(ROE|ROIC|PER|PBR|DCF|FCF|EPS|BPS)\s*\)', '', s)
+                        s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
                         pron_map = [
                             ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
                             ("NAVER", "네이버"), ("KAKAO", "카카오"), ("HYUNDAI", "현대"),
@@ -6692,8 +6693,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         ]
                         for eng_k, kor_v in pron_map:
                             s = s.replace(eng_k, kor_v)
-                        s = re.sub(r'\s+', ' ', s).strip()
-                        return s
+                        return re.sub(r'\s+', ' ', s).strip()
 
                     def _generate_silent_wav(out_wav_path, dur_sec=0.15):
                         import wave
@@ -6868,23 +6868,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             _fit_single_line(draw, 202, 582, 268, "100원 팔면 남는 순수 마진", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                             _fit_single_line(draw, 202, 624, 268, f"{op_m:.1f}원", get_font, start_sz=38, min_sz=22, fill=(29, 78, 216) if op_m >= 8.0 else (185, 28, 28))
-                            m_cmp_txt = f"평균 8원보다 {abs(margin_diff):.1f}원 {'더 남김' if margin_diff >= 0 else '적음'}" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                            m_cmp_txt = "평균 8원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 8원보다 {abs(margin_diff):.1f}원 {'높음' if margin_diff >= 0 else '낮음'}"
                             _fit_single_line(draw, 202, 658, 268, m_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                         draw.rounded_rectangle([372, 554, W-56, 678], radius=16, fill=(255, 255, 255), outline=(203, 213, 225), width=3)
-                        _fit_single_line(draw, 518, 582, 268, "내 돈 불리는 복리 속도", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
+                        _fit_single_line(draw, 518, 582, 268, "내 돈 불리는 속도 ROE", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                         _fit_single_line(draw, 518, 624, 268, f"연 {roe:.1f}%", get_font, start_sz=38, min_sz=22, fill=(5, 122, 85) if roe >= 10.0 else (180, 83, 9))
                         r_cmp_txt = f"은행 예금의 {bank_mult:.1f}배 속도" if roe > 0 else "현재 적자 구간"
                         _fit_single_line(draw, 518, 658, 268, r_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(180, 83, 9))
 
                         pill_c = (5, 122, 85) if pass_cnt >= 3 else ((180, 83, 9) if pass_cnt == 2 else (185, 28, 28))
                         draw.rounded_rectangle([56, 694, W-56, 772], radius=18, fill=pill_c)
-                        _fit_single_line(draw, W//2, 733, W-140, f"버핏 5대 장부 기준 : 5개 중 {pass_cnt}개 충족!", get_font, start_sz=30, min_sz=18, fill=(255, 255, 255))
+                        _fit_single_line(draw, W//2, 733, W-140, f"버핏 5대 기준 : 5개 중 {pass_cnt}개 충족!", get_font, start_sz=30, min_sz=18, fill=(255, 255, 255))
 
-                        q_font = get_font(42, is_serif=True)
+                        q_font = get_font(40, is_serif=True)
                         q_bb = draw.textbbox((0, 0), thumb_red_quote, font=q_font)
                         q_w = q_bb[2] - q_bb[0]
-                        while q_w > (W - 56) and q_font.size > 20:
+                        while q_w > (W - 56) and q_font.size > 16:
                             q_font = get_font(q_font.size - 2, is_serif=True)
                             q_bb = draw.textbbox((0, 0), thumb_red_quote, font=q_font)
                             q_w = q_bb[2] - q_bb[0]
@@ -6926,18 +6926,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             else:
                                 _fit_single_line(draw, 202, 582, 268, "100원 팔면 남는 순수 마진", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                                 _fit_single_line(draw, 202, 624, 268, f"{op_m:.1f}원", get_font, start_sz=38, min_sz=22, fill=(29, 78, 216) if op_m >= 8.0 else (185, 28, 28))
-                                m_cmp_txt = f"평균 8원보다 {abs(margin_diff):.1f}원 {'더 남김' if margin_diff >= 0 else '적음'}" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                                m_cmp_txt = "평균 8원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 8원보다 {abs(margin_diff):.1f}원 {'높음' if margin_diff >= 0 else '낮음'}"
                                 _fit_single_line(draw, 202, 658, 268, m_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                             draw.rounded_rectangle([372, 554, W-56, 678], radius=16, fill=(255, 255, 255), outline=(203, 213, 225), width=3)
-                            _fit_single_line(draw, 518, 582, 268, "내 돈 불리는 복리 속도", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
+                            _fit_single_line(draw, 518, 582, 268, "내 돈 불리는 속도 ROE", get_font, start_sz=19, min_sz=13, fill=(71, 85, 105))
                             _fit_single_line(draw, 518, 624, 268, f"연 {roe:.1f}%", get_font, start_sz=38, min_sz=22, fill=(5, 122, 85) if roe >= 10.0 else (180, 83, 9))
                             r_cmp_txt = f"은행 예금의 {bank_mult:.1f}배 속도" if roe > 0 else "현재 적자 구간"
                             _fit_single_line(draw, 518, 658, 268, r_cmp_txt, get_font, start_sz=16, min_sz=11, fill=(180, 83, 9))
 
                             pill_c = (5, 122, 85) if pass_cnt >= 3 else ((180, 83, 9) if pass_cnt == 2 else (185, 28, 28))
                             draw.rounded_rectangle([56, 694, W-56, 772], radius=18, fill=pill_c)
-                            _fit_single_line(draw, W//2, 733, W-140, f"버핏 5대 장부 기준 : 5개 중 {pass_cnt}개 충족!", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 733, W-140, f"버핏 5대 기준 : 5개 중 {pass_cnt}개 충족!", get_font, start_sz=30, min_sz=18, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_1":
                             draw.rounded_rectangle([60, 388, W-60, 434], radius=10, fill=(224, 242, 254))
@@ -6945,7 +6945,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                             cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
                             avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
-                            m_title_s = "현재 순자산 배수" if use_pbr_m else "현재 본전 회수 기간"
+                            m_title_s = "현재 순자산 배수 PBR" if use_pbr_m else "현재 본전 회수 PER"
                             sub_avg_s = f"순자산 1만원당 {avg_pbr_won:,}원" if use_pbr_m else "과거 10년 평균 회수기간"
                             sub_cur_s = f"순자산 1만원당 {cur_pbr_won:,}원" if use_pbr_m else f"평소 대비 {f_pe - a_pe:+.1f}년 차이"
 
@@ -6967,11 +6967,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([60, 392, 346, 688], radius=20, fill=(255, 255, 255), outline=(37, 99, 235), width=3)
                             _fit_single_line(draw, 203, 440, 260, "100원 팔면 남는 순수 마진", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
                             _fit_single_line(draw, 203, 540, 260, f"{op_m:.1f}원", get_font, start_sz=58, min_sz=30, fill=(29, 78, 216))
-                            m_sub_s = f"평균 기업 8원 대비 {margin_diff:+.1f}원" if abs(margin_diff) >= 0.5 else "평균 기업 8원과 동일 수준"
+                            m_sub_s = "평균 8원과 비슷함" if abs(margin_diff) < 0.5 else f"평균 8원 대비 {margin_diff:+.1f}원"
                             _fit_single_line(draw, 203, 636, 260, m_sub_s, get_font, start_sz=19, min_sz=13, fill=(5, 122, 85) if margin_diff >= -0.5 else (185, 28, 28))
 
                             draw.rounded_rectangle([374, 392, W-60, 688], radius=20, fill=(255, 255, 255), outline=(5, 122, 85), width=3)
-                            _fit_single_line(draw, 517, 440, 260, "돈 불리는 복리 속도", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
+                            _fit_single_line(draw, 517, 440, 260, "돈 불리는 속도 ROE", get_font, start_sz=22, min_sz=14, fill=(71, 85, 105))
                             _fit_single_line(draw, 517, 540, 260, f"연 {roe:.1f}%", get_font, start_sz=58, min_sz=30, fill=(5, 122, 85))
                             r_sub_s = f"예금의 {bank_mult:.1f}배 · 버핏기준 {roe_vs_buffett:+.1f}%p"
                             _fit_single_line(draw, 517, 636, 260, r_sub_s, get_font, start_sz=18, min_sz=12, fill=(180, 83, 9))
@@ -6986,7 +6986,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 203, 636, 260, f"미국채 {ty:.1f}%보다 {abs(ey - ty):.1f}%p {'높음' if (ey - ty) >= 0 else '낮음'}", get_font, start_sz=20, min_sz=13, fill=(5, 122, 85) if (ey - ty) >= 0 else (185, 28, 28))
 
                             draw.rounded_rectangle([374, 392, W-60, 688], radius=20, fill=(255, 255, 255), outline=(124, 58, 237), width=3)
-                            _fit_single_line(draw, 517, 440, 260, "배당 + 자사주 소각 환원율", get_font, start_sz=22, min_sz=14, fill=(109, 40, 217))
+                            _fit_single_line(draw, 517, 440, 260, "배당 + 자사주 소각", get_font, start_sz=22, min_sz=14, fill=(109, 40, 217))
                             _fit_single_line(draw, 517, 540, 260, f"연 {tsy_total:.1f}%", get_font, start_sz=56, min_sz=30, fill=(109, 40, 217))
                             _fit_single_line(draw, 517, 636, 260, f"시장평균 2.5% 대비 {tsy_vs_mkt:+.1f}%p", get_font, start_sz=20, min_sz=13, fill=(5, 122, 85) if tsy_vs_mkt >= 0 else (100, 116, 139))
 
@@ -7005,7 +7005,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([60, 546, W-60, 598], radius=10, fill=gap_badge_col)
                             _fit_single_line(draw, W//2, 572, W-140, gap_badge_txt, get_font, start_sz=20, min_sz=13, fill=(255, 255, 255))
 
-                            _fit_single_line(draw, W//2, 632, W-100, f"버핏의 5대 기준 최종 판정 : 5개 중 {pass_cnt}개 충족!", get_font, start_sz=24, min_sz=15, fill=(15, 23, 42))
+                            _fit_single_line(draw, W//2, 632, W-100, f"버핏의 5대 기준 최종 판정 : 5개 중 {pass_cnt}개 충족", get_font, start_sz=23, min_sz=15, fill=(15, 23, 42))
 
                             five_pillars = [
                                 ("1.경제적해자", c1_st),
@@ -7109,7 +7109,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         vid_id = resp.get("id", "")
                         return True, f"https://youtube.com/shorts/{vid_id}"
 
-                    if st.button("🎬 1단계: 직관형 비교 썸네일 + 괄호제거 10컷 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 괄호 발음 제거 + 안 잘리는 10컷 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
                             with st.spinner("직관형 비교 썸네일 및 10컷 압축 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
@@ -7221,7 +7221,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     has_video_ready = (f"saved_shorts_mp4_{clean_tk}" in st.session_state)
                     if has_video_ready:
                         saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
-                        st.success("🎉 괄호 읽기 방지 & 직관형 비교 10컷 쇼츠 생성 완료! 아래에서 확인하거나 바로 업로드하세요.")
+                        st.success("🎉 괄호 발음 제거 & 자막 잘림 방어 10컷 쇼츠 생성 완료! 아래에서 확인하거나 바로 업로드하세요.")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
@@ -7328,7 +7328,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception as tt_e:
                                         st.error(f"틱톡 업로드 실패: {tt_e}")
 
-                    st.markdown("#### 📜 괄호 제거 완료 · 10컷 초단문 자막 대본")
+                    st.markdown("#### 📜 괄호 제거 & 잘림 방어 10컷 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # =====================================================================
                 st.divider()
@@ -8404,11 +8404,11 @@ with tab_vs:
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
             # =====================================================================
-            # [괄호 읽기 방지 + 화이트&블랙 직관형 비교 + 자막 잘림 해결] 📊 1:1 종목 비교 쇼츠 스튜디오
+            # [괄호 발음 100% 제거 + 화이트&블랙 직관형 비교 + 잘림 방어] 📊 1:1 종목 비교 쇼츠 스튜디오
             # =====================================================================
             st.divider()
             with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 100% 음슴체 1:1 비교 쇼츠(.mp4)", "🎬 10-Cut Core Comparison Shorts Studio"), expanded=True):
-                st.info("💡 **괄호 읽기 방지 & 화이트·블랙 직관형 비교 완료:** 대본 내 괄호를 모두 없애고 순자산 1만 원당 주가와 격차(%p)를 한눈에 비교합니다.")
+                st.info("💡 **괄호 제거 & 화이트·블랙 직관형 비교 완료:** '괄호 열고/닫고' 발음 오류를 원천 차단하고, 두 기업의 격차(%p · 원)를 안 잘리는 자막으로 비교합니다.")
 
                 vs_col1, vs_col2, vs_col3 = st.columns([1.4, 1.3, 1.1])
                 with vs_col1:
@@ -8455,21 +8455,21 @@ with tab_vs:
                 else:
                     m_line_vs = f"본전 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년임"
 
-                # 괄호를 완전히 제거한 10컷 초단문 비교 대본
+                # 괄호를 100% 제거한 1:1 비교 대본
                 vs_pop_chunks = [
                     (f"버핏 기준으로 {na} 대 {nb} 비교해봄", "VS_1"),
                     (m_line_vs, "VS_1"),
                     (f"10년 평균 대비 할인율은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%임", "VS_2"),
-                    (f"평소 대비 가격 할인폭은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 큼", "VS_2"),
-                    (f"돈 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%임", "VS_3"),
-                    (f"자본 수익성은 {w_roe} 쪽이 {roe_gap:.1f}%p 더 빠름", "VS_3"),
+                    (f"평소 대비 가격 매력은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높음", "VS_2"),
+                    (f"돈 불리는 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%임", "VS_3"),
+                    (f"자본 복리 속도는 {w_roe} 쪽이 {roe_gap:.1f}%p 더 빠름", "VS_3"),
                     (f"배당·소각 주주환원은 연 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%임", "VS_4"),
                     (f"주주환원율은 {w_tsy} 쪽이 {tsy_gap:.1f}%p 더 높음", "VS_4"),
                     (f"요약하면 수익성은 {w_roe}, 가격은 {w_mos} 우위임", "VS_4"),
                     ("10년 장부 대결, 여러분이라면 어디 선택함?", "VS_4")
                 ]
 
-                if st.button("🎬 100% 음슴체 · 괄호제거 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
+                if st.button("🎬 괄호 발음 제거 + 안 잘리는 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
                         import imageio_ffmpeg, subprocess, tempfile, os, re, wave, struct, math
@@ -8489,7 +8489,7 @@ with tab_vs:
                                         except Exception: continue
                                 return ImageFont.load_default()
 
-                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=14, fill=(255,255,255)):
+                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=13, fill=(255,255,255)):
                                 t_s = str(text).strip()
                                 for sz in range(start_sz, min_sz - 1, -2):
                                     f = _gf(sz)
@@ -8501,9 +8501,9 @@ with tab_vs:
                                 draw.text((cx, cy), t_s, font=f, fill=fill, anchor="mm")
 
                             def _fix_vs_pron(t_in):
-                                s = str(t_in)
+                                s = re.sub(r'\$([\d,\.]+)', r'\1달러', str(t_in)).replace("%p", "퍼센트포인트")
+                                s = re.sub(r'\(\s*(ROE|ROIC|PER|PBR|DCF|FCF|EPS|BPS)\s*\)', '', s)
                                 s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
-                                s = re.sub(r'\$([\d,\.]+)', r'\1달러', s).replace("%p", "퍼센트포인트")
                                 for ek, kv in [
                                     ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
                                     ("NAVER", "네이버"), ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"),
@@ -8513,8 +8513,7 @@ with tab_vs:
                                     ("GS", "지에스 "), ("HMM", "에이치엠엠 "), ("HLB", "에이치엘비 "), ("AMD", "에이엠디")
                                 ]:
                                     s = s.replace(ek, kv)
-                                s = re.sub(r'\s+', ' ', s).strip()
-                                return s
+                                return re.sub(r'\s+', ' ', s).strip()
 
                             def _make_vs_bgm(out_w, dur_s, b_style):
                                 sr = 24000
@@ -8598,11 +8597,11 @@ with tab_vs:
 
                                 if sc_code == "VS_1":
                                     if is_kr_or_pbr:
-                                        m_lbl = "비교 1. 순자산 대비 주가 배수"
+                                        m_lbl = "비교 1. 순자산 대비 주가 PBR"
                                         va, vb = f"{res_a['f_pbr']:.2f}배", f"{res_b['f_pbr']:.2f}배"
                                         sa, sb = f"1만원당 {int(round(res_a['f_pbr']*100,0)*100):,}원", f"1만원당 {int(round(res_b['f_pbr']*100,0)*100):,}원"
                                     else:
-                                        m_lbl = "비교 1. 본전 회수 기간"
+                                        m_lbl = "비교 1. 본전 회수 기간 PER"
                                         va, vb = f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년"
                                         sa, sb = f"현재가 {res_a['p_str']}", f"현재가 {res_b['p_str']}"
                                     badge_vs = m_line_vs
@@ -8613,12 +8612,12 @@ with tab_vs:
                                     sb = f"10년평균 {res_b['a_pbr']:.2f}배" if is_kr_or_pbr else f"10년평균 {res_b['a_pe']:.1f}년"
                                     badge_vs = f"가격 할인폭 우위 : {w_mos} +{mos_gap:.0f}%p"
                                 elif sc_code == "VS_3":
-                                    m_lbl = "비교 3. 돈 불리는 복리 속도"
+                                    m_lbl = "비교 3. 돈 불리는 복리 속도 ROE"
                                     va, vb = f"연 {res_a['roe']:.1f}%", f"연 {res_b['roe']:.1f}%"
                                     sa, sb = f"예금의 {max(0.1, res_a['roe']/3.5):.1f}배", f"예금의 {max(0.1, res_b['roe']/3.5):.1f}배"
                                     badge_vs = f"자본 수익성 우위 : {w_roe} +{roe_gap:.1f}%p"
                                 else:
-                                    m_lbl = "비교 4. 배당 + 자사주 소각 환원율"
+                                    m_lbl = "비교 4. 주주환원율 배당+소각"
                                     va, vb = f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%"
                                     sa, sb = f"종합 {res_a['score']}점", f"종합 {res_b['score']}점"
                                     badge_vs = f"수익성은 {w_roe} · 가격할인은 {w_mos} 우위"
@@ -8639,10 +8638,10 @@ with tab_vs:
                                 draw.rounded_rectangle([56, 702, W-56, 772], radius=14, fill=(15, 23, 42))
                                 _fit_line(draw, W//2, 737, W-140, badge_vs, start_sz=26, min_sz=15, fill=(255, 255, 255))
 
+                                # 하단 자막 박스 (절대 안 잘리는 자동 축소 & 2줄 분할 엔진)
                                 sub_c = str(sub_txt).strip()
                                 sub_col = (255, 240, 0) if c_idx in [0, n_vs - 1] else (255, 255, 255)
                                 max_sub_w = W - 64
-
                                 sf = _gf(38)
                                 bb = draw.textbbox((0, 0), sub_c, font=sf)
                                 tw = bb[2] - bb[0]
@@ -8730,7 +8729,7 @@ with tab_vs:
                                 out_vs_mp4 = merged_vs
 
                             with open(out_vs_mp4, "rb") as vf: vs_mp4_b = vf.read()
-                            st.success(f"🎉 [{na} vs {nb}] 괄호 읽기 방지 + 화이트&블랙 비교 쇼츠(.mp4)가 완성되었습니다!")
+                            st.success(f"🎉 [{na} vs {nb}] 괄호 발음 제거 & 잘림 방어 쇼츠(.mp4)가 완성되었습니다!")
                             st.video(vs_mp4_b)
                             st.download_button(
                                 label=f"📥 [{na}_vs_{nb}] 쇼츠(.mp4) 다운로드",
