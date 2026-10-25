@@ -7098,7 +7098,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         st.caption("ℹ️ 먼저 위쪽의 **[🎬 1단계: 쇼츠(.mp4) 생성]** 버튼을 눌러 영상을 생성하면 아래 3개 업로드 버튼이 활성화됩니다.")
 
-up_col1, up_col2, up_col3 = st.columns(3)
+                    up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         if st.button("▶️ 유튜브 쇼츠 업로드 (하루 6개 무료)", key=f"btn_yt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             priv_code = yt_up_priv.split(" ")[0]
