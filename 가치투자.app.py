@@ -1687,7 +1687,7 @@ def get_dart_corp_codes(api_key, target_code=None):
     return mapping
 
 # =========================================================================
-# [365일 24시간 무중단 엔진] 주말·야간 먹통 완벽 방어 3중 다중화 10년 재무 수집기
+# [무결성 10년 재무 엔진] 가짜 7년 패딩 완전 삭제 + DART 10년 우선 호출 + 점검 알림
 # =========================================================================
 import os
 import json
@@ -1696,33 +1696,31 @@ DART_DISK_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "
 os.makedirs(DART_DISK_CACHE_DIR, exist_ok=True)
 
 def _save_df_to_disk_cache(clean_code, df):
-    """성공한 10년 치 재무제표를 디스크에 영구 백업 (주말·야간 DART 서버 점검 시 즉시 복원용)"""
+    """DART에서 정상 수신한 10년 치 정품 재무제표만 디스크에 영구 보존"""
     try:
-        if df is not None and not df.empty and len(df.columns) >= 5:
-            file_p = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_10yr.json")
+        if df is not None and not df.empty and len(df.columns) >= 7:
+            file_p = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_10yr_pure.json")
             df.to_json(file_p, orient="split", force_ascii=False)
     except Exception:
         pass
 
 def _load_df_from_disk_cache(clean_code):
-    """디스크에 백업된 10년 치 재무제표 로드"""
+    """디스크에 보존된 10년 치 정품 DART 재무제표 로드 (기존 오염된 7년 캐시는 무시)"""
     try:
-        file_p = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_10yr.json")
+        file_p = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_10yr_pure.json")
         if os.path.exists(file_p):
             df = pd.read_json(file_p, orient="split")
-            if not df.empty and len(df.columns) >= 5:
+            if not df.empty and len(df.columns) >= 7:
                 df.columns = [str(c) for c in df.columns]
                 return df
     except Exception:
         pass
     return pd.DataFrame()
 
-def _fallback_naver_fnguide_yf_10yr(clean_code):
+def _fallback_naver_fnguide_yf_real(clean_code):
     """
-    [주말·야간 24시간 무휴 백업 엔진]
-    DART 서버가 주말 점검이거나 해외 IP를 차단할 때,
-    1) 에프앤가이드(FnGuide) Snapshot + 2) 네이버 금융 연간 실적표 + 3) yfinance를 교차 결합해
-    끊김 없이 장기 재무제표(억 원 단위)를 생성합니다.
+    [DART 점검 시 실제 데이터만 수집하는 비상 백업]
+    가짜 연도 복사(0.94배 패딩)를 절대 하지 않고, FnGuide(연간 5~6년) + 네이버(4년)의 실제 확정 장부만 반환합니다.
     """
     all_rows = []
     headers = {
@@ -1730,7 +1728,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
         'Referer': 'https://finance.naver.com/'
     }
 
-    # 1. 에프앤가이드(FnGuide) 기업정보 스냅샷 크롤링 (주말·야간 365일 무휴 작동, 최대 5~6개년 연간 장부 제공)
+    # 1. 에프앤가이드(FnGuide) 실제 확정 연간 재무제표
     try:
         fn_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{clean_code}"
         r_fn = requests.get(fn_url, headers=headers, timeout=6)
@@ -1747,7 +1745,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
                         yr_cols = []
                         for th in yr_ths:
                             m_yr = re.search(r'(20\d{2})/\d{2}', th.text.strip())
-                            if m_yr and '(E)' not in th.text:
+                            if m_yr and '(E)' not in th.text and '(P)' not in th.text:
                                 yr_cols.append((len(yr_cols), m_yr.group(1)))
                             else:
                                 yr_cols.append((len(yr_cols), None))
@@ -1762,8 +1760,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
                         }
                         for tr in tbl.find('tbody').find_all('tr'):
                             th_tag = tr.find('th')
-                            if not th_tag:
-                                continue
+                            if not th_tag: continue
                             acct_txt = re.sub(r'\s+', '', th_tag.text.strip())
                             std_label = None
                             for k_fn, v_std in fn_map.items():
@@ -1790,16 +1787,15 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
         if cop_analysis:
             thead_trs = cop_analysis.select('thead tr')
             if len(thead_trs) >= 2:
-                ths = thead_trs[1].find_all('th')[:4]  # 최근 4개 확정 연간 실적
+                ths = thead_trs[1].find_all('th')[:4]
                 nv_years = []
                 for th in ths:
                     m_y = re.search(r'(20\d{2})\.\d{2}', th.text.strip())
-                    nv_years.append(m_y.group(1) if m_y else None)
+                    nv_years.append(m_y.group(1) if (m_y and 'E' not in th.text) else None)
 
                 for tr in cop_analysis.select('tbody tr'):
                     th_nm = tr.find('th')
-                    if not th_nm:
-                        continue
+                    if not th_nm: continue
                     nm_txt = th_nm.text.strip()
                     std_l = None
                     if '매출액' in nm_txt: std_l = '1. 매출액'
@@ -1815,58 +1811,11 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
     except Exception:
         pass
 
-    # 3. yfinance 재무제표 결합 (현금흐름표·유동자산·매출총이익 보완)
-    for suffix in [".KS", ".KQ"]:
-        try:
-            stk = yf.Ticker(clean_code + suffix)
-            inc = stk.income_stmt
-            bs = stk.balance_sheet
-            cf = stk.cash_flow
-            if inc is None or inc.empty:
-                continue
-
-            def _add_yf_row(df_src, keys, std_label):
-                if df_src is None or df_src.empty:
-                    return
-                for k in keys:
-                    if k in df_src.index:
-                        for c_date, v in df_src.loc[k].dropna().items():
-                            y_s = str(c_date)[:4]
-                            if y_s.isdigit():
-                                all_rows.append({'연도': y_s, '계정': std_label, '금액': safe_float(v) / 100000000.0})
-                        break
-
-            _add_yf_row(inc, ['Total Revenue', 'Operating Revenue'], '1. 매출액')
-            _add_yf_row(inc, ['Gross Profit'], '2. 매출총이익')
-            _add_yf_row(inc, ['Operating Income', 'Pretax Income'], '3. 영업이익')
-            _add_yf_row(inc, ['Net Income', 'Net Income Common Stockholders'], '4. 당기순이익')
-            _add_yf_row(bs, ['Total Assets'], '5. 자산총계')
-            _add_yf_row(bs, ['Current Assets'], '6. 유동자산')
-            _add_yf_row(bs, ['Total Liabilities Net Minority Interest', 'Total Debt'], '7. 부채총계')
-            _add_yf_row(bs, ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity'], '8. 자본총계')
-            _add_yf_row(cf, ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities'], '9. 영업현금흐름')
-            _add_yf_row(cf, ['Investing Cash Flow'], '10. 투자현금흐름')
-            _add_yf_row(cf, ['Financing Cash Flow'], '11. 재무현금흐름')
-            break
-        except Exception:
-            continue
-
     if not all_rows:
         return pd.DataFrame()
 
     df = pd.DataFrame(all_rows).dropna().drop_duplicates(subset=['연도', '계정'], keep='first')
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
-
-    # 4. 만약 DART 점검 중에 처음 조회한 종목이라 연도가 5개년 미만이면, 과거 연도를 보수적 추세로 확장해 10년 엔진 멈춤 방지
-    avail_cols = sorted(pivot_df.columns, reverse=True)
-    if 2 <= len(avail_cols) < 6:
-        oldest_y = int(avail_cols[-1])
-        oldest_col = avail_cols[-1]
-        for step_back in range(1, 7 - len(avail_cols) + 1):
-            prev_y_str = str(oldest_y - step_back)
-            if prev_y_str not in pivot_df.columns:
-                pivot_df[prev_y_str] = pivot_df[oldest_col] * (0.94 ** step_back)
-
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]]
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -1878,9 +1827,10 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
 
 @st.cache_data(ttl=86400*7, show_spinner=False)
 def _fetch_pure_dart_10yr_cached(corp_code, api_key):
-    """[DART 1순위 수집기] 야간·주말 방화벽 지연에 대비해 타임아웃을 8초로 늘리고 자동 재시도(Retry) 적용"""
+    """[DART 10년 정밀 수집기] 빈 연도 없이 10개 사업연도 전체를 촘촘하게 수집"""
     base_y = 2025 if datetime.now().year >= 2026 else 2024
-    years = [base_y, base_y - 2, base_y - 5, base_y - 8]
+    # 각 사업보고서(11011)가 당해·전기·전전기(3개년)를 포함하지만, 일부 누락 연도를 완벽히 메우기 위해 5개 기준점 스캔
+    years = [base_y, base_y - 1, base_y - 3, base_y - 5, base_y - 7]
 
     session = requests.Session()
     session.headers.update({
@@ -1914,81 +1864,80 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         clean_s = re.sub(r'[^\d\-]', '', str(val_str))
         return float(clean_s) if clean_s not in ['', '-'] else None
 
+    dart_status_codes = []
+
     def _fetch_year_resilient(y):
         y_rows = []
-        light_success = False
-        url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
-
-        # 야간·주말 지연을 견디는 2회 재시도 루프 (타임아웃 7.5초)
-        for attempt in range(2):
-            try:
-                r_l = session.get(url_light, timeout=7.5)
-                if r_l.status_code == 200:
-                    data_l = r_l.json()
-                    if data_l.get('status') == '000' and data_l.get('list'):
-                        for fs_div in ['CFS', 'OFS']:
-                            div_items = [it for it in data_l.get('list', []) if it.get('fs_div') == fs_div]
-                            if div_items:
-                                for item in div_items:
-                                    raw_nm = re.sub(r'\s+', '', item.get('account_nm', ''))
-                                    std_nm = None
-                                    if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
-                                    elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
-                                    elif '당기순이익' in raw_nm or '연결당기순이익' in raw_nm: std_nm = '4. 당기순이익'
-                                    elif raw_nm == '자산총계': std_nm = '5. 자산총계'
-                                    elif raw_nm == '유동자산': std_nm = '6. 유동자산'
-                                    elif raw_nm == '부채총계': std_nm = '7. 부채총계'
-                                    elif raw_nm == '자본총계': std_nm = '8. 자본총계'
-                                    if std_nm:
-                                        for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
-                                            v_num = _parse_amt(item.get(k_amt))
-                                            if v_num is not None:
-                                                y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
-                                light_success = True
-                                break
-                        break
-            except Exception:
-                time.sleep(0.3 * (attempt + 1))
-
-        if light_success:
-            return y_rows
-
+        # 1차: 전체 재무제표(현금흐름표·매출총이익·유동자산 포함) 우선 호출하여 ROIC/FCF 10년치 정확도 극대화
         for fs_div in ['CFS', 'OFS']:
             url_all = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
-            try:
-                r = session.get(url_all, timeout=8.0)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('status') == '000' and data.get('list'):
-                        for item in data.get('list', []):
-                            acct_id = item.get('account_id', '').strip()
-                            raw_nm = re.sub(r'[\s\(\)\.\-\_]', '', item.get('account_nm', ''))
-                            std_nm = std_mapping.get(acct_id)
-                            if not std_nm:
-                                if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
-                                elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
-                                elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
-                                elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익']): std_nm = '4. 당기순이익'
-                                elif raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
-                                elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
-                                elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
-                                elif raw_nm.endswith('자본총계'): std_nm = '8. 자본총계'
-                                elif '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
-                                elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
-                                elif '재무활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
-                            if std_nm:
-                                for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
-                                    v_num = _parse_amt(item.get(k_amt))
-                                    if v_num is not None:
-                                        y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
+            for attempt in range(2):
+                try:
+                    r = session.get(url_all, timeout=8.5)
+                    if r.status_code == 200:
+                        data = r.json()
+                        st_cd = data.get('status', '')
+                        dart_status_codes.append(st_cd)
+                        if st_cd == '000' and data.get('list'):
+                            for item in data.get('list', []):
+                                acct_id = item.get('account_id', '').strip()
+                                raw_nm = re.sub(r'[\s\(\)\.\-\_]', '', item.get('account_nm', ''))
+                                std_nm = std_mapping.get(acct_id)
+                                if not std_nm:
+                                    if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
+                                    elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
+                                    elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
+                                    elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익']): std_nm = '4. 당기순이익'
+                                    elif raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
+                                    elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
+                                    elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
+                                    elif raw_nm.endswith('자본총계'): std_nm = '8. 자본총계'
+                                    elif '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
+                                    elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
+                                    elif '재무활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
+                                if std_nm:
+                                    for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
+                                        v_num = _parse_amt(item.get(k_amt))
+                                        if v_num is not None:
+                                            y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
+                            return y_rows
                         break
-            except Exception:
-                pass
+                except Exception:
+                    time.sleep(0.3)
+
+        # 2차: 주요계정 API (fnlttSinglAcnt) 보완 호출
+        url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
+        try:
+            r_l = session.get(url_light, timeout=7.5)
+            if r_l.status_code == 200:
+                data_l = r_l.json()
+                dart_status_codes.append(data_l.get('status', ''))
+                if data_l.get('status') == '000' and data_l.get('list'):
+                    for fs_div in ['CFS', 'OFS']:
+                        div_items = [it for it in data_l.get('list', []) if it.get('fs_div') == fs_div]
+                        if div_items:
+                            for item in div_items:
+                                raw_nm = re.sub(r'\s+', '', item.get('account_nm', ''))
+                                std_nm = None
+                                if raw_nm in ['매출액', '영업수익', '이자수익', '보험수익']: std_nm = '1. 매출액'
+                                elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
+                                elif '당기순이익' in raw_nm or '연결당기순이익' in raw_nm: std_nm = '4. 당기순이익'
+                                elif raw_nm == '자산총계': std_nm = '5. 자산총계'
+                                elif raw_nm == '유동자산': std_nm = '6. 유동자산'
+                                elif raw_nm == '부채총계': std_nm = '7. 부채총계'
+                                elif raw_nm == '자본총계': std_nm = '8. 자본총계'
+                                if std_nm:
+                                    for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
+                                        v_num = _parse_amt(item.get(k_amt))
+                                        if v_num is not None:
+                                            y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
+                            break
+        except Exception:
+            pass
         return y_rows
 
     all_data = []
-    # 동시 요청 수를 2개로 낮춰 금감원 방화벽의 주말·야간 Rate Limit 차단 원천 방지
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = [executor.submit(_fetch_year_resilient, y) for y in years]
         for fut in concurrent.futures.as_completed(futures):
             try:
@@ -1997,12 +1946,14 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
                 pass
 
     if not all_data:
-        raise RuntimeError("DART API 응답 없음")
+        if any(cd in ['800', '900', '020'] for cd in dart_status_codes):
+            raise RuntimeError("DART_MAINTENANCE_OR_LIMIT")
+        raise RuntimeError("DART_NO_RESPONSE")
 
     df = pd.DataFrame(all_data).dropna().drop_duplicates(subset=['연도', '계정'], keep='first')
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
     if len(pivot_df.columns) < 5:
-        raise RuntimeError("DART 연도 부족")
+        raise RuntimeError("DART_INSUFFICIENT_YEARS")
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000.0
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -2017,40 +1968,56 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
     if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
         clean_code = clean_code[:-1] + "0"
 
-    # 1순위: 세션 메모리 캐시 확인 (0.00초)
+    # 1순위: 세션 메모리 캐시 확인 (7개년 이상 정상 DART 데이터일 때만 채택)
     cache_key = f"dart_df_cache_{clean_code}"
+    status_key = f"dart_status_msg_{clean_code}"
     if cache_key in st.session_state and not st.session_state[cache_key].empty:
         cached_df = st.session_state[cache_key]
-        if len(cached_df.columns) >= 5:
-            return cached_df, "성공 (메모리 캐시 연동)"
+        if len(cached_df.columns) >= 7:
+            msg = st.session_state.get(status_key, f"✅ 금융감독원 DART 공식 10년 장부 연동 ({len(cached_df.columns)}개년)")
+            return cached_df, msg
 
-    # 2순위: 로컬 디스크 영구 캐시 확인 (주말·야간에도 0.01초 만에 10년 치 즉시 로드!)
+    # 2순위: 로컬 디스크 영구 캐시 확인 (평일에 한 번이라도 조회한 종목은 주말·야간 점검 때도 10년치 즉시 복원)
     disk_df = _load_df_from_disk_cache(clean_code)
-    if not disk_df.empty and len(disk_df.columns) >= 5:
+    if not disk_df.empty and len(disk_df.columns) >= 7:
+        msg = f"✅ 금융감독원 DART 10년 장부 연동 (영구 백업본 · {len(disk_df.columns)}개년)"
         st.session_state[cache_key] = disk_df
-        return disk_df, "성공 (영구 디스크 백업 연동)"
+        st.session_state[status_key] = msg
+        return disk_df, msg
 
-    # 3순위: DART 공식 API 호출 (성공 시 디스크에 영구 저장)
+    # 3순위: DART 공식 API 실시간 호출 (성공 시 디스크에 10년치 영구 저장)
     effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
     corp_code = mapping.get(clean_code)
 
+    dart_err_reason = "응답 지연"
     if corp_code:
         try:
             dart_df = _fetch_pure_dart_10yr_cached(corp_code, effective_key)
             if not dart_df.empty and len(dart_df.columns) >= 5:
+                msg = f"✅ 금융감독원 DART 공식 API 실시간 10년 연동 ({len(dart_df.columns)}개년)"
                 st.session_state[cache_key] = dart_df
+                st.session_state[status_key] = msg
                 _save_df_to_disk_cache(clean_code, dart_df)
-                return dart_df, "성공 (DART 10년 실시간 연동)"
-        except Exception:
-            pass
+                return dart_df, msg
+        except Exception as e:
+            err_s = str(e)
+            if "MAINTENANCE" in err_s:
+                dart_err_reason = "금감원 DART 서버 정기점검 또는 일일 트래픽 한도 도달"
+            else:
+                dart_err_reason = "금감원 DART 서버 야간·주말 응답 지연(점검 중)"
 
-    # 4순위: 주말·야간 무휴 백업 엔진 (FnGuide + 네이버 금융 + yfinance 결합)
-    fb_df = _fallback_naver_fnguide_yf_10yr(clean_code)
+    # 4순위: DART 서버가 진짜 점검 중이고 디스크 백업도 없는 경우 -> 가짜 패딩 없이 FnGuide/네이버 실제 장부만 연동 & 점검 배너 출력
+    fb_df = _fallback_naver_fnguide_yf_real(clean_code)
     if not fb_df.empty:
-        st.session_state[cache_key] = fb_df
-        return fb_df, "성공 (주말·야간 24시간 백업 엔진 연동)"
-    return fb_df, "데이터 확인 필요"
+        yr_cnt = len(fb_df.columns)
+        msg = f"🚨 [DART API 점검 안내] 현재 {dart_err_reason} 상태입니다. 가짜 데이터 생성 없이 FnGuide·네이버 금융의 실제 확정 장부({yr_cnt}개년)로 임시 대체 분석 중입니다."
+        st.session_state[status_key] = msg
+        return fb_df, msg
+
+    msg = f"🚨 [DART API 점검 중] 현재 {dart_err_reason} 상태로 데이터를 불러올 수 없습니다."
+    st.session_state[status_key] = msg
+    return pd.DataFrame(), msg
 # ▲▲▲ 여기까지 교체 (바로 아래에 def get_yf_info(stk): 가 이어지면 됩니다) ▲▲▲
 def get_yf_info(stk):
     try:
@@ -2298,7 +2265,7 @@ def get_naver_finance(cd):
             el = s.select_one(selector)
             if el and el.text.strip() not in ['-', '', 'N/A']:
                 clean_str = re.sub(r'[^\d\.\-]', '', el.text)
-                if clean_str: return safe_float(clean_str)
+                if clean_str not in ['', '-']: return safe_float(clean_str)
             return None
 
         t_price = s.select_one('.no_today .blind')
@@ -2307,7 +2274,22 @@ def get_naver_finance(cd):
             if live_p > 0: res['live_p'] = live_p
             
         t_name = s.select_one('.wrap_company h2 a')
-        if t_name: res['shortName'] = t_name.text
+        if t_name: res['shortName'] = t_name.text.strip()
+
+        # [핵심 추가] 야후 파이낸스가 주말·야간에 한국 주식수(sharesOutstanding)를 누락할 때를 대비해 네이버에서 상장주식수 직접 추출!
+        try:
+            for th in s.find_all('th'):
+                if '상장주식수' in th.text:
+                    td_sh = th.find_next_sibling('td')
+                    if td_sh:
+                        sh_val = safe_float(re.sub(r'[^\d]', '', td_sh.text))
+                        if sh_val > 0:
+                            res['sharesOutstanding'] = sh_val
+                            if res.get('live_p', 0) > 0:
+                                res['marketCap'] = res['live_p'] * sh_val
+                    break
+        except Exception:
+            pass
         
         pe = extract_val('#_per')
         if pe: res['trailingPE'] = pe
@@ -2338,23 +2320,39 @@ def get_naver_finance(cd):
         t_sum = s.select_one('.summary_info p')
         if t_sum: res['kr_sum'] = t_sum.text.strip()
         
+        # 네이버 기업실적분석 테이블에서 최근 확정 ROE, PER, PBR, EPS, BPS 2중 백업 추출
         try:
-            th_roe = s.find('th', string=re.compile('ROE'))
-            if th_roe:
-                tr_roe = th_roe.find_parent('tr')
-                tds = tr_roe.find_all('td')
-                valid_roes = []
-                for td in tds:
-                    clean_text = re.sub(r'[^\d\.\-]', '', td.text)
-                    if clean_text: valid_roes.append(safe_float(clean_text))
-                if valid_roes:
-                    res['returnOnEquity'] = valid_roes[-1] / 100.0
+            cop_tbl = s.select_one('div.section.cop_analysis div.sub_section table')
+            if cop_tbl:
+                for tr in cop_tbl.select('tbody tr'):
+                    th_el = tr.find('th')
+                    if not th_el: continue
+                    th_txt = th_el.text.strip()
+                    tds = tr.find_all('td')[:4] # 최근 연간 확정치 4개 열
+                    valid_nums = []
+                    for td in tds:
+                        c_num = re.sub(r'[^\d\.\-]', '', td.text)
+                        if c_num not in ['', '-']:
+                            valid_nums.append(safe_float(c_num))
+                    if not valid_nums:
+                        continue
+                    last_v = valid_nums[-1]
+                    if 'ROE' in th_txt and 'returnOnEquity' not in res:
+                        res['returnOnEquity'] = last_v / 100.0
+                    elif th_txt.startswith('PER') and ('trailingPE' not in res or res['trailingPE'] <= 0):
+                        if last_v > 0: res['trailingPE'] = last_v
+                    elif th_txt.startswith('PBR') and ('priceToBook' not in res or res['priceToBook'] <= 0):
+                        if last_v > 0: res['priceToBook'] = last_v
+                    elif th_txt.startswith('EPS') and ('trailingEps' not in res or res['trailingEps'] == 0):
+                        res['trailingEps'] = last_v
+                    elif th_txt.startswith('BPS') and ('bookValue' not in res or res['bookValue'] <= 0):
+                        if last_v > 0: res['bookValue'] = last_v
         except Exception:
             pass
     except Exception:
         pass
     return res
-# ▲▲▲ [교체 1 끝] ▲▲▲
+
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
@@ -2391,33 +2389,51 @@ def fetch_cached_info(tk, kr, cd):
                 i['companyOfficers'] = yh_res['companyOfficers']
         else:
             nv_res = future_naver.result()
-            keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
+            keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity', 'sharesOutstanding', 'marketCap']
             for k in keys_to_override:
                 if k in nv_res and nv_res[k] is not None:
                     if isinstance(nv_res[k], str):
                         i[k] = nv_res[k]
-                    elif isinstance(nv_res[k], (int, float)): 
-                        # [핵심 수정] > 0 제한을 풀어 적자기업(음수 EPS) 데이터도 완벽하게 받아오도록 수정
+                    elif isinstance(nv_res[k], (int, float)) and nv_res[k] != 0:
                         i[k] = nv_res[k]
                         
-    # --- [강력한 안전장치] PER 및 배당률 누락 시 수동 강제 계산 ---
     p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
     if p == 0 and 'live_p' in i: p = i['live_p']
     
-    # 1. PER이 누락되었으나 EPS가 존재하면 직접 나누어 계산 (적자 기업 포함)
+    # [한국 주식 N/A 완전 방어] 만약 네이버·야후 양쪽에서 PER/PBR/주식수가 누락됐을 경우 DART 장부에서 직접 역산!
+    if kr:
+        try:
+            dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+            if not dart_df.empty and p > 0:
+                latest_col = dart_df.columns[0]
+                ni_krw = safe_float(dart_df.loc['4. 당기순이익', latest_col]) * 1e8 if '4. 당기순이익' in dart_df.index else 0
+                eq_krw = safe_float(dart_df.loc['8. 자본총계', latest_col]) * 1e8 if '8. 자본총계' in dart_df.index else 0
+                sh_now = safe_float(i.get('sharesOutstanding'))
+                if sh_now > 0:
+                    if safe_float(i.get('trailingEps')) == 0 and ni_krw != 0:
+                        i['trailingEps'] = ni_krw / sh_now
+                    if safe_float(i.get('bookValue')) <= 0 and eq_krw > 0:
+                        i['bookValue'] = eq_krw / sh_now
+                    if safe_float(i.get('priceToBook')) <= 0 and eq_krw > 0:
+                        i['priceToBook'] = (p * sh_now) / eq_krw
+                    if safe_float(i.get('returnOnEquity')) == 0 and eq_krw > 0 and ni_krw != 0:
+                        i['returnOnEquity'] = ni_krw / eq_krw
+        except Exception:
+            pass
+
     t_pe = safe_float(i.get('trailingPE'))
     t_eps = safe_float(i.get('trailingEps'))
     if t_pe == 0 and t_eps != 0 and p > 0:
         i['trailingPE'] = p / t_eps
+    if safe_float(i.get('priceToBook')) <= 0 and safe_float(i.get('bookValue')) > 0 and p > 0:
+        i['priceToBook'] = p / safe_float(i.get('bookValue'))
         
-    # 2. 배당률(%)이 누락되었으나 주당 배당금(원/달러)이 있으면 직접 나누어 계산
     div_y = safe_float(i.get('dividendYield'))
     if div_y == 0:
         div_r = safe_float(i.get('dividendRate'))
         if div_r > 0 and p > 0:
             i['dividendYield'] = div_r / p
     
-    # 3. ETF의 경우 'yield'라는 다른 상자에 배당이 들어있는 것 연동
     if safe_float(i.get('dividendYield')) == 0 and 'yield' in i:
         y_val = safe_float(i.get('yield'))
         if y_val > 0: i['dividendYield'] = y_val
@@ -5165,6 +5181,16 @@ with tab1:
                 # =====================================================================
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
+                
+                # ▼▼▼ [신규 추가] 한국 주식 10년 데이터 출처 및 DART API 점검 상태 실시간 알림 배너 ▼▼▼
+                if kr:
+                    cd_chk = tk.split('.')[0]
+                    _, dart_st_msg = get_10yr_dart_financials_v2(cd_chk, DART_API_KEY)
+                    if "🚨" in dart_st_msg:
+                        st.warning(dart_st_msg)
+                    else:
+                        st.caption(f"📡 **장기 재무 데이터 소스:** {dart_st_msg}")
+                # ▲▲▲ 여기까지 추가 ▲▲▲
                 
                 off = i.get('companyOfficers', [])
                 ceo_raw = '누락'
