@@ -7098,9 +7098,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         st.caption("ℹ️ 먼저 위쪽의 **[🎬 1단계: 쇼츠(.mp4) 생성]** 버튼을 눌러 영상을 생성하면 아래 3개 업로드 버튼이 활성화됩니다.")
 
-                    up_col1, up_col2, up_col3 = st.columns(3)
+up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
-                        if st.button("▶️ 유튜브 쇼츠 업로드 (하루 6개 무료)", key=f"btn_yt_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("▶️ 유튜브 쇼츠 업로드 (하루 6개 무료)", key=f"btn_yt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             priv_code = yt_up_priv.split(" ")[0]
                             tags_arr = ["shorts", comp_name, clean_tk, "워런버핏", "가치투자", "재무제표", "주식공부"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
@@ -7115,7 +7115,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드 (하루 50개 무료)", key=f"btn_ig_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드 (하루 50개 무료)", key=f"btn_ig_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -7158,7 +7158,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
@@ -7402,93 +7402,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         
                         if not sec_success:
                             fallback_yfinance()
-
-# ▼▼▼ 기존 유튜브 업로드 버튼 바로 아래에 추가 가능한 [인스타 릴스 & 틱톡 자동 업로드 모듈] ▼▼▼
-                        st.markdown("#### 📱 인스타그램 릴스(Reels) & 틱톡(TikTok) 동시 자동 업로드")
-                        st.caption("스트림릿 Secrets에 `IG_USER_ID`, `IG_ACCESS_TOKEN`(인스타) 또는 `TIKTOK_ACCESS_TOKEN`(틱톡)을 등록하면 버튼 하나로 3대 숏폼 플랫폼에 동시에 배포됩니다.")
-
-                        col_sns1, col_sns2 = st.columns(2)
-                        with col_sns1:
-                            if st.button("📸 인스타그램 릴스(Reels) 자동 업로드", key=f"btn_ig_up_{clean_tk}", use_container_width=True):
-                                ig_uid = st.secrets.get("IG_USER_ID", "")
-                                ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
-                                if not (ig_uid and ig_tok):
-                                    st.warning("스트림릿 Secrets에 `IG_USER_ID`와 `IG_ACCESS_TOKEN`을 먼저 등록해 주세요.")
-                                else:
-                                    with st.spinner("임시 클라우드 링크 생성 및 인스타그램 Graph API로 릴스를 발행 중입니다..."):
-                                        try:
-                                            # 1. 인스타 Graph API용 임시 공개 URL 자동 생성 (무료 tmpfiles API 활용)
-                                            up_res = requests.post(
-                                                "https://tmpfiles.org/api/v1/upload",
-                                                files={"file": (f"{clean_tk}.mp4", saved_mp4_bytes, "video/mp4")},
-                                                timeout=30
-                                            )
-                                            raw_url = up_res.json().get("data", {}).get("url", "")
-                                            dl_video_url = raw_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
-
-                                            # 2. 인스타 미디어 컨테이너 생성 (REELS)
-                                            ig_api_base = f"https://graph.facebook.com/v20.0/{ig_uid}"
-                                            c_res = requests.post(f"{ig_api_base}/media", data={
-                                                "media_type": "REELS",
-                                                "video_url": dl_video_url,
-                                                "caption": yt_up_desc,
-                                                "access_token": ig_tok
-                                            }, timeout=20).json()
-                                            creation_id = c_res.get("id")
-
-                                            if creation_id:
-                                                # 인스타 서버 인코딩 대기 후 최종 발행
-                                                for _ in range(12):
-                                                    time.sleep(5)
-                                                    st_chk = requests.get(f"https://graph.facebook.com/v20.0/{creation_id}", params={"fields": "status_code", "access_token": ig_tok}).json()
-                                                    if st_chk.get("status_code") == "FINISHED":
-                                                        break
-                                                pub_res = requests.post(f"{ig_api_base}/media_publish", data={"creation_id": creation_id, "access_token": ig_tok}).json()
-                                                if "id" in pub_res:
-                                                    st.balloons()
-                                                    st.success(f"✅ 인스타그램 릴스 자동 업로드 완료! (Media ID: {pub_res['id']})")
-                                                else:
-                                                    st.error(f"릴스 발행 오류: {pub_res}")
-                                            else:
-                                                st.error(f"컨테이너 생성 오류: {c_res}")
-                                        except Exception as ig_e:
-                                            st.error(f"인스타 업로드 실패: {ig_e}")
-
-                        with col_sns2:
-                            if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_{clean_tk}", use_container_width=True):
-                                tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
-                                if not tt_tok:
-                                    st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
-                                else:
-                                    with st.spinner("TikTok Content Posting API로 영상을 전송 중입니다..."):
-                                        try:
-                                            v_size = len(saved_mp4_bytes)
-                                            init_res = requests.post(
-                                                "https://open.tiktokapis.com/v2/post/publish/video/init/",
-                                                headers={"Authorization": f"Bearer {tt_tok}", "Content-Type": "application/json; charset=UTF-8"},
-                                                json={
-                                                    "post_info": {"title": yt_up_title[:140], "privacy_level": "SELF_ONLY"},
-                                                    "source_info": {"source": "FILE_UPLOAD", "video_size": v_size, "chunk_size": v_size, "total_chunk_count": 1}
-                                                },
-                                                timeout=15
-                                            ).json()
-                                            upload_url = init_res.get("data", {}).get("upload_url", "")
-                                            if upload_url:
-                                                put_r = requests.put(
-                                                    upload_url,
-                                                    headers={"Content-Range": f"bytes 0-{v_size-1}/{v_size}", "Content-Type": "video/mp4"},
-                                                    data=saved_mp4_bytes,
-                                                    timeout=60
-                                                )
-                                                if put_r.status_code in [200, 201]:
-                                                    st.balloons()
-                                                    st.success("✅ 틱톡 자동 업로드 성공! (틱톡 앱 알림함/비공개 탭에서 즉시 확인 가능)")
-                                                else:
-                                                    st.error(f"틱톡 파일 전송 오류: {put_r.text}")
-                                            else:
-                                                st.error(f"틱톡 초기화 오류: {init_res}")
-                                        except Exception as tt_e:
-                                            st.error(f"틱톡 업로드 실패: {tt_e}")
                             
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
