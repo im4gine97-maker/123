@@ -6484,7 +6484,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
-# =====================================================================
+                # =====================================================================
                 # [초보자·4060 직관형 비교 썸네일 + 괄호 음성 제거 + 자막 잘림 해결] 6. 쇼츠 스튜디오
                 # =====================================================================
                 with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (직관형 비교 썸네일 + 괄호읽기 방지 + 3대 플랫폼 업로드)", "🎬 6. Safe-Margin 10-Cut Shorts Studio"), expanded=False):
@@ -6568,120 +6568,122 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     roe_vs_buffett = roe - 15.0
                     tsy_vs_mkt = tsy_total - 2.5
 
-                    # PBR(순자산 1만원당 주가) & PER(순이익 1만원당 주가) 원화 환산
+                    # ▼▼▼ [교체 위치 1] 약 1446행 ~ 1564행 구간을 아래 코드로 덮어쓰세요 ▼▼▼
+                    today_short = datetime.now().strftime("%Y.%m.%d") # 오늘 날짜 자동 생성 (예: 2026.10.26)
+
+                    # PBR(순자산 1만원당 가격표) & PER(원금 회수 기간 및 1만원당 가격표) 환산
                     cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
                     cur_pe_won = int(round(f_pe * 10, 0) * 1000)
                     avg_pe_won = int(round(a_pe * 10, 0) * 1000)
 
-                    # --- [1. 썸네일 & 컷 1~3: PER도 기아(PBR)와 100% 동일한 방식으로 통일] ---
+                    # --- [1. 썸네일 & 컷 1~3: 3050 전문 브리핑 어조 + 쉬운 용어 4선 적용] ---
                     if is_financial:
-                        pbr_reason_tag = "금융업 특성상 장부 순자산 기준으로 10년 평균과 비교함"
-                        thumb_compare_bar = f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
+                        pbr_reason_tag = f"금융업 특성상 장부 순자산 기준으로 10년 평균과 비교 ({today_short} 기준)"
+                        thumb_compare_bar = f"순자산 1만원당 주가 : 10년 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
                         thumb_giant_num = disc_short_badge
-                        thumb_red_quote = f"“연 {roe:.1f}% 불리는데 장부가는 {abs_pmos:.0f}% 낮다고?”" if pmos_val >= 5 else f"“은행 이자보다 {bank_mult:.1f}배 빨리 불린다고?”"
-                        hook_cut2 = f"순자산 대비 주가는 10년 평균보다 {disc_txt}임"
-                        val_cut3 = f"순자산 1만원당 평소 {avg_pbr_won:,}원, 지금은 {cur_pbr_won:,}원임"
+                        thumb_red_quote = f"“연 {roe:.1f}%씩 자본이 불어나는데 순자산 대비 {abs_pmos:.0f}% 낮다고?”" if pmos_val >= 5 else f"“은행 예금보다 {bank_mult:.1f}배 빠른 속도로 자본을 불린다고?”"
+                        hook_cut2 = f"순자산 대비 현재 주가는 10년 평균보다 {disc_txt}입니다"
+                        val_cut3 = f"장부상 순자산 1만원어치가 평소 {avg_pbr_won:,}원, 현재는 {cur_pbr_won:,}원에 거래됩니다"
 
                     elif use_pbr_m:
-                        pbr_reason_tag = "이익 변동성을 고려해 장부 순자산 기준으로 10년 평균과 비교함"
-                        thumb_compare_bar = f"순자산 대비 주가 : 10년 평균 {a_pbr:.2f}배 ➔ 현재 {f_pbr:.2f}배"
+                        pbr_reason_tag = f"이익 변동성을 고려해 장부 순자산 기준으로 10년 평균과 비교 ({today_short} 기준)"
+                        thumb_compare_bar = f"순자산 1만원당 주가 : 10년 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
                         thumb_giant_num = disc_short_badge
                         if pmos_val >= 5 and margin_won >= avg_margin_bench:
-                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 장부가는 {abs_pmos:.0f}% 낮다고?”"
+                            thumb_red_quote = f"“100원 팔아 {margin_won}원 남기는데 순자산 대비 {abs_pmos:.0f}% 낮다고?”"
                         elif pmos_val <= -5:
-                            thumb_red_quote = f"“장부가가 평소보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
+                            thumb_red_quote = f"“순자산 대비 {abs_pmos:.0f}% 할증 구간인데 실제 수익성은 어떨까?”"
                         else:
-                            thumb_red_quote = f"“100원 팔면 {margin_won}원 남는데 장부가는 평소 수준?”"
-                        hook_cut2 = f"순자산 대비 주가는 10년 평균보다 {disc_txt}임"
-                        val_cut3 = f"순자산 1만원당 평소 {avg_pbr_won:,}원, 지금은 {cur_pbr_won:,}원임"
+                            thumb_red_quote = f"“100원 팔면 {margin_won}원 남기는데 주가는 10년 평균 수준?”"
+                        hook_cut2 = f"순자산 대비 현재 주가는 10년 평균보다 {disc_txt}입니다"
+                        val_cut3 = f"장부상 순자산 1만원어치가 평소 {avg_pbr_won:,}원, 현재는 {cur_pbr_won:,}원에 거래됩니다"
 
                     else:
-                        # [핵심 변경] PER 평가 기업도 기아(PBR)처럼 '순이익 대비 주가 배수 & 1만원당 가격'으로 통일!
-                        pbr_reason_tag = "연간 순이익 대비 주가 배수를 10년 평균과 비교함"
-                        thumb_compare_bar = f"순이익 대비 주가 : 10년 평균 {a_pe:.1f}배 ➔ 현재 {f_pe:.1f}배"
+                        # PER 평가 기업: '원금 회수 기간(년)'과 '순이익 1만원당 가격표' 결합
+                        pbr_reason_tag = f"순이익으로 투자 원금을 회수하는 기간을 10년 평균과 비교 ({today_short} 기준)"
+                        thumb_compare_bar = f"원금 회수 기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
                         thumb_giant_num = disc_short_badge
                         if pmos_val >= 5 and margin_won >= avg_margin_bench:
-                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 주가배수는 {abs_pmos:.0f}% 낮다고?”"
+                            thumb_red_quote = f"“100원에 {margin_won}원 남기는데 원금 회수 기간은 {abs_pmos:.0f}% 짧아졌다고?”"
                         elif pmos_val >= 5:
-                            thumb_red_quote = f"“순이익 대비 주가가 평소보다 {abs_pmos:.0f}% 낮다고?”"
+                            thumb_red_quote = f"“원금 회수 기간이 10년 평균보다 {abs_pmos:.0f}% 단축됐다고?”"
                         elif pmos_val <= -5:
-                            thumb_red_quote = f"“주가배수가 평소보다 {abs_pmos:.0f}% 높은데 실적은 어떨까?”"
+                            thumb_red_quote = f"“원금 회수 기간이 {f_pe:.1f}년인데 향후 실적 성장은 충분할까?”"
                         else:
-                            thumb_red_quote = f"“100원에 {margin_won}원 남는데 주가배수는 평소 수준?”"
-                        hook_cut2 = f"순이익 대비 주가는 10년 평균보다 {disc_txt}임"
-                        val_cut3 = f"순이익 1만원당 평소 {avg_pe_won:,}원, 지금은 {cur_pe_won:,}원임"
+                            thumb_red_quote = f"“100원에 {margin_won}원 남기는데 주가는 10년 평균 수준?”"
+                        hook_cut2 = f"순이익 기준 원금 회수 기간은 10년 평균보다 {disc_txt}입니다"
+                        val_cut3 = f"원금 회수 기간이 평소 {a_pe:.1f}년에서 현재 {f_pe:.1f}년 수준으로 형성되어 있습니다"
 
-                    # --- [2. 컷 4~5: 한국(8원) vs 미국(12원) 기준 분리 적용] ---
+                    # --- [2. 컷 4~5: 마진율 및 내 자본 복리 증식 속도] ---
                     if is_financial:
-                        moat_cut4 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임" if roe > 0 else f"현재 자본수익률 연 {roe:.1f}%로 적자 구간임"
-                        moat_cut5 = f"금융권 우량 기준 10%보다 {abs(roe - 10.0):.1f}%p {'높음' if roe >= 10 else '낮음'}"
+                        moat_cut4 = f"내 자본을 불리는 속도는 연 {roe:.1f}%로 예금 이자의 {bank_mult:.1f}배 수준입니다" if roe > 0 else f"현재 자본 증식 속도는 연 {roe:.1f}%로 수익성 둔화 구간입니다"
+                        moat_cut5 = f"금융권 우량 기준인 10% 대비 {abs(roe - 10.0):.1f}%p {'높은' if roe >= 10 else '낮은'} 수치입니다"
                     else:
                         if abs(margin_diff) < 0.5:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원과 비슷함"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원이 남아 시장 평균 {avg_margin_bench:.0f}원과 유사합니다"
                         elif margin_diff >= 0.5:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원보다 {margin_diff:.1f}원 높음"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원이 남아 시장 평균보다 {margin_diff:.1f}원 더 남깁니다"
                         elif op_m > 0:
-                            moat_cut4 = f"100원 팔면 {op_m:.1f}원 남아 평균 {avg_margin_bench:.0f}원보다 {abs(margin_diff):.1f}원 낮음"
+                            moat_cut4 = f"100원 팔면 {op_m:.1f}원이 남아 시장 평균보다 {abs(margin_diff):.1f}원 낮습니다"
                         else:
-                            moat_cut4 = f"현재 영업이익률 {op_m:.1f}%로 적자 구간에 머묾"
+                            moat_cut4 = f"현재 매출 대비 영업마진이 {op_m:.1f}%로 적자 구간에 머물러 있습니다"
 
                         if roe >= 15.0:
-                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 버핏기준보다 {roe_vs_buffett:.1f}%p 높음"
+                            moat_cut5 = f"자본 복리 증식 속도는 연 {roe:.1f}%로 버핏 기준보다 {roe_vs_buffett:.1f}%p 높습니다"
                         elif roe > 0:
-                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%, 예금 이자의 {bank_mult:.1f}배임"
+                            moat_cut5 = f"자본 복리 증식 속도는 연 {roe:.1f}%로 은행 예금의 {bank_mult:.1f}배 수준입니다"
                         else:
-                            moat_cut5 = f"돈 불리는 속도 연 {roe:.1f}%로 수익성 회복 필요함"
+                            moat_cut5 = f"현재 자본 증식 속도는 연 {roe:.1f}%로 펀더멘털 회복 확인이 필요합니다"
 
-                    # --- [3. 컷 6~7: 괄호 제거 국채 비교 & 주주환원율] ---
+                    # --- [3. 컷 6~7: 국채 금리 대비 기대수익률 & 총주주환원율] ---
                     ey_gap = ey - ty
                     if abs(ey_gap) < 0.2:
-                        ey_cut6 = f"기대수익률 연 {ey:.1f}%, 미국채 금리 {ty:.1f}%와 비슷함"
+                        ey_cut6 = f"주식 기대수익률은 연 {ey:.1f}%로 10년물 미국채 금리 {ty:.1f}%와 비슷합니다"
                     else:
-                        ey_cut6 = f"기대수익률 연 {ey:.1f}%, 미국채보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}"
+                        ey_cut6 = f"주식 기대수익률은 연 {ey:.1f}%로 미국채 금리보다 {abs(ey_gap):.1f}%p {'높습니다' if ey_gap > 0 else '낮습니다'}"
 
                     if abs(tsy_vs_mkt) < 0.3:
-                        tsy_cut7 = f"배당·자사주 환원 연 {tsy_total:.1f}%, 시장평균 2.5% 수준임"
+                        tsy_cut7 = f"배당과 자사주 소각을 합친 주주환원율은 연 {tsy_total:.1f}%로 시장 평균 수준입니다"
                     elif tsy_total > 0:
-                        tsy_cut7 = f"배당·자사주 환원 연 {tsy_total:.1f}%, 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높음' if tsy_vs_mkt > 0 else '낮음'}"
+                        tsy_cut7 = f"배당과 자사주 소각 환원율은 연 {tsy_total:.1f}%로 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높습니다' if tsy_vs_mkt > 0 else '낮습니다'}"
                     elif tsy_total == 0:
-                        tsy_cut7 = "배당·자사주 환원 0%로 사내 재투자에 집중함"
+                        tsy_cut7 = "현재 배당과 자사주 소각 대신 사내 설비 및 성장 재투자에 집중하고 있습니다"
                     else:
-                        tsy_cut7 = f"주식 발행으로 유통주식이 연 {abs(tsy_total):.1f}% 늘어남"
+                        tsy_cut7 = f"신주 발행으로 인해 유통주식수가 연 {abs(tsy_total):.1f}% 증가한 상태입니다"
 
-                    # --- [4. 컷 8~10: 괄호 제거 & 음수 역산 DCF 자연스러운 변환] ---
+                    # --- [4. 컷 8~10: 현재 주가에 반영된 기대 성장치 vs 실제 현금 성장률] ---
                     if not is_financial and implied_g_shorts is not None:
                         if imp_g_pct < 0:
-                            dcf_cut8 = f"현금이 매년 {abs(imp_g_pct):.1f}%씩 줄어도 현 주가가 설명됨"
+                            dcf_cut8 = f"현재 주가는 향후 현금흐름이 매년 {abs(imp_g_pct):.1f}%씩 감소해도 정당화되는 수준입니다"
                         else:
-                            dcf_cut8 = f"현 주가 기준 매년 {imp_g_pct:.1f}%씩 현금이 늘어야 함"
+                            dcf_cut8 = f"현재 주가를 정당화하려면 매년 {imp_g_pct:.1f}%씩 현금흐름이 성장해야 합니다"
 
                         if growth_gap_pp > 3.0:
-                            dcf_cut9 = f"과거 성장률 연 {hist_fcf_g_pct:.1f}%보다 요구치가 {growth_gap_pp:.1f}%p 높음"
-                            gap_badge_txt = f"요구치가 실제 성장률보다 +{growth_gap_pp:.1f}%p 높음"
+                            dcf_cut9 = f"과거 실제 성장률인 연 {hist_fcf_g_pct:.1f}%보다 시장 기대치가 {growth_gap_pp:.1f}%p 높게 반영돼 있습니다"
+                            gap_badge_txt = f"주가 반영 기대치가 과거 성장률보다 +{growth_gap_pp:.1f}%p 높음"
                             gap_badge_col = (185, 28, 28)
                         elif growth_gap_pp < -2.0:
-                            dcf_cut9 = f"실제는 연 {hist_fcf_g_pct:.1f}%씩 늘어 요구치보다 {abs(growth_gap_pp):.1f}%p 높음"
-                            gap_badge_txt = f"실제 성장률이 요구치보다 +{abs(growth_gap_pp):.1f}%p 높음"
+                            dcf_cut9 = f"과거 실제 성장률이 연 {hist_fcf_g_pct:.1f}%로 주가에 반영된 기대치보다 {abs(growth_gap_pp):.1f}%p 높습니다"
+                            gap_badge_txt = f"실제 성장률이 주가 기대치보다 +{abs(growth_gap_pp):.1f}%p 높음"
                             gap_badge_col = (5, 122, 85)
                         else:
-                            dcf_cut9 = f"과거 실제 성장률 연 {hist_fcf_g_pct:.1f}%와 요구치가 일치함"
-                            gap_badge_txt = f"요구치와 실제 성장률 격차 {growth_gap_pp:+.1f}%p"
+                            dcf_cut9 = f"과거 실제 현금 성장률 연 {hist_fcf_g_pct:.1f}%와 현재 주가의 기대치가 대체로 부합합니다"
+                            gap_badge_txt = f"주가 기대치와 실제 성장률 격차 {growth_gap_pp:+.1f}%p"
                             gap_badge_col = (29, 78, 216)
                     else:
-                        dcf_cut8 = f"최근 10년 실제 현금 성장률은 연 {hist_fcf_g_pct:.1f}%임"
-                        dcf_cut9 = f"순자산 배수는 10년 평균 대비 {disc_txt}임"
+                        dcf_cut8 = f"최근 10년 실제 현금흐름 복리 성장률은 연 {hist_fcf_g_pct:.1f}%를 기록했습니다"
+                        dcf_cut9 = f"순자산 가격표는 10년 평균 대비 {disc_txt}에 위치해 있습니다"
                         gap_badge_txt = f"순자산 10년 평균 대비 {disc_txt}"
                         gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
-                    fail_cnt = 5 - pass_cnt - warn_cnt
                     if pass_cnt == 5:
-                        end_cut10 = "버핏 5대 기준 5개 모두 충족함! 여러분 생각은 어떰?"
+                        end_cut10 = "버핏의 5대 정량 기준을 모두 통과했습니다. 여러분의 투자 관점은 어떠신가요?"
                     else:
-                        end_cut10 = f"버핏 5대 기준 중 {pass_cnt}개 충족함, 여러분 생각은 어떰?"
+                        end_cut10 = f"버핏의 5대 정량 기준 중 {pass_cnt}개를 충족했습니다. 여러분의 생각은 어떠신가요?"
 
                     pop_chunks = [
-                        (f"버핏 관점으로 {comp_name} 10년 장부 뜯어봄", "SCENE_HOOK"),
+                        (f"{today_short} 기준, 워런 버핏 관점으로 {comp_name} 10년 장부를 분석했습니다", "SCENE_HOOK"),
                         (hook_cut2, "SCENE_HOOK"),
                         (val_cut3, "SCENE_1"),
                         (moat_cut4, "SCENE_2"),
@@ -6692,7 +6694,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         (dcf_cut9, "SCENE_4"),
                         (end_cut10, "SCENE_4")
                     ]
-
+                    # ▲▲▲ [교체 위치 1 끝] ▲▲▲
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
                         # [핵심 수리] 괄호 기호를 모두 공백으로 치환하여 '괄호열고/괄호닫고' 발음 원천 차단!
@@ -6970,9 +6972,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([60, 388, W-60, 434], radius=10, fill=(224, 242, 254))
                             _fit_single_line(draw, W//2, 411, W-140, pbr_reason_tag, get_font, start_sz=20, min_sz=13, fill=(3, 105, 161))
 
-                            cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}배"
-                            avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}배"
-                            m_title_s = "현재 순자산 배수 PBR" if use_pbr_m else "현재 순이익 배수 PER"
+                            # ▼▼▼ 약 1778행 m_title_s 선언부를 아래 코드로 교체 ▼▼▼
+                            cur_m_str = f"{f_pbr:.2f}배" if use_pbr_m else f"{f_pe:.1f}년"
+                            avg_m_str = f"{a_pbr:.2f}배" if use_pbr_m else f"{a_pe:.1f}년"
+                            m_title_s = "현재 순자산 가격배수" if use_pbr_m else "현재 원금 회수 기간"
                             sub_avg_s = f"순자산 1만원당 {avg_pbr_won:,}원" if use_pbr_m else f"순이익 1만원당 {avg_pe_won:,}원"
                             sub_cur_s = f"순자산 1만원당 {cur_pbr_won:,}원" if use_pbr_m else f"순이익 1만원당 {cur_pe_won:,}원"
 
@@ -8475,26 +8478,28 @@ with tab_vs:
                 mos_gap = abs(res_a['mos'] - res_b['mos'])
                 tsy_gap = abs(res_a['tsy'] - res_b['tsy'])
 
+                # ▼▼▼ [교체 위치 3] 약 2414행 ~ 2436행 구간을 아래 코드로 덮어쓰세요 ▼▼▼
+                today_vs_str = datetime.now().strftime("%Y.%m.%d")
                 if is_kr_or_pbr:
                     wa_won = int(round(res_a['f_pbr'] * 100, 0) * 100)
                     wb_won = int(round(res_b['f_pbr'] * 100, 0) * 100)
-                    m_line_vs = f"순자산 1만원당 주가는 {wa_won:,}원 대 {wb_won:,}원임"
+                    m_line_vs = f"순자산 1만원당 주가는 {wa_won:,}원 대 {wb_won:,}원에 형성되어 있습니다"
                 else:
-                    m_line_vs = f"본전 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년임"
+                    m_line_vs = f"순이익 기준 원금 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년입니다"
 
-                # 괄호를 완전히 제거한 10컷 초단문 비교 대본
                 vs_pop_chunks = [
-                    (f"버핏 기준으로 {na} 대 {nb} 비교해봄", "VS_1"),
+                    (f"{today_vs_str} 기준, 버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
                     (m_line_vs, "VS_1"),
-                    (f"10년 평균 대비 할인율은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%임", "VS_2"),
-                    (f"평소 대비 가격 할인폭은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 큼", "VS_2"),
-                    (f"돈 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%임", "VS_3"),
-                    (f"자본 수익성은 {w_roe} 쪽이 {roe_gap:.1f}%p 더 빠름", "VS_3"),
-                    (f"배당·소각 주주환원은 연 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%임", "VS_4"),
-                    (f"주주환원율은 {w_tsy} 쪽이 {tsy_gap:.1f}%p 더 높음", "VS_4"),
-                    (f"요약하면 수익성은 {w_roe}, 가격은 {w_mos} 우위임", "VS_4"),
-                    ("10년 장부 대결, 여러분이라면 어디 선택함?", "VS_4")
+                    (f"10년 평균 대비 가격 할인 폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%입니다", "VS_2"),
+                    (f"평소 대비 가격 안전마진은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높습니다", "VS_2"),
+                    (f"자본을 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%입니다", "VS_3"),
+                    (f"자본 증식 효율성은 {w_roe} 쪽이 {roe_gap:.1f}%p 더 앞섭니다", "VS_3"),
+                    (f"배당과 자사주 소각 환원율은 연 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%입니다", "VS_4"),
+                    (f"주주환원 매력도는 {w_tsy} 쪽이 {tsy_gap:.1f}%p 더 우수합니다", "VS_4"),
+                    (f"요약하면 자본 수익성은 {w_roe}, 가격 할인 폭은 {w_mos} 우위입니다", "VS_4"),
+                    ("10년 장부 맞대결, 여러분의 포트폴리오 선택은 어디인가요?", "VS_4")
                 ]
+                # ▲▲▲ [교체 위치 3 끝] ▲▲▲
 
                 if st.button("🎬 100% 음슴체 · 괄호제거 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
