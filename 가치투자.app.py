@@ -6700,8 +6700,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         end_cut10 = f"버핏의 5대 정량 기준 중 {pass_cnt}개를 충족했습니다. 여러분의 생각은 어떠신가요?"
 
+                    # [탭 1] pop_chunks 첫 번째 줄 수정 (날짜 발음 제거 -> 즉시 본론 진입)
                     pop_chunks = [
-                        (f"{today_short} 기준, 워런 버핏 관점으로 {comp_name} 10년 장부를 분석했습니다", "SCENE_HOOK"),
+                        (f"워런 버핏 관점으로 {comp_name} 10년 장부를 분석했습니다", "SCENE_HOOK"),
                         (hook_cut2, "SCENE_HOOK"),
                         (val_cut3, "SCENE_1"),
                         (moat_cut4, "SCENE_2"),
@@ -8752,9 +8753,11 @@ with tab_vs:
                 else:
                     m_line_vs = f"순이익 기준 원금 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년입니다"
 
+                # [탭 2 - 1:1 맞대결] vs_pop_chunks 첫 번째 줄 수정
                 vs_pop_chunks = [
-                    (f"{today_vs_str} 기준, 버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
+                    (f"버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
                     (m_line_vs, "VS_1"),
+                    # ... (이하 동일)
                     (f"10년 평균 대비 가격 할인 폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%입니다", "VS_2"),
                     (f"평소 대비 가격 안전마진은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높습니다", "VS_2"),
                     (f"자본을 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%입니다", "VS_3"),
