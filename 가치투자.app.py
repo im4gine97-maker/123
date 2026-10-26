@@ -6890,16 +6890,34 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     for idx_l, u_line in enumerate(user_lines[:12]):
                         sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_4"
                         pop_chunks.append((u_line, sc_map))
-                    # ▲▲▲ [블록 2-A 끝] 바로 아래에 def _fix_tts_pronunciation(text_s): 가 이어집니다 ▲▲▲
+                    # ▼▼▼ 기존 _fix_tts_pronunciation 함수를 아래 코드로 교체하세요 ▼▼▼
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
-                        # ▼▼▼ [핵심 추가] 성우가 날짜(예: 2026.10.26 기준)를 입으로 읽으며 시간 낭비하는 현상 100% 자동 차단! ▼▼▼
+                        # 1. 2026년 날짜 및 괄호 제거
                         s = re.sub(r'20\d{2}[\.\-\/년]\s*\d{1,2}[\.\-\/월]\s*\d{1,2}[일]?\s*(기준)?\s*,?', '', s)
-                        
-                        # 괄호 기호 공백 치환 (기존 코드 유지)
                         s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
+                    
+                        # 2. [핵심] 대가 이름 뒤에 '이가'가 붙는 어색한 한국어 조사 오류 완벽 방어
+                        guru_josa_fixes = [
+                            ("워런 버핏이", "워런 버핏이"), ("워런 버핏이가", "워런 버핏이"),
+                            ("레이 달리오이", "레이 달리오가"), ("레이 달리오이가", "레이 달리오가"),
+                            ("스탠리 드러켄밀러이", "스탠리 드러켄밀러가"), ("스탠리 드러켄밀러이가", "스탠리 드러켄밀러가"),
+                            ("빌 애크먼이", "빌 애크먼이"), ("빌 애크먼이가", "빌 애크먼이"),
+                            ("하워드 막스이", "하워드 막스가"), ("하워드 막스이가", "하워드 막스가"),
+                            ("데이비드 테퍼이", "데이비드 테퍼가"), ("데이비드 테퍼이가", "데이비드 테퍼가"),
+                            ("리 루이", "리 루가"), ("리 루이가", "리 루가"),
+                            ("세스 클라만이", "세스 클라만이"), ("세스 클라만이이가", "세스 클라만이"),
+                            ("테리 스미스이", "테리 스미스가"), ("테리 스미스이가", "테리 스미스가"),
+                            ("척 아크레이", "척 아크레가"), ("척 아크레이가", "척 아크레가"),
+                            ("모니시 파브라이이", "모니시 파브라이가"), ("모니시 파브라이이가", "모니시 파브라이가"),
+                            ("가이 스피어이", "가이 스피어가"), ("가이 스피어이가", "가이 스피어가")
+                        ]
+                        for bad_k, good_v in guru_josa_fixes:
+                            s = s.replace(bad_k, good_v)
+                    
+                        # 3. 일반 금융 용어 및 종목명 발음 교정
                         pron_map = [
                             ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
                             ("NAVER", "네이버"), ("KAKAO", "카카오"), ("HYUNDAI", "현대"),
@@ -6909,7 +6927,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             ("ROIC", "알오아이씨"), ("ROE", "알오이"), ("PER", "피이알"),
                             ("PBR", "피비알"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
                             ("BPS", "비피에스"), ("FCF", "에프씨에프"), ("ETF", "이티에프"),
-                            ("ADR", "에이디알"), ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"),
+                            ("ADR", "에이디알"), ("HPSP", "에이치피에스피"), ("HLB", "아이아이에스"),
                             ("HMM", "에이치엠엠"), ("OCI", "오씨아이"), ("LIG", "엘아이지"),
                             ("BGF", "비지에프"), ("KCC", "케이씨씨"), ("JYP", "제이와이피"),
                             ("F&F", "에프앤에프"), ("AMD", "에이엠디"), ("IBM", "아이비엠"),
@@ -6922,7 +6940,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             s = s.replace(eng_k, kor_v)
                         s = re.sub(r'\s+', ' ', s).strip()
                         return s
-
+                    # ▲▲▲ 여기까지 교체 ▲▲▲
                     # ▼▼▼ [코드 블록 B 시작] def _generate_silent_wav 부터 def _load_korean_pil_fonts 직전까지 덮어쓰세요 ▼▼▼
                     def _generate_silent_wav(out_wav_path, dur_sec=0.15):
                         import wave
