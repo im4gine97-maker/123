@@ -7100,7 +7100,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W//2, 1095, W-40, "과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않습니다", get_font, start_sz=16, min_sz=12, fill=(85, 85, 85))
                         return img
 
-                    def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public"):
+                    # ▼▼▼ [교체 시작] 약 1859행 def _upload_shorts_to_youtube 부터 약 2048행 st.code 바로 윗줄까지 덮어쓰기 ▼▼▼
+                    def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
                         from google.oauth2.credentials import Credentials
                         from googleapiclient.discovery import build
                         from googleapiclient.http import MediaIoBaseUpload
@@ -7121,17 +7122,29 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             scopes=["https://www.googleapis.com/auth/youtube.upload"]
                         )
                         youtube = build("youtube", "v3", credentials=creds)
+
+                        # [스팸 방어 1] 과도한 태그 차단 (핵심 태그 최대 6개로 제한)
+                        clean_tags = list(dict.fromkeys([t.strip() for t in yt_tags_list if t.strip()]))[:6]
+
+                        status_dict = {
+                            "privacyStatus": privacy_str,
+                            "selfDeclaredMadeForKids": False
+                        }
+                        # [예약 공개 핵심 로직] 예약 시간이 지정되면 privacyStatus를 강제로 private으로 두고 publishAt(ISO 8601) 주입
+                        if publish_at_iso:
+                            status_dict["privacyStatus"] = "private"
+                            status_dict["publishAt"] = publish_at_iso
+
                         body_dict = {
                             "snippet": {
                                 "title": yt_title_str[:95],
                                 "description": yt_desc_str,
-                                "tags": yt_tags_list,
-                                "categoryId": "27"
+                                "tags": clean_tags,
+                                "categoryId": "27", # Education (교육/재무 분석 카테고리 고정)
+                                "defaultLanguage": "ko",
+                                "defaultAudioLanguage": "ko"
                             },
-                            "status": {
-                                "privacyStatus": privacy_str,
-                                "selfDeclaredMadeForKids": False
-                            }
+                            "status": status_dict
                         }
                         media_body = MediaIoBaseUpload(io.BytesIO(mp4_bytes_data), mimetype="video/mp4", chunksize=-1, resumable=True)
                         req = youtube.videos().insert(part="snippet,status", body=body_dict, media_body=media_body)
@@ -7139,15 +7152,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         vid_id = resp.get("id", "")
                         return True, f"https://youtube.com/shorts/{vid_id}"
 
-                    if st.button("🎬 1단계: 직관형 비교 썸네일 + 괄호제거 10컷 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 스팸방지 클린 메타데이터 + 10컷 쇼츠(.mp4) 생성", key=f"btn_mp4_{tk}", use_container_width=True, type="primary"):
                         try:
-                            import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("직관형 비교 썸네일 및 10컷 압축 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            import imageio_ffmpeg, subprocess, tempfile, os, re, random
+                            with st.spinner("스팸 방지 메타데이터 세탁 및 10컷 압축 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * (n_chunks + 1)
+
+                                # [스팸 방어 2] 영상마다 미세하게 다른 썸네일 길이(0.14~0.19초)를 부여하여 파일 해시 중복(Duplicate Hash) 원천 차단
+                                thumb_dur_jitter = round(random.uniform(0.14, 0.19), 3)
 
                                 thumb_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                 thumb_wav_p = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
@@ -7155,7 +7171,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 cleanup_files.extend([thumb_img_p, thumb_wav_p, thumb_seg_p])
 
                                 _draw_cover_thumbnail_frame(get_font).save(thumb_img_p)
-                                _generate_silent_wav(thumb_wav_p, dur_sec=0.15)
+                                _generate_silent_wav(thumb_wav_p, dur_sec=thumb_dur_jitter)
                                 subprocess.run([
                                     ffmpeg_exe, "-y", "-loop", "1", "-i", thumb_img_p, "-i", thumb_wav_p,
                                     "-c:v", "libx264", "-tune", "stillimage", "-r", "30",
@@ -7203,6 +7219,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                                 out_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                 cleanup_files.append(out_mp4)
+                                now_iso_meta = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
                                 if "없음" not in bgm_choice:
                                     res_dur = subprocess.run([ffmpeg_exe, "-i", merged_no_bgm], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
@@ -7213,14 +7230,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     cleanup_files.append(bgm_wav)
                                     _generate_trendy_bgm_wav(bgm_wav, vid_dur, bgm_choice)
 
+                                    # [스팸 방어 3] -map_metadata -1 로 FFmpeg 기계적 인코더 흔적을 지우고 고유 creation_time 기록
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-i", merged_no_bgm, "-i", bgm_wav,
                                         "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.16[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=2[aout]",
-                                        "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                                        "-map", "0:v", "-map", "[aout]",
+                                        "-map_metadata", "-1",
+                                        "-metadata", f"creation_time={now_iso_meta}",
+                                        "-metadata", f"title={comp_name}_{clean_tk}",
+                                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
                                         "-shortest", out_mp4
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 else:
-                                    out_mp4 = merged_no_bgm
+                                    subprocess.run([
+                                        ffmpeg_exe, "-y", "-i", merged_no_bgm,
+                                        "-map_metadata", "-1",
+                                        "-metadata", f"creation_time={now_iso_meta}",
+                                        "-c", "copy", out_mp4
+                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf:
                                     st.session_state[f"saved_shorts_mp4_{clean_tk}"] = vf.read()
@@ -7233,54 +7260,148 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning(f"MP4 렌더링 오류: {e}")
 
                     st.markdown("---")
-                    st.markdown("#### 🚀 2단계: 유튜브 쇼츠 · 인스타그램 릴스 · 틱톡 원클릭 자동 업로드")
+                    st.markdown("#### 🚀 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
 
-                    default_yt_title = f"워런 버핏 방식으로 {comp_name} 10년 장부 뜯어본 결과 #shorts #주식 #가치투자"
+                    # [스팸 방어 4] 획일화된 기계적 제목 대신 기업 수치에 따른 4종 다변화 템플릿 자동 선택
+                    today_ tag_str = datetime.now().strftime("%Y.%m.%d")
+                    title_templates = [
+                        f"[{today_tag_str}] {comp_name} 10년 장부 분석 : 10년 평균 대비 {disc_txt} #shorts #가치투자",
+                        f"워런 버핏의 5대 기준으로 본 {comp_name}, 현재 주가 안전마진은? ({pass_cnt}/5 충족) #shorts",
+                        f"매출 100원에 {margin_won}원 남기는 {comp_name}, 10년 치 재무제표 팩트체크 #shorts #주식공부",
+                        f"{comp_name} 자본 복리 속도 연 {roe:.1f}% · 10년 장부 핵심 요약 브리핑 #shorts"
+                    ]
+                    tpl_idx = sum(ord(c) for c in clean_tk) % len(title_templates)
+                    default_yt_title = title_templates[tpl_idx]
+
+                    # [스팸 방어 5] 고유 수치 요약문 + 해시태그 4개 이하 클린 포맷 (과도한 해시태그 스팸 분류 원천 차단)
+                    clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
                     default_yt_desc = (
-                        f"워런 버핏의 가치투자 5대 기준 관점으로 {comp_name}의 10년 치 공시 데이터와 주가 내재 성장률 괴리율을 분석한 교육용 콘텐츠임.\n\n"
-                        f"⚠️ [법적 고지 및 면책 조항]\n"
-                        f"1. 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 워런 버핏의 공개된 투자 원칙을 대입해 본 학술·교육용 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다.\n"
-                        f"2. 과거의 재무 성과나 컨센서스 추정치가 미래의 수익을 보장하지 않으며, 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
-                        f"#shorts #{comp_name.replace(' ', '')} #{clean_tk} #워런버핏 #가치투자 #재무제표 #주식공부"
+                        f"📊 [{today_tag_str} 기준] {comp_name} ({clean_tk}) 10년 장부 정량 브리핑\n"
+                        f"• 현재 주가: {p_str} ({thumb_compare_bar})\n"
+                        f"• 수익성 및 복리 엔진: 영업이익률 {op_m:.1f}% / 자본수익률(ROE) 연 {roe:.1f}%\n"
+                        f"• 총주주환원율(배당+자사주): 연 {tsy_total:.1f}% (10년물 국채금리 {ty:.1f}% 비교)\n"
+                        f"• 버핏·멍거 5대 정량 체크리스트: 5개 중 {pass_cnt}개 충족\n\n"
+                        f"※ 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 작성된 학술·교육용 시각화 자료이며, 특정 종목의 매수·매도 추천이 아닙니다. 모든 투자의 책임은 투자자 본인에게 있습니다.\n\n"
+                        f"#shorts #{clean_tag_name} #가치투자 #재무제표분석"
                     )
 
-                    yt_up_title = st.text_input("공통 업로드 제목 (CTR 최적화)", value=default_yt_title, key=f"yt_t_{clean_tk}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션 (유튜브·인스타·틱톡 공통 적용)", value=default_yt_desc, height=130, key=f"yt_d_{clean_tk}")
-                    yt_up_priv = st.selectbox("유튜브 공개 설정", ["public (전체 공개)", "unlisted (일부 공개)", "private (비공개)"], key=f"yt_p_{clean_tk}")
+                    yt_up_title = st.text_input("공통 업로드 제목 (종목별 자동 다변화 적용됨)", value=default_yt_title, key=f"yt_t_{clean_tk}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션 (고유 수치 요약 + 해시태그 4개 제한으로 스팸 필터 우회)", value=default_yt_desc, height=165, key=f"yt_d_{clean_tk}")
+
+                    # --- [신규] 공개 방식 및 예약 시간(KST) 설정 UI ---
+                    from datetime import timedelta, timezone
+                    kst_tz = timezone(timedelta(hours=9))
+                    now_kst = datetime.now(kst_tz)
+
+                    pub_col1, pub_col2, pub_col3 = st.columns([1.4, 1.1, 1.5])
+                    with pub_col1:
+                        yt_up_priv = st.selectbox(
+                            "공개 방식 선택 (스팸 방지를 위해 예약 공개 권장)",
+                            [
+                                "scheduled (⏰ 원하는 날짜·시간에 예약 공개 - 추천)",
+                                "public (즉시 전체 공개)",
+                                "unlisted (일부 공개 - 링크 소지자만)",
+                                "private (비공개 전용)"
+                            ],
+                            key=f"yt_p_{clean_tk}"
+                        )
+                    is_scheduled_mode = yt_up_priv.startswith("scheduled")
+
+                    # 다음 황금 시간대(오전 8시 출근길 / 낮 12시 점심 / 저녁 18시 퇴근길 / 밤 21시) 자동 추천
+                    default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
+                    with pub_col2:
+                        sched_date = st.date_input(
+                            "📅 예약 날짜 (한국 시간 KST)",
+                            value=default_sched_dt.date(),
+                            min_value=now_kst.date(),
+                            disabled=not is_scheduled_mode,
+                            key=f"yt_sdate_{clean_tk}"
+                        )
+                    with pub_col3:
+                        golden_hours = [
+                            "07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)",
+                            "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"
+                        ]
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택 (3050 직장인 시청 피크타임)", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_{clean_tk}")
+                        if slot_choice == "직접 시간 입력":
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_{clean_tk}")
+                        else:
+                            hh_mm = slot_choice.split(" ")[0].split(":")
+                            sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
+
+                    # [스팸 방어 6] 봇 탐지 회피용 미세 난수(Anti-Bot Jitter: +1~4분) 옵션
+                    use_jitter = st.checkbox(
+                        "🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용 (정각 매크로 판정 회피 · 강력 추천)",
+                        value=True,
+                        disabled=not is_scheduled_mode,
+                        key=f"yt_jit_{clean_tk}"
+                    )
+
+                    publish_at_iso_str = None
+                    if is_scheduled_mode:
+                        import random
+                        combined_kst = datetime.combine(sched_date, sched_time).replace(tzinfo=kst_tz)
+                        if use_jitter:
+                            # 종목 코드에 따라 1~4분, 10~50초를 고정 오프셋으로 더해 정각(00분 00초) 봇 패턴을 깨뜨림
+                            jitter_min = (sum(ord(c) for c in clean_tk) % 4) + 1
+                            jitter_sec = (sum(ord(c) for c in clean_tk) * 7) % 50 + 5
+                            combined_kst = combined_kst + timedelta(minutes=jitter_min, seconds=jitter_sec)
+
+                        if combined_kst <= now_kst + timedelta(minutes=5):
+                            st.warning("⚠️ 예약 시간은 현재 시각보다 최소 10분 이후여야 합니다. 자동으로 1시간 뒤로 보정됩니다.")
+                            combined_kst = now_kst + timedelta(hours=1, minutes=3)
+
+                        publish_at_iso_str = combined_kst.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+                        st.caption(f"✅ **최종 예약 공개 시각 (KST):** `{combined_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}` (유튜브 서버에 비공개 업로드 후 해당 시각에 자동 전체 공개)")
+
+                    # 연속 업로드 쿨다운 체크 (하루 최대 3~4개, 최소 3시간 간격 권장 안내)
+                    last_up_time = st.session_state.get("last_shorts_upload_ts")
+                    if last_up_time:
+                        elapsed_min = (time.time() - last_up_time) / 60.0
+                        if elapsed_min < 30:
+                            st.warning(f"🚨 **스팸 방지 경고:** 방금 전({elapsed_min:.0f}분 전)에 영상을 업로드하셨습니다! 단시간 내 연속 즉시 공개를 하면 유튜브 알고리즘이 스팸 채널로 분류해 노출을 차단합니다. **반드시 3~4시간 간격으로 '예약 공개' 날짜·시간을 띄워서 업로드**하세요.")
 
                     has_video_ready = (f"saved_shorts_mp4_{clean_tk}" in st.session_state)
                     if has_video_ready:
                         saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
-                        st.success("🎉 괄호 읽기 방지 & 직관형 비교 10컷 쇼츠 생성 완료! 아래에서 확인하거나 바로 업로드하세요.")
+                        st.success("🎉 스팸 방지 메타데이터 세탁 & 10컷 쇼츠 준비 완료! 아래에서 확인하거나 예약 업로드하세요.")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
                             data=saved_mp4_bytes,
-                            file_name=f"BuffettView_{clean_tk}.mp4",
+                            file_name=f"BuffettView_{clean_tk}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
                             use_container_width=True
                         )
                     else:
-                        st.caption("ℹ️ 먼저 위쪽의 **[🎬 1단계: 쇼츠(.mp4) 생성]** 버튼을 눌러 영상을 생성하면 아래 3개 업로드 버튼이 활성화됩니다.")
+                        st.caption("ℹ️ 먼저 위쪽의 **[🎬 1단계: 쇼츠(.mp4) 생성]** 버튼을 눌러 영상을 생성하면 아래 업로드 버튼이 활성화됩니다.")
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
-                        if st.button("▶️ 유튜브 쇼츠 업로드 (하루 6개 무료)", key=f"btn_yt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
-                            priv_code = yt_up_priv.split(" ")[0]
-                            tags_arr = ["shorts", comp_name, clean_tk, "워런버핏", "가치투자", "재무제표", "주식공부"]
-                            with st.spinner("YouTube Data API로 업로드 중..."):
+                        btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                            priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
+                            tags_arr = ["shorts", comp_name, clean_tk, "가치투자", "재무제표분석"]
+                            with st.spinner("YouTube Data API로 안전 업로드 중..."):
                                 try:
-                                    ok_up, msg_up = _upload_shorts_to_youtube(saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr, priv_code)
+                                    ok_up, msg_up = _upload_shorts_to_youtube(
+                                        saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr,
+                                        privacy_str=priv_code, publish_at_iso=publish_at_iso_str
+                                    )
                                     if ok_up:
+                                        st.session_state["last_shorts_upload_ts"] = time.time()
                                         st.balloons()
-                                        st.success(f"✅ 유튜브 업로드 성공! 링크: {msg_up}")
+                                        if is_scheduled_mode:
+                                            st.success(f"✅ 유튜브 예약 공개 등록 완료! ({publish_at_iso_str}에 자동 공개됩니다)\n링크: {msg_up}")
+                                        else:
+                                            st.success(f"✅ 유튜브 업로드 성공! 링크: {msg_up}")
                                     else:
                                         st.warning(msg_up)
                                 except Exception as up_e:
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드 (하루 50개 무료)", key=f"btn_ig_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드 (클린 캡션 적용)", key=f"btn_ig_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -7313,6 +7434,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                     break
                                             pub_res = requests.post(f"{ig_api_base}/media_publish", data={"creation_id": creation_id, "access_token": ig_tok}).json()
                                             if "id" in pub_res:
+                                                st.session_state["last_shorts_upload_ts"] = time.time()
                                                 st.balloons()
                                                 st.success(f"✅ 인스타 릴스 업로드 완료! (ID: {pub_res['id']})")
                                             else:
@@ -7349,14 +7471,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                 timeout=60
                                             )
                                             if put_r.status_code in [200, 201]:
+                                                st.session_state["last_shorts_upload_ts"] = time.time()
                                                 st.balloons()
-                                                st.success("✅ 틱톡 업로드 성공! (틱톡 앱에서 즉시 확인 가능)")
+                                                st.success("✅ 틱톡 임시보관함 업로드 성공! (틱톡 앱에서 예약/발행 가능)")
                                             else:
                                                 st.error(f"틱톡 전송 오류: {put_r.text}")
                                         else:
                                             st.error(f"틱톡 초기화 오류: {init_res}")
                                     except Exception as tt_e:
                                         st.error(f"틱톡 업로드 실패: {tt_e}")
+                    # ▲▲▲ [교체 끝] 바로 아래에 st.markdown("#### 📜 괄호 제거 완료...") 가 이어집니다 ▲▲▲
 
                     st.markdown("#### 📜 괄호 제거 완료 · 10컷 초단문 자막 대본")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
