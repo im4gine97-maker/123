@@ -6700,9 +6700,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         end_cut10 = f"버핏의 5대 정량 기준 중 {pass_cnt}개를 충족했습니다. 여러분의 생각은 어떠신가요?"
 
-                    # [탭 1] pop_chunks 첫 번째 줄 수정 (날짜 발음 제거 -> 즉시 본론 진입)
                     pop_chunks = [
-                        (f"워런 버핏 관점으로 {comp_name} 10년 장부를 분석했습니다", "SCENE_HOOK"),
+                        (f"{today_short} 기준, 워런 버핏 관점으로 {comp_name} 10년 장부를 분석했습니다", "SCENE_HOOK"),
                         (hook_cut2, "SCENE_HOOK"),
                         (val_cut3, "SCENE_1"),
                         (moat_cut4, "SCENE_2"),
@@ -6716,10 +6715,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # ▲▲▲ [교체 위치 1 끝] ▲▲▲
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
-                        # ▼▼▼ [핵심 추가] 성우가 날짜(예: 2026.10.26 기준)를 입으로 읽으며 시간 낭비하는 현상 100% 자동 차단! ▼▼▼
-                        s = re.sub(r'20\d{2}[\.\-\/년]\s*\d{1,2}[\.\-\/월]\s*\d{1,2}[일]?\s*(기준)?\s*,?', '', s)
-                        
-                        # 괄호 기호 공백 치환 (기존 코드 유지)
+                        # [핵심 수리] 괄호 기호를 모두 공백으로 치환하여 '괄호열고/괄호닫고' 발음 원천 차단!
                         s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
@@ -7025,15 +7021,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rounded_rectangle([36, 296, W-36, 792], radius=28, fill=(248, 250, 252), outline=(15, 23, 42), width=4)
 
                         draw.rounded_rectangle([64, 314, W-64, 374], radius=30, fill=(15, 23, 42))
-                        # ▼▼▼ _draw_cover_thumbnail_frame 함수 내부의 배지 그리기 부분을 아래 코드로 교체 ▼▼▼
-                        today_disp = datetime.now().strftime("%Y.%m.%d")
-                        
-                        # 상단 회색 캡슐 박스
-                        draw.rounded_rectangle([64, 314, W-64, 374], radius=30, fill=(248, 250, 252), outline=(15, 23, 42), width=4)
-                        
-                        # 기업명, 현재가 뒤에 오늘 날짜(예: 2026.10.26 기준)를 시각적으로 자동 삽입
-                        _fit_single_line(draw, W//2, 344, W-160, f"{comp_name} · 현재가 {p_str} ({today_disp} 기준)", get_font, start_sz=24, min_sz=14, fill=(3, 105, 161))
-                        # ▲▲▲ 여기까지 교체 ▲▲▲
+                        _fit_single_line(draw, W//2, 344, W-160, f"{comp_name} · 현재가 {p_str}", get_font, start_sz=30, min_sz=18, fill=(255, 240, 0))
 
                         draw.rounded_rectangle([56, 386, W-56, 434], radius=12, fill=(224, 242, 254), outline=(186, 230, 253), width=2)
                         _fit_single_line(draw, W//2, 410, W-140, thumb_compare_bar, get_font, start_sz=23, min_sz=14, fill=(3, 105, 161))
@@ -7090,15 +7078,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         draw.rounded_rectangle([36, 296, W-36, 792], radius=26, fill=(248, 250, 252), outline=(203, 213, 225), width=3)
                         draw.rounded_rectangle([60, 314, W-60, 372], radius=14, fill=(15, 23, 42))
-                        # ▼▼▼ _draw_core_frame 함수 내부의 상단 배지 부분을 아래 코드로 교체 ▼▼▼
-                        today_disp = datetime.now().strftime("%Y.%m.%d")
-                        
-                        # 상단 다크 네이비 캡슐 박스
-                        draw.rounded_rectangle([60, 314, W-60, 372], radius=14, fill=(15, 23, 42))
-                        
-                        # 10컷 영상 전체에 걸쳐 상단 배지에 날짜가 시각적으로 노출되도록 고정
-                        _fit_single_line(draw, W//2, 343, W-150, f"{comp_name}  |  현재가 {p_str} ({today_disp})", get_font, start_sz=25, min_sz=15, fill=(255, 240, 0))
-                        # ▲▲▲ 여기까지 교체 ▲▲▲
+                        _fit_single_line(draw, W//2, 343, W-150, f"{comp_name}  |  현재가 {p_str}", get_font, start_sz=26, min_sz=16, fill=(255, 240, 0))
 
                         if scene_code == "SCENE_HOOK":
                             draw.rounded_rectangle([56, 386, W-56, 434], radius=12, fill=(224, 242, 254), outline=(186, 230, 253), width=2)
@@ -8772,9 +8752,8 @@ with tab_vs:
                 else:
                     m_line_vs = f"순이익 기준 원금 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년입니다"
 
-                # [탭 2 - 1:1 맞대결] vs_pop_chunks 첫 번째 줄 수정
                 vs_pop_chunks = [
-                    (f"버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
+                    (f"{today_vs_str} 기준, 버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
                     (m_line_vs, "VS_1"),
                     (f"10년 평균 대비 가격 할인 폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%입니다", "VS_2"),
                     (f"평소 대비 가격 안전마진은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높습니다", "VS_2"),
