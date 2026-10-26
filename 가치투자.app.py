@@ -6493,38 +6493,56 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "💡 Fixed parenthesis TTS reading issue, upgraded comparison thumbnail, and prevented subtitle clipping."
                     ))
 
-                    col_sh1, col_sh2, col_sh3 = st.columns([1.4, 1.3, 1.1])
+                    # ▼▼▼ [코드 블록 A 시작] col_sh1, col_sh2, col_sh3 선언부(약 1381~1417행)를 아래 코드로 덮어쓰세요 ▼▼▼
+                    col_sh1, col_sh2 = st.columns([1.5, 1.5])
                     with col_sh1:
                         voice_choice = st.selectbox(
-                            "1️⃣ 쇼츠 AI 보이스 선택",
+                            "1️⃣ 쇼츠 AI 성우 선택 (3050 신뢰도 추천순 정렬)",
                             [
-                                "🌾 [충청도 청년 박창수] 찰지고 또렷한 청년 썰풀이 보이스 (중음역 부스트 튜닝)",
-                                "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
-                                "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
-                                "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
-                                "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
+                                "🥇 1위 [ElevenLabs Brian·Adam 톤] 월스트리트 라디오·뉴스 남성 (강력 추천)",
+                                "🥈 2위 [OpenAI Onyx 톤] 중후한 다큐멘터리 내레이션 남성",
+                                "🥉 3위 [Typecast 진우·건우 톤] 팩트체크 경제 스페셜리스트 남성",
+                                "4위 [CLOVA 아라 / OpenAI Nova 톤] 차분한 뉴스 브리핑 여성",
+                                "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
+                                "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
                             ],
                             key=f"shorts_voice_{tk}"
                         )
                     with col_sh2:
                         bgm_choice = st.selectbox(
-                            "2️⃣ 배경음악 (최신 쇼츠 트렌드 BGM)",
+                            "2️⃣ 배경음악 선택 (시청 지속시간 추천순 정렬)",
                             [
-                                "🎧 다크 신스웨이브 비트 (경제·이슈 쇼츠 1위 트렌드)",
-                                "☕ 트렌디 로파이 칠 비트 (토스·머니그라피 감성)",
-                                "⚡ 업비트 테크 플럭 (빠른 템포 정보 전달용)",
-                                "🔇 배경음악 없음 (성우 목소리만)"
+                                "🥇 1위 🎧 모던 금융 다큐멘터리 칠 비트 (머니그라피·삼프로 감성)",
+                                "🥈 2위 🌆 월스트리트 딥 신스웨이브 (경제·이슈 쇼츠 트렌드)",
+                                "🥉 3위 ☕ 재즈 로파이 라운지 (워런 버핏의 서재 감성)",
+                                "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
+                                "5위 🔇 배경음악 없음 (성우 목소리만)"
                             ],
                             key=f"shorts_bgm_{tk}"
                         )
+
+                    col_sh3, col_sh4 = st.columns([1.5, 1.5])
                     with col_sh3:
-                        default_spd = 32 if "박창수" in voice_choice else 34
+                        sfx_choice = st.selectbox(
+                            "3️⃣ 화면 전환 짧은 효과음 (SFX · 추천순 정렬)",
+                            [
+                                "🥇 1위 ✨ 모던 휙(Whoosh) + 결론 맑은 딩(Chime) [가장 세련됨]",
+                                "🥈 2위 🫧 토스·애플 스타일 소프트 팝 ( 깔끔한 UI 클릭음)",
+                                "🥉 3위 💨 시네마틱 로우 스우시 (묵직한 다큐멘터리 전환음)",
+                                "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
+                                "5위 🔇 화면 전환 효과음 없음"
+                            ],
+                            key=f"shorts_sfx_{tk}"
+                        )
+                    with col_sh4:
+                        default_spd = 30 if ("Brian" in voice_choice or "Onyx" in voice_choice) else 32
                         voice_speed = st.slider(
-                            "3️⃣ 말하기 배속 (초반 이탈 방지 +32% 추천)",
+                            "4️⃣ 성우 말하기 배속 (3050 집중도 최적 +30% 추천)",
                             min_value=15, max_value=45, value=default_spd, step=1,
                             format="+%d%%",
                             key=f"shorts_spd_{tk}"
                         )
+                    # ▲▲▲ [코드 블록 A 끝] ▲▲▲
 
                     extra_kor_names = {
                         "373220.KS": "LG에너지솔루션", "005380.KS": "현대차", "000270.KS": "기아",
@@ -6724,6 +6742,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         s = re.sub(r'\s+', ' ', s).strip()
                         return s
 
+                    # ▼▼▼ [코드 블록 B 시작] def _generate_silent_wav 부터 def _load_korean_pil_fonts 직전까지 덮어쓰세요 ▼▼▼
                     def _generate_silent_wav(out_wav_path, dur_sec=0.15):
                         import wave
                         sr = 24000
@@ -6732,19 +6751,103 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
                             wf.writeframes(b'\x00\x00' * n_s)
 
+                    def _generate_transition_sfx_samples(sfx_style_str, is_final_cut=False, sr=24000):
+                        """컷 전환 시 첫 0.12초 동안 삽입되는 고품질 디지털 효과음(SFX) 파형 생성기"""
+                        import math, random
+                        if "없음" in sfx_style_str:
+                            return []
+
+                        random.seed(42)
+                        two_pi = 2.0 * math.pi
+                        samples = []
+
+                        # 마지막 결론 컷이거나 골드 벨 모드일 때 맑은 크리스탈 차임(Ding) 생성
+                        if ("모던 휙" in sfx_style_str and is_final_cut) or "골드 벨" in sfx_style_str:
+                            dur = 0.22
+                            n_s = int(sr * dur)
+                            f1, f2 = (1046.5, 1567.98) if is_final_cut else (880.0, 1318.5)
+                            for i in range(n_s):
+                                t_s = i / sr
+                                env = math.exp(-t_s * 18.0) * min(1.0, t_s / 0.004)
+                                wave_v = (0.65 * math.sin(two_pi * f1 * t_s) + 0.35 * math.sin(two_pi * f2 * t_s)) * env * 0.28
+                                samples.append(wave_v)
+                            return samples
+
+                        # 2위: 토스·애플 스타일 소프트 UI 팝 (짧고 쫀득한 주파수 드롭 틱 사운드)
+                        if "소프트 팝" in sfx_style_str:
+                            dur = 0.055
+                            n_s = int(sr * dur)
+                            for i in range(n_s):
+                                t_s = i / sr
+                                freq = 520.0 * math.exp(-t_s * 45.0) + 110.0
+                                env = math.exp(-t_s * 55.0) * min(1.0, t_s / 0.002)
+                                samples.append(math.sin(two_pi * freq * t_s) * env * 0.32)
+                            return samples
+
+                        # 1위 & 3위: 모던 휙(Whoosh) / 시네마틱 로우 스우시 (주파수 스윕 + 부드러운 에어 필터링)
+                        dur = 0.11 if "모던 휙" in sfx_style_str else 0.14
+                        n_s = int(sr * dur)
+                        f_start = 420.0 if "모던 휙" in sfx_style_str else 260.0
+                        f_end = 130.0 if "모던 휙" in sfx_style_str else 75.0
+                        phase = 0.0
+                        prev_noise = 0.0
+                        for i in range(n_s):
+                            t_s = i / sr
+                            prog = i / max(1, n_s)
+                            # 종 모양(Bell-curve) 엔벨로프로 부드럽게 스쳐 지나가는 질감 구현
+                            env = math.sin(math.pi * prog) ** 1.6
+                            cur_f = f_start + (f_end - f_start) * prog
+                            phase += two_pi * cur_f / sr
+                            raw_n = (random.random() * 2.0 - 1.0)
+                            smooth_n = 0.82 * prev_noise + 0.18 * raw_n
+                            prev_noise = smooth_n
+                            val = (0.65 * math.sin(phase) + 0.35 * smooth_n) * env * 0.26
+                            samples.append(val)
+                        return samples
+
+                    def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, is_final_cut=False):
+                        """성우 음성 WAV 파일 시작 부분에 화면 전환 효과음(SFX)을 자연스럽게 믹싱"""
+                        import wave, struct
+                        sfx_floats = _generate_transition_sfx_samples(sfx_style_str, is_final_cut=is_final_cut, sr=24000)
+                        if not sfx_floats:
+                            return
+                        try:
+                            with wave.open(wav_path, 'rb') as wf:
+                                params = wf.getparams()
+                                raw_frames = wf.readframes(wf.getnframes())
+                            total_samples = len(raw_frames) // 2
+                            pcm_list = list(struct.unpack(f'<{total_samples}h', raw_frames))
+                            mix_len = min(len(pcm_list), len(sfx_floats))
+                            for i in range(mix_len):
+                                mixed = int(pcm_list[i] + sfx_floats[i] * 32767.0)
+                                pcm_list[i] = max(-32767, min(32767, mixed))
+                            with wave.open(wav_path, 'wb') as wf_out:
+                                wf_out.setparams(params)
+                                wf_out.writeframes(struct.pack(f'<{total_samples}h', *pcm_list))
+                        except Exception:
+                            pass
+
                     def _generate_trendy_bgm_wav(out_wav_path, duration_sec, bgm_style_str):
                         import wave, struct, math
                         sr = 24000
                         n_samples = int(sr * (duration_sec + 1.0))
+                        is_docu = "모던 금융 다큐멘터리" in bgm_style_str
                         is_synth = "신스웨이브" in bgm_style_str
                         is_lofi = "로파이" in bgm_style_str
-                        bpm = 124.0 if is_synth else (90.0 if is_lofi else 130.0)
+
+                        bpm = 108.0 if is_docu else (122.0 if is_synth else (88.0 if is_lofi else 128.0))
                         beat_sec = 60.0 / bpm
                         step_sec = beat_sec / 2.0
 
-                        notes = [220.0, 261.63, 329.63, 440.0, 174.61, 220.0, 261.63, 349.23,
-                                 261.63, 329.63, 392.0, 523.25, 196.0, 246.94, 293.66, 392.0]
-                        bass_notes = [55.0, 43.65, 65.41, 49.0]
+                        # 다큐멘터리 칠 비트는 차분하고 지적인 마이너 세븐(Am7 - Dm7 - G7 - Cmaj7) 코드 진행 적용
+                        if is_docu:
+                            notes = [220.0, 261.63, 329.63, 392.0, 293.66, 349.23, 440.0, 523.25,
+                                     196.0, 246.94, 293.66, 349.23, 261.63, 329.63, 392.0, 493.88]
+                            bass_notes = [55.0, 73.42, 49.0, 65.41]
+                        else:
+                            notes = [220.0, 261.63, 329.63, 440.0, 174.61, 220.0, 261.63, 349.23,
+                                     261.63, 329.63, 392.0, 523.25, 196.0, 246.94, 293.66, 392.0]
+                            bass_notes = [55.0, 43.65, 65.41, 49.0]
 
                         buf = bytearray()
                         pack_h = struct.Struct('<h').pack
@@ -6756,14 +6859,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             local_t = t_sec - (step_idx * step_sec)
 
                             b_freq = bass_notes[(step_idx // 4) % 4]
-                            kick_env = math.exp(-local_t * 14.0) if (step_idx % 2 == 0) else 0.0
-                            kick_freq = b_freq * (1.0 + 1.8 * math.exp(-local_t * 35.0))
-                            sub_wave = math.sin(two_pi * kick_freq * local_t) * kick_env * 0.55
+                            kick_env = math.exp(-local_t * (16.0 if is_docu else 14.0)) if (step_idx % 2 == 0) else 0.0
+                            kick_freq = b_freq * (1.0 + 1.5 * math.exp(-local_t * 35.0))
+                            sub_wave = math.sin(two_pi * kick_freq * local_t) * kick_env * (0.45 if is_docu else 0.55)
 
                             n_freq = notes[step_idx % len(notes)]
-                            pluck_env = math.exp(-local_t * (9.0 if is_lofi else 13.0))
-                            harm = 0.3 * math.sin(two_pi * (n_freq * 2.0) * local_t) if is_synth else 0.15 * math.sin(two_pi * (n_freq * 1.5) * local_t)
-                            pluck_wave = (math.sin(two_pi * n_freq * local_t) + harm) * pluck_env * 0.35
+                            pluck_env = math.exp(-local_t * (10.0 if (is_docu or is_lofi) else 13.0))
+                            harm = 0.25 * math.sin(two_pi * (n_freq * 2.0) * local_t) if is_synth else 0.12 * math.sin(two_pi * (n_freq * 1.5) * local_t)
+                            pluck_wave = (math.sin(two_pi * n_freq * local_t) + harm) * pluck_env * (0.30 if is_docu else 0.35)
 
                             val = max(-0.95, min(0.95, sub_wave + pluck_wave))
                             buf.extend(pack_h(int(val * 32767)))
@@ -6772,40 +6875,73 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr)
                             wf.writeframes(buf)
 
-                    def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe):
+                    def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, is_final_cut=False):
                         tts_ready_text = _fix_tts_pronunciation(text_line)
-                        if "박창수" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+2Hz"
-                            eq_str = "equalizer=f=2200:width_type=h:width=1000:g=4,equalizer=f=350:width_type=h:width=200:g=2"
-                            pad_t = "0.02"
-                        elif "공감입니다 스타일" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+4Hz"
-                            eq_str = "equalizer=f=2500:width_type=h:width=1000:g=3"
+
+                        # [프리미엄 성우 매핑] 이미지 속 ElevenLabs / OpenAI / Typecast / CLOVA 음색 주파수 완벽 튜닝
+                        if "Brian·Adam" in voice_choice:
+                            # 1위: ElevenLabs Brian/Adam 스타일 (중저음 220Hz 부스트 + 고역 치찰음 감쇄로 깊고 부드러운 라디오 앵커 톤)
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "-3Hz"
+                            eq_str = "equalizer=f=210:width_type=h:width=140:g=4.5,equalizer=f=2400:width_type=h:width=900:g=2.5,equalizer=f=6500:width_type=h:width=2000:g=-3"
                             pad_t = "0.03"
-                        elif "낭만 썰풀이" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-HyunsuNeural", "+2Hz"
-                            eq_str = "equalizer=f=2500:width_type=h:width=1000:g=3"
+                        elif "Onyx" in voice_choice:
+                            # 2위: OpenAI Onyx 스타일 (중후하고 권위 있는 다큐멘터리 베이스 톤)
+                            voice_id, pitch_str = "ko-KR-HyunsuNeural", "-4Hz"
+                            eq_str = "equalizer=f=180:width_type=h:width=120:g=5,equalizer=f=2200:width_type=h:width=800:g=2"
                             pad_t = "0.03"
-                        elif "인준" in voice_choice:
-                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+8Hz"
-                            eq_str = "equalizer=f=2800:width_type=h:width=1000:g=3"
+                        elif "진우·건우" in voice_choice:
+                            # 3위: Typecast 진우·건우 스타일 (딕션과 숫자가 귀에 꽂히는 팩트체크 스페셜리스트 톤)
+                            voice_id, pitch_str = "ko-KR-HyunsuNeural", "+1Hz"
+                            eq_str = "equalizer=f=2600:width_type=h:width=1000:g=4,equalizer=f=300:width_type=h:width=150:g=2"
+                            pad_t = "0.025"
+                        elif "아라" in voice_choice or "Nova" in voice_choice:
+                            # 4위: CLOVA 아라 / OpenAI Nova 스타일 (차분하고 지적인 아나운서 여성 톤)
+                            voice_id, pitch_str = "ko-KR-SunHiNeural", "-2Hz"
+                            eq_str = "equalizer=f=280:width_type=h:width=150:g=3,equalizer=f=3200:width_type=h:width=1000:g=2,equalizer=f=7000:width_type=h:width=2000:g=-2"
+                            pad_t = "0.03"
+                        elif "민상·동현" in voice_choice:
+                            # 5위: CLOVA 민상·동현 스타일 (속도감 있는 깔끔한 브리핑 남성 톤)
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+5Hz"
+                            eq_str = "equalizer=f=2800:width_type=h:width=1000:g=3.5"
                             pad_t = "0.02"
                         else:
-                            voice_id, pitch_str = "ko-KR-SunHiNeural", "+5Hz"
-                            eq_str = "equalizer=f=2800:width_type=h:width=1000:g=2"
-                            pad_t = "0.03"
+                            # 6위: 충청도 청년 박창수 스타일
+                            voice_id, pitch_str = "ko-KR-InJoonNeural", "+2Hz"
+                            eq_str = "equalizer=f=2200:width_type=h:width=1000:g=4,equalizer=f=350:width_type=h:width=200:g=2"
+                            pad_t = "0.025"
 
                         rate_str = f"+{voice_speed}%"
-                        try:
-                            import edge_tts, asyncio
-                            async def _run():
-                                await edge_tts.Communicate(tts_ready_text, voice=voice_id, rate=rate_str, pitch=pitch_str).save(raw_mp3_path)
-                            loop = asyncio.new_event_loop()
-                            try: loop.run_until_complete(_run())
-                            finally: loop.close()
-                        except ImportError:
-                            from gtts import gTTS
-                            gTTS(text=tts_ready_text, lang='ko', slow=False).save(raw_mp3_path)
+                        tts_done = False
+
+                        # (선택사항) 만약 st.secrets에 OPENAI_API_KEY가 있으면 실제 OpenAI Onyx/Nova API 우선 호출
+                        openai_key = st.secrets.get("OPENAI_API_KEY", "")
+                        if openai_key and ("Onyx" in voice_choice or "Nova" in voice_choice):
+                            try:
+                                oai_voice = "onyx" if "Onyx" in voice_choice else "nova"
+                                r_oai = requests.post(
+                                    "https://api.openai.com/v1/audio/speech",
+                                    headers={"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"},
+                                    json={"model": "tts-1", "input": tts_ready_text, "voice": oai_voice, "speed": min(1.35, 1.0 + voice_speed / 100.0)},
+                                    timeout=10
+                                )
+                                if r_oai.status_code == 200:
+                                    with open(raw_mp3_path, "wb") as f_oai:
+                                        f_oai.write(r_oai.content)
+                                    tts_done = True
+                            except Exception:
+                                pass
+
+                        if not tts_done:
+                            try:
+                                import edge_tts, asyncio
+                                async def _run():
+                                    await edge_tts.Communicate(tts_ready_text, voice=voice_id, rate=rate_str, pitch=pitch_str).save(raw_mp3_path)
+                                loop = asyncio.new_event_loop()
+                                try: loop.run_until_complete(_run())
+                                finally: loop.close()
+                            except ImportError:
+                                from gtts import gTTS
+                                gTTS(text=tts_ready_text, lang='ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
                         af_filter = (
@@ -6824,6 +6960,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ffmpeg_exe, "-y", "-i", raw_mp3_path,
                                 "-ar", "24000", "-ac", "1", tuned_wav_path
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                        # [핵심] 각 컷이 시작될 때 화면 전환 효과음(SFX)을 첫 0.11초에 자동 오버레이!
+                        _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, is_final_cut=is_final_cut)
+                    # ▲▲▲ [코드 블록 B 끝] 바로 아래에 def _load_korean_pil_fonts(): 가 이어집니다 ▲▲▲
 
                     def _load_korean_pil_fonts():
                         import os, tempfile
@@ -7187,7 +7327,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
                                     _draw_core_frame(idx_c, n_chunks, sub_t, sc_code, get_font).save(f_img)
-                                    _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe)
+                                    # _build_single_cut 함수 내부의 호출 줄을 아래 1줄로 교체:
+                                    _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe, is_final_cut=(idx_c == n_chunks - 1))
 
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
