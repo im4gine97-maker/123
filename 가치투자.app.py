@@ -7263,7 +7263,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     st.markdown("#### 🚀 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
 
                     # [스팸 방어 4] 획일화된 기계적 제목 대신 기업 수치에 따른 4종 다변화 템플릿 자동 선택
-                    today_ tag_str = datetime.now().strftime("%Y.%m.%d")
+                    today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     title_templates = [
                         f"[{today_tag_str}] {comp_name} 10년 장부 분석 : 10년 평균 대비 {disc_txt} #shorts #가치투자",
                         f"워런 버핏의 5대 기준으로 본 {comp_name}, 현재 주가 안전마진은? ({pass_cnt}/5 충족) #shorts",
