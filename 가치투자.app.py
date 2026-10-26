@@ -5434,7 +5434,7 @@ with tab1:
                 # ▼▼▼ 탭 1의 get_10yr_custom_metrics(...) 호출 바로 아래(약 1975행)에 추가 ▼▼▼
                 if kr and (pbr <= 0 or t_pe <= 0 or f_pe <= 0):
                     try:
-                        _ d_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+                        _d_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
                         if not _d_df.empty:
                             _c0 = _d_df.columns[0]
                             _sh_kr = safe_float(i.get('sharesOutstanding'))
@@ -9855,7 +9855,7 @@ with tab_sector:
                                 dr.text((W//2, 190), f"S&P 500 업종별 성과 ({today_fmt_str})", font=_gf_s(48), fill=(250, 204, 21), anchor="mm")
                                 dr.rounded_rectangle([36, 250, W-36, 820], radius=24, fill=(20, 28, 46), outline=(56, 189, 248), width=3)
 
-                                y_ cursor = 300
+                                y_cursor = 300
                                 dr.text((80, y_cursor), "업종명", font=_gf_s(24), fill=(148, 163, 184), anchor="lm")
                                 dr.text((390, y_cursor), "1주(1W)", font=_gf_s(24), fill=(255, 120, 117), anchor="mm")
                                 dr.text((580, y_cursor), "연초대비(YTD)", font=_gf_s(24), fill=(56, 189, 248), anchor="mm")
