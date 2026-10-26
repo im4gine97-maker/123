@@ -7372,40 +7372,89 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 575, base_y - h_roe - 24, 110, f"{roe:.1f}%", get_font, start_sz=26, min_sz=15, fill=(52, 211, 153))
                             _fit_single_line(draw, 575, base_y + 28, 100, "현재기업", get_font, start_sz=19, min_sz=12, fill=(255, 255, 255))
 
+                        # ▼▼▼ _draw_core_frame 함수 내부의 elif scene_code == "SCENE_3": 부터 else: 끝까지 아래 코드로 덮어쓰기 ▼▼▼
                         # -----------------------------------------------------------------
-                        # [SCENE_3] 국채 금리 vs 주식 기대수익률 & 주주환원율 빅 넘버 보드
+                        # [SCENE_3] 06~07번 컷: '미국채 vs 이익수익률' & '시장평균 vs 주주환원율' 수직 기둥 차트!
                         # -----------------------------------------------------------------
                         elif scene_code == "SCENE_3":
-                            draw.rounded_rectangle([54, 392, 348, 675], radius=20, fill=(30, 41, 59), outline=(250, 204, 21), width=3)
-                            _fit_single_line(draw, 201, 440, 260, "주식 기대 이익수익률", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
-                            _fit_single_line(draw, 201, 535, 260, f"연 {ey:.1f}%", get_font, start_sz=58, min_sz=30, fill=(255, 255, 255))
-                            _fit_single_line(draw, 201, 625, 260, f"미국채({ty:.1f}%) 대비 {ey - ty:+.1f}%p", get_font, start_sz=20, min_sz=13, fill=(52, 211, 153) if (ey - ty) >= 0 else (248, 113, 113))
+                            base_y3 = 665
 
-                            draw.rounded_rectangle([372, 392, W-54, 675], radius=20, fill=(30, 41, 59), outline=(168, 85, 247), width=3)
-                            _fit_single_line(draw, 519, 440, 260, "배당 + 자사주 소각", get_font, start_sz=22, min_sz=14, fill=(192, 132, 252))
-                            _fit_single_line(draw, 519, 535, 260, f"연 {tsy_total:.1f}%", get_font, start_sz=58, min_sz=30, fill=(255, 255, 255))
-                            _fit_single_line(draw, 519, 625, 260, f"배당 {div:.1f}% · 소각 {bb_yield:+.1f}%", get_font, start_sz=20, min_sz=13, fill=(203, 213, 225))
+                            # 1) 좌측: 10년물 미국채(회색 기둥) vs 주식 이익수익률(골드/그린 기둥)
+                            draw.rounded_rectangle([54, 392, 348, 705], radius=20, fill=(30, 41, 59), outline=(250, 204, 21), width=2)
+                            _fit_single_line(draw, 201, 426, 260, "미국채 vs 이익수익률", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
 
-                            draw.rounded_rectangle([54, 694, W-54, 768], radius=16, fill=(30, 41, 59))
-                            _fit_single_line(draw, W//2, 731, W-140, f"시장 평균 환원율(2.5%) 대비  {tsy_vs_mkt:+.1f}%p", get_font, start_sz=26, min_sz=15, fill=(250, 204, 21))
+                            max_ey = max(ty, abs(ey), 8.0) * 1.25
+                            h_ty = int(max(24, min(165, (ty / max_ey) * 165)))
+                            h_ey = int(max(24, min(165, (max(0.3, ey) / max_ey) * 165)))
+                            ey_bar_col = (52, 211, 153) if ey >= ty else (250, 204, 21)
+
+                            # 미국채 기둥 (좌)
+                            draw.rounded_rectangle([102, base_y3 - h_ty, 174, base_y3], radius=8, fill=(100, 116, 139))
+                            _fit_single_line(draw, 138, base_y3 - h_ty - 22, 95, f"{ty:.1f}%", get_font, start_sz=21, min_sz=13, fill=(148, 163, 184))
+                            _fit_single_line(draw, 138, base_y3 + 22, 95, "10년국채", get_font, start_sz=17, min_sz=12, fill=(148, 163, 184))
+
+                            # 주식 이익수익률 기둥 (우)
+                            draw.rounded_rectangle([214, base_y3 - h_ey, 294, base_y3], radius=8, fill=ey_bar_col)
+                            _fit_single_line(draw, 254, base_y3 - h_ey - 24, 110, f"{ey:.1f}%", get_font, start_sz=26, min_sz=15, fill=ey_bar_col)
+                            _fit_single_line(draw, 254, base_y3 + 22, 100, "이익수익률", get_font, start_sz=18, min_sz=12, fill=(255, 255, 255))
+
+                            # 2) 우측: 시장평균(2.5%, 회색 기둥) vs 배당+자사주 총환원율(퍼플 기둥)
+                            draw.rounded_rectangle([372, 392, W-54, 705], radius=20, fill=(30, 41, 59), outline=(192, 132, 252), width=2)
+                            _fit_single_line(draw, 519, 426, 260, "배당 + 자사주 소각", get_font, start_sz=22, min_sz=14, fill=(192, 132, 252))
+
+                            max_tsy = max(2.5, abs(tsy_total), 6.0) * 1.25
+                            h_mkt_t = int(max(24, min(165, (2.5 / max_tsy) * 165)))
+                            h_cur_t = int(max(24, min(165, (max(0.3, tsy_total) / max_tsy) * 165)))
+                            tsy_bar_col = (168, 85, 247) if tsy_total >= 2.5 else (56, 189, 248)
+
+                            # 시장평균 기둥 (좌)
+                            draw.rounded_rectangle([422, base_y3 - h_mkt_t, 494, base_y3], radius=8, fill=(100, 116, 139))
+                            _fit_single_line(draw, 458, base_y3 - h_mkt_t - 22, 95, "2.5%", get_font, start_sz=21, min_sz=13, fill=(148, 163, 184))
+                            _fit_single_line(draw, 458, base_y3 + 22, 95, "시장평균", get_font, start_sz=17, min_sz=12, fill=(148, 163, 184))
+
+                            # 이 기업 총주주환원 기둥 (우)
+                            draw.rounded_rectangle([534, base_y3 - h_cur_t, 614, base_y3], radius=8, fill=tsy_bar_col)
+                            _fit_single_line(draw, 574, base_y3 - h_cur_t - 24, 110, f"{tsy_total:.1f}%", get_font, start_sz=26, min_sz=15, fill=(216, 180, 254))
+                            _fit_single_line(draw, 574, base_y3 + 22, 100, "현재기업", get_font, start_sz=18, min_sz=12, fill=(255, 255, 255))
+
+                            # 하단 1줄 직관적 배지
+                            draw.rounded_rectangle([54, 718, W-54, 776], radius=14, fill=(30, 41, 59))
+                            _fit_single_line(draw, W//2, 747, W-130, f"국채 대비 {ey - ty:+.1f}%p  |  배당 {div:.1f}% + 소각 {bb_yield:+.1f}%", get_font, start_sz=24, min_sz=14, fill=(255, 255, 255))
 
                         # -----------------------------------------------------------------
-                        # [SCENE_4] 요구 성장률 vs 실제 성장률 + 5대 신호등 스탬프 보드
+                        # [SCENE_4] 08~10번 컷: '주가 요구 성장률 vs 실제 현금 성장률' 가로 막대그래프 + 5칸 신호등!
                         # -----------------------------------------------------------------
                         else:
-                            draw.rounded_rectangle([54, 390, 348, 555], radius=18, fill=(30, 41, 59), outline=(248, 113, 113), width=2)
-                            _fit_single_line(draw, 201, 428, 260, "주가 역산 요구치", get_font, start_sz=21, min_sz=14, fill=(248, 113, 113))
-                            _fit_single_line(draw, 201, 500, 260, imp_g_fmt, get_font, start_sz=46, min_sz=24, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 410, W-110, f"주가 반영 요구 성장률  vs  과거 {yr_span_str} 실제 성장률", get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
 
-                            draw.rounded_rectangle([372, 390, W-54, 555], radius=18, fill=(30, 41, 59), outline=(52, 211, 153), width=2)
-                            _fit_single_line(draw, 519, 428, 260, f"과거 {yr_span_str} 실제 추이", get_font, start_sz=21, min_sz=14, fill=(52, 211, 153))
-                            _fit_single_line(draw, 519, 500, 260, actual_g_fmt, get_font, start_sz=46, min_sz=24, fill=(52, 211, 153))
+                            req_g_v = imp_g_pct if (not is_financial and implied_g_shorts is not None) else 0.0
+                            act_g_v = hist_fcf_g_pct
+                            max_g_bar = max(abs(req_g_v), abs(act_g_v), 10.0) * 1.25
+                            bx_start, b_max_w = 210, 330
 
-                            draw.rounded_rectangle([54, 572, W-54, 636], radius=14, fill=gap_badge_col)
-                            _fit_single_line(draw, W//2, 604, W-140, gap_badge_txt, get_font, start_sz=24, min_sz=14, fill=(255, 255, 255))
+                            # 1) 상단 가로 막대: 주가 반영 요구 성장률
+                            w_req = int(max(36, min(b_max_w, (max(0.0, req_g_v) / max_g_bar) * b_max_w))) if req_g_v >= 0 else 45
+                            req_col = (248, 113, 113) if req_g_v > act_g_v + 2.0 else (148, 163, 184)
+                            _fit_single_line(draw, 125, 466, 145, "주가 요구치", get_font, start_sz=22, min_sz=14, fill=(203, 213, 225))
+                            draw.rounded_rectangle([bx_start, 442, bx_start + b_max_w, 490], radius=10, fill=(30, 41, 59))
+                            draw.rounded_rectangle([bx_start, 442, bx_start + w_req, 490], radius=10, fill=req_col)
+                            _fit_single_line(draw, bx_start + b_max_w + 68, 466, 120, imp_g_fmt, get_font, start_sz=25, min_sz=14, fill=(248, 113, 113) if req_g_v > act_g_v else (203, 213, 225))
 
-                            _fit_single_line(draw, W//2, 666, W-100, f"공시 데이터 5대 정량 기준 : {pass_cnt} / 5 충족", get_font, start_sz=23, min_sz=15, fill=(250, 204, 21))
-                            _draw_5block_signal_gauge(draw, W, 692, get_font)
+                            # 2) 하단 가로 막대: 과거 실제 현금 성장률
+                            w_act = int(max(36, min(b_max_w, (max(0.0, act_g_v) / max_g_bar) * b_max_w))) if act_g_v >= 0 else 45
+                            act_col = (16, 185, 129) if act_g_v >= req_g_v else (250, 204, 21)
+                            _fit_single_line(draw, 125, 534, 145, f"{yr_span_str} 실제성장", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
+                            draw.rounded_rectangle([bx_start, 510, bx_start + b_max_w, 558], radius=10, fill=(30, 41, 59))
+                            draw.rounded_rectangle([bx_start, 510, bx_start + w_act, 558], radius=10, fill=act_col)
+                            _fit_single_line(draw, bx_start + b_max_w + 68, 534, 120, actual_g_fmt, get_font, start_sz=26, min_sz=14, fill=(52, 211, 153))
+
+                            # 3) 한 줄 판정 캡슐 바 + 5칸 네온 신호등 게이지
+                            draw.rounded_rectangle([54, 576, W-54, 632], radius=12, fill=gap_badge_col)
+                            _fit_single_line(draw, W//2, 604, W-140, gap_badge_txt, get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
+
+                            _fit_single_line(draw, W//2, 664, W-100, f"공시 데이터 5대 정량 기준 : {pass_cnt} / 5 충족", get_font, start_sz=23, min_sz=15, fill=(250, 204, 21))
+                            _draw_5block_signal_gauge(draw, W, 690, get_font)
+                        # ▲▲▲ 여기까지 덮어쓰기 (바로 아래에 '# 하단 자막 박스' 코드가 이어집니다) ▲▲▲
 
                         # 하단 자막 박스 (크고 선명한 2줄 자동 분할)
                         sub_clean = str(sub_text).strip()
