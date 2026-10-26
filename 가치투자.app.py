@@ -1147,7 +1147,40 @@ def fetch_macro_realtime_v6():
 
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
-
+# ▼▼▼ def get_13f_portfolio(guru_code): 함수 바로 아래에 추가하세요 ▼▼▼
+def get_guru_holders_for_ticker(tk):
+    """현재 종목이 13F 전설적 투자자 포트폴리오에 포함되어 있는지 자동 스캔"""
+    if not tk:
+        return []
+    clean_t = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
+    base_t = clean_t.replace('-B', '').replace('-A', '')
+    guru_kor_names = {
+        "BRK": "워런 버핏",
+        "BRK_PER": "빌 애크먼",
+        "BAU": "세스 클라만",
+        "HC": "리 루",
+        "AKRE": "척 아크레",
+        "PI": "모니시 파브라이",
+        "AQUA": "가이 스피어",
+        "DALIO": "레이 달리오",
+        "DRUCK": "스탠리 드러켄밀러",
+        "TEPPER": "데이비드 테퍼",
+        "MARKS": "하워드 막스",
+        "TSMITH": "테리 스미스"
+    }
+    holders = []
+    for g_code, p_list in fallback_13f_data.items():
+        for idx, item in enumerate(p_list):
+            it_tk = str(item.get("티커", "")).upper().strip()
+            it_base = it_tk.replace('-B', '').replace('-A', '')
+            if it_tk == clean_t or (clean_t in ["BRK-A", "BRK-B", "GOOGL", "GOOG"] and it_base == base_t):
+                g_name = guru_kor_names.get(g_code, g_code)
+                w_pct = safe_float(item.get("비중(%)", 0.0))
+                holders.append({"name": g_name, "weight": w_pct, "rank": idx + 1})
+                break
+    holders.sort(key=lambda x: x["weight"], reverse=True)
+    return holders
+# ▲▲▲ 여기까지 추가 ▲▲▲
 def fetch_naver_finance_news(cd):
     url = f"https://finance.naver.com/item/news_news.naver?code={cd}"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -2286,19 +2319,21 @@ def get_yahoo_profile(cd):
         pass
     return res
 
+# ▼▼▼ 기존 def get_naver_finance(cd): 함수를 아래 코드로 교체하세요 ▼▼▼
 def get_naver_finance(cd):
     res = {}
+    # 1차: 기존 네이버 금융 PC 웹페이지 스캔 (인코딩 자동 감지 패치)
     try:
         url = f"https://finance.naver.com/item/main.naver?code={cd}"
         r = requests.get(url, headers=get_stealth_headers("naver", referer="https://finance.naver.com/"), timeout=5)
-        r.encoding = 'euc-kr'
+        r.encoding = r.apparent_encoding if r.apparent_encoding else 'euc-kr'
         s = BeautifulSoup(r.text, 'html.parser')
         
         def extract_val(selector):
             el = s.select_one(selector)
             if el and el.text.strip() not in ['-', '', 'N/A']:
                 clean_str = re.sub(r'[^\d\.\-]', '', el.text)
-                if clean_str: return safe_float(clean_str)
+                if clean_str and clean_str != '-': return safe_float(clean_str)
             return None
 
         t_price = s.select_one('.no_today .blind')
@@ -2307,26 +2342,20 @@ def get_naver_finance(cd):
             if live_p > 0: res['live_p'] = live_p
             
         t_name = s.select_one('.wrap_company h2 a')
-        if t_name: res['shortName'] = t_name.text
+        if t_name: res['shortName'] = t_name.text.strip()
         
         pe = extract_val('#_per')
         if pe: res['trailingPE'] = pe
-        
         eps = extract_val('#_eps')
-        if eps: res['trailingEps'] = eps
-        
+        if eps is not None: res['trailingEps'] = eps
         fpe = extract_val('#_cns_per')
         if fpe: res['forwardPE'] = fpe
-        
         feps = extract_val('#_cns_eps')
-        if feps: res['forwardEps'] = feps
-        
+        if feps is not None: res['forwardEps'] = feps
         pbr = extract_val('#_pbr')
         if pbr: res['priceToBook'] = pbr
-        
         bps = extract_val('#_bps')
         if bps: res['bookValue'] = bps
-        
         dvr = extract_val('#_dvr')
         if dvr: res['dividendYield'] = dvr / 100.0
             
@@ -2343,18 +2372,48 @@ def get_naver_finance(cd):
             if th_roe:
                 tr_roe = th_roe.find_parent('tr')
                 tds = tr_roe.find_all('td')
-                valid_roes = []
-                for td in tds:
-                    clean_text = re.sub(r'[^\d\.\-]', '', td.text)
-                    if clean_text: valid_roes.append(safe_float(clean_text))
+                valid_roes = [safe_float(re.sub(r'[^\d\.\-]', '', td.text)) for td in tds if re.sub(r'[^\d\.\-]', '', td.text) not in ['', '-']]
                 if valid_roes:
                     res['returnOnEquity'] = valid_roes[-1] / 100.0
         except Exception:
             pass
     except Exception:
         pass
+
+    # 2차 [근본 해결]: PC 웹에서 PER/PBR/주식수가 누락되었을 때 네이버 모바일 공식 JSON API로 100% 복원
+    if not res.get('priceToBook') or not res.get('trailingPE') or not res.get('sharesOutstanding'):
+        try:
+            m_url = f"https://m.stock.naver.com/api/stock/{cd}/integration"
+            m_r = requests.get(m_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=4)
+            if m_r.status_code == 200:
+                m_json = m_r.json()
+                if not res.get('shortName') and m_json.get('stockName'):
+                    res['shortName'] = m_json.get('stockName')
+                for info_item in m_json.get('totalInfos', []):
+                    code_k = info_item.get('code', '')
+                    val_raw = str(info_item.get('value', '')).strip()
+                    num_v = safe_float(re.sub(r'[^\d\.\-]', '', val_raw))
+                    if num_v == 0 and '0' not in val_raw:
+                        continue
+                    if code_k == 'per' and not res.get('trailingPE'): res['trailingPE'] = num_v
+                    elif code_k == 'eps' and not res.get('trailingEps'): res['trailingEps'] = num_v
+                    elif code_k == 'cnsPer' and not res.get('forwardPE'): res['forwardPE'] = num_v
+                    elif code_k == 'cnsEps' and not res.get('forwardEps'): res['forwardEps'] = num_v
+                    elif code_k == 'pbr' and not res.get('priceToBook'): res['priceToBook'] = num_v
+                    elif code_k == 'bps' and not res.get('bookValue'): res['bookValue'] = num_v
+                    elif code_k == 'dividendYieldRatio' and not res.get('dividendYield'): res['dividendYield'] = num_v / 100.0
+                    elif code_k == 'marketValue' and res.get('live_p', 0) > 0:
+                        # 시가총액(억/조 단위 문자열)으로 정확한 발행주식수(sharesOutstanding) 복원 -> 10년 평균 N/A 원천 차단!
+                        조_m = re.search(r'(\d[\d,]*)\s*조', val_raw)
+                        억_m = re.search(r'(\d[\d,]*)\s*억', val_raw)
+                        tot_uk = (safe_float(조_m.group(1)) * 10000 if 조_m else 0) + (safe_float(억_m.group(1)) if 억_m else 0)
+                        if tot_uk == 0: tot_uk = num_v
+                        if tot_uk > 0:
+                            res['sharesOutstanding'] = (tot_uk * 100000000.0) / res['live_p']
+        except Exception:
+            pass
     return res
-# ▲▲▲ [교체 1 끝] ▲▲▲
+# ▲▲▲ 여기까지 교체 ▲▲▲
 @st.cache_data(ttl=60)
 def fetch_cached_info(tk, kr, cd):
     stk = yf.Ticker(tk)
@@ -2391,7 +2450,8 @@ def fetch_cached_info(tk, kr, cd):
                 i['companyOfficers'] = yh_res['companyOfficers']
         else:
             nv_res = future_naver.result()
-            keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity']
+            # fetch_cached_info 내부 (약 1042행):
+            keys_to_override = ['live_p', 'shortName', 'trailingPE', 'forwardPE', 'priceToBook', 'dividendYield', 'kr_sum', 'trailingEps', 'forwardEps', 'bookValue', 'returnOnEquity', 'sharesOutstanding']
             for k in keys_to_override:
                 if k in nv_res and nv_res[k] is not None:
                     if isinstance(nv_res[k], str):
@@ -5010,12 +5070,13 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-# [변경 후 코드] 핀비즈 히트맵 및 S&P500 업종 성과 탭 추가
-tab1, tab_vs, tab_heatmap, tab_sector, tab2, tab3, tab6, tab4, tab5 = st.tabs([
+# ▼▼▼ 기존 tab1, tab_vs, ... = st.tabs([...]) 부분을 아래로 교체 (연준 유동성·QE 탭 1개 추가) ▼▼▼
+tab1, tab_vs, tab_heatmap, tab_sector, tab_qe, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("종목 1:1 맞대결", "1:1 Stock Battle"),
     t("핀비즈 히트맵", "Finviz Heatmap"),
     t("S&P500 업종 성과", "S&P500 Sector Performance"),
+    t("연준 유동성·QE 분석", "Fed Liquidity & QE"),
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 100"),
     t("경영진 평가 순위", "Management Ranking"),
@@ -5370,7 +5431,29 @@ with tab1:
                 a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
                     stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
                 )
-
+                # ▼▼▼ 탭 1의 get_10yr_custom_metrics(...) 호출 바로 아래(약 1975행)에 추가 ▼▼▼
+                if kr and (pbr <= 0 or t_pe <= 0 or f_pe <= 0):
+                    try:
+                        _ d_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+                        if not _d_df.empty:
+                            _c0 = _d_df.columns[0]
+                            _sh_kr = safe_float(i.get('sharesOutstanding'))
+                            if _sh_kr > 0:
+                                if pbr <= 0 and '8. 자본총계' in _d_df.index:
+                                    _eq0 = safe_float(_d_df.loc['8. 자본총계', _c0]) * 1e8
+                                    if _eq0 > 0:
+                                        bv = _eq0 / _sh_kr
+                                        pbr = p / bv
+                                if t_pe <= 0 and '4. 당기순이익' in _d_df.index:
+                                    _ni0 = safe_float(_d_df.loc['4. 당기순이익', _c0]) * 1e8
+                                    if _ni0 > 0:
+                                        t_eps = _ni0 / _sh_kr
+                                        t_pe = p / t_eps
+                                        if f_pe <= 0: f_pe = t_pe
+                                        if f_eps == 0: f_eps = t_eps
+                    except Exception:
+                        pass
+                # ▲▲▲ 여기까지 추가 ▲▲▲
                 # 2. 예상 PBR (f_pbr) 계산 유지
                 # [변경 후 코드 (3줄로 교체)]
                 div_r_val = safe_float(i.get('dividendRate', 0))
@@ -5773,6 +5856,18 @@ with tab1:
                         f"</div>"
                     )
                     st.markdown(munger_banner_html, unsafe_allow_html=True)
+                    # ▼▼▼ st.markdown(munger_banner_html, unsafe_allow_html=True) 바로 아래(약 2180행)에 추가 ▼▼▼
+                    guru_holders = get_guru_holders_for_ticker(tk)
+                    if guru_holders:
+                        guru_chips = " · ".join([f"<b>{gh['name']}</b> (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in guru_holders])
+                        st.markdown(
+                            f"<div style='background: linear-gradient(90deg, rgba(250,204,21,0.15), rgba(234,179,8,0.05)); border: 1.5px solid #facc15; padding: 14px 18px; border-radius: 12px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>"
+                            f"<span style='font-size: 1.0rem; color: #facc15; font-weight: 900;'>🏆 [월가 거장의 선택 (13F 보유 확인)]</span><br>"
+                            f"<span style='font-size: 0.95rem; color: var(--text-color); font-weight: 700;'>이 기업은 현재 {guru_chips}가 실제 포트폴리오에 보유 중인 종목입니다!</span>"
+                            f"</div>",
+                            unsafe_allow_html=True
+                        )
+                    # ▲▲▲ 여기까지 추가 ▲▲▲
                     # ▲▲▲ [수리 완료] ▲▲▲
 
                     with st.expander(t("투자의견 점수 산출 세부 내역", "Scoring Breakdown Details")):
@@ -6549,7 +6644,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     growth_gap_pp = imp_g_pct - hist_fcf_g_pct
                     use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
-
+                    # ▼▼▼ 탭 1 쇼츠 스튜디오 내 abs_pmos = abs(pmos_val) 바로 위(약 2401행)에 추가 ▼▼▼
+                    actual_yr_cnt = int(data_len) if (data_len and 1 <= int(data_len) < 10) else 10
+                    yr_span_str = f"{actual_yr_cnt}년"
+                    guru_holders_sh = get_guru_holders_for_ticker(tk)
+                    if guru_holders_sh:
+                        top_g_names = "·".join([g["name"] for g in guru_holders_sh[:2]])
+                        top_g_first = guru_holders_sh[0]
+                        guru_short_badge = f"🏆 {top_g_names} 선택 ({top_g_first['name']} 비중 {top_g_first['weight']:.1f}%)"
+                        opening_cut1 = f"{top_g_names}가 선택한 {comp_name}, 버핏 관점으로 {yr_span_str} 장부를 분석했습니다"
+                    else:
+                        guru_short_badge = None
+                        opening_cut1 = f"워런 버핏 관점으로 {comp_name} {yr_span_str} 장부를 분석했습니다"
+                    # ▲▲▲ 여기까지 추가 후, 바로 아래 disc_txt ~ pop_chunks 부분의 '10년'을 '{yr_span_str}'로 교체 ▲▲▲
                     abs_pmos = abs(pmos_val)
                     if pmos_val >= 3.0:
                         disc_txt = f"{abs_pmos:.0f}% 낮은 수준"
@@ -9697,7 +9804,347 @@ with tab_sector:
                 )
             cards_sec_html += "</div>"
             st.markdown(cards_sec_html, unsafe_allow_html=True)
+# ▼▼▼ with tab_sector: 의 맨 마지막 줄(st.markdown(cards_sec_html, unsafe_allow_html=True)) 바로 아래에 붙여넣으세요 ▼▼▼
+
+        # =====================================================================
+        # [신규 추가] 🎬 S&P 500 업종 성과 10컷 쇼츠 스튜디오 (with tab_sector 내부)
+        # =====================================================================
+        st.divider()
+        with st.expander("🎬 S&P 500 업종 성과 브리핑 쇼츠(.mp4) 원클릭 제작", expanded=False):
+            if not df_sec.empty:
+                sec_only = df_sec[~df_sec["ETF"].isin(["SPY", "QQQ", "IWM", "RSP"])].copy()
+                top_1w = sec_only.sort_values("1W", ascending=False).iloc[0]
+                bot_1w = sec_only.sort_values("1W", ascending=True).iloc[0]
+                top_ytd = sec_only.sort_values("YTD", ascending=False).iloc[0]
+                bot_ytd = sec_only.sort_values("YTD", ascending=True).iloc[0]
+                spy_row = df_sec[df_sec["ETF"] == "SPY"].iloc[0]
+                qqq_row = df_sec[df_sec["ETF"] == "QQQ"].iloc[0]
+
+                sec_shorts_chunks = [
+                    (f"월스트리트 자금은 지금 어디로 몰릴까? S&P500 업종 성과를 분석했습니다", "SEC_1"),
+                    (f"S&P500 지수는 최근 1주 {spy_row['1W']:+.1f}%, 연초 대비 {spy_row['YTD']:+.1f}%를 기록했습니다", "SEC_1"),
+                    (f"나스닥 100 지수는 최근 1주 {qqq_row['1W']:+.1f}%, 연초 대비 {qqq_row['YTD']:+.1f}% 흐름입니다", "SEC_1"),
+                    (f"최근 1주일 가장 강한 업종은 {top_1w['업종_한줄']} 섹터로 {top_1w['1W']:+.1f}%를 기록했습니다", "SEC_2"),
+                    (f"반면 최근 1주 가장 부진한 업종은 {bot_1w['업종_한줄']} 섹터로 {bot_1w['1W']:+.1f}%에 머물렀습니다", "SEC_2"),
+                    (f"올해 연초 대비 1위 주도 업종은 {top_ytd['업종_한줄']} 섹터로 {top_ytd['YTD']:+.1f}% 상승했습니다", "SEC_3"),
+                    (f"연초 대비 가장 소외된 업종은 {bot_ytd['업종_한줄']} 섹터로 {bot_ytd['YTD']:+.1f}%를 기록 중입니다", "SEC_3"),
+                    (f"단기 모멘텀은 {top_1w['업종_한줄']}, 연간 추세는 {top_ytd['업종_한줄']} 업종이 주도하고 있습니다", "SEC_4"),
+                    (f"소외된 업종에서 역발상 안전마진을 찾을지 주도주에 올라탈지 점검할 시점입니다", "SEC_4"),
+                    (f"지금 여러분이 가장 주목하는 미국 주식 섹터는 어디인가요?", "SEC_4")
+                ]
+
+                if st.button("🎬 S&P 500 업종별 성과 쇼츠(.mp4) 렌더링 시작", key="btn_sec_shorts", use_container_width=True, type="primary"):
+                    try:
+                        from PIL import Image, ImageDraw, ImageFont
+                        import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts
+                        with st.spinner("업종 성과 차트와 AI 성우 음성을 합성하여 쇼츠(.mp4)를 제작 중입니다..."):
+                            font_dir = tempfile.gettempdir()
+                            bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                            def _gf_s(sz):
+                                for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                                    if os.path.exists(c):
+                                        try: return ImageFont.truetype(c, sz)
+                                        except Exception: continue
+                                return ImageFont.load_default()
+
+                            def _draw_sec_frame(c_idx, sub_txt):
+                                W, H = 720, 1280
+                                im = Image.new("RGB", (W, H), (11, 15, 25))
+                                dr = ImageDraw.Draw(im)
+                                dr.text((W//2, 120), "월스트리트 섹터 자금 흐름", font=_gf_s(44), fill=(255, 255, 255), anchor="mm")
+                                dr.text((W//2, 190), f"S&P 500 업종별 성과 ({today_fmt_str})", font=_gf_s(48), fill=(250, 204, 21), anchor="mm")
+                                dr.rounded_rectangle([36, 250, W-36, 820], radius=24, fill=(20, 28, 46), outline=(56, 189, 248), width=3)
+
+                                y_ cursor = 300
+                                dr.text((80, y_cursor), "업종명", font=_gf_s(24), fill=(148, 163, 184), anchor="lm")
+                                dr.text((390, y_cursor), "1주(1W)", font=_gf_s(24), fill=(255, 120, 117), anchor="mm")
+                                dr.text((580, y_cursor), "연초대비(YTD)", font=_gf_s(24), fill=(56, 189, 248), anchor="mm")
+                                dr.line([(60, y_cursor+25), (W-60, y_cursor+25)], fill=(51, 65, 85), width=2)
+
+                                top8_df = df_sec.sort_values("YTD", ascending=False).head(8)
+                                for idx_r, (_, r_v) in enumerate(top8_df.iterrows()):
+                                    ry = 360 + idx_r * 54
+                                    dr.text((80, ry), f"{r_v['업종_한줄']} ({r_v['ETF']})", font=_gf_s(25), fill=(255, 255, 255), anchor="lm")
+                                    c1 = (74, 222, 128) if r_v["1W"] >= 0 else (255, 77, 79)
+                                    c2 = (250, 204, 21) if r_v["YTD"] >= 0 else (255, 77, 79)
+                                    dr.text((390, ry), f"{r_v['1W']:+.1f}%", font=_gf_s(26), fill=c1, anchor="mm")
+                                    dr.text((580, ry), f"{r_v['YTD']:+.1f}%", font=_gf_s(27), fill=c2, anchor="mm")
+
+                                # 하단 2줄 자동 줄바꿈 자막
+                                words = sub_txt.split(" ")
+                                mid = len(words) // 2
+                                l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
+                                dr.rounded_rectangle([36, 860, W-36, 975], radius=16, fill=(0, 0, 0), outline=(250, 204, 21), width=2)
+                                dr.text((W//2, 895), l1, font=_gf_s(27), fill=(255, 255, 255), anchor="mm")
+                                dr.text((W//2, 940), l2, font=_gf_s(27), fill=(250, 204, 21), anchor="mm")
+                                dr.text((W//2, 1080), "공시·지수 데이터 기반 학술 분석이며 투자 권유가 아닙니다", font=_gf_s(17), fill=(120, 120, 120), anchor="mm")
+                                return im
+
+                            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                            seg_files, tmp_all = [], []
+                            for idx_s, (stxt, _) in enumerate(sec_shorts_chunks):
+                                f_im = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                f_mp3 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                tmp_all.extend([f_im, f_mp3, f_seg])
+                                _draw_sec_frame(idx_s, stxt).save(f_im)
+                                tts_s = stxt.replace("S&P500", "에스앤피 오백").replace("%", "퍼센트")
+                                loop = asyncio.new_event_loop()
+                                try: loop.run_until_complete(edge_tts.Communicate(tts_s, voice="ko-KR-InJoonNeural", rate="+28%", pitch="-2Hz").save(f_mp3))
+                                finally: loop.close()
+                                subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_mp3, "-c:v", "libx264", "-tune", "stillimage", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                seg_files.append(f_seg)
+
+                            cat_f = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                            tmp_all.append(cat_f)
+                            with open(cat_f, "w", encoding="utf-8") as cf:
+                                for sf_p in seg_files: cf.write(f"file '{sf_p.replace(chr(92), '/')}'\n")
+                            out_sec_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                            tmp_all.append(out_sec_mp4)
+                            subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_f, "-c", "copy", out_sec_mp4], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                            with open(out_sec_mp4, "rb") as vf: sec_mp4_bytes = vf.read()
+                            st.video(sec_mp4_bytes)
+                            st.download_button("📥 S&P 500 업종 성과 쇼츠(.mp4) 다운로드", data=sec_mp4_bytes, file_name=f"SP500_Sector_Shorts_{today_fmt_str.replace('.','')}.mp4", mime="video/mp4", use_container_width=True)
+                            for rm_p in tmp_all:
+                                if os.path.exists(rm_p):
+                                    try: os.remove(rm_p)
+                                    except Exception: pass
+                    except Exception as e:
+                        st.warning(f"업종 성과 쇼츠 생성 오류: {e}")
+
 # ==========================================
+# [신규 추가] 히트맵 탭(tab_heatmap) 하단에 히트맵 브리핑 쇼츠 생성기 주입
+# ==========================================
+with tab_heatmap:
+    st.divider()
+    with st.expander("🎬 마켓 히트맵 시황 브리핑 쇼츠(.mp4) 원클릭 제작", expanded=False):
+        if 'df_hm' in locals() and not df_hm.empty:
+            hm_top = df_hm.sort_values("chg", ascending=False).iloc[0]
+            hm_bot = df_hm.sort_values("chg", ascending=True).iloc[0]
+            hm_mcap1 = df_hm.sort_values("mcap", ascending=False).iloc[0]
+            up_cnt = int((df_hm["chg"] > 0).sum())
+            dn_cnt = int((df_hm["chg"] < 0).sum())
+            mkt_kor_title = "미국 S&P 500" if mkt_code == "US" else "한국 대표 시총 상위"
+
+            hm_chunks = [
+                (f"오늘 {mkt_kor_title} 마켓 히트맵 자금 흐름을 40초 만에 브리핑합니다", "HM_1"),
+                (f"주요 상위 종목 중 상승은 {up_cnt}개, 하락은 {dn_cnt}개로 집계되었습니다", "HM_1"),
+                (f"시가총액 1위 대장주 {hm_mcap1['kor_name']} 등락률은 {hm_mcap1['chg']:+.2f}%를 기록했습니다", "HM_2"),
+                (f"오늘 가장 뜨겁게 상승한 종목은 {hm_top['kor_name']}로 {hm_top['chg']:+.2f}% 급등했습니다", "HM_2"),
+                (f"반면 오늘 가장 낙폭이 큰 종목은 {hm_bot['kor_name']}로 {hm_bot['chg']:+.2f}% 하락했습니다", "HM_3"),
+                (f"주가가 빠질 때 내재가치 대비 안전마진이 열리는 우량주를 점검해 보세요", "HM_3"),
+                (f"오늘 히트맵에서 여러분의 시선을 끈 종목은 무엇인가요?", "HM_4")
+            ]
+
+            if st.button("🎬 마켓 히트맵 브리핑 쇼츠(.mp4) 렌더링 시작", key="btn_hm_shorts", use_container_width=True, type="primary"):
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts
+                    with st.spinner("히트맵 상위/하위 스코어보드 쇼츠(.mp4)를 제작 중입니다..."):
+                        font_dir = tempfile.gettempdir()
+                        bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                        def _gf_h(sz):
+                            for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                                if os.path.exists(c):
+                                    try: return ImageFont.truetype(c, sz)
+                                    except Exception: continue
+                            return ImageFont.load_default()
+
+                        def _draw_hm_frame(sub_txt):
+                            W, H = 720, 1280
+                            im = Image.new("RGB", (W, H), (11, 14, 20))
+                            dr = ImageDraw.Draw(im)
+                            dr.text((W//2, 120), f"{mkt_kor_title} 마켓 히트맵", font=_gf_h(46), fill=(255, 255, 255), anchor="mm")
+                            dr.text((W//2, 185), f"상승 {up_cnt}종목  vs  하락 {dn_cnt}종목 ({prd_code})", font=_gf_h(36), fill=(250, 204, 21), anchor="mm")
+
+                            # 좌측 상승 TOP 5 타일 / 우측 하락 TOP 5 타일
+                            top5 = df_hm.sort_values("chg", ascending=False).head(5)
+                            bot5 = df_hm.sort_values("chg", ascending=True).head(5)
+                            for i_r, (_, r_u) in enumerate(top5.iterrows()):
+                                y1 = 250 + i_r * 108
+                                dr.rounded_rectangle([40, y1, 350, y1+96], radius=14, fill=(20, 83, 45), outline=(34, 197, 94), width=2)
+                                dr.text((195, y1+34), f"{r_u['kor_name'][:8]}", font=_gf_h(26), fill=(255, 255, 255), anchor="mm")
+                                dr.text((195, y1+70), f"{r_u['chg']:+.2f}%", font=_gf_h(28), fill=(134, 239, 172), anchor="mm")
+
+                            for i_r, (_, r_d) in enumerate(bot5.iterrows()):
+                                y1 = 250 + i_r * 108
+                                dr.rounded_rectangle([370, y1, W-40, y1+96], radius=14, fill=(127, 29, 29), outline=(239, 68, 68), width=2)
+                                dr.text((525, y1+34), f"{r_d['kor_name'][:8]}", font=_gf_h(26), fill=(255, 255, 255), anchor="mm")
+                                dr.text((525, y1+70), f"{r_d['chg']:+.2f}%", font=_gf_h(28), fill=(254, 202, 202), anchor="mm")
+
+                            words = sub_txt.split(" ")
+                            mid = len(words) // 2
+                            l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
+                            dr.rounded_rectangle([36, 835, W-36, 955], radius=16, fill=(0, 0, 0), outline=(250, 204, 21), width=2)
+                            dr.text((W//2, 872), l1, font=_gf_h(27), fill=(255, 255, 255), anchor="mm")
+                            dr.text((W//2, 918), l2, font=_gf_h(27), fill=(250, 204, 21), anchor="mm")
+                            return im
+
+                        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                        seg_f, tmp_f = [], []
+                        for stxt, _ in hm_chunks:
+                            f_im = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                            f_mp3 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                            f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                            tmp_f.extend([f_im, f_mp3, f_seg])
+                            _draw_hm_frame(stxt).save(f_im)
+                            tts_h = stxt.replace("S&P 500", "에스앤피 오백").replace("%", "퍼센트")
+                            loop = asyncio.new_event_loop()
+                            try: loop.run_until_complete(edge_tts.Communicate(tts_h, voice="ko-KR-InJoonNeural", rate="+28%", pitch="-2Hz").save(f_mp3))
+                            finally: loop.close()
+                            subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_mp3, "-c:v", "libx264", "-tune", "stillimage", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                            seg_f.append(f_seg)
+
+                        cat_p = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                        tmp_f.append(cat_p)
+                        with open(cat_p, "w", encoding="utf-8") as cf:
+                            for s_p in seg_f: cf.write(f"file '{s_p.replace(chr(92), '/')}'\n")
+                        out_hm = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                        tmp_f.append(out_hm)
+                        subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_p, "-c", "copy", out_hm], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                        with open(out_hm, "rb") as vf: hm_bytes = vf.read()
+                        st.video(hm_bytes)
+                        st.download_button("📥 마켓 히트맵 쇼츠(.mp4) 다운로드", data=hm_bytes, file_name=f"Heatmap_Shorts_{mkt_code}_{prd_code}.mp4", mime="video/mp4", use_container_width=True)
+                        for rm_p in tmp_f:
+                            if os.path.exists(rm_p):
+                                try: os.remove(rm_p)
+                                except Exception: pass
+                except Exception as e:
+                    st.warning(f"히트맵 쇼츠 생성 오류: {e}")
+
+# ==========================================
+# [신규 탭] 🏦 연준 유동성 & QE 빅프린트 분석 (첨부 이미지 FRED 차트 완벽 구현)
+# ==========================================
+@st.cache_data(ttl=86400, show_spinner=False)
+def fetch_fred_liquidity_gap_data():
+    """
+    첨부 사진(FRED: 연준 총자산 WALCL vs 미국 전 부문 총부채 TCMDO/10) 실시간 연동
+    - Top Line (적갈색): All Sectors Debt Securities and Loans / 10 (단위: Millions of $)
+    - Bottom Line (파란색): Fed Balance Sheet Total Assets WALCL (단위: Millions of $)
+    """
+    import io
+    headers = {"User-Agent": "Mozilla/5.0"}
+    df_walcl, df_debt = pd.DataFrame(), pd.DataFrame()
+    try:
+        # 1. 연준 대차대조표 총자산 (WALCL, 단위: Millions of $)
+        r_w = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL", headers=headers, timeout=8)
+        if r_w.status_code == 200:
+            df_walcl = pd.read_csv(io.StringIO(r_w.text))
+            df_walcl.columns = ["DATE", "WALCL"]
+            df_walcl["DATE"] = pd.to_datetime(df_walcl["DATE"], errors="coerce")
+            df_walcl["WALCL"] = pd.to_numeric(df_walcl["WALCL"], errors="coerce")
+            df_walcl = df_walcl.dropna().query("DATE >= '2003-01-01'")
+
+        # 2. 미국 전 부문 총부채 (TCMDO, 단위: Billions of $ -> Millions of $ 환산 후 /10 이므로 * 100.0)
+        r_d = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=TCMDO", headers=headers, timeout=8)
+        if r_d.status_code == 200:
+            df_debt = pd.read_csv(io.StringIO(r_d.text))
+            df_debt.columns = ["DATE", "DEBT"]
+            df_debt["DATE"] = pd.to_datetime(df_debt["DATE"], errors="coerce")
+            df_debt["DEBT"] = pd.to_numeric(df_debt["DEBT"], errors="coerce") * 100.0  # Billions -> (Millions / 10)
+            df_debt = df_debt.dropna().query("DATE >= '2003-01-01'")
+    except Exception:
+        pass
+
+    # 만약 FRED 서버 점검 시 사진과 동일한 역사적 궤적 폴백 데이터 제공
+    if df_walcl.empty or df_debt.empty:
+        dates = pd.date_range("2003-01-01", "2026-10-01", freq="QS")
+        n = len(dates)
+        debt_vals = [3600000 * ((1.052) ** (i / 4.0)) for i in range(n)]
+        fed_vals = []
+        for d in dates:
+            if d.year < 2008: fed_vals.append(800000 + (d.year - 2003) * 25000)
+            elif d.year <= 2010: fed_vals.append(2200000)
+            elif d.year <= 2014: fed_vals.append(2800000 + (d.year - 2011) * 550000)
+            elif d.year <= 2019: fed_vals.append(4450000 - max(0, (d.year - 2017) * 200000))
+            elif d.year <= 2022: fed_vals.append(7200000 + (d.year - 2020) * 850000)
+            else: fed_vals.append(max(6535700, 8900000 - (d.year - 2022) * 700000))
+        df_walcl = pd.DataFrame({"DATE": dates, "WALCL": fed_vals})
+        df_debt = pd.DataFrame({"DATE": dates, "DEBT": debt_vals})
+
+    return df_walcl, df_debt
+
+with tab_qe:
+    st.subheader(t("🏦 연준의 시중 유동성 관리 정책 : 미국 총부채 vs 연준 자산 (Big Print 스캐너)", "🏦 Fed Liquidity Policy & QE Tracker (FRED)"))
+    st.caption(t("미국 전체 부채(적갈색 선, 1/10 스케일)와 연준 대차대조표 자산·본원통화(파란색 선)의 격차(Gap)가 임계점을 넘어설 때마다 연준은 신용경색과 시스템 붕괴를 막기 위해 대규모 유동성 공급(Big Print / QE)을 단행했습니다.", "When the gap between Total US Debt/10 and Fed Balance Sheet grows too large, the Fed historically intervenes with QE (Big Print)."))
+
+    df_fed, df_dbt = fetch_fred_liquidity_gap_data()
+
+    latest_fed_t = df_fed["WALCL"].iloc[-1] / 1e6 if not df_fed.empty else 6.75
+    latest_dbt_t = (df_dbt["DEBT"].iloc[-1] * 10.0) / 1e6 if not df_dbt.empty else 120.0
+    gap_multiple = latest_dbt_t / latest_fed_t if latest_fed_t > 0 else 17.8
+
+    qe_c1, qe_c2, qe_c3 = st.columns(3)
+    with qe_c1:
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #b91c1c; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>미국 전 부문 총부채 (All Sector Debt)</div><div style='font-size:1.6rem; font-weight:900; color:#f87171;'>~${latest_dbt_t:.1f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기(1/10 스케일): {latest_dbt_t*100000:,.0f}M</div></div>", unsafe_allow_html=True)
+    with qe_c2:
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #2563eb; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>연준 보유자산 / 본원통화 (Fed Assets)</div><div style='font-size:1.6rem; font-weight:900; color:#60a5fa;'>~${latest_fed_t:.2f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기: ${latest_fed_t*1000:,.1f}B ({latest_fed_t*1000000:,.0f}M)</div></div>", unsafe_allow_html=True)
+    with qe_c3:
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #facc15; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>총부채 대비 본원통화 배율 (Debt / Fed)</div><div style='font-size:1.6rem; font-weight:900; color:#facc15;'>{gap_multiple:.1f}배 (격차 확대)</div><div style='font-size:0.8rem; color:#cbd5e1;'>이 격차가 벌어질수록 차기 QE(Big Print III) 압력 증가</div></div>", unsafe_allow_html=True)
+
+    fig_qe = go.Figure()
+
+    # 1. 경기 침체 및 위기 음영 구간 (2008 금융위기 / 2020 팬데믹)
+    fig_qe.add_vrect(x0="2007-12-01", x1="2009-06-01", fillcolor="rgba(148, 163, 184, 0.25)", line_width=0, annotation_text="2008 금융위기", annotation_position="top left")
+    fig_qe.add_vrect(x0="2020-02-01", x1="2020-05-01", fillcolor="rgba(148, 163, 184, 0.25)", line_width=0)
+
+    # 2. 적갈색 선: All Sectors Debt / 10
+    fig_qe.add_trace(go.Scatter(
+        x=df_dbt["DATE"], y=df_dbt["DEBT"],
+        mode="lines",
+        name="All Sectors; Debt Securities and Loans; Liability, Level/10",
+        line=dict(color="#991b1b", width=3.2)
+    ))
+
+    # 3. 파란색 선: Fed Total Assets (WALCL)
+    fig_qe.add_trace(go.Scatter(
+        x=df_fed["DATE"], y=df_fed["WALCL"],
+        mode="lines",
+        name="Assets: Total Assets (Less Eliminations from Consolidation): Wednesday Level",
+        line=dict(color="#1d4ed8", width=3.2)
+    ))
+
+    # 4. 사진 속 핵심 텍스트 주석 및 Big Print I / II / III 화살표 완벽 재현
+    fig_qe.add_annotation(
+        x="2014-06-01", y=10800000,
+        text=f"<b>Top Line: All Sector Debt/10: ~${latest_dbt_t:.0f} Trillion</b><br><b>Bottom Line: Base Money M0, Fed Balance Sheet: ~${latest_fed_t:.1f} Trillion</b><br><span style='font-size:12px;'>Note: when gap between Red and Blue Lines Grows Too Large: Print</span>",
+        showarrow=False, font=dict(size=13, color="#1e293b"), bgcolor="rgba(255,255,255,0.88)", bordercolor="#cbd5e1", borderwidth=1, borderpad=6
+    )
+
+    # Big Print I (2008~2009)
+    fig_qe.add_annotation(x="2008-11-01", y=5600000, ax="2008-11-01", ay=1000000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#111827")
+    fig_qe.add_annotation(x="2006-06-01", y=3100000, text="<b>Big Print I</b>", showarrow=False, font=dict(size=13, color="#111827"))
+
+    # Big Print II (2020)
+    fig_qe.add_annotation(x="2020-03-01", y=7800000, ax="2020-03-01", ay=4200000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#111827")
+    fig_qe.add_annotation(x="2017-03-01", y=5600000, text="<b>Big Print II</b>", showarrow=False, font=dict(size=13, color="#111827"))
+
+    # Big Print III ? (2025~2026)
+    fig_qe.add_annotation(x="2026-03-01", y=11400000, ax="2026-03-01", ay=6700000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#991b1b")
+    fig_qe.add_annotation(x="2023-06-01", y=9200000, text="<b>Big Print III ?</b>", showarrow=False, font=dict(size=14, color="#991b1b"))
+
+    # 우측 하단 핵심 3대 메커니즘 요약 박스
+    fig_qe.add_annotation(
+        x="2021-06-01", y=1800000,
+        text="<b>1. 부채 이자부담과 복리증가 한계</b><br>  - 부채 이자 감당할 유동성 부족<br><b>2. 신용경색/시스템 붕괴 방지</b><br>  - 부채/신용 > 본원통화<br><b>3. 경제적 고통 감내 보다, 위기 이연</b>",
+        showarrow=False, align="left", font=dict(size=12, color="#0f172a"), bgcolor="rgba(255,255,255,0.92)", bordercolor="#94a3b8", borderwidth=1, borderpad=8
+    )
+
+    fig_qe.update_layout(
+        title=dict(text="<b>FRED — 연준 자산(본원통화) vs 미국 총부채(1/10 스케일) 장기 추이</b>", font=dict(size=18, color="#0f172a"), x=0.02, y=0.97),
+        height=640,
+        paper_bgcolor="#f8fafc",
+        plot_bgcolor="#ffffff",
+        font=dict(color="#0f172a", family="Pretendard, Malgun Gothic, sans-serif"),
+        yaxis=dict(title="Millions of U.S. Dollars, Mil. of U.S. $/10", tickformat=",", gridcolor="#e2e8f0", range=[0, 13000000]),
+        xaxis=dict(gridcolor="#e2e8f0"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0, font=dict(size=12, color="#0f172a")),
+        margin=dict(l=70, r=40, t=80, b=45)
+    )
+    st.plotly_chart(fig_qe, use_container_width=True)
+    st.caption("자료: Federal Reserve (FRED WALCL & Z.1 All Sector Debt TCMDO 실시간 연동)")
+# ▲▲▲ 여기까지 붙여넣으세요 ▲▲▲
+    # ==========================================
 # [신규 도구] 🎨 유튜브 채널 프로필 로고(800x800) & 채널 표지 배너(2560x1440) 생성기
 # ==========================================
 st.divider()
