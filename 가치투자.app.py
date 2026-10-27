@@ -7214,7 +7214,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         import subprocess
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-42dB,"
-                            f"{eq_str},apad=pad_dur=0.1"
+                            f"{eq_str},apad=pad_dur=0.05"
                         )
                         try:
                             subprocess.run([
