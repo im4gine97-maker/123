@@ -6593,7 +6593,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "⚡ [모드 2] 실적 발표(Earnings) 전후 변화 비교 · 매출·이익 얼마나 바뀌었나?"
                             ],
                             horizontal=False,
-                            key=f"sh_mode_v6_{tk}"
+                            key=f"sh_mode_v7_{tk}"
                         )
                     with mode_col2:
                         shorts_lang_mode = st.radio(
@@ -6603,7 +6603,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "🇺🇸 영어 버전 (미국 본토 신설 채널용 · English)"
                             ],
                             horizontal=False,
-                            key=f"sh_lang_v6_{tk}"
+                            key=f"sh_lang_v7_{tk}"
                         )
 
                     is_en_shorts = ("🇺🇸" in shorts_lang_mode)
@@ -6620,7 +6620,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "🥉 3위 [Christopher Neural] 권위 있는 애널리스트 남성",
                                     "4위 [Ava Neural] 깔끔한 뉴스 앵커 여성"
                                 ],
-                                key=f"shorts_voice_en_v6_{tk}"
+                                key=f"shorts_voice_en_v7_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
@@ -6633,7 +6633,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
                                     "6위 [친근한 리뷰어 봉진 톤] 편안하고 신뢰감 있는 아재 톤 (신규)"
                                 ],
-                                key=f"shorts_voice_ko_v6_{tk}"
+                                key=f"shorts_voice_ko_v7_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
@@ -6645,7 +6645,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
                                 "5위 🔇 배경음악 없음 (성우 목소리만)"
                             ],
-                            key=f"shorts_bgm_v6_{tk}"
+                            key=f"shorts_bgm_v7_{tk}"
                         )
 
                     col_sh3, col_sh4 = st.columns([1.5, 1.5])
@@ -6659,7 +6659,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
                                 "5위 🔇 화면 전환 효과음 없음"
                             ],
-                            key=f"shorts_sfx_v6_{tk}"
+                            key=f"shorts_sfx_v7_{tk}"
                         )
                     with col_sh4:
                         default_spd = 15 if is_en_shorts else 25
@@ -6667,7 +6667,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "4️⃣ 성우 말하기 배속 (몰아치는 템포 +25% 기본 세팅)",
                             min_value=0, max_value=100, value=default_spd, step=5,
                             format="+%d%%",
-                            key=f"shorts_spd_v6_{tk}"
+                            key=f"shorts_spd_v7_{tk}"
                         )
 
                     def _josa(word, pair="이/가"):
@@ -6710,13 +6710,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     yr_span_str = f"{actual_yr_cnt}년" if not is_en_shorts else f"{actual_yr_cnt}Y"
 
                     # ---------------------------------------------------------
+                    # [에러 해결 & 누락 방어] 시각 차트 계산용 필수 변수 복원
+                    # ---------------------------------------------------------
+                    avg_margin_bench = 8.0 if kr else 12.0
+                    margin_won = max(0, int(round(op_m)))
+                    margin_diff = op_m - avg_margin_bench
+                    bank_mult = max(0.1, roe / 3.5) if roe > 0 else 0.0
+                    roe_vs_buffett = roe - 15.0
+                    tsy_vs_mkt = tsy_total - 2.5
+                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
+                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
+                    cur_pe_won = int(round(f_pe * 10, 0) * 1000)
+                    avg_pe_won = int(round(a_pe * 10, 0) * 1000)
+
+                    # ---------------------------------------------------------
                     # [핵심 로직 1] EPS 지속 성장성 추출 (Scene 2용)
                     # ---------------------------------------------------------
                     is_eps_growing = False
                     if "상승" in eps_trend or "증가" in eps_trend:
                         is_eps_growing = True
-                        eps_status_kor = "지속 성장 중"
-                        eps_status_en = "Growing"
+                        eps_status_kor = "지속 상승 추세"
+                        eps_status_en = "Consistent Upward"
                     else:
                         eps_status_kor = "정체 및 하락"
                         eps_status_en = "Stagnant/Down"
@@ -6826,13 +6840,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             disc_txt = f"{yr_span_str} 평균과 유사"
                             disc_short_badge = f"{yr_span_str} 평균과 동일 수준"
 
-                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
-                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
-                    cur_pe_won = int(round(f_pe * 10, 0) * 1000)
-                    avg_pe_won = int(round(a_pe * 10, 0) * 1000)
-
                     # =========================================================================
-                    # [대본 생성 엔진] 10번 컷 5대 지표 삭제 -> 총 9컷 깔끔 요약 스크립트!
+                    # [대본 생성 엔진] 단정적 어조 100% 제거 & ROIC(일반)/ROE(금융) 팩트체크 요약체
                     # =========================================================================
                     if is_en_shorts:
                         if is_earnings_mode:
@@ -6853,14 +6862,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             val_en = f"Price-to-book is {f_pbr:.2f}x, compared to its {yr_span_str} average of {a_pbr:.2f}x." if (is_financial or use_pbr_m) else f"Forward P E is {f_pe:.1f}x, versus its {yr_span_str} average of {a_pe:.1f}x."
                             dcf_en8 = f"Valuation relies on P B and ROE instead of cash flows." if is_financial else f"Current price requires a {imp_g_pct:.1f} percent annual cash flow growth."
                             dcf_en9 = f"It generates an ROE of {roe:.1f} percent." if is_financial else f"Meanwhile, historical cash flow grew at {hist_fcf_g_pct:.1f} percent per year."
+                            
+                            moat_en4 = f"Checking the 4-year EPS trend, it shows a {eps_status_en.lower()} trajectory."
+                            moat_en5 = f"Return on Equity stands at {roe:.1f} percent." if is_financial else f"Return on Invested Capital stands at {roic_val:.1f} percent."
+                            tsy_en7 = f"Total shareholder yield is {tsy_total:.1f} percent, with a consistent 10-year payout history." if div_consistency_score == 2 else (f"Total shareholder yield is {tsy_total:.1f} percent, with intermittent payout history." if div_consistency_score == 1 else f"Total shareholder yield is {tsy_total:.1f} percent, lacking a consistent payout history.")
+                            
                             default_script_lines = [
                                 open_en,
                                 f"Current valuation is {disc_txt}.",
                                 val_en,
-                                f"Checking earnings consistency, recent EPS trend is {eps_status_en.lower()}.",
-                                f"Return on equity is {roe:.1f} percent." if is_financial else f"Return on Invested Capital (ROIC) stands at {roic_val:.1f} percent.",
+                                moat_en4,
+                                moat_en5,
                                 f"Earnings yield is {ey:.1f} percent, compared to the 10-year Treasury at {ty:.1f} percent.",
-                                f"Dividends and share buybacks deliver a {tsy_total:.1f} percent yield.",
+                                tsy_en7,
                                 dcf_en8,
                                 dcf_en9
                             ]
@@ -6876,25 +6890,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if has_guru_sh:
                             subj_guru = _josa(g_main['hook_title'], "이/가")
                             subj_short = _josa(g_main['name'], "은/는")
-                            hook_opt_1 = f"{subj_guru}, 포트폴리오 비중 {g_main['weight']:.1f}%인 {comp_name}, {yr_span_str} 장부 팩트체크."
+                            hook_opt_1 = f"{subj_guru}, 포트폴리오 비중 {g_main['weight']:.1f}%인 {comp_name}, {yr_span_str} 장부 데이터 점검."
                             thumb_q_1 = f"“{subj_short} 왜 {comp_name} 주식을 {g_main['weight']:.1f}%나 샀을까?”"
                         else:
-                            hook_opt_1 = f"워런 버핏의 5대 장부 기준으로, {comp_name} {yr_span_str} 치 실적 팩트체크."
+                            hook_opt_1 = f"워런 버핏의 가치투자 기준으로, {comp_name} {yr_span_str} 치 실적 데이터 점검."
                             thumb_q_1 = f"“버핏의 재무 기준, {comp_name} 장부 속살은?”"
 
-                        hook_opt_2 = f"소문 무성한 {comp_name}, 최근 실적과 장부 가치는 실제로 어떨까?"
+                        hook_opt_2 = f"소문 무성한 {comp_name}, 최근 실적과 장부 가치 데이터 점검."
                         thumb_q_2 = f"“장부로 뜯어본 {comp_name}, 진짜 돈 버는 실력은?”"
 
                         if use_pbr_m or is_financial:
-                            hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 순자산과 비교해 본 현재 위치."
+                            hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 순자산 대비 현재 위치 점검."
                             thumb_q_3 = f"“순자산 1만원당 {cur_pbr_won:,}원, {yr_span_str} 평균 대비 {abs_pmos:.0f}% 차이?”"
                         else:
-                            hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 이익 회수기간과 비교해 본 현재 위치."
+                            hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 이익 회수기간 대비 현재 위치 점검."
                             thumb_q_3 = f"“원금 회수기간 {f_pe:.1f}년, {yr_span_str} 평균보다 {abs_pmos:.0f}% 차이?”"
 
                         r_metric = "자기자본이익률" if is_financial else "투하자본수익률"
                         r_val = roe if is_financial else roic_val
-                        hook_opt_4 = f"진짜 돈 버는 실력인 {r_metric}이 연 {r_val:.1f}%인 {comp_name} 장부 분석."
+                        hook_opt_4 = f"진짜 자본 효율성을 보여주는 {r_metric}이 연 {r_val:.1f}%인 {comp_name} 장부 분석."
                         thumb_q_4 = f"“연 {r_val:.1f}% 복리 증식? {comp_name} 장부의 비밀!”"
 
                         if not is_earnings_mode:
@@ -6911,7 +6925,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 range(len(hook_labels)),
                                 format_func=lambda idx: hook_labels[idx],
                                 index=0,
-                                key=f"hook_sel_v6_{tk}"
+                                key=f"hook_sel_v7_{tk}"
                             )
                             opening_cut1 = hook_options_list[selected_hook_idx][1]
                             selected_thumb_quote = hook_options_list[selected_hook_idx][2]
@@ -6926,7 +6940,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             thumb_giant_num = disc_short_badge
                             thumb_red_quote = selected_thumb_quote
                             hook_cut2 = f"순자산 대비 현재 주가 배수는, {yr_span_str} 평균보다, {disc_txt}."
-                            val_cut3 = f"장부상 순자산 1만 원어치가, 평소 {avg_pbr_won:,}원에서, 현재 {cur_pbr_won:,}원에 거래됨."
+                            val_cut3 = f"장부상 순자산 1만 원어치가, 평소 {avg_pbr_won:,}원에서, 현재 {cur_pbr_won:,}원으로 산출됨."
                         else:
                             pbr_reason_tag = f"순이익 원금 회수 기간 비교 ({yr_span_str} 평균 vs 현재)"
                             thumb_compare_bar = f"이익 회수기간 : {yr_span_str} 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
@@ -6935,51 +6949,51 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             hook_cut2 = f"순이익 기준 원금 회수 기간은, {yr_span_str} 평균보다, {disc_txt}."
                             val_cut3 = f"이익 기준 회수 기간이, 평소 {a_pe:.1f}년에서, 현재 {f_pe:.1f}년 수준임."
 
-                        # [핵심] ROE / ROIC 분리 및 EPS 성장성 적용
-                        moat_cut4 = f"가장 중요한 이익 체력, 과거 4년간 주당순이익 EPS가 꾸준히 우상향했는지 점검해 보니, {eps_status_kor}임."
+                        # [핵심] 단정적 어조(장사 잘함, 해자가 강력함) 제거 및 ROIC(일반)/ROE(금융) + EPS 지속성 팩트체크
+                        moat_cut4 = f"핵심 이익 지표인 과거 4년 주당순이익 EPS 추이를 점검한 결과, {eps_status_kor}으로 나타남."
                         if is_financial:
-                            moat_cut5 = f"은행업 특성상 자기자본이익률 ROE를 보면 연 {roe:.1f}%로, 장사를 {'매우 잘하고' if roe >= 10 else '무난하게 하고'} 있음."
+                            moat_cut5 = f"금융업 핵심 지표인 자기자본이익률 ROE는 연 {roe:.1f}%로, 기준치 10% 대비 {'상회' if roe >= 10 else '하회'}하는 수준임."
                         else:
-                            moat_cut5 = f"기업의 진짜 돈 버는 실력인 투하자본수익률 ROIC는 연 {roic_val:.1f}%로, 비즈니스 해자가 {'강력함' if roic_val >= 10 else '평범함'}."
+                            moat_cut5 = f"실질 자본 효율성을 나타내는 투하자본수익률 ROIC는 연 {roic_val:.1f}%로, 기준치 10% 대비 {'상회' if roic_val >= 10 else '하회'}하게 산출됨."
 
                         ey_gap = ey - ty
                         if abs(ey_gap) < 0.2:
                             ey_cut6 = f"현재 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.1f}%와 유사함."
                         else:
-                            ey_cut6 = f"현재 이익수익률은 연 {ey:.1f}%로, 미국채 금리보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}."
+                            ey_cut6 = f"현재 이익수익률은 연 {ey:.1f}%로, 미국채 금리보다 {abs(ey_gap):.1f}%p {'높게' if ey_gap > 0 else '낮게'} 산출됨."
 
-                        # [핵심] 10년 주주환원 일관성 팩트체크 반영
+                        # [핵심] 주주환원 일관성 팩트체크 객관적 반영
                         if div_consistency_score == 2:
-                            tsy_cut7 = f"현재 총 주주환원율은 연 {tsy_total:.1f}%이며, 과거 10년간 꾸준히 주주친화 정책을 유지해 옴."
+                            tsy_cut7 = f"현재 총 환원율은 연 {tsy_total:.1f}%이며, 과거 10년간 꾸준한 주주환원 이력이 관찰됨."
                         elif div_consistency_score == 1:
-                            tsy_cut7 = f"현재 환원율은 연 {tsy_total:.1f}%이나, 과거 장기적인 주주환원 일관성은 다소 부족함."
+                            tsy_cut7 = f"현재 총 환원율은 연 {tsy_total:.1f}%이나, 장기적인 주주환원 실행 이력은 간헐적임."
                         else:
-                            tsy_cut7 = f"현재 환원율은 연 {tsy_total:.1f}%이며, 전반적인 장기 주주환원 정책에 인색한 편임."
+                            tsy_cut7 = f"현재 총 환원율은 연 {tsy_total:.1f}%이며, 과거 10년 장부상 뚜렷한 주주환원 이력이 확인되지 않음."
 
                         if is_financial:
-                            dcf_cut8 = f"금융업 특성상 현금흐름 모델 대신, 장부 순자산과 자본수익률을 핵심 지표로 평가함."
+                            dcf_cut8 = f"금융업 특성상 현금흐름 모델 대신, 장부 순자산과 자본수익률을 기준으로 가치를 점검함."
                             dcf_cut9 = f"현재 순자산 배수는 {f_pbr:.2f}배, 자기자본이익률은 연 {roe:.1f}%를 기록 중임."
                             gap_badge_txt = f"금융주 핵심 지표 : PBR {f_pbr:.2f}배 ({yr_span_str} 평균 {a_pbr:.2f}배) · ROE {roe:.1f}%"
                             gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
                         elif implied_g_shorts is not None:
                             if imp_g_pct < 0:
-                                dcf_cut8 = f"현재 주가를 역산하면, 향후 현금이 매년 {abs(imp_g_pct):.1f}%씩 줄어도 정당화되는 수준임."
+                                dcf_cut8 = f"현재 주가를 역산하면, 향후 현금이 매년 {abs(imp_g_pct):.1f}%씩 감소해도 수리적으로 설명되는 수준임."
                                 if hist_fcf_g_pct > 0:
-                                    dcf_cut9 = f"반면 과거 {yr_span_str}간 실제 현금흐름은, 매년 {hist_fcf_g_pct:.1f}%씩 증가함."
+                                    dcf_cut9 = f"반면 과거 {yr_span_str}간 실제 현금흐름은, 매년 {hist_fcf_g_pct:.1f}%씩 증가한 것으로 산출됨."
                                     gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 실제 추이(+{hist_fcf_g_pct:.1f}%)"
                                     gap_badge_col = (5, 122, 85)
                                 else:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 현금흐름 변동률은, 연 {hist_fcf_g_pct:.1f}% 수준이었음."
+                                    dcf_cut9 = f"과거 {yr_span_str} 실제 현금흐름 변동률은, 연 {hist_fcf_g_pct:.1f}% 수준으로 산출됨."
                                     gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 과거 추이({hist_fcf_g_pct:.1f}%)"
                                     gap_badge_col = (29, 78, 216)
                             else:
                                 dcf_cut8 = f"현재 주가를 현금흐름 모델로 역산하면, 매년 {imp_g_pct:.1f}%의 성장이 요구됨."
                                 if growth_gap_pp > 3.0:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률 연 {hist_fcf_g_pct:.1f}%보다, 현재 주가 기대치가 {growth_gap_pp:.1f}%p 더 높음."
+                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률 연 {hist_fcf_g_pct:.1f}%보다, 현재 주가 기대치가 {growth_gap_pp:.1f}%p 더 높게 반영됨."
                                     gap_badge_txt = f"실제 성장({hist_fcf_g_pct:.1f}%) < 주가 요구치({imp_g_pct:.1f}%)"
                                     gap_badge_col = (185, 28, 28)
                                 elif growth_gap_pp < -2.0:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률은 연 {hist_fcf_g_pct:.1f}%로, 주가 요구치보다 확실히 높음."
+                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률은 연 {hist_fcf_g_pct:.1f}%로, 주가 요구치보다 높게 산출됨."
                                     gap_badge_txt = f"실제 성장(연 {hist_fcf_g_pct:.1f}%) > 주가 요구치(연 {imp_g_pct:.1f}%)"
                                     gap_badge_col = (5, 122, 85)
                                 else:
@@ -6992,12 +7006,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             gap_badge_txt = f"순자산 {yr_span_str} 평균 대비 {disc_txt}"
                             gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
+                        # [핵심] 10번 컷 삭제 -> 총 9컷 스크립트로 압축
                         if is_earnings_mode:
                             u_str_e = "억원" if kr else "십억달러"
                             default_script_lines = [
                                 opening_cut1,
                                 f"먼저 매출액은 직전 {earn_rev_prev:,.0f}{u_str_e}에서, {earn_rev_curr:,.0f}{u_str_e}로 {earn_rev_chg:+.1f}% 변동함.",
-                                f"실제 장사 마진인 영업이익은 직전 대비 {earn_op_chg:+.1f}% 변화하며, 마진율 {op_m:.1f}%를 기록함.",
+                                f"실제 영업마진인 영업이익은 직전 대비 {earn_op_chg:+.1f}% 변화하며, 마진율 {op_m:.1f}%를 기록함.",
                                 f"당기순이익은 직전 대비 {earn_ni_chg:+.1f}% 변동했고, 연 복리 자본수익률은 {roe:.1f}%임.",
                                 hook_cut2,
                                 ey_cut6,
@@ -7011,7 +7026,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ey_cut6, tsy_cut7, dcf_cut8, dcf_cut9
                             ]
 
-                    # 10번 컷이 사라졌으므로 총 9컷 템플릿으로 매핑
                     if is_earnings_mode:
                         scene_codes_fixed = ["SCENE_EARN_1", "SCENE_EARN_1", "SCENE_EARN_2", "SCENE_EARN_2", "SCENE_1", "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4"]
                     else:
@@ -7025,14 +7039,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "대본 편집창 (한 줄이 1컷입니다. 길이가 길면 덜 중요한 줄을 삭제해 7~8컷으로 압축하세요.)",
                         value="\n".join(default_script_lines),
                         height=220,
-                        key=f"custom_script_v6_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v7_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
                         user_lines = default_script_lines
 
                     pop_chunks = []
-                    for idx_l, u_line in enumerate(user_lines[:10]):
+                    for idx_l, u_line in enumerate(user_lines[:12]):
                         sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_4"
                         pop_chunks.append((u_line, sc_map))
 
@@ -7225,6 +7239,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             gTTS(text=tts_ready_text, lang='en' if is_en_shorts else 'ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
+                        # [호흡 교정 핵심!] start_periods=1로 맨 앞 공백만 자르고 문장 중간 쉼표(,) 호흡은 100% 보존, 끝에 0.26초 여백 부여!
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-42dB,"
                             f"{eq_str},apad=pad_dur=0.26"
@@ -7337,7 +7352,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         r_sub_tag = f"예금의 {bank_mult:.1f}배" if not is_en_shorts else f"{bank_mult:.1f}x vs Bank"
                         _fit_single_line(draw, 460, 666, 155, r_sub_tag, get_font, start_sz=16, min_sz=11, fill=(52, 211, 153))
 
-                        by_mini = 660
+                        by_mini = 630
                         max_mini_r = max(3.5, abs(r_val), 15.0) * 1.15
                         hr_1 = int(max(14, min(68, (3.5 / max_mini_r) * 68)))
                         hr_2 = int(max(14, min(68, (max(0.5, r_val) / max_mini_r) * 68)))
@@ -7388,7 +7403,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw = ImageDraw.Draw(img)
 
                         top_col = (56, 189, 248) if has_guru_sh else (255, 255, 255)
-                        _fit_single_line(draw, W//2, 138, W-48, top_header_line, get_font, start_sz=44, min_sz=24, fill=top_col)
+                        _fit_single_line(draw, W//2, 138, W-48, top_header_line, get_font, start_sz=48, min_sz=26, fill=top_col)
                         _fit_single_line(draw, W//2, 185, W-40, f"[{today_short} 기준]", get_font, start_sz=22, min_sz=14, fill=(148, 163, 184))
                         title_2nd = f"{comp_name} ({today_short})" if is_earnings_mode else (f"{comp_name} {yr_span_str} Books" if is_en_shorts else f"{comp_name} {yr_span_str} 장부")
                         _fit_single_line(draw, W//2, 245, W-36, title_2nd, get_font, start_sz=70, min_sz=36, fill=(255, 240, 0))
@@ -7543,7 +7558,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([bx_start, 510, bx_start + w_act, 558], radius=10, fill=(16, 185, 129))
                             _fit_single_line(draw, bx_start + b_max_w + 68, 534, 120, str_bot, get_font, start_sz=25, min_sz=14, fill=(52, 211, 153))
 
-                        # 하단 자막 박스 
                         sub_clean = str(sub_text).replace(" ,", ",").strip()
                         is_hook_cut = (chunk_idx <= 1) and not is_en_shorts
                         txt_col = (255, 240, 0) if chunk_idx in [0, 1, total_chunks - 1] else (255, 255, 255)
@@ -7583,7 +7597,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 1095, W-40, "Past performance does not guarantee future results. Invest at your own risk.", get_font, start_sz=15, min_sz=11, fill=(90, 90, 90))
                         else:
                             _fit_single_line(draw, W//2, 1060, W-40, "본 영상은 공시 데이터(DART·SEC) 기반 학술·교육용 통계 자료이며 투자 권유나 종목 추천이 아닙니다", get_font, start_sz=16, min_sz=11, fill=(115, 115, 115))
-                            _fit_single_line(draw, W//2, 1095, W-40, "과거의 재무 지표나 통계 산식이 미래의 수익을 보장하지 않으며 모든 투자의 책임은 본인에게 있습니다", get_font, start_sz=15, min_sz=11, fill=(90, 90, 90))
+                            _fit_single_line(draw, W//2, 1095, W-40, "과거의 재무 지표나 통계 산식이 미래의 수익을 보장하지 않으며 모든 투자의 책임은 본인에게 있습니다", get_font, start_start_sz=15, min_sz=11, fill=(90, 90, 90))
                         return img
 
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
@@ -7627,7 +7641,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         resp = req.execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("🎬 1단계: 시각 게이지 썸네일 + 호흡·강조 보이스 쇼츠(.mp4) 생성", key=f"btn_mp4_v6_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 시각 게이지 썸네일 + 호흡·강조 보이스 쇼츠(.mp4) 생성", key=f"btn_mp4_v7_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re, random
                             with st.spinner("시각 게이지 대시보드 및 성우 호흡·강조 튜닝 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
@@ -7722,7 +7736,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf:
-                                    st.session_state[f"saved_shorts_mp4_v6_{clean_tk}"] = vf.read()
+                                    st.session_state[f"saved_shorts_mp4_v7_{clean_tk}"] = vf.read()
 
                                 for p_rm in cleanup_files:
                                     if os.path.exists(p_rm):
@@ -7772,8 +7786,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             f"#shorts #{clean_tag_name} #가치투자 #재무제표분석"
                         )
 
-                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v6_{clean_tk}_{mode_tag_k}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=165, key=f"yt_d_v6_{clean_tk}_{mode_tag_k}")
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v7_{clean_tk}_{mode_tag_k}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=165, key=f"yt_d_v7_{clean_tk}_{mode_tag_k}")
 
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
@@ -7789,23 +7803,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
                             ],
-                            key=f"yt_p_v6_{clean_tk}"
+                            key=f"yt_p_v7_{clean_tk}"
                         )
                     is_scheduled_mode = yt_up_priv.startswith("scheduled")
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v6_{clean_tk}")
+                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v7_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v6_{clean_tk}")
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v7_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
-                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v6_{clean_tk}")
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v7_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v6_{clean_tk}")
+                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v7_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
@@ -7819,9 +7833,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         publish_at_iso_str = combined_kst.strftime("%Y-%m-%dT%H:%M:%S+09:00")
                         st.caption(f"✅ **최종 예약 공개 시각 (KST):** `{combined_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}`")
 
-                    has_video_ready = (f"saved_shorts_mp4_v6_{clean_tk}" in st.session_state)
+                    has_video_ready = (f"saved_shorts_mp4_v7_{clean_tk}" in st.session_state)
                     if has_video_ready:
-                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v6_{clean_tk}"]
+                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v7_{clean_tk}"]
                         st.success("🎉 시각 게이지 썸네일 & 신규 성우 9컷 요약 쇼츠 완성!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
@@ -7830,13 +7844,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             file_name=f"AGIE_{clean_tk}_{mode_tag_k}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
                             use_container_width=True,
-                            key=f"dl_btn_v6_{clean_tk}"
+                            key=f"dl_btn_v7_{clean_tk}"
                         )
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
-                        if st.button(btn_yt_label, key=f"btn_yt_up_v6_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
                             tags_arr = ["shorts", comp_name, clean_tk, "stocks" if is_en_shorts else "가치투자"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
@@ -7852,7 +7866,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v6_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -7880,7 +7894,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v6_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
@@ -7905,7 +7919,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     st.markdown("#### 📜 최종 적용 대본 미리보기")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
-                # ▲▲▲ 여기까지 통째로 덮어쓰시면 됩니다 ▲▲▲
+                # ▲▲▲ 여기까지 덮어쓰세요 ▲▲▲
                 # =====================================================================
                 st.divider()
                 st.subheader(t("📊 10년 핵심 장부 요약 및 차트", "📊 10-Year Financials & Charts"))
