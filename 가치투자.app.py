@@ -6867,7 +6867,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         hook_opt_4 = f"은행 이자 3% 시대, {comp_name} 장부는, 연 {roe:.1f}% 속도로 자본을 불리는 중."
                         thumb_q_4 = f"“예금 이자의 {bank_mult:.1f}배 속도? 연 {roe:.1f}% 복리 장부의 비밀!”"
 
-                        # ▼▼▼ 교체할 부분 시작 (스크립트 및 로직 생성부) ▼▼▼
+                        # ▼▼▼ 여기서부터 복사하여 덮어쓰기 하세요 ▼▼▼
                         if not is_earnings_mode:
                             st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택")
                             if has_guru_sh:
@@ -6894,18 +6894,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             opening_cut1 = f"{comp_name} 최신 실적 발표 완료, 장부 숫자 핵심 요약."
                             selected_thumb_quote = f"“{comp_name} 실적 발표! 현재 주가 위치는?”"
 
-                        # [통합 1] PBR / PER 비교 (쉬운 용어로 1줄 압축)
+                        # [통합 1] PBR / PER 비교 (쉬운 용어로 1줄 압축 + UI용 라벨 변수 복구)
                         if use_pbr_m or is_financial:
                             thumb_compare_bar = f"순자산 1만원당 : {yr_span_str} 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
                             hook_cut2 = f"순자산 대비 현재 주가는 10년 평균보다 {abs_pmos:.0f}% {'낮은' if pmos_val >= 0 else '높은'} 구간으로, 평소 1만 원이던 장부가 현재 {cur_pbr_won:,}원에 거래 중임."
+                            pbr_reason_tag = f"Multiple Comparison ({yr_span_str} Avg vs Now)" if is_en_shorts else f"순자산 1만원당 가격 비교 ({yr_span_str} 평균 vs 현재)"
                         else:
                             thumb_compare_bar = f"이익 회수기간 : {yr_span_str} 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
                             hook_cut2 = f"현재 본전 회수 기간은 {f_pe:.1f}년으로, 10년 평균보다 {abs_pmos:.0f}% {'저렴함' if pmos_val >= 0 else '비쌈'}."
+                            pbr_reason_tag = f"Multiple Comparison ({yr_span_str} Avg vs Now)" if is_en_shorts else f"순이익 원금 회수 기간 비교 ({yr_span_str} 평균 vs 현재)"
 
                         thumb_giant_num = disc_short_badge
                         thumb_red_quote = selected_thumb_quote
 
-                        # [통합 2] 금융주(ROE) vs 일반주(ROIC) 분리 및 EPS 지속성장 추가
+                        # [통합 2] 금융주(ROE) vs 일반주(ROIC) 분리 및 EPS 지속성장 추가 (UI 뱃지 텍스트 복구)
                         if is_financial:
                             moat_cut3 = f"돈 불리는 속도인 자본수익률은 연 {roe:.1f}% 수준임."
                             gap_badge_txt = f"금융주 핵심 지표 : PBR {f_pbr:.2f}배 · ROE {roe:.1f}%"
@@ -6955,13 +6957,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         ]
 
                     # 컷 수가 줄었으므로 씬 매핑도 6컷에 맞춤
-                    scene_codes_fixed = ["SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_4"]
-# ▲▲▲ 교체할 부분 끝 ▲▲▲
-
                     if is_earnings_mode:
-                        scene_codes_fixed = ["SCENE_EARN_1", "SCENE_EARN_1", "SCENE_EARN_2", "SCENE_EARN_2", "SCENE_1", "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4"]
+                        scene_codes_fixed = ["SCENE_EARN_1", "SCENE_EARN_1", "SCENE_EARN_2", "SCENE_EARN_2", "SCENE_3", "SCENE_4"]
                     else:
-                        scene_codes_fixed = ["SCENE_HOOK", "SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4"]
+                        scene_codes_fixed = ["SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_4"]
+# ▲▲▲ 여기까지 덮어쓰기 완료하시면 정상 작동합니다! ▲▲▲
 
                     hook_key_tag = selected_hook_idx if (not is_en_shorts and not is_earnings_mode) else 0
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}_H{hook_key_tag}"
