@@ -2660,9 +2660,10 @@ def get_data(tk):
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
+# ▼▼▼ [수리 1-A] 약 1150행 def get_base_dcf_data 및 def calc_custom_dcf 교체 ▼▼▼
 def get_base_dcf_data(stk, i):
     try:
-        if stk is None: return None, None, 0.05, 0, False
+        if stk is None: return None, None, 0.0, 0, False
         fcf_s = None
         cf = stk.cash_flow
         
@@ -2671,10 +2672,9 @@ def get_base_dcf_data(stk, i):
             elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
                 fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
                 
-        # --- [핵심 추가] 최근 3년 평균 FCF 산출 (이상치 완화) ---
         avg_fcf = None
         if fcf_s is not None and not fcf_s.empty:
-            vals = fcf_s.values[:3] # 최근 최대 3개년
+            vals = fcf_s.values[:3]
             valid_vals = [safe_float(v) for v in vals if pd.notna(v)]
             if len(valid_vals) > 0:
                 avg_fcf = sum(valid_vals) / len(valid_vals)
@@ -2682,20 +2682,23 @@ def get_base_dcf_data(stk, i):
         fcf = avg_fcf if avg_fcf is not None else safe_float(i.get('freeCashflow'))
         sh = safe_float(i.get('sharesOutstanding'))
             
-        g, data_len = 0.05, 0
+        g, data_len = 0.0, 0
         is_zigzag = False
         
         if fcf_s is not None and len(fcf_s) >= 2:
-            vals = fcf_s.values[::-1]
-            c, o = safe_float(vals[-1]), safe_float(vals[0])
+            vals = [safe_float(v) for v in fcf_s.values[::-1]] # 과거 -> 최신 순
+            c, o = vals[-1], vals[0]
             data_len = len(vals)
-            if c > 0 and o > 0: g = (c / o) ** (1 / (data_len - 1)) - 1
+            if c > 0 and o > 0:
+                g = (c / o) ** (1.0 / (data_len - 1)) - 1.0
+            elif c <= 0 or o <= 0:
+                # 적자 전환 또는 과거 적자로 복리 연산이 불가능한 경우 음수(-0.99) 플래그 부여 (기존처럼 +5%로 둔갑 방지)
+                g = -0.99 if c <= 0 else ((c - o) / (abs(o) * max(1, data_len - 1)) if o != 0 else 0.0)
             
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
-                    prev = safe_float(vals[idx-1])
-                    curr = safe_float(vals[idx])
+                    prev, curr = vals[idx-1], vals[idx]
                     if prev == 0:
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
@@ -2703,7 +2706,6 @@ def get_base_dcf_data(stk, i):
                         if change_pct >= 0.30: directions.append(1)     
                         elif change_pct <= -0.30: directions.append(-1) 
                         else: directions.append(0) 
-                
                 if 1 in directions and -1 in directions:
                     is_zigzag = True
         else:
@@ -2711,9 +2713,11 @@ def get_base_dcf_data(stk, i):
             if eg != 0.0: g = eg
             data_len = 1 if fcf_s is None else len(fcf_s)
             
-        g = max(0.02, min(g, 0.15))
+        # [핵심 수정] 2% 하한선 및 15% 상한선 강제 고정 해제! (실제 역성장 및 초고성장 그대로 반환)
+        g = max(-0.95, min(g, 2.00))
         return fcf, sh, g, data_len, is_zigzag
-    except: return None, None, 0.05, 0, False
+    except:
+        return None, None, 0.0, 0, False
 
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
@@ -2721,20 +2725,24 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if not sh or sh <= 0: return 0, 0, t("주식수 누락 (데이터 부족)", "Missing Shares Outstanding")
     try:
         dr = max(ty / 100, 0.09)
+        # 실제 성장률(g) 표시는 제한을 풀되, 10년 복리 적정주가(IV) 산출 시에만 과도한 발산 방지를 위해 -15% ~ +25% 범위 적용
+        dcf_g = max(-0.15, min(g, 0.25)) if g > -0.90 else 0.0
         cv = fcf
         fut = []
         for y in range(1, 11):
-            cv *= (1 + g)
+            cv *= (1 + dcf_g)
             fut.append(cv / ((1 + dr) ** y))
             
-        term_g = 0.02 if g >= 0.05 else 0.0
+        term_g = 0.02 if dcf_g >= 0.05 else 0.0
         tv = (cv * (1 + term_g)) / (dr - term_g)
         dtv = tv / ((1 + dr) ** 10)
         
         iv = (sum(fut) + dtv) / sh
         mos = ((iv - p) / iv) * 100
         return iv, mos, None
-    except: return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
+    except:
+        return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
+# ▲▲▲ [수리 1-A 끝] ▲▲▲
 
 def get_implied_g(fcf, sh, p, ty):
     if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0: return None
@@ -4324,11 +4332,15 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 if len(fcf_list) >= 2:
                     c, o = fcf_list[0], fcf_list[-1]
                     base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(fcf_list[:3]) / min(3, len(fcf_list)))
-                    if c > 0 and o > 0:
-                        final_g_10y = (c / o) ** (1 / max(1, len(fcf_list) - 1)) - 1
-                    else:
-                        final_g_10y = yf_g
-                    final_g_10y = max(0.02, min(final_g_10y, 0.15))
+                    # ▼▼▼ 한국 주식 FCF 성장률 제한(2%~15%) 해제 (약 1650~1660행) ▼▼▼
+                  if c > 0 and o > 0:
+                      final_g_10y = (c / o) ** (1.0 / max(1, len(fcf_list) - 1)) - 1.0
+                  elif c <= 0:
+                      final_g_10y = -0.99  # 최근 FCF 적자/역성장
+                  else:
+                      final_g_10y = yf_g
+                  final_g_10y = max(-0.95, min(final_g_10y, 2.00)) # 2%~15% 강제 고정 해제!
+                  # ▲▲▲ 여기까지 ▲▲▲
 
                     rev_fcf = fcf_list[::-1]
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
@@ -4397,139 +4409,185 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     'StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
                     'CommonStockholdersEquity', 'MembersEquity', 'PartnersCapital'
                 ], unit='USD', is_instant=True)
-                sec_ocf = get_sec_fact([
-                    'NetCashProvidedByUsedInOperatingActivities',
-                    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'
-                ], unit='USD', is_instant=False)
-                sec_capex = get_sec_fact([
-                    'PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'
-                ], unit='USD', is_instant=False)
-                sec_op = get_sec_fact([
-                    'OperatingIncomeLoss',
-                    'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
-                    'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
-                    'IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic'
-                ], unit='USD', is_instant=False, first_valid_tag_only=True)
-                sec_assets = get_sec_fact(['Assets'], unit='USD', is_instant=True)
-                sec_liab = get_sec_fact(['Liabilities'], unit='USD', is_instant=True)
-                sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD', is_instant=True)
-                sec_shares_dur = get_sec_fact([
-                    'WeightedAverageNumberOfDilutedSharesOutstanding',
-                    'WeightedAverageNumberOfSharesOutstandingBasic'
-                ], unit='shares', is_instant=False)
-                sec_shares_inst = get_sec_fact([
-                    'CommonStockSharesOutstanding'
-                ], unit='shares', is_instant=True)
+                # ▼▼▼ [수리 1-B] 미국 주식 SEC 10년 FCF 정밀 추출 및 2%~15% 제한 완전 해제 (약 1730~1835행) ▼▼▼
+              sec_ocf = get_sec_fact([
+                  'NetCashProvidedByUsedInOperatingActivities',
+                  'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations',
+                  'CashGeneratedFromOperations'
+              ], unit='USD', is_instant=False)
+              sec_capex = get_sec_fact([
+                  'PaymentsToAcquirePropertyPlantAndEquipment',
+                  'PaymentsToAcquireProductiveAssets',
+                  'PaymentsToAcquireOtherPropertyPlantAndEquipment',
+                  'PaymentsForCapitalImprovements',
+                  'AdditionsToNoncurrentAssets'
+              ], unit='USD', is_instant=False)
+              sec_op = get_sec_fact([
+                  'OperatingIncomeLoss',
+                  'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+                  'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
+                  'IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic'
+              ], unit='USD', is_instant=False, first_valid_tag_only=True)
+              sec_assets = get_sec_fact(['Assets'], unit='USD', is_instant=True)
+              sec_liab = get_sec_fact(['Liabilities'], unit='USD', is_instant=True)
+              sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD', is_instant=True)
+              sec_shares_dur = get_sec_fact([
+                  'WeightedAverageNumberOfDilutedSharesOutstanding',
+                  'WeightedAverageNumberOfSharesOutstandingBasic'
+              ], unit='shares', is_instant=False)
+              sec_shares_inst = get_sec_fact([
+                  'CommonStockSharesOutstanding'
+              ], unit='shares', is_instant=True)
 
-                # 완료된 최근 10개 사업연도(예: 2016~2025) 추출 + TTM 계산을 위해 직전 11번째 연도(2015)까지 EPS 준비
-                all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
-                curr_cal_yr = datetime.now().year
-                completed_years = [y for y in all_avail_years if int(y) < curr_cal_yr]
-                sec_years = completed_years[:10] if len(completed_years) >= 10 else all_avail_years[:10]
+              all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
+              curr_cal_yr = datetime.now().year
+              completed_years = [y for y in all_avail_years if int(y) < curr_cal_yr]
+              sec_years = completed_years[:10] if len(completed_years) >= 10 else all_avail_years[:10]
 
-                # 11개년(직전 연도 포함) 분할 보정 진성 희석 EPS 및 진성 총주식수 사전 계산
-                adj_eps_map = {}
-                adj_sh_map = {}
-                for y_s in all_avail_years[:12]:
-                    y_i = int(y_s)
-                    _ni_v = sec_ni.get(y_s, 0)
-                    raw_sh = sec_shares_dur.get(y_s) or sec_shares_inst.get(y_s) or sh_out
-                    sh_norm = normalize_split_shares(raw_sh, y_i, sh_out, splits_data)
-                    ref_eps = (_ni_v / sh_out) if (sh_out > 0 and _ni_v != 0) else 0.0
-                    raw_e = sec_eps_raw.get(y_s, 0)
-                    if raw_e != 0 and ref_eps != 0:
-                        true_e = normalize_split_eps(raw_e, y_i, ref_eps, splits_data)
-                        adj_eps_map[y_i] = true_e
-                        # 감사된 희석 EPS로 역산한 실제 총희석주식수 (Class A+B+C 통합 및 소각 전 물량 100% 복원)
-                        if true_e != 0 and _ni_v != 0:
-                            implied_sh = abs(_ni_v / true_e)
-                            if 0.35 * sh_out <= implied_sh <= 2.5 * sh_out:
-                                sh_norm = implied_sh
-                    elif sh_norm > 0 and _ni_v != 0:
-                        adj_eps_map[y_i] = _ni_v / sh_norm
-                    adj_sh_map[y_i] = sh_norm
+              adj_eps_map = {}
+              adj_sh_map = {}
+              for y_s in all_avail_years[:12]:
+                  y_i = int(y_s)
+                  _ni_v = sec_ni.get(y_s, 0)
+                  raw_sh = sec_shares_dur.get(y_s) or sec_shares_inst.get(y_s) or sh_out
+                  sh_norm = normalize_split_shares(raw_sh, y_i, sh_out, splits_data)
+                  ref_eps = (_ni_v / sh_out) if (sh_out > 0 and _ni_v != 0) else 0.0
+                  raw_e = sec_eps_raw.get(y_s, 0)
+                  if raw_e != 0 and ref_eps != 0:
+                      true_e = normalize_split_eps(raw_e, y_i, ref_eps, splits_data)
+                      adj_eps_map[y_i] = true_e
+                      if true_e != 0 and _ni_v != 0:
+                          implied_sh = abs(_ni_v / true_e)
+                          if 0.35 * sh_out <= implied_sh <= 2.5 * sh_out:
+                              sh_norm = implied_sh
+                  elif sh_norm > 0 and _ni_v != 0:
+                      adj_eps_map[y_i] = _ni_v / sh_norm
+                  adj_sh_map[y_i] = sh_norm
 
-                pe_list, pbr_list, fcf_list = [], [], []
-                last_valid_eq = 0
+              pe_list, pbr_list, fcf_list = [], [], []
+              fcf_by_year = {}
+              last_valid_eq = 0
 
-                for y_str in sec_years:
-                    y_int = int(y_str)
-                    fy_m = fy_end_months.get(y_int, 12)
-                    yp = get_avg_price(y_int, fy_m)
-                    if yp <= 0: yp = reg_p
+              for y_str in sec_years:
+                  y_int = int(y_str)
+                  fy_m = fy_end_months.get(y_int, 12)
+                  yp = get_avg_price(y_int, fy_m)
+                  if yp <= 0: yp = reg_p
 
-                    _ni = sec_ni.get(y_str, 0)
-                    _eq = sec_eq.get(y_str, 0)
-                    _ast = sec_assets.get(y_str, 0)
-                    _liab = sec_liab.get(y_str, 0)
-                    _ca = sec_ca.get(y_str, 0)
-                    _op = sec_op.get(y_str, _ni * 1.25 if _ni != 0 else 0)
+                  _ni = sec_ni.get(y_str, 0)
+                  _eq = sec_eq.get(y_str, 0)
+                  _ast = sec_assets.get(y_str, 0)
+                  _liab = sec_liab.get(y_str, 0)
+                  _ca = sec_ca.get(y_str, 0)
+                  _op = sec_op.get(y_str, _ni * 1.25 if _ni != 0 else 0)
 
-                    if _eq <= 0 and _ast > _liab and _liab > 0:
-                        _eq = _ast - _liab
-                    if _eq > 0:
-                        last_valid_eq = _eq
-                    elif last_valid_eq > 0:
-                        _eq = last_valid_eq
+                  if _eq <= 0 and _ast > _liab and _liab > 0:
+                      _eq = _ast - _liab
+                  if _eq > 0:
+                      last_valid_eq = _eq
+                  elif last_valid_eq > 0:
+                      _eq = last_valid_eq
 
-                    if _eq > 0 and _ni != 0:
-                        roe_val_y = (_ni / _eq) * 100
-                        hist_roe_10y.append(roe_val_y)
-                    else:
-                        roe_val_y = 0
-                        hist_roe_10y.append(0)
-                    
-                    _inv_cap = (_ast - _ca) if (_ast > _ca and _ca > 0) else (_eq if _eq > 0 else _ast)
-                    if _inv_cap > 0 and _op != 0:
-                        hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100)
-                    elif roe_val_y != 0:
-                        hist_roic_10y.append(roe_val_y)
-                    else:
-                        hist_roic_10y.append(0)
+                  if _eq > 0 and _ni != 0:
+                      roe_val_y = (_ni / _eq) * 100
+                      hist_roe_10y.append(roe_val_y)
+                  else:
+                      roe_val_y = 0
+                      hist_roe_10y.append(0)
 
-                    if y_str in sec_ocf:
-                        fcf_v = sec_ocf[y_str] - abs(sec_capex.get(y_str, 0))
-                        fcf_list.append(fcf_v)
+                  _inv_cap = (_ast - _ca) if (_ast > _ca and _ca > 0) else (_eq if _eq > 0 else _ast)
+                  if _inv_cap > 0 and _op != 0:
+                      hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100)
+                  elif roe_val_y != 0:
+                      hist_roic_10y.append(roe_val_y)
+                  else:
+                      hist_roic_10y.append(0)
 
-                    eps_curr = adj_eps_map.get(y_int, 0)
-                    eps_prev = adj_eps_map.get(y_int - 1, eps_curr)
-                    hist_sh_adjusted = adj_sh_map.get(y_int, sh_out)
-                    mkt_cap = yp * hist_sh_adjusted
+                  if y_str in sec_ocf:
+                      ocf_v = sec_ocf[y_str]
+                      capex_v = abs(sec_capex.get(y_str, 0))
+                      fcf_v = ocf_v - capex_v
+                      fcf_list.append(fcf_v)
+                      fcf_by_year[y_int] = fcf_v
 
-                    # [키움증권 동기화] 분기 공시 시차가 반영된 Rolling TTM PER 산출
-                    yr_pe = get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_m)
-                    if yr_pe > 0:
-                        pe_list.append(yr_pe)
-                    elif _ni > 0 and mkt_cap > 0:
-                        pe_list.append(mkt_cap / _ni)
+                  eps_curr = adj_eps_map.get(y_int, 0)
+                  eps_prev = adj_eps_map.get(y_int - 1, eps_curr)
+                  hist_sh_adjusted = adj_sh_map.get(y_int, sh_out)
+                  mkt_cap = yp * hist_sh_adjusted
 
-                    if _eq > 0 and mkt_cap > 0:
-                        pbr_list.append(mkt_cap / _eq)
+                  yr_pe = get_kiwoom_ttm_pe_for_year(y_int, eps_curr, eps_prev, fy_m)
+                  if yr_pe > 0:
+                      pe_list.append(yr_pe)
+                  elif _ni > 0 and mkt_cap > 0:
+                      pe_list.append(mkt_cap / _ni)
 
-                if pe_list:
-                    a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
-                    st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
-                if pbr_list:
-                    a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
-                    st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
+                  if _eq > 0 and mkt_cap > 0:
+                      pbr_list.append(mkt_cap / _eq)
 
-                data_len = len(sec_years)
-                if len(fcf_list) >= 2:
-                    c, o = fcf_list[0], fcf_list[-1]
-                    base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    if c > 0 and o > 0:
-                        final_g_10y = (c / o) ** (1 / max(1, len(fcf_list) - 1)) - 1
-                    final_g_10y = max(0.02, min(final_g_10y, 0.15))
+              # 만약 SEC에서 최근 연도 FCF가 누락되었거나 CAPEX 태그가 달랐다면 yfinance FCF로 최근 3~4개년 교차 보정
+              try:
+                  cf_yf = stk.cash_flow
+                  if cf_yf is not None and not cf_yf.empty and 'Free Cash Flow' in cf_yf.index:
+                      for c_dt, v_f in cf_yf.loc['Free Cash Flow'].dropna().items():
+                          y_i = int(str(c_dt)[:4])
+                          if y_i not in fcf_by_year or (sec_capex.get(str(y_i), 0) == 0 and safe_float(v_f) != 0):
+                              fcf_by_year[y_i] = safe_float(v_f)
+                      if fcf_by_year:
+                          fcf_list = [fcf_by_year[k] for k in sorted(fcf_by_year.keys(), reverse=True)[:10]]
+              except Exception:
+                  pass
 
-                    rev_fcf = fcf_list[::-1]
-                    dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
-                    if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+              if pe_list:
+                  a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
+                  st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
+              if pbr_list:
+                  a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
+                  st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
 
-                if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
-                if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.5)
+              data_len = len(sec_years)
+              if len(fcf_list) >= 2:
+                  c, o = fcf_list[0], fcf_list[-1]
+                  base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                  span_f = max(1, len(fcf_list) - 1)
 
-                if data_len >= 5:
-                    return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
+                  # [미국 주식 FCF 성장률 정밀 산출 - 2%~15% 제한 완전 해제!]
+                  # 기저효과(특정 1년 급락) 방지를 위해 양 끝단이 모두 양수일 때 2개년 평균 CAGR과 단일 연도 CAGR을 교차 검증
+                  if c > 0 and o > 0:
+                      raw_cagr = (c / o) ** (1.0 / span_f) - 1.0
+                      if len(fcf_list) >= 6:
+                          recent_2y = sum(fcf_list[:2]) / 2.0
+                          oldest_2y = sum(fcf_list[-2:]) / 2.0
+                          if recent_2y > 0 and oldest_2y > 0:
+                              smooth_cagr = (recent_2y / oldest_2y) ** (1.0 / max(1, span_f - 1)) - 1.0
+                              # 단일 연도 기저효과로 25%p 이상 왜곡 시 스무딩된 CAGR 채택
+                              if abs(raw_cagr - smooth_cagr) > 0.25:
+                                  raw_cagr = smooth_cagr
+                      final_g_10y = raw_cagr
+                  elif c <= 0 or base_fcf_10y <= 0:
+                      # 최근 FCF가 적자이거나 평균 FCF가 적자인 경우 명확히 음수(-0.99) 부여
+                      final_g_10y = -0.99
+                  else:
+                      # 과거 첫해(o)만 적자였고 최근(c)은 흑자인 경우, 흑자 전환한 첫 해를 찾아 그때부터의 CAGR 계산
+                      pos_indices = [idx for idx, val in enumerate(fcf_list) if val > 0]
+                      if len(pos_indices) >= 2 and pos_indices[-1] > 0:
+                          oldest_pos_idx = pos_indices[-1]
+                          final_g_10y = (c / fcf_list[oldest_pos_idx]) ** (1.0 / oldest_pos_idx) - 1.0
+                      else:
+                          final_g_10y = 0.0
+
+                  # 상·하한선(2% ~ 15%) 고정 완전 제거! 실제 역성장(-30%)이나 고성장(+35%) 그대로 보존
+                  final_g_10y = max(-0.95, min(final_g_10y, 2.00))
+
+                  rev_fcf = fcf_list[::-1]
+                  dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
+                  if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+
+              if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
+              if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.5)
+
+              if data_len >= 5:
+                  return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
+              # ▲▲▲ [수리 1-B 끝] ▲▲▲
         except Exception:
             pass
 
