@@ -6577,309 +6577,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
-                # =====================================================================
-                # [초보자·4060 직관형 비교 썸네일 + 괄호 음성 제거 + 자막 잘림 해결] 6. 쇼츠 스튜디오
-                # =====================================================================
-                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (직관형 비교 썸네일 + 괄호읽기 방지 + 3대 플랫폼 업로드)", "🎬 6. Safe-Margin 10-Cut Shorts Studio"), expanded=False):
-                    st.info(t(
-                        "💡 **업그레이드 완료:** ① 대본에서 괄호 기호를 완전히 제거하여 AI 성우가 **'괄호열고/괄호닫고'라고 읽는 현상 100% 차단**, ② 모호한 `0.00배` 대신 **10년 평균 대비 얼마나 낮거나 높은지 1초 만에 이해되는 직관형 비교 썸네일** 적용, ③ 긴 문장 **자동 크기 축소 및 2줄 분할**로 글자 잘림을 완벽히 해결했습니다.",
-                        "💡 Fixed parenthesis TTS reading issue, upgraded comparison thumbnail, and prevented subtitle clipping."
-                    ))
-
-                    # ▼▼▼ [코드 블록 A 시작] col_sh1, col_sh2, col_sh3 선언부(약 1381~1417행)를 아래 코드로 덮어쓰세요 ▼▼▼
-                    col_sh1, col_sh2 = st.columns([1.5, 1.5])
-                    with col_sh1:
-                        voice_choice = st.selectbox(
-                            "1️⃣ 쇼츠 AI 성우 선택 (3050 신뢰도 추천순 정렬)",
-                            [
-                                "🥇 1위 [ElevenLabs Brian·Adam 톤] 월스트리트 라디오·뉴스 남성 (강력 추천)",
-                                "🥈 2위 [OpenAI Onyx 톤] 중후한 다큐멘터리 내레이션 남성",
-                                "🥉 3위 [Typecast 진우·건우 톤] 팩트체크 경제 스페셜리스트 남성",
-                                "4위 [CLOVA 아라 / OpenAI Nova 톤] 차분한 뉴스 브리핑 여성",
-                                "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
-                                "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
-                            ],
-                            key=f"shorts_voice_{tk}"
-                        )
-                    with col_sh2:
-                        bgm_choice = st.selectbox(
-                            "2️⃣ 배경음악 선택 (시청 지속시간 추천순 정렬)",
-                            [
-                                "🥇 1위 🎧 모던 금융 다큐멘터리 칠 비트 (머니그라피·삼프로 감성)",
-                                "🥈 2위 🌆 월스트리트 딥 신스웨이브 (경제·이슈 쇼츠 트렌드)",
-                                "🥉 3위 ☕ 재즈 로파이 라운지 (워런 버핏의 서재 감성)",
-                                "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
-                                "5위 🔇 배경음악 없음 (성우 목소리만)"
-                            ],
-                            key=f"shorts_bgm_{tk}"
-                        )
-
-                    col_sh3, col_sh4 = st.columns([1.5, 1.5])
-                    with col_sh3:
-                        sfx_choice = st.selectbox(
-                            "3️⃣ 화면 전환 짧은 효과음 (SFX · 추천순 정렬)",
-                            [
-                                "🥇 1위 ✨ 모던 휙(Whoosh) + 결론 맑은 딩(Chime) [가장 세련됨]",
-                                "🥈 2위 🫧 토스·애플 스타일 소프트 팝 ( 깔끔한 UI 클릭음)",
-                                "🥉 3위 💨 시네마틱 로우 스우시 (묵직한 다큐멘터리 전환음)",
-                                "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
-                                "5위 🔇 화면 전환 효과음 없음"
-                            ],
-                            key=f"shorts_sfx_{tk}"
-                        )
-                    with col_sh4:
-                        default_spd = 30 if ("Brian" in voice_choice or "Onyx" in voice_choice) else 32
-                        voice_speed = st.slider(
-                            "4️⃣ 성우 말하기 배속 (3050 집중도 최적 +30% 추천)",
-                            min_value=15, max_value=45, value=default_spd, step=1,
-                            format="+%d%%",
-                            key=f"shorts_spd_{tk}"
-                        )
-                    # ▲▲▲ [코드 블록 A 끝] ▲▲▲
-
-                    extra_kor_names = {
-                        "373220.KS": "LG에너지솔루션", "005380.KS": "현대차", "000270.KS": "기아",
-                        "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "207940.KS": "삼성바이오로직스",
-                        "068270.KS": "셀트리온", "105560.KS": "KB금융", "055550.KS": "신한지주",
-                        "138040.KS": "메리츠금융", "012450.KS": "한화에어로", "035420.KS": "네이버",
-                        "035720.KS": "카카오", "005490.KS": "포스코홀딩스", "259960.KS": "크래프톤",
-                        "MU": "마이크론", "NVDA": "엔비디아", "TSLA": "테슬라", "AAPL": "애플",
-                        "MSFT": "마이크로소프트", "GOOGL": "구글", "AMZN": "아마존", "META": "메타",
-                        "AVGO": "브로드컴", "PLTR": "팔란티어", "BRK-B": "버크셔", "LLY": "일라이릴리",
-                        "COST": "코스트코", "KO": "코카콜라", "V": "비자", "MA": "마스터카드"
-                    }
-                    comp_name = extra_kor_names.get(tk, primary_names.get(tk, i.get('shortName', tk)))
-                    clean_tk = tk.split('.')[0] if kr else tk
-
-                    implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
-                    imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
-                    hist_fcf_g_pct = final_g * 100.0
-                    imp_g_fmt = f"연 {imp_g_pct:.1f}%" if implied_g_shorts is not None else "산출제외"
-                    actual_g_fmt = f"연 {hist_fcf_g_pct:.1f}%"
-
-                    growth_gap_pp = imp_g_pct - hist_fcf_g_pct
-                    use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
-                    # ▼▼▼ 탭 1 쇼츠 스튜디오 내 abs_pmos = abs(pmos_val) 바로 위(약 2401행)에 추가 ▼▼▼
-                    actual_yr_cnt = int(data_len) if (data_len and 1 <= int(data_len) < 10) else 10
-                    yr_span_str = f"{actual_yr_cnt}년"
-                    guru_holders_sh = get_guru_holders_for_ticker(tk)
-                    if guru_holders_sh:
-                        top_g_names = "·".join([g["name"] for g in guru_holders_sh[:2]])
-                        top_g_first = guru_holders_sh[0]
-                        guru_short_badge = f"🏆 {top_g_names} 선택 ({top_g_first['name']} 비중 {top_g_first['weight']:.1f}%)"
-                        opening_cut1 = f"{top_g_names}가 선택한 {comp_name}, 버핏 관점으로 {yr_span_str} 장부를 분석했습니다"
-                    else:
-                        guru_short_badge = None
-                        opening_cut1 = f"워런 버핏 관점으로 {comp_name} {yr_span_str} 장부를 분석했습니다"
-                    # ▼▼▼ abs_pmos = abs(pmos_val) 부터 def _fix_tts_pronunciation 바로 위까지 교체 ▼▼▼
-                    # [핵심 1] 10년 미만 기업은 실제 데이터 연수(예: 4년, 6년)로 표기하고, 10년 이상만 10년으로 표기
-                    actual_yr_cnt = int(data_len) if (data_len and 1 <= int(data_len) < 10) else 10
-                    yr_span_str = f"{actual_yr_cnt}년"
-
-                    # [핵심 2] 13F 월가 대가 보유 여부 자동 스캔 -> 조회수 폭발 후킹 멘트 & 황금 배지 생성
-                    guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
-                    has_guru_sh = len(guru_holders_sh) > 0
-                    if has_guru_sh:
-                        g_main = guru_holders_sh[0]
-                        g_names_join = "·".join([g["name"] for g in guru_holders_sh[:2]])
-                        top_header_line = f"{g_names_join} 13F 보유 종목"
-                        guru_gold_pill_txt = f"🏆 {g_main['name']} 포트폴리오 {g_main['rank']}위 (비중 {g_main['weight']:.1f}%)"
-                        if len(guru_holders_sh) >= 2:
-                            guru_gold_pill_txt += f" · {guru_holders_sh[1]['name']} 보유"
-                        opening_cut1 = f"{g_main['name']}이 포트폴리오에 {g_main['weight']:.1f}%나 담은 {comp_name}, 도대체 {yr_span_str} 장부가 어떻길래 선택했을까요?"
-                    else:
-                        top_header_line = "워런 버핏의 관점으로 본"
-                        guru_gold_pill_txt = f"{comp_name} · 현재가 {p_str}"
-                        opening_cut1 = f"워런 버핏의 재무 기준으로 {comp_name} {yr_span_str} 장부를 분석했습니다"
-
-                    # ▼▼▼ [블록 2-A 시작] abs_pmos = abs(pmos_val) 부터 def _fix_tts_pronunciation 바로 위까지 덮어쓰기 ▼▼▼
-                    actual_yr_cnt = int(data_len) if (data_len and 1 <= int(data_len) < 10) else 10
-                    yr_span_str = f"{actual_yr_cnt}년"
-
-                    guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
-                    has_guru_sh = len(guru_holders_sh) > 0
-                    if has_guru_sh:
-                        g_main = guru_holders_sh[0]  # 무조건 인지도 서열 1순위 대가 (버핏 > 달리오 > 드러켄밀러...)
-                        g_names_join = "·".join([g["name"] for g in guru_holders_sh[:2]])
-                        top_header_line = f"{g_names_join} 13F 보유 종목"
-                        guru_gold_pill_txt = f"🏆 {g_main['name']} 픽 (비중 {g_main['weight']:.1f}% · {g_main['rank']}위)"
-                        if len(guru_holders_sh) >= 2:
-                            guru_gold_pill_txt = f"🏆 {g_main['name']}({g_main['weight']:.1f}%) · {guru_holders_sh[1]['name']} 동시 보유"
-                    else:
-                        top_header_line = "워런 버핏의 기준으로 본"
-                        guru_gold_pill_txt = f"{comp_name} · 현재가 {p_str}"
-
-                    abs_pmos = abs(pmos_val)
-                    if pmos_val >= 3.0:
-                        disc_txt = f"{abs_pmos:.0f}% 낮은 구간"
-                        disc_short_badge = f"{yr_span_str} 평균 대비 -{abs_pmos:.0f}%"
-                    elif pmos_val <= -3.0:
-                        disc_txt = f"{abs_pmos:.0f}% 높은 구간"
-                        disc_short_badge = f"{yr_span_str} 평균 대비 +{abs_pmos:.0f}%"
-                    else:
-                        disc_txt = f"{yr_span_str} 평균과 유사 구간"
-                        disc_short_badge = f"{yr_span_str} 평균과 동일 수준"
-
-                    avg_margin_bench = 8.0 if kr else 12.0
-                    margin_won = max(0, int(round(op_m)))
-                    margin_diff = op_m - avg_margin_bench
-                    bank_mult = max(0.1, roe / 3.5) if roe > 0 else 0.0
-                    roe_vs_buffett = roe - 15.0
-                    tsy_vs_mkt = tsy_total - 2.5
-
-                    today_short = datetime.now().strftime("%Y.%m.%d")
-                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
-                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
-                    cur_pe_won = int(round(f_pe * 10, 0) * 1000)
-                    avg_pe_won = int(round(a_pe * 10, 0) * 1000)
-
-                    # =========================================================================
-                    # [3050 시청자 클릭률 극대화] 초반 3초 오프닝 후킹 4종 자동 생성 & 선택기
-                    # =========================================================================
-                    if has_guru_sh:
-                        hook_opt_1 = f"{g_main['hook_title']}이 포트폴리오에 {g_main['weight']:.1f}%나 담은 {comp_name}, {yr_span_str} 장부를 뜯어봤습니다"
-                        thumb_q_1 = f"“{g_main['name']}은 왜 {comp_name} 주식을 {g_main['weight']:.1f}%나 쓸어 담았을까?”"
-                    else:
-                        hook_opt_1 = f"워런 버핏의 5대 장부 기준으로 {comp_name} {yr_span_str} 치 실적을 채점해 봤습니다"
-                        thumb_q_1 = f"“버핏의 5대 장부 기준, {comp_name} 점수는 몇 개나 통과했을까?”"
-
-                    hook_opt_2 = f"소문만 무성한 {comp_name}, 매출 100원 팔면 실제로 통장에 얼마가 찍히는지 보셨습니까?"
-                    thumb_q_2 = f"“100원 팔아 {op_m:.1f}원 남기는 {comp_name}, 실제 장부 속살은?”"
-
-                    if use_pbr_m or is_financial:
-                        hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 순자산 가격표와 비교하면 딱 이 위치입니다"
-                        thumb_q_3 = f"“순자산 1만원당 {cur_pbr_won:,}원, {yr_span_str} 평균 대비 {abs_pmos:.0f}% 차이?”"
-                    else:
-                        hook_opt_3 = f"말 많은 {comp_name} 현재 주가, {yr_span_str} 평균 이익 회수기간과 비교하면 딱 이 위치입니다"
-                        thumb_q_3 = f"“원금 회수기간 {f_pe:.1f}년, {yr_span_str} 평균보다 {abs_pmos:.0f}% 차이?”"
-
-                    hook_opt_4 = f"시중 은행 예금 이자 3% 받을 때, {comp_name} 장부는 연 {roe:.1f}% 속도로 자본을 굴리고 있었습니다"
-                    thumb_q_4 = f"“예금 이자의 {bank_mult:.1f}배 속도? 연 {roe:.1f}% 복리 장부의 비밀!”"
-
-                    st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (3050 타겟 맞춤형 4선)")
-                    hook_options_map = {
-                        f"🥇 추천 1 [거장·대가의 시선] : \"{hook_opt_1}\"": (hook_opt_1, thumb_q_1),
-                        f"🔥 추천 2 [마진 팩폭형] : \"{hook_opt_2}\"": (hook_opt_2, thumb_q_2),
-                        f"📊 추천 3 [평균 가격 비교형] : \"{hook_opt_3}\"": (hook_opt_3, thumb_q_3),
-                        f"🏦 추천 4 [예금 금리 비교형] : \"{hook_opt_4}\"": (hook_opt_4, thumb_q_4),
-                    }
-                    selected_hook_label = st.radio(
-                        "원하시는 초반 3초 오프닝과 썸네일 문구를 선택하세요 (선택 즉시 아래 대본에 자동 반영됩니다)",
-                        list(hook_options_map.keys()),
-                        index=0,
-                        key=f"hook_sel_{tk}"
-                    )
-                    opening_cut1, selected_thumb_quote = hook_options_map[selected_hook_label]
-
-                    # --- [컷 2~3: 멀티플 위치 팩트 전달 (법적 리스크 제로)] ---
-                    if is_financial or use_pbr_m:
-                        pbr_reason_tag = f"순자산 1만원당 가격 비교 ({yr_span_str} 평균 vs 현재)"
-                        thumb_compare_bar = f"순자산 1만원당 : {yr_span_str} 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
-                        thumb_giant_num = disc_short_badge
-                        thumb_red_quote = selected_thumb_quote
-                        hook_cut2 = f"순자산 대비 현재 주가 배수는 {yr_span_str} 평균보다 {disc_txt}으로 집계됩니다"
-                        val_cut3 = f"장부상 순자산 1만원어치가 {yr_span_str} 평균 {avg_pbr_won:,}원, 현재는 {cur_pbr_won:,}원 수준입니다"
-                    else:
-                        pbr_reason_tag = f"순이익 원금 회수 기간 비교 ({yr_span_str} 평균 vs 현재)"
-                        thumb_compare_bar = f"이익 회수기간 : {yr_span_str} 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
-                        thumb_giant_num = disc_short_badge
-                        thumb_red_quote = selected_thumb_quote
-                        hook_cut2 = f"순이익 기준 원금 회수 기간은 {yr_span_str} 평균보다 {disc_txt}으로 산출됩니다"
-                        val_cut3 = f"이익 기준 회수 기간이 {yr_span_str} 평균 {a_pe:.1f}년에서 현재 {f_pe:.1f}년 수준을 기록 중입니다"
-
-                    # --- [컷 4~5: 마진율 및 자본 복리 증식 속도] ---
-                    if is_financial:
-                        moat_cut4 = f"자기자본이익률은 연 {roe:.1f}%로 시중 예금 금리의 {bank_mult:.1f}배 수준을 기록했습니다" if roe > 0 else f"현재 자기자본이익률은 연 {roe:.1f}%로 집계됩니다"
-                        moat_cut5 = f"금융권 분석 기준치인 10% 대비 {abs(roe - 10.0):.1f}%p {'높은' if roe >= 10 else '낮은'} 수치입니다"
-                    else:
-                        if abs(margin_diff) < 0.5:
-                            moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로 시장 평균 {avg_margin_bench:.0f}원과 유사합니다"
-                        elif margin_diff >= 0.5:
-                            moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로 시장 평균보다 {margin_diff:.1f}원 높게 나타납니다"
-                        elif op_m > 0:
-                            moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로 시장 평균보다 {abs(margin_diff):.1f}원 낮게 집계됩니다"
-                        else:
-                            moat_cut4 = f"현재 매출 대비 영업이익률은 {op_m:.1f}%로 적자 구간을 기록하고 있습니다"
-
-                        if roe >= 15.0:
-                            moat_cut5 = f"자본 복리 수익률은 연 {roe:.1f}%로 버핏의 연구 기준치보다 {roe_vs_buffett:.1f}%p 높습니다"
-                        elif roe > 0:
-                            moat_cut5 = f"자본 복리 수익률은 연 {roe:.1f}%로 시중 예금 금리의 {bank_mult:.1f}배 수준입니다"
-                        else:
-                            moat_cut5 = f"현재 자본 수익률은 연 {roe:.1f}%로 공시 데이터상 마이너스 구간입니다"
-
-                    # --- [컷 6~7: 국채 금리 대비 이익수익률 & 총주주환원율] ---
-                    ey_gap = ey - ty
-                    if abs(ey_gap) < 0.2:
-                        ey_cut6 = f"주가 기준 이익수익률은 연 {ey:.1f}%로 10년물 미국채 금리 {ty:.1f}%와 유사합니다"
-                    else:
-                        ey_cut6 = f"주가 기준 이익수익률은 연 {ey:.1f}%로 미국채 금리보다 {abs(ey_gap):.1f}%p {'높게' if ey_gap > 0 else '낮게'} 산출됩니다"
-
-                    if abs(tsy_vs_mkt) < 0.3:
-                        tsy_cut7 = f"배당과 자사주 소각을 합친 주주환원율은 연 {tsy_total:.1f}%로 시장 평균 수준입니다"
-                    elif tsy_total > 0:
-                        tsy_cut7 = f"배당과 자사주 소각 환원율은 연 {tsy_total:.1f}%로 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높게' if tsy_vs_mkt > 0 else '낮게'} 집계됩니다"
-                    elif tsy_total == 0:
-                        tsy_cut7 = "공시 기준 현재 배당과 자사주 소각 대신 사내 유보 및 재투자 구조를 보입니다"
-                    else:
-                        tsy_cut7 = f"신주 발행 등으로 인해 유통주식수가 연 {abs(tsy_total):.1f}% 증가한 것으로 나타납니다"
-
-                    # --- [컷 8~10: 역산 요구 성장률 vs 실제 현금 추이 (직관적 비교)] ---
-                    if not is_financial and implied_g_shorts is not None:
-                        if imp_g_pct < 0:
-                            dcf_cut8 = f"현재 주가를 역산하면 향후 현금흐름이 매년 {abs(imp_g_pct):.1f}%씩 줄어들어도 설명되는 수준입니다"
-                            if hist_fcf_g_pct > 0:
-                                dcf_cut9 = f"반면 과거 {yr_span_str}간 실제 현금흐름은 매년 {hist_fcf_g_pct:.1f}%씩 증가한 것으로 집계됩니다"
-                                gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 실제 추이(+{hist_fcf_g_pct:.1f}%)"
-                                gap_badge_col = (5, 122, 85)
-                            else:
-                                dcf_cut9 = f"과거 {yr_span_str}간 실제 현금흐름 추이는 연 {hist_fcf_g_pct:.1f}% 수준을 기록했습니다"
-                                gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 과거 추이({hist_fcf_g_pct:.1f}%)"
-                                gap_badge_col = (29, 78, 216)
-                        else:
-                            dcf_cut8 = f"현재 주가를 현금흐름 모델로 역산하면 매년 {imp_g_pct:.1f}%의 성장률이 요구됩니다"
-                            if growth_gap_pp > 3.0:
-                                dcf_cut9 = f"과거 {yr_span_str} 실제 성장률은 연 {hist_fcf_g_pct:.1f}%여서 현재 주가에 미래 기대치가 {growth_gap_pp:.1f}%p 더 반영돼 있습니다"
-                                gap_badge_txt = f"실제 성장({hist_fcf_g_pct:.1f}%) < 주가 요구치({imp_g_pct:.1f}%)"
-                                gap_badge_col = (185, 28, 28)
-                            elif growth_gap_pp < -2.0:
-                                dcf_cut9 = f"반면 과거 {yr_span_str} 실제 성장률은 연 {hist_fcf_g_pct:.1f}%를 기록해 주가 요구치보다 높게 나타납니다"
-                                gap_badge_txt = f"실제 성장(연 {hist_fcf_g_pct:.1f}%) > 주가 요구치(연 {imp_g_pct:.1f}%)"
-                                gap_badge_col = (5, 122, 85)
-                            else:
-                                dcf_cut9 = f"과거 {yr_span_str} 실제 현금 성장률도 연 {hist_fcf_g_pct:.1f}%여서 주가 반영 수치와 유사한 수준입니다"
-                                gap_badge_txt = f"주가 요구치({imp_g_pct:.1f}%) ≈ 실제 성장({hist_fcf_g_pct:.1f}%)"
-                                gap_badge_col = (29, 78, 216)
-                    else:
-                        dcf_cut8 = f"최근 {yr_span_str} 실제 현금흐름 연평균 변동률은 연 {hist_fcf_g_pct:.1f}%로 집계됩니다"
-                        dcf_cut9 = f"순자산 배수는 {yr_span_str} 평균 대비 {disc_txt}에 위치해 있습니다"
-                        gap_badge_txt = f"순자산 {yr_span_str} 평균 대비 {disc_txt}"
-                        gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
-
-                    if pass_cnt == 5:
-                        end_cut10 = "공시 데이터 기준 5대 정량 지표를 모두 충족했습니다. 여러분은 이 장부를 어떻게 보시나요?"
-                    else:
-                        end_cut10 = f"공시 데이터 기준 5대 정량 지표 중 {pass_cnt}개를 충족했습니다. 여러분의 생각은 어떠신가요?"
-
-                    default_script_lines = [
-                        opening_cut1, hook_cut2, val_cut3, moat_cut4, moat_cut5,
-                        ey_cut6, tsy_cut7, dcf_cut8, dcf_cut9, end_cut10
-                    ]
-                    scene_codes_fixed = [
-                        "SCENE_HOOK", "SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2",
-                        "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4", "SCENE_4"
-                    ]
-
-                    # ▼▼▼ 기존 with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오... 블록 전체를 아래 코드로 덮어쓰세요 ▼▼▼
+                # ▼▼▼ 에러가 나는 아래쪽 with st.expander(t("🎬 6. 쇼츠·릴스·틱톡... 블록 전체를 이 코드로 덮어쓰세요 (모든 key 충돌 완벽 제거 버전) ▼▼▼
                 with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (시각 게이지 썸네일 + 호흡·강조 보이스 + 실적발표 비교 + 한/영 전환)", "🎬 6. All-in-One Shorts Studio"), expanded=False):
                     st.info(t(
                         "💡 **업그레이드 완료:** ① 사진 속 텍스트 박스를 **100% 시각 막대·게이지 그래픽**으로 교체, ② 금융주 현금흐름(DCF) 멘트 완전 제외, ③ **성우 숨고르기(호흡)·강조 억양 적용 및 기본 배속 하향(+16%)**, ④ **'리 루가' 조사 자동 교정**, ⑤ **실적발표 전후 변화 비교 쇼츠** 및 **🇺🇸 영어 버전(US 채널용) 원클릭 전환**이 탑재되었습니다.",
                         "💡 Upgraded visual gauge thumbnail, natural breathing TTS pacing, Earnings Release comparison mode, and English version switch."
                     ))
 
-                    # -----------------------------------------------------------------
-                    # [상단 컨트롤 패널] 쇼츠 모드(장부해부 vs 실적발표 비교) & 언어(한글 vs 영어) 선택
-                    # -----------------------------------------------------------------
                     mode_col1, mode_col2 = st.columns([1.8, 1.2])
                     with mode_col1:
                         shorts_content_mode = st.radio(
@@ -6889,7 +6593,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "⚡ [모드 2] 실적 발표(Earnings) 전후 변화 비교 · 매출·이익 얼마나 바뀌었나?"
                             ],
                             horizontal=False,
-                            key=f"sh_mode_{tk}"
+                            key=f"sh_mode_v3_{tk}"
                         )
                     with mode_col2:
                         shorts_lang_mode = st.radio(
@@ -6899,13 +6603,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "🇺🇸 영어 버전 (미국 본토 신설 채널용 · English)"
                             ],
                             horizontal=False,
-                            key=f"sh_lang_{tk}"
+                            key=f"sh_lang_v3_{tk}"
                         )
 
                     is_en_shorts = ("🇺🇸" in shorts_lang_mode)
                     is_earnings_mode = ("모드 2" in shorts_content_mode)
 
-                    # ▼▼▼ 에러가 발생한 col_sh1 ~ col_sh4 부분(약 6910~6970행)을 아래 코드로 덮어쓰세요 ▼▼▼
                     col_sh1, col_sh2 = st.columns([1.5, 1.5])
                     with col_sh1:
                         if is_en_shorts:
@@ -6917,7 +6620,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "🥉 3위 [Christopher Neural] 권위 있는 애널리스트 남성",
                                     "4위 [Ava Neural] 깔끔한 뉴스 앵커 여성"
                                 ],
-                                key=f"shorts_voice_en_v2_{tk}"
+                                key=f"shorts_voice_en_v3_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
@@ -6930,7 +6633,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
                                     "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
                                 ],
-                                key=f"shorts_voice_ko_v2_{tk}"
+                                key=f"shorts_voice_ko_v3_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
@@ -6942,7 +6645,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
                                 "5위 🔇 배경음악 없음 (성우 목소리만)"
                             ],
-                            key=f"shorts_bgm_v2_{tk}"
+                            key=f"shorts_bgm_v3_{tk}"
                         )
 
                     col_sh3, col_sh4 = st.columns([1.5, 1.5])
@@ -6956,7 +6659,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
                                 "5위 🔇 화면 전환 효과음 없음"
                             ],
-                            key=f"shorts_sfx_v2_{tk}"
+                            key=f"shorts_sfx_v3_{tk}"
                         )
                     with col_sh4:
                         default_spd = 12 if is_en_shorts else 16
@@ -6964,14 +6667,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "4️⃣ 성우 말하기 배속 (또박또박 집중 잘 되는 +16% 기본 세팅)",
                             min_value=0, max_value=35, value=default_spd, step=2,
                             format="+%d%%",
-                            key=f"shorts_spd_v2_{tk}"
+                            key=f"shorts_spd_v3_{tk}"
                         )
-                    # ▲▲▲ 여기까지 덮어쓰세요 ▲▲▲
-                    # -----------------------------------------------------------------
-                    # [한국어 받침 자동 판별기] '리 루이', '가이 스피어이' 원천 차단 함수
-                    # -----------------------------------------------------------------
+
                     def _josa(word, pair="이/가"):
-                        """단어 마지막 글자의 받침 유무를 판별하여 정확한 조사(이/가, 은/는, 을/를, 과/와)를 붙여줌"""
                         w = str(word).strip()
                         if not w:
                             return w
@@ -7011,9 +6710,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     actual_yr_cnt = int(data_len) if (data_len and 1 <= int(data_len) < 10) else 10
                     yr_span_str = f"{actual_yr_cnt}년" if not is_en_shorts else f"{actual_yr_cnt}Y"
 
-                    # -----------------------------------------------------------------
-                    # [실적 발표(Earnings Release) 전후 변화 데이터 자동 추출기]
-                    # -----------------------------------------------------------------
                     earn_rev_prev, earn_rev_curr, earn_rev_chg = 0.0, 0.0, 0.0
                     earn_op_prev, earn_op_curr, earn_op_chg = 0.0, 0.0, 0.0
                     earn_ni_prev, earn_ni_curr, earn_ni_chg = 0.0, 0.0, 0.0
@@ -7055,7 +6751,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     except Exception:
                         pass
 
-                    # 13F 대가 보유 스캔 (받침 조사 완벽 교정 적용)
                     guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
                     has_guru_sh = len(guru_holders_sh) > 0
                     guru_en_map = {
@@ -7117,9 +6812,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     cur_pe_won = int(round(f_pe * 10, 0) * 1000)
                     avg_pe_won = int(round(a_pe * 10, 0) * 1000)
 
-                    # =========================================================================
-                    # [대본 생성 엔진] 한국어(호흡 쉼표 & 조사 교정 & 금융주 DCF 제외) vs 영어 vs 실적발표 비교
-                    # =========================================================================
                     if is_en_shorts:
                         if is_earnings_mode:
                             default_script_lines = [
@@ -7159,11 +6851,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
 
                     else:
-                        # -----------------------------------------------------------------
-                        # [한국어 버전] '리 루가' 조사 완벽 적용 + 성우 호흡용 쉼표(', ') 삽입 + 금융주 DCF 제외
-                        # -----------------------------------------------------------------
                         if has_guru_sh:
-                            # [핵심 수리] _josa() 함수로 '리 루이' -> '리 루가', '워런 버핏이' 자동 분기!
                             subj_guru = _josa(g_main['hook_title'], "이/가")
                             subj_short = _josa(g_main['name'], "은/는")
                             hook_opt_1 = f"{subj_guru}, 포트폴리오에 {g_main['weight']:.1f}%나 담은 {comp_name}, {yr_span_str} 장부를 뜯어봤습니다"
@@ -7197,7 +6885,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "원하시는 초반 3초 오프닝과 썸네일 문구를 선택하세요",
                                 list(hook_options_map.keys()),
                                 index=0,
-                                key=f"hook_sel_{tk}"
+                                key=f"hook_sel_v3_{tk}"
                             )
                             opening_cut1, selected_thumb_quote = hook_options_map[selected_hook_label]
                         else:
@@ -7254,7 +6942,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             tsy_cut7 = f"신주 발행 등으로 인해, 유통주식수가 연 {abs(tsy_total):.1f}% 증가한 것으로 나타납니다"
 
-                        # [핵심 패치] 금융주일 때 현금흐름 변동률(DCF) 멘트 완전 제외 -> PBR·ROE 자산건전성 브리핑으로 대체!
                         if is_financial:
                             dcf_cut8 = f"금융업 특성상 현금흐름 모델 대신, 장부 순자산과 자본수익률을 핵심 지표로 평가합니다"
                             dcf_cut9 = f"현재 순자산 배수는 {f_pbr:.2f}배이며, 자기자본이익률은 연 {roe:.1f}%를 기록하고 있습니다"
@@ -7325,7 +7012,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "대본 편집창 (한 줄이 1컷입니다)",
                         value="\n".join(default_script_lines),
                         height=220,
-                        key=f"custom_script_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v3_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
@@ -7336,9 +7023,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_4"
                         pop_chunks.append((u_line, sc_map))
 
-                    # -----------------------------------------------------------------
-                    # [발음 & 호흡 교정기] '리 루이' 방지 + 핵심 숫자 앞 한 박자 호흡 유도
-                    # -----------------------------------------------------------------
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
                         if is_en_shorts:
@@ -7350,7 +7034,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
 
-                        # '리 루이', '가이 스피어이' 등 조사 오타 완벽 교정
                         guru_josa_fixes = [
                             ("워런 버핏이가", "워런 버핏이"), ("레이 달리오이", "레이 달리오가"), ("레이 달리오이가", "레이 달리오가"),
                             ("스탠리 드러켄밀러이", "스탠리 드러켄밀러가"), ("드러켄밀러이", "드러켄밀러가"),
@@ -7490,9 +7173,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         with wave.open(out_wav_path, 'wb') as wf:
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
-                    # -----------------------------------------------------------------
-                    # [핵심 수리] 성우 숨고르기(호흡) 보존 & 다이나믹 레인지 강조 보이스 엔진
-                    # -----------------------------------------------------------------
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, is_final_cut=False):
                         tts_ready_text = _fix_tts_pronunciation(text_line)
 
@@ -7531,8 +7211,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             from gtts import gTTS
                             gTTS(text=tts_ready_text, lang='en' if is_en_shorts else 'ko', slow=False).save(raw_mp3_path)
 
-                        # [호흡 복원의 핵심!] 기존 stop_periods=-1(문장 중간의 쉼표 호흡까지 전부 강제 삭제)을 제거하고,
-                        # 첫 시작 앞 공백만 다듬은 뒤 문장 내 자연스러운 쉼표 호흡을 100% 살리고, 문장 끝에 0.26초 여백(pad_dur=0.26)을 부여!
                         import subprocess
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-42dB,"
@@ -7617,18 +7295,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, bx1 + bw//2, by1 + 24, bw - 8, b_lbl, get_font, start_sz=17, min_sz=12, fill=(226, 232, 240))
                             _fit_single_line(draw, bx1 + bw//2, by1 + 54, bw - 8, dot_txt, get_font, start_sz=21, min_sz=13, fill=(255, 255, 255))
 
-                    # =========================================================================
-                    # [핵심 패치] 첨부 사진(KakaoTalk_20261026_210030660.png) 영역 & 썸네일 100% 시각 게이지화!
-                    # =========================================================================
                     def _draw_visual_dashboard_board(draw, W, get_font):
-                        """
-                        기존에 텍스트만 적혀 있던 '10년 평균 대비 +72%' 아래 영역과 하단 2개 카드를
-                        1) 상단 수평 비교 막대 게이지 (평균 막대 vs 현재 막대)
-                        2) 좌측 영업마진 미니 기둥 비교 (시장평균 기둥 vs 현재기업 기둥)
-                        3) 우측 ROE 복리 속도 미니 기둥 비교 (예금금리 기둥 vs 현재기업 기둥)
-                        으로 100% 시각화하여 그리는 함수!
-                        """
-                        # 1. 상단 거대 배지 + 수평 비교 막대 트랙
                         giant_col = (52, 211, 153) if pmos_val >= 3.0 else ((248, 113, 113) if pmos_val <= -3.0 else (250, 204, 21))
                         _fit_single_line(draw, W//2, 412, W-90, thumb_giant_num, get_font, start_sz=56, min_sz=28, fill=giant_col)
 
@@ -7650,24 +7317,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             a_val_txt = f"{avg_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{a_pe:.1f}년"
                             c_val_txt = f"{cur_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{f_pe:.1f}년"
 
-                        # 평균 막대 (회색)
                         _fit_single_line(draw, 130, 462, 130, a_lbl_txt, get_font, start_sz=19, min_sz=12, fill=(148, 163, 184))
                         draw.rounded_rectangle([bar_x, 448, bar_x + bar_max, 476], radius=8, fill=(30, 41, 59))
                         draw.rounded_rectangle([bar_x, 448, bar_x + w_a, 476], radius=8, fill=(100, 116, 139))
                         _fit_single_line(draw, bar_x + bar_max + 68, 462, 115, a_val_txt, get_font, start_sz=20, min_sz=13, fill=(203, 213, 225))
 
-                        # 현재 막대 (할인=에메랄드, 할증=코랄레드)
                         _fit_single_line(draw, 130, 500, 130, c_lbl_txt, get_font, start_sz=19, min_sz=12, fill=(250, 204, 21))
                         draw.rounded_rectangle([bar_x, 486, bar_x + bar_max, 514], radius=8, fill=(30, 41, 59))
                         draw.rounded_rectangle([bar_x, 486, bar_x + w_c, 514], radius=8, fill=giant_col)
                         _fit_single_line(draw, bar_x + bar_max + 68, 500, 115, c_val_txt, get_font, start_sz=21, min_sz=13, fill=giant_col)
 
-                        # 2. 좌측 박스: 100원당 영업마진 + 시각적 미니 기둥 비교 (시장평균 vs 기업)
                         draw.rounded_rectangle([54, 530, 348, 674], radius=18, fill=(30, 41, 59), outline=(56, 189, 248), width=2)
                         l_title = ("P/B Multiple" if is_en_shorts else "순자산 가격배수") if is_financial else (("Profit per $100" if is_en_shorts else "100원당 영업마진"))
                         _fit_single_line(draw, 201, 554, 265, l_title, get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
 
-                        # 좌측 박스 안쪽: 왼쪽엔 큰 숫자, 오른쪽엔 [평균 vs 현재] 수직 비교 기둥 2개!
                         l_big_val = (f"{f_pbr:.2f}x" if is_en_shorts else f"{f_pbr:.2f}배") if is_financial else (f"${op_m:.1f}" if is_en_shorts else f"{op_m:.1f}원")
                         _fit_single_line(draw, 142, 608, 155, l_big_val, get_font, start_sz=38, min_sz=20, fill=(255, 255, 255))
                         l_sub_tag = (f"평균 {a_pbr:.2f}배" if not is_en_shorts else f"Avg {a_pbr:.2f}x") if is_financial else (f"평균 {avg_margin_bench:.0f}원" if not is_en_shorts else f"Avg ${avg_margin_bench:.0f}")
@@ -7684,7 +7347,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, 257, by_mini + 13, 42, "Avg" if is_en_shorts else "평균", get_font, start_sz=13, min_sz=10, fill=(148, 163, 184))
                         _fit_single_line(draw, 304, by_mini + 13, 42, "Now" if is_en_shorts else "현재", get_font, start_sz=13, min_sz=10, fill=(56, 189, 248))
 
-                        # 3. 우측 박스: 연 복리 속도(ROE) + 시각적 미니 기둥 비교 (예금금리 vs 기업 ROE)
                         draw.rounded_rectangle([372, 530, W-54, 674], radius=18, fill=(30, 41, 59), outline=(250, 204, 21), width=2)
                         r_title = "Compounding (ROE)" if is_en_shorts else "연 복리 속도 (ROE)"
                         _fit_single_line(draw, 519, 554, 265, r_title, get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
@@ -7702,7 +7364,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, 575, by_mini + 13, 42, "Bank" if is_en_shorts else "예금", get_font, start_sz=13, min_sz=10, fill=(148, 163, 184))
                         _fit_single_line(draw, 622, by_mini + 13, 42, "ROE", get_font, start_sz=13, min_sz=10, fill=(250, 204, 21))
 
-                        # 4. 하단 5칸 네온 신호등 블록
                         _draw_5block_signal_gauge(draw, W, 690, get_font)
 
                     def _draw_cover_thumbnail_frame(get_font):
@@ -7711,7 +7372,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         img = Image.new("RGB", (W, H), color=(7, 11, 20))
                         draw = ImageDraw.Draw(img)
 
-                        # 상단 기준일 & 헤더 표시
                         top_col = (56, 189, 248) if has_guru_sh else (255, 255, 255)
                         _fit_single_line(draw, W//2, 138, W-48, top_header_line, get_font, start_sz=48, min_sz=26, fill=top_col)
                         title_2nd = f"{comp_name} ({today_short})" if is_earnings_mode else (f"{comp_name} {yr_span_str} Books" if is_en_shorts else f"{comp_name} {yr_span_str} 장부")
@@ -7720,11 +7380,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([0, 272, W, 945], fill=(248, 250, 252))
                         draw.rounded_rectangle([32, 292, W-32, 796], radius=28, fill=(15, 23, 42), outline=(234, 179, 8) if has_guru_sh else (51, 65, 85), width=4)
 
-                        # 상단 13F 거장 골드 캡슐 배지 (우측에 오늘 날짜 포함!)
                         draw.rounded_rectangle([54, 312, W-54, 374], radius=30, fill=(30, 41, 59), outline=(250, 204, 21) if has_guru_sh else (56, 189, 248), width=3)
                         _fit_single_line(draw, W//2, 343, W-130, guru_gold_pill_txt, get_font, start_sz=24, min_sz=14, fill=(250, 204, 21) if has_guru_sh else (56, 189, 248))
 
-                        # 첨부 사진 속 숫자 텍스트를 100% 시각 게이지로 교체한 대시보드 호출
                         _draw_visual_dashboard_board(draw, W, get_font)
 
                         q_font = get_font(38, is_serif=not is_en_shorts)
@@ -7760,20 +7418,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rounded_rectangle([54, 312, W-54, 374], radius=24, fill=(30, 41, 59), outline=(250, 204, 21) if has_guru_sh else (56, 189, 248), width=2)
                         _fit_single_line(draw, W//2, 343, W-130, guru_gold_pill_txt, get_font, start_sz=24, min_sz=14, fill=(250, 204, 21) if has_guru_sh else (56, 189, 248))
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_HOOK] 첨부 사진 영역을 완벽히 시각화한 오프닝 대시보드
-                        # -----------------------------------------------------------------
                         if scene_code == "SCENE_HOOK":
                             _draw_visual_dashboard_board(draw, W, get_font)
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_EARN_1 & 2] 실적 발표 전후 비교 전용 시각 기둥 차트!
-                        # -----------------------------------------------------------------
                         elif scene_code in ["SCENE_EARN_1", "SCENE_EARN_2"]:
-                            u_lbl = ("B$" if not kr else "억원")
                             _fit_single_line(draw, W//2, 405, W-100, f"실적 발표 전후 비교 ({earn_period_label})", get_font, start_sz=24, min_sz=15, fill=(250, 204, 21))
 
-                            # 좌측: 매출액 직전 vs 현재 기둥
                             draw.rounded_rectangle([54, 432, 348, 765], radius=18, fill=(30, 41, 59), outline=(56, 189, 248), width=2)
                             _fit_single_line(draw, 201, 462, 260, f"매출액 ({earn_rev_chg:+.1f}%)", get_font, start_sz=22, min_sz=14, fill=(56, 189, 248))
                             by_e = 700
@@ -7787,7 +7437,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 140, by_e + 24, 90, "직전", get_font, start_sz=18, min_sz=12, fill=(148, 163, 184))
                             _fit_single_line(draw, 255, by_e + 24, 90, "발표치", get_font, start_sz=18, min_sz=12, fill=(56, 189, 248))
 
-                            # 우측: 영업이익 직전 vs 현재 기둥
                             draw.rounded_rectangle([372, 432, W-54, 765], radius=18, fill=(30, 41, 59), outline=(16, 185, 129), width=2)
                             _fit_single_line(draw, 519, 462, 260, f"영업이익 ({earn_op_chg:+.1f}%)", get_font, start_sz=22, min_sz=14, fill=(52, 211, 153))
                             mx_op = max(abs(earn_op_prev), abs(earn_op_curr), 1.0) * 1.2
@@ -7801,9 +7450,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 460, by_e + 24, 90, "직전", get_font, start_sz=18, min_sz=12, fill=(148, 163, 184))
                             _fit_single_line(draw, 575, by_e + 24, 90, "발표치", get_font, start_sz=18, min_sz=12, fill=(52, 211, 153))
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_1] 가로 막대그래프 비교 게이지
-                        # -----------------------------------------------------------------
                         elif scene_code == "SCENE_1":
                             _fit_single_line(draw, W//2, 412, W-120, pbr_reason_tag, get_font, start_sz=24, min_sz=15, fill=(255, 255, 255))
 
@@ -7829,9 +7475,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([56, 665, W-56, 765], radius=18, fill=(30, 41, 59), outline=cur_bar_col, width=3)
                             _fit_single_line(draw, W//2, 715, W-140, thumb_giant_num, get_font, start_sz=40, min_sz=20, fill=(255, 255, 255))
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_2] '시장 평균 기둥 vs 이 기업 기둥' 수직 막대 차트
-                        # -----------------------------------------------------------------
                         elif scene_code == "SCENE_2":
                             draw.rounded_rectangle([54, 392, 348, 768], radius=20, fill=(30, 41, 59), outline=(56, 189, 248), width=2)
                             _fit_single_line(draw, 201, 428, 260, "Op Margin" if is_en_shorts else "100원당 남는 이익", get_font, start_sz=23, min_sz=15, fill=(203, 213, 225))
@@ -7864,9 +7507,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 575, base_y - h_roe - 24, 110, f"{roe:.1f}%", get_font, start_sz=26, min_sz=15, fill=(52, 211, 153))
                             _fit_single_line(draw, 575, base_y + 28, 100, "Stock" if is_en_shorts else "현재기업", get_font, start_sz=19, min_sz=12, fill=(255, 255, 255))
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_3] '미국채 vs 이익수익률' & '시장평균 vs 주주환원율' 수직 기둥 차트
-                        # -----------------------------------------------------------------
                         elif scene_code == "SCENE_3":
                             base_y3 = 665
                             draw.rounded_rectangle([54, 392, 348, 705], radius=20, fill=(30, 41, 59), outline=(250, 204, 21), width=2)
@@ -7905,9 +7545,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             b3_sub = f"vs Bond {ey - ty:+.1f}%p  |  Div {div:.1f}% + Buyback {bb_yield:+.1f}%" if is_en_shorts else f"국채 대비 {ey - ty:+.1f}%p  |  배당 {div:.1f}% + 소각 {bb_yield:+.1f}%"
                             _fit_single_line(draw, W//2, 747, W-130, b3_sub, get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
 
-                        # -----------------------------------------------------------------
-                        # [SCENE_4] 금융주는 PBR 막대 비교, 일반주는 요구성장률 vs 실제성장률 막대 비교!
-                        # -----------------------------------------------------------------
                         else:
                             if is_financial:
                                 s4_hdr = f"Financial Core: {yr_span_str} Avg P/B vs Current P/B" if is_en_shorts else f"금융주 핵심 지표 : {yr_span_str} 평균 PBR vs 현재 PBR"
@@ -7949,7 +7586,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 664, W-100, s4_chk_lbl, get_font, start_sz=23, min_sz=15, fill=(250, 204, 21))
                             _draw_5block_signal_gauge(draw, W, 690, get_font)
 
-                        # 하단 자막 박스 (자막 표출 시 호흡용 쉼표는 깔끔하게 공백으로 정리)
                         sub_clean = str(sub_text).replace(" ,", ",").strip()
                         is_hook_cut = (chunk_idx <= 1) and not is_en_shorts
                         txt_col = (255, 240, 0) if chunk_idx in [0, 1, total_chunks - 1] else (255, 255, 255)
@@ -8033,7 +7669,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         resp = req.execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("🎬 1단계: 시각 게이지 썸네일 + 호흡·강조 보이스 쇼츠(.mp4) 생성", key=f"btn_mp4_v2_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 시각 게이지 썸네일 + 호흡·강조 보이스 쇼츠(.mp4) 생성", key=f"btn_mp4_v3_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re, random
                             with st.spinner("시각 게이지 대시보드 및 성우 호흡·강조 튜닝 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
@@ -8128,7 +7764,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf:
-                                    st.session_state[f"saved_shorts_mp4_{clean_tk}"] = vf.read()
+                                    st.session_state[f"saved_shorts_mp4_v3_{clean_tk}"] = vf.read()
 
                                 for p_rm in cleanup_files:
                                     if os.path.exists(p_rm):
@@ -8179,8 +7815,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             f"#shorts #{clean_tag_name} #가치투자 #재무제표분석"
                         )
 
-                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_{clean_tk}_{mode_tag_k}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=165, key=f"yt_d_{clean_tk}_{mode_tag_k}")
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v3_{clean_tk}_{mode_tag_k}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=165, key=f"yt_d_v3_{clean_tk}_{mode_tag_k}")
 
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
@@ -8196,23 +7832,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
                             ],
-                            key=f"yt_p_{clean_tk}"
+                            key=f"yt_p_v3_{clean_tk}"
                         )
                     is_scheduled_mode = yt_up_priv.startswith("scheduled")
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_{clean_tk}")
+                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v3_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_{clean_tk}")
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v3_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
-                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_{clean_tk}")
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v3_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_{clean_tk}")
+                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v3_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
@@ -8226,9 +7862,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         publish_at_iso_str = combined_kst.strftime("%Y-%m-%dT%H:%M:%S+09:00")
                         st.caption(f"✅ **최종 예약 공개 시각 (KST):** `{combined_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}`")
 
-                    has_video_ready = (f"saved_shorts_mp4_{clean_tk}" in st.session_state)
+                    has_video_ready = (f"saved_shorts_mp4_v3_{clean_tk}" in st.session_state)
                     if has_video_ready:
-                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_{clean_tk}"]
+                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v3_{clean_tk}"]
                         st.success("🎉 시각 게이지 대시보드 & 성우 호흡 튜닝 쇼츠 준비 완료!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
@@ -8236,13 +7872,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             data=saved_mp4_bytes,
                             file_name=f"AGIE_{clean_tk}_{mode_tag_k}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
-                            use_container_width=True
+                            use_container_width=True,
+                            key=f"dl_btn_v3_{clean_tk}"
                         )
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
-                        if st.button(btn_yt_label, key=f"btn_yt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v3_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
                             tags_arr = ["shorts", comp_name, clean_tk, "stocks" if is_en_shorts else "가치투자"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
@@ -8258,7 +7895,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v3_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -8286,7 +7923,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v2_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v3_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
