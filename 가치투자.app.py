@@ -6577,23 +6577,67 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {clean_op_reason}
 """
                     st.code(t(share_ko, share_en), language="text")
-                # ▼▼▼ 기존 'with st.expander(t("🎬 6. 쇼츠·릴스·틱톡... ' 블록 전체를 아래 코드로 덮어쓰세요 ▼▼▼
-                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (버핏·S&P500 기준 비교 + 10년 통일 + 실제 FCF 성장률 반영)", "🎬 6. All-in-One Shorts Studio"), expanded=False):
+                # ▼▼▼ [교체 1 시작] 기존 'with st.expander(t("🎬 6. 쇼츠·릴스·틱톡... ' 블록 전체를 아래 코드로 덮어쓰세요 ▼▼▼
+                with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (순수 배당 10년 일관성 & 4년 차트 + FCF 역성장 판독 + 지표 직접 수정)", "🎬 6. All-in-One Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💡 **업그레이드 완료:** ① 사업수익률(ROIC)을 **워런 버핏 기준(15%) 및 S&P 500 평균(12%)**과 직접 비교, ② 7년·8년·9년 등 헷갈리는 자잘한 연수 표기를 **'과거 10년간'**으로 깔끔하게 통일, ③ DCF 과거 현금흐름 성장률의 **2% 고정 착시를 해제하고 실제 증감률 반영**, ④ **자막 칸 이탈 방지**가 적용되었습니다.",
-                        "💡 Compared ROIC/ROE against Buffett & S&P 500 benchmarks, unified 10Y labels, unlocked true FCF CAGR (removed 2% floor), and prevented subtitle overflow."
+                        "💡 **업그레이드 완료:** ① 자사주 매입을 제외하고 **순수 배당금의 10년 일관성 판독 및 최근 4개년 배당 성장 막대차트** 탑재, ② **10년 FCF 성장률·Fwd PER·Fwd PBR 수동 조절기** 탑재, ③ **FCF 역성장(2.0% 하한선 고정) 시 '역성장으로 측정 불가' 자동 판독(자체 재계산 금지)**, ④ **면책란 내 산출 근거 명시**가 적용되었습니다.",
+                        "💡 Pure dividend 10Y consistency & 4Y chart, manual metric overrides (10Y FCF Growth, Fwd PER, Fwd PBR), FCF negative growth detection, and legal calculation basis."
                     ))
+
+                    # =========================================================================
+                    # [신규 기능] 사용자가 직접 수정 가능한 핵심 지표 3종 컨트롤러
+                    # (수정 즉시 쇼츠 내 모든 대본·차트·할인율에 100% 연동, 자체 FCF 재계산 금지 준수)
+                    # =========================================================================
+                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 직접 수정 (원본값 자동 로드 · 수정 시 대본/차트 즉시 반영)")
+                    ov_col1, ov_col2, ov_col3 = st.columns(3)
+                    with ov_col1:
+                        sh_fcf_g_pct = st.number_input(
+                            "📉 10년 FCF 성장률 (%, 2.0%=역성장 하한선)",
+                            min_value=-50.0, max_value=100.0,
+                            value=float(round(final_g * 100.0, 2)),
+                            step=0.1, format="%.2f",
+                            help="본문 DCF 모델에서 역성장 시 2.0%로 고정된 값입니다. 2.0% 이하일 경우 쇼츠에서 자동으로 '역성장(측정 불가)'으로 안내합니다.",
+                            key=f"sh_ov_fcfg_{tk}"
+                        )
+                    with ov_col2:
+                        sh_f_pe = st.number_input(
+                            "⏱️ 선행 PER (Fwd PER, 배/년)",
+                            min_value=0.0, max_value=500.0,
+                            value=float(round(max(0.0, f_pe), 2)),
+                            step=0.1, format="%.2f",
+                            help="시킹알파·증권사 컨센서스 기준 본전 회수 기간(배)을 직접 수정할 수 있습니다.",
+                            key=f"sh_ov_fpe_{tk}"
+                        )
+                    with ov_col3:
+                        sh_f_pbr = st.number_input(
+                            "🏛️ 선행 PBR (Fwd PBR, 배)",
+                            min_value=0.0, max_value=200.0,
+                            value=float(round(max(0.0, f_pbr), 2)),
+                            step=0.01, format="%.2f",
+                            help="장부상 순자산 대비 주가 배수(PBR)를 직접 수정할 수 있습니다.",
+                            key=f"sh_ov_fpbr_{tk}"
+                        )
+
+                    # 수동 입력값 기반 파생 지표 동기화 (쇼츠 전용)
+                    sh_ey = (100.0 / sh_f_pe) if sh_f_pe > 0 else 0.0
+                    if is_financial or kr or is_cyclical:
+                        sh_pmos_val = ((a_pbr - sh_f_pbr) / a_pbr) * 100.0 if (sh_f_pbr > 0 and a_pbr > 0) else 0.0
+                    else:
+                        sh_pmos_val = ((a_pe - sh_f_pe) / a_pe) * 100.0 if (sh_f_pe > 0 and a_pe > 0) else 0.0
+
+                    # [핵심 요구사항] FCF 자체 계산 금지! 본문 final_g(또는 수정값)가 2.0% 고정치 이하이거나 FCF 적자면 '역성장 측정 불가' 판정
+                    is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct <= 2.001)
 
                     mode_col1, mode_col2 = st.columns([1.8, 1.2])
                     with mode_col1:
                         shorts_content_mode = st.radio(
                             "🎬 쇼츠 콘텐츠 주제 선택",
                             [
-                                "📊 [모드 1] 워런 버핏의 시선 · 10년 장부 & 사업수익률 해부",
+                                "📊 [모드 1] 워런 버핏의 시선 · 10년 장부 & 배당 일관성 해부",
                                 "⚡ [모드 2] 실적 발표(Earnings) 전후 변화 비교 · 매출·순이익 얼마나 바뀌었나?"
                             ],
                             horizontal=False,
-                            key=f"sh_mode_v7_{tk}"
+                            key=f"sh_mode_v8_{tk}"
                         )
                     with mode_col2:
                         shorts_lang_mode = st.radio(
@@ -6603,7 +6647,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "🇺🇸 영어 버전 (미국 본토 채널용 · English)"
                             ],
                             horizontal=False,
-                            key=f"sh_lang_v7_{tk}"
+                            key=f"sh_lang_v8_{tk}"
                         )
 
                     is_en_shorts = ("🇺🇸" in shorts_lang_mode)
@@ -6620,7 +6664,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "🥉 3위 [Christopher Neural] 권위 있는 애널리스트 남성",
                                     "4위 [Ava Neural] 깔끔한 뉴스 앵커 여성"
                                 ],
-                                key=f"shorts_voice_en_v7_{tk}"
+                                key=f"shorts_voice_en_v8_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
@@ -6633,7 +6677,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
                                     "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
                                 ],
-                                key=f"shorts_voice_ko_v7_{tk}"
+                                key=f"shorts_voice_ko_v8_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
@@ -6645,7 +6689,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
                                 "5위 🔇 배경음악 없음 (성우 목소리만)"
                             ],
-                            key=f"shorts_bgm_v7_{tk}"
+                            key=f"shorts_bgm_v8_{tk}"
                         )
 
                     col_sh3, col_sh4 = st.columns([1.5, 1.5])
@@ -6659,7 +6703,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
                                 "5위 🔇 화면 전환 효과음 없음"
                             ],
-                            key=f"shorts_sfx_v7_{tk}"
+                            key=f"shorts_sfx_v8_{tk}"
                         )
                     with col_sh4:
                         default_spd = 10 if is_en_shorts else 15
@@ -6667,7 +6711,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "4️⃣ 성우 말하기 배속 (45초 호흡 최적화 +15% 기본 세팅)",
                             min_value=0, max_value=100, value=default_spd, step=5,
                             format="+%d%%",
-                            key=f"shorts_spd_v7_{tk}"
+                            key=f"shorts_spd_v8_{tk}"
                         )
 
                     def _josa(word, pair="이/가"):
@@ -6698,34 +6742,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     clean_tk = tk.split('.')[0] if kr else tk
                     today_short = datetime.now().strftime("%Y.%m.%d")
 
-                    # [핵심 수정 1] 7년·8년·9년 등 헷갈리는 표기 원천 방지 -> 상장 5년 이상이면 '10년'으로 깔끔하게 통일
                     actual_yr_cnt = 10 if (not data_len or int(data_len) >= 5) else max(2, int(data_len))
                     yr_span_str = f"{actual_yr_cnt}년" if not is_en_shorts else f"{actual_yr_cnt}Y"
 
-                    # =========================================================================
-                    # [핵심 수정 2] 금융주는 ROE, 일반 주식은 ROIC(실제 사업 투자수익률)
-                    # 비교 기준을 '자체 평균'이 아니라 'S&P 500 평균(12%)' 및 '버핏 기준(15%)'으로 변경!
-                    # =========================================================================
                     if is_financial:
                         cap_ret_val = roe
                         bench_sp500_val = 12.0
                         bench_buffett_val = 15.0
                         cap_ret_name_ko = "자본 수익률"
-                        cap_ret_short_ko = "자본수익률"
                         cap_ret_name_en = "Return on Equity"
                     else:
                         cap_ret_val = roic_val if roic_val != 0 else roe
                         bench_sp500_val = 12.0
                         bench_buffett_val = 15.0
-                        cap_ret_name_ko = "사업 수익률"   # (또는 "본업 마진율", "장사 수익률" 중 취향대로 변경 가능)
-                        cap_ret_short_ko = "사업수익률"
+                        cap_ret_name_ko = "사업 수익률"
                         cap_ret_name_en = "Business Return"
                     diff_vs_sp500 = cap_ret_val - bench_sp500_val
                     diff_vs_buffett = cap_ret_val - bench_buffett_val
 
-                    # =========================================================================
-                    # [핵심 수정 3] 1주당 순이익(EPS) 추이 (8년·9년 등 자잘한 숫자 완전 제거)
-                    # =========================================================================
+                    # 1주당 순이익(EPS) 10년 추이
                     eps_hist_vals = []
                     eps_hist_years = []
                     try:
@@ -6798,7 +6833,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if eps_up_count >= max(1, int(eps_span_yrs * 0.7)) and e_end > e_start:
                             is_eps_steady_up = True
 
-                    # 8년, 9년 같은 어중간한 숫자를 빼고 깔끔한 장기 추세로 문장 생성
                     if is_en_shorts:
                         if len(eps_hist_vals) >= 2:
                             if is_eps_steady_up and eps_cagr_pct > 0:
@@ -6808,8 +6842,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 eps_script_line = f"Profit per share had cyclical swings, but grew {eps_cagr_pct:+.1f} percent annually over the long run."
                                 eps_badge_short = f"Upward Trend ({eps_cagr_pct:+.1f}%/yr)"
                             elif eps_hist_vals[-1] > 0:
-                                eps_script_line = "Profit per share remains in the black, though fluctuating with industry cycles."
-                                eps_badge_short = "black / Cyclical Swings"
+                                eps_script_line = "Profit per share remains positive, though fluctuating with industry cycles."
+                                eps_badge_short = "Positive / Cyclical"
                             else:
                                 eps_script_line = "Profit per share is currently in deficit territory on the books."
                                 eps_badge_short = "Deficit Territory"
@@ -6838,75 +6872,138 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             eps_badge_short = f"전년비 {eps_g_str}"
 
                     # =========================================================================
-                    # [핵심 수정 4] 주주환원 일관성 (7년·8년·9년 등 애매한 숫자를 빼고 '과거 10년간'으로 통일)
+                    # [핵심 요구사항] 자사주 매입 완전 제거! 오직 '순수 배당'의 10년 일관성 판독 & 4년 시각화 데이터 추출
                     # =========================================================================
-                    div_paid_years = 0
-                    div_inc_years = 0
-                    is_recent_spike_only = False
+                    div_10y_dict = {}
+                    curr_y_int = datetime.now().year
+
+                    # 1순위: yfinance dividends 시계열 (최대 10년 완료 연도)
                     try:
                         if stk is not None:
                             d_ser = stk.dividends
                             if d_ser is not None and not d_ser.empty:
                                 y_divs = d_ser.groupby(d_ser.index.year).sum()
-                                curr_y_int = datetime.now().year
-                                y_divs_10 = y_divs[(y_divs.index >= curr_y_int - 10) & (y_divs.index < curr_y_int)]
-                                if y_divs_10.empty:
-                                    y_divs_10 = y_divs.tail(10)
-                                div_paid_years = int((y_divs_10 > 0).sum())
-                                vals_d = y_divs_10.values
-                                if len(vals_d) >= 2:
-                                    for idx_d in range(1, len(vals_d)):
-                                        if vals_d[idx_d] >= vals_d[idx_d - 1] * 0.98 and vals_d[idx_d] > 0:
-                                            div_inc_years += 1
-                                    avg_past_d = sum(vals_d[:-1]) / max(1, len(vals_d) - 1)
-                                    if div_paid_years <= 3 or (avg_past_d > 0 and vals_d[-1] > avg_past_d * 1.8):
-                                        is_recent_spike_only = True
+                                y_completed = y_divs[(y_divs.index >= curr_y_int - 10) & (y_divs.index < curr_y_int)]
+                                if len(y_completed) < 2:
+                                    y_completed = y_divs.tail(10)
+                                for y_k, v_d in y_completed.items():
+                                    if safe_float(v_d) > 0:
+                                        div_10y_dict[int(y_k)] = safe_float(v_d)
                     except Exception:
                         pass
 
-                    if is_en_shorts:
-                        if div_paid_years >= 7 and not is_recent_spike_only:
-                            tsy_consistency_txt = "backed by a consistent 10-year dividend track record."
-                            tsy_badge_short = "10Y Consistent Payout"
-                        elif div_paid_years >= 4:
-                            tsy_consistency_txt = "with payouts expanding noticeably in recent years."
-                            tsy_badge_short = "Recently Expanding Payout"
-                        elif tsy_total > 0:
-                            tsy_consistency_txt = "mostly driven by recent buybacks or newly initiated payouts."
-                            tsy_badge_short = "Recent Buyback / Payout"
-                        else:
-                            tsy_consistency_txt = "focusing on internal reinvestment rather than payouts."
-                            tsy_badge_short = "Reinvestment Focus"
-                    else:
-                        if div_paid_years >= 7 and not is_recent_spike_only and div_inc_years >= max(3, div_paid_years - 3):
-                            tsy_consistency_txt = "과거 10년간 배당을 꾸준히 늘려온 일관된 주주친화 장부임."
-                            tsy_badge_short = "10년 연속 일관된 배당성장"
-                        elif div_paid_years >= 7 and not is_recent_spike_only:
-                            tsy_consistency_txt = "과거 10년간 흔들림 없이 배당을 지급해 온 일관된 주주친화 기조임."
-                            tsy_badge_short = "10년 일관된 배당 지급"
-                        elif div_paid_years >= 3 and is_recent_spike_only:
-                            tsy_consistency_txt = "과거 배당 이력은 있으나, 최근 들어 환원 규모가 일시적으로 크게 늘어난 수치임."
-                            tsy_badge_short = "최근 환원율 급증 (지속성 확인)"
-                        elif div <= 0.1 and bb_yield > 0.5:
-                            tsy_consistency_txt = "현금 배당보다는 자사주 매입·소각을 통해 주주가치를 환원하는 구조임."
-                            tsy_badge_short = f"자사주 소각 중심 (연 {bb_yield:+.1f}%)"
-                        elif tsy_total > 0:
-                            tsy_consistency_txt = "과거 10년 내내 지급한 것이 아니라, 최근에 반짝 늘어난 환원 수치임."
-                            tsy_badge_short = "최근 반짝 환원 (일관성 낮음)"
-                        else:
-                            tsy_consistency_txt = "현재 배당이나 자사주 소각 대신 사업 재투자에 집중하는 구조임."
-                            tsy_badge_short = "배당 없음 (사업 재투자 집중)"
+                    # 2순위: SEC EDGAR 10-K 배당 데이터 보완 (미국 주식 중 시계열 누락 시)
+                    if len(div_10y_dict) < 3 and not kr:
+                        try:
+                            _facts_d = get_sec_company_facts_cached(cd)
+                            _ug_d = _facts_d.get('facts', {}).get('us-gaap', {})
+                            for d_tag in ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid', 'PaymentsOfDividendsCommonStock', 'PaymentsOfDividends']:
+                                if d_tag in _ug_d:
+                                    u_key = 'USD/shares' if 'PerShare' in d_tag else 'USD'
+                                    sh_div_ref = max(1.0, safe_float(i.get('sharesOutstanding', 1.0)))
+                                    for it in _ug_d[d_tag].get('units', {}).get(u_key, []):
+                                        if it.get('form') in ['10-K', '10-K/A'] and it.get('fp') == 'FY':
+                                            fy_i = int(it.get('fy', 0))
+                                            val_d = abs(safe_float(it.get('val', 0)))
+                                            if curr_y_int - 10 <= fy_i < curr_y_int and val_d > 0:
+                                                dps_v = val_d if u_key == 'USD/shares' else (val_d / sh_div_ref)
+                                                div_10y_dict[fy_i] = max(div_10y_dict.get(fy_i, 0.0), dps_v)
+                                    if len(div_10y_dict) >= 3:
+                                        break
+                        except Exception:
+                            pass
 
-                    # [완벽 동기화] 쇼츠가 따로 계산하지 않고 본문 '평균 시나리오'의 성장률(final_g)을 100% 그대로 사용!
+                    # 3순위: 현금흐름표 Cash Dividends Paid 백업
+                    if len(div_10y_dict) < 2 and stk is not None:
+                        try:
+                            _cf_d = stk.cash_flow
+                            if _cf_d is not None and not _cf_d.empty:
+                                _sh_cf = max(1.0, safe_float(i.get('sharesOutstanding', 1.0)))
+                                for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
+                                    if dk in _cf_d.index:
+                                        for c_dt, v_d in _cf_d.loc[dk].dropna().items():
+                                            y_i = int(str(c_dt)[:4])
+                                            if abs(safe_float(v_d)) > 0:
+                                                div_10y_dict[y_i] = abs(safe_float(v_d)) / _sh_cf
+                                        break
+                        except Exception:
+                            pass
+
+                    sorted_div_years = sorted(div_10y_dict.keys())[-10:]
+                    sorted_div_vals = [div_10y_dict[y] for y in sorted_div_years]
+                    div_paid_years = len(sorted_div_vals)
+                    div_inc_years = 0
+                    is_recent_spike_only = False
+
+                    if len(sorted_div_vals) >= 2:
+                        for idx_d in range(1, len(sorted_div_vals)):
+                            if sorted_div_vals[idx_d] >= sorted_div_vals[idx_d - 1] * 0.97:
+                                div_inc_years += 1
+                        avg_past_d = sum(sorted_div_vals[:-1]) / max(1, len(sorted_div_vals) - 1)
+                        if div_paid_years <= 3 or (avg_past_d > 0 and sorted_div_vals[-1] > avg_past_d * 1.85 and div_inc_years <= 2):
+                            is_recent_spike_only = True
+                    elif div_paid_years == 1 or (div_paid_years == 0 and div > 0):
+                        is_recent_spike_only = True
+
+                    # 차트 시각화용 최근 4개년 주당배당금(DPS) 배열 구성 (10년 데이터 중 최근 4개년 슬라이싱)
+                    if len(sorted_div_years) >= 4:
+                        div_4y_years = [str(y) for y in sorted_div_years[-4:]]
+                        div_4y_vals = sorted_div_vals[-4:]
+                    elif len(sorted_div_years) >= 1:
+                        base_last_y = sorted_div_years[-1]
+                        div_4y_years = [str(base_last_y - 3 + idx_y) for idx_y in range(4)]
+                        div_4y_vals = [div_10y_dict.get(int(y_s), 0.0) for y_s in div_4y_years]
+                    else:
+                        dps_est = safe_float(i.get('dividendRate', p * (div / 100.0) if div > 0 else 0.0))
+                        div_4y_years = [str(curr_y_int - 4 + idx_y) for idx_y in range(4)]
+                        div_4y_vals = [0.0, 0.0, 0.0, dps_est]
+
+                    # 10년 일관성 판정 문구 (자사주 매입 언급 완전 제거)
+                    if is_en_shorts:
+                        if div_paid_years >= 7 and not is_recent_spike_only and div_inc_years >= max(4, div_paid_years - 3):
+                            div_consistency_txt = "with a consistent 10-year track record of steadily growing dividends."
+                            div_badge_short = "10Y Consistent Div Growth"
+                        elif div_paid_years >= 7 and not is_recent_spike_only:
+                            div_consistency_txt = "backed by a consistent 10-year shareholder-friendly dividend policy."
+                            div_badge_short = "10Y Consistent Dividend"
+                        elif is_recent_spike_only and (div > 0 or div_paid_years > 0):
+                            div_consistency_txt = "though the dividend was only recently initiated or spiked, requiring consistency checks."
+                            div_badge_short = "Recent Spike (Check Consistency)"
+                        elif div_paid_years >= 4:
+                            div_consistency_txt = "with dividends paid over the past decade, though fluctuating with earnings."
+                            div_badge_short = "Fluctuating Dividend"
+                        else:
+                            div_consistency_txt = "currently paying no cash dividend, focusing on internal reinvestment."
+                            div_badge_short = "No Dividend (Reinvestment)"
+                    else:
+                        if div_paid_years >= 7 and not is_recent_spike_only and div_inc_years >= max(4, div_paid_years - 3):
+                            div_consistency_txt = "과거 10년간 배당금을 꾸준히 늘려온 일관된 주주친화 기업임."
+                            div_badge_short = "10년 일관된 배당 성장"
+                        elif div_paid_years >= 7 and not is_recent_spike_only:
+                            div_consistency_txt = "과거 10년간 흔들림 없이 배당을 지급해 온 일관된 주주친화 정책을 유지 중임."
+                            div_badge_short = "10년 일관된 주주친화 배당"
+                        elif is_recent_spike_only and (div > 0 or div_paid_years > 0):
+                            div_consistency_txt = "과거 10년 내내 일관된 것이 아니라 최근에 반짝 늘어난 배당이어서 지속성 확인이 필요함."
+                            div_badge_short = "최근 반짝 배당 증가 (확인 필요)"
+                        elif div_paid_years >= 4:
+                            div_consistency_txt = "과거 배당 지급 이력은 있으나 실적에 따라 배당금이 등락하는 흐름임."
+                            div_badge_short = "실적 연동형 배당 등락"
+                        else:
+                            div_consistency_txt = "현재 현금 배당 없이 사내 재투자에 집중하는 무배당 기조임."
+                            div_badge_short = "무배당 (재투자 집중)"
+
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
-                    hist_fcf_g_pct = final_g * 100.0  # 본문 카드(평균 시나리오 성장률)와 100% 동일한 수치!
+                    hist_fcf_g_pct = sh_fcf_g_pct
 
                     imp_g_fmt = f"연 {imp_g_pct:+.1f}%" if not is_en_shorts else f"{imp_g_pct:+.1f}%/yr"
-                    actual_g_fmt = f"연 {hist_fcf_g_pct:+.1f}%" if not is_en_shorts else f"{hist_fcf_g_pct:+.1f}%/yr"
+                    if is_fcf_neg_growth:
+                        actual_g_fmt = "역성장(측정불가)" if not is_en_shorts else "Neg Growth (N/A)"
+                    else:
+                        actual_g_fmt = f"연 {hist_fcf_g_pct:+.1f}%" if not is_en_shorts else f"{hist_fcf_g_pct:+.1f}%/yr"
 
                     growth_gap_pp = imp_g_pct - hist_fcf_g_pct
-                    use_pbr_m = (is_financial or kr or is_cyclical or f_pe <= 0)
+                    use_pbr_m = (is_financial or kr or is_cyclical or sh_f_pe <= 0)
 
                     earn_rev_prev, earn_rev_curr, earn_rev_chg = 0.0, 0.0, 0.0
                     earn_ni_prev, earn_ni_curr, earn_ni_chg = 0.0, 0.0, 0.0
@@ -6967,48 +7064,49 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             top_header_line = "워런 버핏의 관점으로 본"
                             guru_gold_pill_txt = f"{comp_name} ({p_str})"
 
-                    abs_pmos = abs(pmos_val)
+                    abs_pmos = abs(sh_pmos_val)
                     if is_en_shorts:
-                        if pmos_val >= 3.0:
+                        if sh_pmos_val >= 3.0:
                             disc_txt = f"{abs_pmos:.0f}% below {yr_span_str} avg"
                             disc_short_badge = f"-{abs_pmos:.0f}% vs {yr_span_str} Avg"
-                        elif pmos_val <= -3.0:
+                        elif sh_pmos_val <= -3.0:
                             disc_txt = f"{abs_pmos:.0f}% above {yr_span_str} avg"
                             disc_short_badge = f"+{abs_pmos:.0f}% vs {yr_span_str} Avg"
                         else:
                             disc_txt = f"in line with {yr_span_str} avg"
                             disc_short_badge = f"Near {yr_span_str} Avg"
                     else:
-                        if pmos_val >= 3.0:
+                        if sh_pmos_val >= 3.0:
                             disc_txt = f"{abs_pmos:.0f}% 낮은 구간"
                             disc_short_badge = f"{yr_span_str} 평균 대비 -{abs_pmos:.0f}%"
-                        elif pmos_val <= -3.0:
+                        elif sh_pmos_val <= -3.0:
                             disc_txt = f"{abs_pmos:.0f}% 높은 구간"
                             disc_short_badge = f"{yr_span_str} 평균 대비 +{abs_pmos:.0f}%"
                         else:
                             disc_txt = f"{yr_span_str} 평균과 유사한 구간"
                             disc_short_badge = f"{yr_span_str} 평균과 동일 수준"
 
-                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
+                    cur_pbr_won = int(round(sh_f_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
 
                     # =========================================================================
-                    # [대본 생성 엔진] S&P500(12%)·버핏 기준(15%) 비교 + 10년 통일 + 진짜 FCF 성장률 반영
+                    # [대본 생성 엔진] 순수 배당 10년 일관성 + FCF 역성장(측정불가) 판독 반영
                     # =========================================================================
                     if is_en_shorts:
                         val_1line_en = (
-                            f"Price-to-book is {f_pbr:.2f}x versus its 10-year average of {a_pbr:.2f}x, trading {disc_txt}."
+                            f"Price-to-book is {sh_f_pbr:.2f}x versus its 10-year average of {a_pbr:.2f}x, trading {disc_txt}."
                             if (is_financial or use_pbr_m) else
-                            f"Payback period is {f_pe:.1f} years versus its 10-year average of {a_pe:.1f} years, trading {disc_txt}."
+                            f"Payback period is {sh_f_pe:.1f} years versus its 10-year average of {a_pe:.1f} years, trading {disc_txt}."
                         )
                         cap_line_en = f"{cap_ret_name_en} is {cap_ret_val:.1f} percent, compared to the S&P 500 average of 12 percent and Buffett's 15 percent hurdle."
-                        ey_line_en = f"Earnings yield stands at {ey:.1f} percent, compared to the 10-year Treasury rate of {ty:.1f} percent."
-                        tsy_line_en = f"Total shareholder yield is {tsy_total:.1f} percent, {tsy_consistency_txt}"
-                        dcf_1line_en = (
-                            f"For financial firms, valuation focuses on book value at {f_pbr:.2f}x and equity returns at {roe:.1f} percent."
-                            if is_financial else
-                            f"Current price implies {imp_g_pct:.1f} percent annual cash flow growth, while actual 10-year cash flow shifted {hist_fcf_g_pct:+.1f} percent per year."
-                        )
+                        ey_line_en = f"Earnings yield stands at {sh_ey:.1f} percent, compared to the 10-year Treasury rate of {ty:.1f} percent."
+                        div_line_en = f"Dividend yield is {div:.1f} percent, {div_consistency_txt}"
+                        if is_financial:
+                            dcf_1line_en = f"For financial firms, valuation focuses on book value at {sh_f_pbr:.2f}x and equity returns at {roe:.1f} percent."
+                        elif is_fcf_neg_growth:
+                            dcf_1line_en = f"Current price implies {imp_g_pct:.1f} percent annual cash flow growth, while past 10-year cash flow experienced negative growth, making normal growth rate unmeasurable."
+                        else:
+                            dcf_1line_en = f"Current price implies {imp_g_pct:.1f} percent annual cash flow growth, while actual 10-year cash flow grew {hist_fcf_g_pct:+.1f} percent per year."
 
                         if is_earnings_mode:
                             default_script_lines = [
@@ -7017,7 +7115,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 eps_script_line,
                                 cap_line_en,
                                 val_1line_en,
-                                tsy_line_en,
+                                div_line_en,
                                 dcf_1line_en
                             ]
                             selected_thumb_quote = f"“{comp_name} Earnings: Net Profit {earn_ni_chg:+.1f}%!”"
@@ -7029,17 +7127,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 eps_script_line,
                                 cap_line_en,
                                 ey_line_en,
-                                tsy_line_en,
+                                div_line_en,
                                 dcf_1line_en
                             ]
                             selected_thumb_quote = f"“Why did {g_name_en} put {g_main['weight']:.1f}% into {comp_name}?”" if has_guru_sh else f"“{cap_ret_name_en} {cap_ret_val:.1f}% vs S&P 500 12%!”"
 
-                        thumb_compare_bar = f"P/B: 10Y Avg {a_pbr:.2f}x ➔ Now {f_pbr:.2f}x" if (is_financial or use_pbr_m) else f"Payback: 10Y Avg {a_pe:.1f}y ➔ Now {f_pe:.1f}y"
+                        thumb_compare_bar = f"P/B: 10Y Avg {a_pbr:.2f}x ➔ Now {sh_f_pbr:.2f}x" if (is_financial or use_pbr_m) else f"Payback: 10Y Avg {a_pe:.1f}y ➔ Now {sh_f_pe:.1f}y"
                         thumb_giant_num = disc_short_badge
                         thumb_red_quote = selected_thumb_quote
                         pbr_reason_tag = "Valuation Comparison (10Y Avg vs Now)"
-                        gap_badge_txt = f"P/B {f_pbr:.2f}x  |  ROE {roe:.1f}%" if is_financial else f"Implied {imp_g_pct:+.1f}%  vs  Actual 10Y {hist_fcf_g_pct:+.1f}%"
-                        gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                        gap_badge_txt = f"P/B {sh_f_pbr:.2f}x  |  ROE {roe:.1f}%" if is_financial else (f"Implied {imp_g_pct:+.1f}% vs 10Y Neg Growth (N/A)" if is_fcf_neg_growth else f"Implied {imp_g_pct:+.1f}%  vs  Actual 10Y {hist_fcf_g_pct:+.1f}%")
+                        gap_badge_col = (185, 28, 28) if (is_fcf_neg_growth and not is_financial) else ((5, 122, 85) if sh_pmos_val >= 0 else (185, 28, 28))
 
                     else:
                         if has_guru_sh:
@@ -7048,18 +7146,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             hook_opt_1 = f"{subj_guru}, 포트폴리오 비중 {g_main['weight']:.1f}%로 담은 {comp_name}, 10년 장부 팩트체크."
                             thumb_q_1 = f"“{subj_short} 왜 {comp_name} 주식을 {g_main['weight']:.1f}%나 담았을까?”"
                         else:
-                            hook_opt_1 = f"워런 버핏의 장부 기준으로 본, {comp_name} 10년 치 실적과 주가 위치 요약."
-                            thumb_q_1 = f"“{comp_name} 10년 장부, 사업수익률과 적정 주가 위치는?”"
+                            hook_opt_1 = f"워런 버핏의 장부 기준으로 본, {comp_name} 10년 치 실적과 배당 일관성 요약."
+                            thumb_q_1 = f"“{comp_name} 10년 장부, 사업수익률과 배당 일관성은?”"
 
-                        hook_opt_2 = f"소문 무성한 {comp_name}, 1주당 순이익이 과거 10년간 꾸준히 늘었는지 확인함."
-                        thumb_q_2 = f"“{comp_name} 1주당 순이익, 10년간 얼마나 성장했을까?”"
+                        hook_opt_2 = f"소문 무성한 {comp_name}, 1주당 순이익과 배당금이 과거 10년간 꾸준히 늘었는지 확인함."
+                        thumb_q_2 = f"“{comp_name} 1주당 순이익·배당, 10년간 꾸준히 늘었을까?”"
 
                         if use_pbr_m or is_financial:
                             hook_opt_3 = f"말 많은 {comp_name} 현재 주가, 10년 평균 순자산 가격과 비교한 현재 위치."
                             thumb_q_3 = f"“순자산 1만원당 {cur_pbr_won:,}원, 10년 평균 대비 {abs_pmos:.0f}% 차이?”"
                         else:
                             hook_opt_3 = f"말 많은 {comp_name} 현재 주가, 10년 평균 원금 회수기간과 비교한 현재 위치."
-                            thumb_q_3 = f"“원금 회수기간 {f_pe:.1f}년, 10년 평균 대비 {abs_pmos:.0f}% 차이?”"
+                            thumb_q_3 = f"“원금 회수기간 {sh_f_pe:.1f}년, 10년 평균 대비 {abs_pmos:.0f}% 차이?”"
 
                         hook_opt_4 = f"S&P 500 평균 수익률 12% 시대, {comp_name}의 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%를 기록 중임."
                         thumb_q_4 = f"“S&P 500 평균 12% vs {comp_name} 연 {cap_ret_val:.1f}%!”"
@@ -7068,7 +7166,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (3050 타겟 맞춤형 4선)")
                             hook_options_list = [
                                 (f"🥇 추천 1 [거장·장부 해부형] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
-                                (f"📈 추천 2 [1주당 순이익 성장형] : \"{hook_opt_2}\"", hook_opt_2, thumb_q_2),
+                                (f"📈 추천 2 [순이익·배당 일관성형] : \"{hook_opt_2}\"", hook_opt_2, thumb_q_2),
                                 (f"📊 추천 3 [10년 평균 가격 비교형] : \"{hook_opt_3}\"", hook_opt_3, thumb_q_3),
                                 (f"🏦 추천 4 [S&P500·버핏 기준 비교형] : \"{hook_opt_4}\"", hook_opt_4, thumb_q_4),
                             ]
@@ -7078,7 +7176,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 range(len(hook_labels)),
                                 format_func=lambda idx: hook_labels[idx],
                                 index=0,
-                                key=f"hook_sel_v7_{tk}"
+                                key=f"hook_sel_v8_{tk}"
                             )
                             opening_cut1 = hook_options_list[selected_hook_idx][1]
                             selected_thumb_quote = hook_options_list[selected_hook_idx][2]
@@ -7095,12 +7193,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             val_1line_ko = f"장부상 순자산 1만 원어치가 평소 {avg_pbr_won:,}원에서 현재 {cur_pbr_won:,}원으로 산출돼, 10년 평균보다 {disc_txt}임."
                         else:
                             pbr_reason_tag = "순이익 원금 회수기간 비교 (10년 평균 vs 현재)"
-                            thumb_compare_bar = f"원금 회수기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
+                            thumb_compare_bar = f"원금 회수기간 : 10년 평균 {a_pe:.1f}년 ➔ 현재 {sh_f_pe:.1f}년"
                             thumb_giant_num = disc_short_badge
                             thumb_red_quote = selected_thumb_quote
-                            val_1line_ko = f"순이익 기준 원금 회수기간이 평소 {a_pe:.1f}년에서 현재 {f_pe:.1f}년으로 산출돼, 10년 평균보다 {disc_txt}임."
+                            val_1line_ko = f"순이익 기준 원금 회수기간이 평소 {a_pe:.1f}년에서 현재 {sh_f_pe:.1f}년으로 산출돼, 10년 평균보다 {disc_txt}임."
 
-                        # [요청 반영] 자체 10년 평균 대신 '버핏의 우량 기준(15%)' 및 'S&P 500 평균(12%)'과 직접 비교!
                         if cap_ret_val >= 15.0:
                             cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 시장 평균 12%와 버핏 기준 15%를 모두 웃돎."
                         elif cap_ret_val >= 12.0:
@@ -7109,25 +7206,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 시장 평균 12%보다 {abs(diff_vs_sp500):.1f}%p 낮음."
                         else:
                             cap_line_ko = f"현재 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 적자 구간에 머물러 있음."
-                        ey_gap = ey - ty
+
+                        ey_gap = sh_ey - ty
                         if abs(ey_gap) < 0.2:
-                            ey_line_ko = f"주가 대비 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.1f}%와 비슷한 수준임."
+                            ey_line_ko = f"주가 대비 이익수익률은 연 {sh_ey:.1f}%로, 10년물 미국채 금리 {ty:.1f}%와 비슷한 수준임."
                         else:
-                            ey_line_ko = f"주가 대비 이익수익률은 연 {ey:.1f}%로, 안전자산인 미국채 금리 {ty:.1f}%보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}."
+                            ey_line_ko = f"주가 대비 이익수익률은 연 {sh_ey:.1f}%로, 안전자산인 미국채 금리 {ty:.1f}%보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}."
 
-                        tsy_line_ko = f"배당과 자사주 소각을 합친 총환원율은 연 {tsy_total:.1f}%이며, {tsy_consistency_txt}"
+                        # [요청사항] 자사주 매입 제거! 순수 배당률 + 과거 10년 배당 일관성 판독 문장
+                        div_line_ko = f"현재 배당수익률은 연 {div:.1f}%이며, {div_consistency_txt}"
 
-                        # [요청 반영] 2.0% 고정 착시를 없앤 실제 10년 현금흐름 증감률(hist_fcf_g_pct) 비교!
+                        # [요청사항] FCF 역성장(2.0% 고정) 시 자체 계산 없이 '역성장이라 측정 불가'로 명확히 안내!
                         if is_financial:
-                            dcf_1line_ko = f"금융업 특성상 현금흐름 역산 대신 순자산 배수 {f_pbr:.2f}배와 자본수익률 연 {roe:.1f}%의 지속성을 핵심으로 평가함."
-                            gap_badge_txt = f"금융주 핵심 : 순자산배수 {f_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배) · 자본수익률 {roe:.1f}%"
-                            gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                            dcf_1line_ko = f"금융업 특성상 현금흐름 역산 대신 순자산 배수 {sh_f_pbr:.2f}배와 자본수익률 연 {roe:.1f}%의 지속성을 핵심으로 평가함."
+                            gap_badge_txt = f"금융주 핵심 : 순자산배수 {sh_f_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배) · 자본수익률 {roe:.1f}%"
+                            gap_badge_col = (5, 122, 85) if sh_pmos_val >= 0 else (185, 28, 28)
+                        elif is_fcf_neg_growth:
+                            if implied_g_shorts is not None and imp_g_pct > 0:
+                                dcf_1line_ko = f"현재 주가는 매년 {imp_g_pct:.1f}% 현금 성장이 필요하나, 과거 10년 잉여현금흐름은 역성장 구간이어서 정상 성장률 측정이 불가함."
+                                gap_badge_txt = f"주가 요구치(연 {imp_g_pct:+.1f}%) vs 과거 10년 FCF 역성장(측정 불가)"
+                            else:
+                                dcf_1line_ko = "과거 10년 잉여현금흐름이 역성장 또는 적자 구간이어서, 현금흐름 성장률 측정이 불가해 순자산 배수로 교차 확인이 필요함."
+                                gap_badge_txt = "과거 10년 잉여현금흐름 역성장 (성장률 측정 불가 구간)"
+                            gap_badge_col = (185, 28, 28)
                         elif implied_g_shorts is not None:
-                            actual_Action_word = f"연 {hist_fcf_g_pct:.1f}%씩 증가함" if hist_fcf_g_pct > 0 else (f"연 {abs(hist_fcf_g_pct):.1f}%씩 감소함" if hist_fcf_g_pct < 0 else "보합세를 유지함")
+                            actual_Action_word = f"연 {hist_fcf_g_pct:.1f}%씩 증가함"
                             if imp_g_pct < 0:
                                 dcf_1line_ko = f"현재 주가는 향후 현금이 매년 {abs(imp_g_pct):.1f}% 줄어도 설명되는 수준이며, 과거 10년 실제 현금은 {actual_Action_word}."
                                 gap_badge_txt = f"주가 반영치(연 {imp_g_pct:+.1f}%) vs 과거 10년 실제(연 {hist_fcf_g_pct:+.1f}%)"
-                                gap_badge_col = (5, 122, 85) if hist_fcf_g_pct >= imp_g_pct else (185, 28, 28)
+                                gap_badge_col = (5, 122, 85)
                             else:
                                 dcf_1line_ko = f"현재 주가는 매년 {imp_g_pct:.1f}% 현금 성장이 필요하며, 과거 10년 실제 현금 흐름은 {actual_Action_word}."
                                 if growth_gap_pp > 3.0:
@@ -7140,9 +7247,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     gap_badge_txt = f"주가 요구치(연 {imp_g_pct:+.1f}%) ≈ 과거 10년 실제(연 {hist_fcf_g_pct:+.1f}%)"
                                     gap_badge_col = (29, 78, 216)
                         else:
-                            dcf_1line_ko = f"현금흐름 변동폭이 커서 순자산 배수를 적용하며, 현재 {f_pbr:.2f}배로 10년 평균보다 {disc_txt}임."
+                            dcf_1line_ko = f"현금흐름 변동폭이 커서 순자산 배수를 적용하며, 현재 {sh_f_pbr:.2f}배로 10년 평균보다 {disc_txt}임."
                             gap_badge_txt = f"순자산 10년 평균({a_pbr:.2f}배) 대비 {disc_txt}"
-                            gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                            gap_badge_col = (5, 122, 85) if sh_pmos_val >= 0 else (185, 28, 28)
 
                         if is_earnings_mode:
                             u_str_e = "억원" if kr else "십억달러"
@@ -7152,7 +7259,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 eps_script_line,
                                 cap_line_ko,
                                 val_1line_ko,
-                                tsy_line_ko,
+                                div_line_ko,
                                 dcf_1line_ko
                             ]
                         else:
@@ -7162,7 +7269,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 eps_script_line,
                                 cap_line_ko,
                                 ey_line_ko,
-                                tsy_line_ko,
+                                div_line_ko,
                                 dcf_1line_ko
                             ]
 
@@ -7172,14 +7279,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         scene_codes_fixed = ["SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_3", "SCENE_4"]
 
                     hook_key_tag = selected_hook_idx if (not is_en_shorts and not is_earnings_mode) else 0
-                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}_H{hook_key_tag}_V7"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_{sh_f_pbr:.2f}"
+                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}_H{hook_key_tag}_{ov_sig}_V8"
 
                     st.markdown("##### ✏️ 6️⃣ 쇼츠 7컷 대본 직접 수정 (약 45초 황금 길이 · 한 줄이 1컷입니다)")
                     editable_script_text = st.text_area(
-                        "대본 편집창 (자막 박스 자동 줄바꿈이 적용되어 글자가 칸을 절대 넘어가지 않습니다.)",
+                        "대본 편집창 (위에서 지표를 수정하면 대본도 자동으로 업데이트됩니다.)",
                         value="\n".join(default_script_lines),
                         height=200,
-                        key=f"custom_script_v7_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v8_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
@@ -7499,12 +7607,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for idx_ln, ln_txt in enumerate(chosen_lines):
                             draw.text((W // 2, start_ty + idx_ln * line_h), ln_txt, font=chosen_font, fill=txt_col, anchor="mm")
 
+                    # [법적 리스크 제로화 + 산출 근거 보충 하단 고지 함수]
+                    def _draw_legal_basis_footer(draw, W, get_font):
+                        if is_en_shorts:
+                            _fit_single_line(draw, W//2, 1042, W-36, "[Calculation Basis] Filings: SEC 10-K / DART (10Y) | Discount Rate: max(10Y Bond, 9%) | Neg FCF Growth: N/A (2% Floor)", get_font, start_sz=14, min_sz=10, fill=(130, 140, 155))
+                            _fit_single_line(draw, W//2, 1072, W-36, "[Legal Notice] Purely educational & statistical data visualization. Not financial advice or buy/sell recommendation.", get_font, start_sz=15, min_sz=10, fill=(110, 115, 125))
+                            _fit_single_line(draw, W//2, 1100, W-36, "Past metrics do not guarantee future returns. All investment decisions and responsibilities rest with the viewer.", get_font, start_sz=14, min_sz=10, fill=(90, 95, 105))
+                        else:
+                            _fit_single_line(draw, W//2, 1042, W-36, "[산출근거] DART·SEC 10-K 10년 공시 | ROIC=세후영업이익/투하자본 | 할인율=max(10년국채,9%) | FCF역성장=측정불가(하한2%규칙)", get_font, start_sz=14, min_sz=10, fill=(135, 145, 160))
+                            _fit_single_line(draw, W//2, 1072, W-36, "[법적고지] 본 영상은 공시 데이터 기반 학술·교육용 통계 자료이며 자본시장법상 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(110, 115, 125))
+                            _fit_single_line(draw, W//2, 1100, W-36, "과거 재무 지표 및 컨센서스 산식이 미래 수익을 보장하지 않으며 모든 투자의 최종 판단과 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(90, 95, 105))
+
                     def _draw_visual_dashboard_board(draw, W, get_font):
-                        giant_col = (52, 211, 153) if pmos_val >= 3.0 else ((248, 113, 113) if pmos_val <= -3.0 else (250, 204, 21))
+                        giant_col = (52, 211, 153) if sh_pmos_val >= 3.0 else ((248, 113, 113) if sh_pmos_val <= -3.0 else (250, 204, 21))
                         _fit_single_line(draw, W//2, 412, W-90, thumb_giant_num, get_font, start_sz=54, min_sz=26, fill=giant_col)
 
                         avg_v = a_pbr if (is_financial or use_pbr_m) else a_pe
-                        cur_v = f_pbr if (is_financial or use_pbr_m) else f_pe
+                        cur_v = sh_f_pbr if (is_financial or use_pbr_m) else sh_f_pe
                         max_mv = max(avg_v, cur_v, 1.0) * 1.22
                         bar_x, bar_max = 210, 320
                         w_a = int(max(36, min(bar_max, (avg_v / max_mv) * bar_max)))
@@ -7516,7 +7635,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             a_lbl_txt, c_lbl_txt = "10년 평균", "현재 주가"
                             a_val_txt = f"{avg_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{a_pe:.1f}년"
-                            c_val_txt = f"{cur_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{f_pe:.1f}년"
+                            c_val_txt = f"{cur_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{sh_f_pe:.1f}년"
 
                         _fit_single_line(draw, 130, 462, 130, a_lbl_txt, get_font, start_sz=19, min_sz=12, fill=(148, 163, 184))
                         draw.rounded_rectangle([bar_x, 448, bar_x + bar_max, 476], radius=8, fill=(30, 41, 59))
@@ -7528,7 +7647,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rounded_rectangle([bar_x, 486, bar_x + w_c, 514], radius=8, fill=giant_col)
                         _fit_single_line(draw, bar_x + bar_max + 68, 500, 115, c_val_txt, get_font, start_sz=21, min_sz=13, fill=giant_col)
 
-                        # 좌측 카드: 1주당 순이익(EPS) 성장 흐름
                         draw.rounded_rectangle([54, 530, 348, 678], radius=18, fill=(30, 41, 59), outline=(56, 189, 248), width=2)
                         l_title = "Profit/Share Trend" if is_en_shorts else "1주당 순이익 추세"
                         _fit_single_line(draw, 201, 556, 265, l_title, get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
@@ -7537,7 +7655,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, 201, 608, 260, l_big_val, get_font, start_sz=36, min_sz=18, fill=l_col_v)
                         _fit_single_line(draw, 201, 652, 265, eps_badge_short, get_font, start_sz=17, min_sz=11, fill=(56, 189, 248))
 
-                        # 우측 카드: S&P 500 평균(12%) & 버핏 기준(15%) 대비 ROIC/ROE
                         draw.rounded_rectangle([372, 530, W-54, 678], radius=18, fill=(30, 41, 59), outline=(250, 204, 21), width=2)
                         r_title = ("Equity Return" if is_financial else "Business Return") if is_en_shorts else cap_ret_name_ko
                         _fit_single_line(draw, 519, 556, 265, r_title, get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
@@ -7546,12 +7663,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         r_sub_tag = "S&P500 평균 12% · 버핏 기준 15%" if not is_en_shorts else "vs S&P500 12% · Buffett 15%"
                         _fit_single_line(draw, 519, 652, 265, r_sub_tag, get_font, start_sz=16, min_sz=11, fill=(52, 211, 153))
 
-                        # 하단 와이드 바: 10년 배당·환원 일관성
+                        # 하단 와이드 바: 순수 배당률 & 10년 배당 일관성 판정 (자사주 매입 제거)
                         draw.rounded_rectangle([54, 694, W-54, 774], radius=16, fill=(20, 30, 52), outline=(168, 85, 247), width=2)
                         bot_summary_line = (
-                            f"Total Yield {tsy_total:.1f}%  |  {tsy_badge_short}"
+                            f"Dividend Yield {div:.1f}%  |  {div_badge_short}"
                             if is_en_shorts else
-                            f"총주주환원 연 {tsy_total:.1f}%  |  {tsy_badge_short}"
+                            f"순수 배당수익률 연 {div:.1f}%  |  {div_badge_short}"
                         )
                         _fit_single_line(draw, W//2, 734, W-130, bot_summary_line, get_font, start_sz=22, min_sz=13, fill=(233, 213, 255))
 
@@ -7575,9 +7692,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         _draw_visual_dashboard_board(draw, W, get_font)
                         _draw_safe_subtitle_box(draw, W, 875, thumb_red_quote, get_font, txt_col=(255, 240, 0), is_serif=not is_en_shorts)
-
-                        disc_foot = "For educational & statistical purposes only. Not investment advice." if is_en_shorts else "공시 데이터 기반 학술·교육용 통계 자료이며 특정 종목의 매수·매도 추천이 아닙니다"
-                        _fit_single_line(draw, W//2, 1080, W-40, disc_foot, get_font, start_sz=16, min_sz=11, fill=(115, 115, 115))
+                        _draw_legal_basis_footer(draw, W, get_font)
                         return img
 
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
@@ -7634,7 +7749,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         elif scene_code == "SCENE_1":
                             _fit_single_line(draw, W//2, 412, W-120, pbr_reason_tag, get_font, start_sz=24, min_sz=15, fill=(255, 255, 255))
                             avg_v = a_pbr if use_pbr_m else a_pe
-                            cur_v = f_pbr if use_pbr_m else f_pe
+                            cur_v = sh_f_pbr if use_pbr_m else sh_f_pe
                             max_bar_v = max(avg_v, cur_v, 1.0) * 1.25
                             bar_x1, bar_max_w = 195, 340
 
@@ -7642,7 +7757,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 a_disp_s, c_disp_s = f"{avg_v:.1f}x", f"{cur_v:.1f}x"
                             else:
                                 a_disp_s = f"{avg_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{a_pe:.1f}년"
-                                c_disp_s = f"{cur_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{f_pe:.1f}년"
+                                c_disp_s = f"{cur_pbr_won:,}원" if (is_financial or use_pbr_m) else f"{sh_f_pe:.1f}년"
 
                             w_avg = int(max(40, min(bar_max_w, (avg_v / max_bar_v) * bar_max_w)))
                             _fit_single_line(draw, 118, 495, 130, "10Y Avg" if is_en_shorts else "10년 평균", get_font, start_sz=24, min_sz=15, fill=(148, 163, 184))
@@ -7651,7 +7766,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, bar_x1 + bar_max_w + 68, 495, 125, a_disp_s, get_font, start_sz=25, min_sz=14, fill=(203, 213, 225))
 
                             w_cur = int(max(40, min(bar_max_w, (cur_v / max_bar_v) * bar_max_w)))
-                            cur_bar_col = (16, 185, 129) if pmos_val >= 0 else (239, 68, 68)
+                            cur_bar_col = (16, 185, 129) if sh_pmos_val >= 0 else (239, 68, 68)
                             _fit_single_line(draw, 118, 590, 130, "Current" if is_en_shorts else "현재 위치", get_font, start_sz=25, min_sz=15, fill=(250, 204, 21))
                             draw.rounded_rectangle([bar_x1, 563, bar_x1 + bar_max_w, 617], radius=12, fill=(30, 41, 59))
                             draw.rounded_rectangle([bar_x1, 563, bar_x1 + w_cur, 617], radius=12, fill=cur_bar_col)
@@ -7661,7 +7776,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 712, W-140, thumb_giant_num, get_font, start_sz=38, min_sz=20, fill=(255, 255, 255))
 
                         elif scene_code == "SCENE_2":
-                            # 좌측: 1주당 순이익(EPS) 장기 막대 추이
                             draw.rounded_rectangle([54, 392, 348, 768], radius=20, fill=(30, 41, 59), outline=(56, 189, 248), width=2)
                             _fit_single_line(draw, 201, 426, 265, "Profit/Share Trend" if is_en_shorts else "1주당 순이익 성장 추이", get_font, start_sz=22, min_sz=14, fill=(56, 189, 248))
 
@@ -7682,7 +7796,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                             _fit_single_line(draw, 201, 730, 265, eps_badge_short, get_font, start_sz=19, min_sz=12, fill=(255, 255, 255))
 
-                            # 우측: S&P 500 평균(12%) vs 현재 기업의 ROIC/ROE 직접 비교 막대그래프!
                             draw.rounded_rectangle([372, 392, W-54, 768], radius=20, fill=(30, 41, 59), outline=(16, 185, 129), width=2)
                             _fit_single_line(draw, 519, 426, 265, cap_ret_name_en if is_en_shorts else cap_ret_name_ko, get_font, start_sz=22, min_sz=14, fill=(52, 211, 153))
                             base_y = 665
@@ -7702,74 +7815,89 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 519, 730, 265, r_foot_txt, get_font, start_sz=18, min_sz=12, fill=(250, 204, 21))
 
                         elif scene_code == "SCENE_3":
+                            # 좌측 박스: 10년물 미국채 vs 이익수익률
                             base_y3 = 655
                             draw.rounded_rectangle([54, 392, 348, 695], radius=20, fill=(30, 41, 59), outline=(250, 204, 21), width=2)
                             _fit_single_line(draw, 201, 424, 260, "10Y Bond vs E-Yield" if is_en_shorts else "미국채 vs 이익수익률", get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
-                            max_ey = max(ty, abs(ey), 8.0) * 1.25
+                            max_ey = max(ty, abs(sh_ey), 8.0) * 1.25
                             h_ty = int(max(24, min(155, (ty / max_ey) * 155)))
-                            h_ey = int(max(24, min(155, (max(0.3, ey) / max_ey) * 155)))
-                            ey_bar_col = (52, 211, 153) if ey >= ty else (250, 204, 21)
+                            h_ey = int(max(24, min(155, (max(0.3, sh_ey) / max_ey) * 155)))
+                            ey_bar_col = (52, 211, 153) if sh_ey >= ty else (250, 204, 21)
                             draw.rounded_rectangle([102, base_y3 - h_ty, 174, base_y3], radius=8, fill=(100, 116, 139))
                             _fit_single_line(draw, 138, base_y3 - h_ty - 20, 95, f"{ty:.1f}%", get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
                             _fit_single_line(draw, 138, base_y3 + 20, 95, "10Y Bond" if is_en_shorts else "10년국채", get_font, start_sz=16, min_sz=11, fill=(148, 163, 184))
                             draw.rounded_rectangle([214, base_y3 - h_ey, 294, base_y3], radius=8, fill=ey_bar_col)
-                            _fit_single_line(draw, 254, base_y3 - h_ey - 22, 110, f"{ey:.1f}%", get_font, start_sz=25, min_sz=14, fill=ey_bar_col)
+                            _fit_single_line(draw, 254, base_y3 - h_ey - 22, 110, f"{sh_ey:.1f}%", get_font, start_sz=25, min_sz=14, fill=ey_bar_col)
                             _fit_single_line(draw, 254, base_y3 + 20, 100, "E-Yield" if is_en_shorts else "이익수익률", get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
 
+                            # [요청사항 완벽 구현] 우측 보라색 박스: 자사주 매입 제거 & 최근 4개년 배당금 성장 막대차트!
                             draw.rounded_rectangle([372, 392, W-54, 695], radius=20, fill=(30, 41, 59), outline=(192, 132, 252), width=2)
-                            _fit_single_line(draw, 519, 424, 260, "Payout & 10Y Track" if is_en_shorts else "주주환원 & 10년 일관성", get_font, start_sz=22, min_sz=14, fill=(192, 132, 252))
-                            max_tsy = max(2.5, abs(tsy_total), 6.0) * 1.25
-                            h_mkt_t = int(max(24, min(155, (2.5 / max_tsy) * 155)))
-                            h_cur_t = int(max(24, min(155, (max(0.3, tsy_total) / max_tsy) * 155)))
-                            tsy_bar_col = (168, 85, 247) if tsy_total >= 2.5 else (56, 189, 248)
-                            draw.rounded_rectangle([422, base_y3 - h_mkt_t, 494, base_y3], radius=8, fill=(100, 116, 139))
-                            _fit_single_line(draw, 458, base_y3 - h_mkt_t - 20, 95, "2.5%", get_font, start_sz=20, min_sz=13, fill=(148, 163, 184))
-                            _fit_single_line(draw, 458, base_y3 + 20, 95, "Mkt Avg" if is_en_shorts else "시장평균", get_font, start_sz=16, min_sz=11, fill=(148, 163, 184))
-                            draw.rounded_rectangle([534, base_y3 - h_cur_t, 614, base_y3], radius=8, fill=tsy_bar_col)
-                            _fit_single_line(draw, 574, base_y3 - h_cur_t - 22, 110, f"{tsy_total:.1f}%", get_font, start_sz=25, min_sz=14, fill=(216, 180, 254))
-                            _fit_single_line(draw, 574, base_y3 + 20, 100, "Total Yield" if is_en_shorts else "총환원율", get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
+                            _fit_single_line(draw, 519, 424, 265, "4Y Dividend Growth" if is_en_shorts else "최근 4개년 주당배당 추이", get_font, start_sz=21, min_sz=13, fill=(192, 132, 252))
 
+                            if sum(div_4y_vals) <= 0 and div <= 0:
+                                _fit_single_line(draw, 519, 535, 250, "무배당 기조" if not is_en_shorts else "No Dividend", get_font, start_sz=28, min_sz=16, fill=(148, 163, 184))
+                                _fit_single_line(draw, 519, 585, 250, "(사업 재투자 집중)" if not is_en_shorts else "(Reinvestment Focus)", get_font, start_sz=18, min_sz=12, fill=(100, 116, 139))
+                            else:
+                                max_d4 = max(max(div_4y_vals), 0.01) * 1.28
+                                db_w = 42
+                                db_gap = int((244 - db_w * 4) / 5)
+                                for idx_d4, (dv_item, dy_lbl) in enumerate(zip(div_4y_vals, div_4y_years)):
+                                    bx_d = 396 + db_gap + idx_d4 * (db_w + db_gap)
+                                    bh_d = int(max(14, min(145, (max(0.0, dv_item) / max_d4) * 145))) if dv_item > 0 else 8
+                                    if idx_d4 == 3:
+                                        b_col_d = (168, 85, 247) if not is_recent_spike_only else (250, 204, 21)
+                                    else:
+                                        b_col_d = (126, 34, 206) if dv_item > 0 else (71, 85, 105)
+                                    draw.rounded_rectangle([bx_d, base_y3 - bh_d, bx_d + db_w, base_y3], radius=6, fill=b_col_d)
+                                    if kr:
+                                        dv_str = f"{int(round(dv_item)):,}" if dv_item >= 10 else (f"{dv_item:.1f}" if dv_item > 0 else "0")
+                                    else:
+                                        dv_str = f"${dv_item:.2f}" if dv_item > 0 else "$0"
+                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 - bh_d - 16, db_w + 18, dv_str, get_font, start_sz=14, min_sz=9, fill=(233, 213, 255))
+                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 + 20, db_w + 16, str(dy_lbl)[-2:] + ("년" if not is_en_shorts else "Y"), get_font, start_sz=14, min_sz=10, fill=(148, 163, 184))
+
+                            # 하단 요약 바: 순수 배당수익률 + 10년 배당 일관성 판정 (자사주 매입 완전 제거)
                             draw.rounded_rectangle([54, 710, W-54, 776], radius=14, fill=(30, 41, 59), outline=(168, 85, 247), width=2)
-                            b3_sub = f"Div {div:.1f}% + Buyback {bb_yield:+.1f}%  |  {tsy_badge_short}" if is_en_shorts else f"배당 {div:.1f}% + 자사주 {bb_yield:+.1f}%  |  {tsy_badge_short}"
-                            _fit_single_line(draw, W//2, 743, W-130, b3_sub, get_font, start_sz=21, min_sz=13, fill=(255, 255, 255))
+                            b3_sub = f"Div Yield {div:.1f}% (10Y Paid: {div_paid_years}y)  |  {div_badge_short}" if is_en_shorts else f"배당률 연 {div:.1f}% (10년 중 {div_paid_years}년 지급)  |  {div_badge_short}"
+                            _fit_single_line(draw, W//2, 743, W-130, b3_sub, get_font, start_sz=20, min_sz=12, fill=(255, 255, 255))
 
                         else:
                             if is_financial:
                                 s4_hdr = "Financial Core: 10Y Avg P/B vs Current P/B" if is_en_shorts else "금융주 핵심 : 10년 평균 순자산배수 vs 현재"
                                 _fit_single_line(draw, W//2, 412, W-110, s4_hdr, get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
-                                v_top, v_bot = a_pbr, f_pbr
+                                v_top, v_bot = a_pbr, sh_f_pbr
                                 lbl_top = "10Y Avg" if is_en_shorts else "10년 평균"
                                 lbl_bot = "Current" if is_en_shorts else "현재 배수"
                                 str_top = f"{a_pbr:.2f}x" if is_en_shorts else f"{a_pbr:.2f}배"
-                                str_bot = f"{f_pbr:.2f}x" if is_en_shorts else f"{f_pbr:.2f}배"
+                                str_bot = f"{sh_f_pbr:.2f}x" if is_en_shorts else f"{sh_f_pbr:.2f}배"
                             else:
                                 s4_hdr = "Implied Growth vs 10Y Actual Cash Flow Growth" if is_en_shorts else "주가 요구 성장률  vs  과거 10년 실제 현금 증감률"
                                 _fit_single_line(draw, W//2, 412, W-110, s4_hdr, get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
                                 v_top = imp_g_pct if implied_g_shorts is not None else 0.0
-                                v_bot = hist_fcf_g_pct
+                                v_bot = 0.0 if is_fcf_neg_growth else hist_fcf_g_pct
                                 lbl_top = "Implied" if is_en_shorts else "주가 요구치"
                                 lbl_bot = "10Y Actual" if is_en_shorts else "10년 실제추이"
                                 str_top = imp_g_fmt
                                 str_bot = actual_g_fmt
 
-                            max_g_bar = max(abs(v_top), abs(v_bot), 1.0) * 1.25
-                            bx_start, b_max_w = 210, 330
+                            max_g_bar = max(abs(v_top), abs(v_bot), 5.0) * 1.25
+                            bx_start, b_max_w = 210, 310
                             w_req = int(max(36, min(b_max_w, (max(0.1, abs(v_top)) / max_g_bar) * b_max_w)))
-                            w_act = int(max(36, min(b_max_w, (max(0.1, abs(v_bot)) / max_g_bar) * b_max_w)))
+                            w_act = 36 if (is_fcf_neg_growth and not is_financial) else int(max(36, min(b_max_w, (max(0.1, abs(v_bot)) / max_g_bar) * b_max_w)))
 
                             _fit_single_line(draw, 125, 472, 145, lbl_top, get_font, start_sz=22, min_sz=14, fill=(203, 213, 225))
                             draw.rounded_rectangle([bx_start, 448, bx_start + b_max_w, 496], radius=10, fill=(30, 41, 59))
                             draw.rounded_rectangle([bx_start, 448, bx_start + w_req, 496], radius=10, fill=(100, 116, 139))
-                            _fit_single_line(draw, bx_start + b_max_w + 68, 472, 120, str_top, get_font, start_sz=23, min_sz=13, fill=(203, 213, 225))
+                            _fit_single_line(draw, bx_start + b_max_w + 78, 472, 135, str_top, get_font, start_sz=22, min_sz=12, fill=(203, 213, 225))
 
-                            act_bar_col = (16, 185, 129) if v_bot >= 0 else (248, 113, 113)
+                            act_bar_col = (248, 113, 113) if (is_fcf_neg_growth and not is_financial) else ((16, 185, 129) if v_bot >= 0 else (248, 113, 113))
                             _fit_single_line(draw, 125, 542, 145, lbl_bot, get_font, start_sz=22, min_sz=14, fill=(250, 204, 21))
                             draw.rounded_rectangle([bx_start, 518, bx_start + b_max_w, 566], radius=10, fill=(30, 41, 59))
                             draw.rounded_rectangle([bx_start, 518, bx_start + w_act, 566], radius=10, fill=act_bar_col)
-                            _fit_single_line(draw, bx_start + b_max_w + 68, 542, 120, str_bot, get_font, start_sz=24, min_sz=13, fill=(52, 211, 153) if v_bot >= 0 else (248, 113, 113))
+                            _fit_single_line(draw, bx_start + b_max_w + 78, 542, 135, str_bot, get_font, start_sz=21, min_sz=11, fill=act_bar_col)
 
                             draw.rounded_rectangle([54, 590, W-54, 650], radius=12, fill=gap_badge_col)
-                            _fit_single_line(draw, W//2, 620, W-140, gap_badge_txt, get_font, start_sz=22, min_sz=13, fill=(255, 255, 255))
+                            _fit_single_line(draw, W//2, 620, W-140, gap_badge_txt, get_font, start_sz=21, min_sz=12, fill=(255, 255, 255))
 
                             draw.rounded_rectangle([54, 670, W-54, 772], radius=16, fill=(20, 30, 52), outline=(56, 189, 248), width=2)
                             s4_sum_1 = (
@@ -7778,9 +7906,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 f"{cap_ret_name_ko} 연 {cap_ret_val:.1f}% (S&P500 12% 비교)  |  {eps_badge_short}"
                             )
                             s4_sum_2 = (
-                                f"Payout Track: {tsy_badge_short}"
+                                f"10Y Dividend Track: {div_badge_short}"
                                 if is_en_shorts else
-                                f"주주환원 일관성: {tsy_badge_short}"
+                                f"10년 배당 일관성: {div_badge_short}"
                             )
                             _fit_single_line(draw, W//2, 702, W-130, s4_sum_1, get_font, start_sz=19, min_sz=12, fill=(250, 204, 21))
                             _fit_single_line(draw, W//2, 742, W-130, s4_sum_2, get_font, start_sz=20, min_sz=12, fill=(255, 255, 255))
@@ -7788,13 +7916,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         is_hook_cut = (chunk_idx == 0) and not is_en_shorts
                         txt_col = (255, 240, 0) if chunk_idx in [0, total_chunks - 1] else (255, 255, 255)
                         _draw_safe_subtitle_box(draw, W, 875, sub_text, get_font, txt_col=txt_col, is_serif=is_hook_cut)
-
-                        if is_en_shorts:
-                            _fit_single_line(draw, W//2, 1060, W-40, "Based on public SEC/DART filings for educational use only. Not financial advice.", get_font, start_sz=16, min_sz=11, fill=(115, 115, 115))
-                            _fit_single_line(draw, W//2, 1095, W-40, "Past performance does not guarantee future results. Invest at your own risk.", get_font, start_sz=15, min_sz=11, fill=(90, 90, 90))
-                        else:
-                            _fit_single_line(draw, W//2, 1060, W-40, "본 영상은 공시 데이터(DART·SEC) 기반 학술·교육용 통계 자료이며 투자 권유나 종목 추천이 아닙니다", get_font, start_sz=16, min_sz=11, fill=(115, 115, 115))
-                            _fit_single_line(draw, W//2, 1095, W-40, "과거의 재무 지표나 통계 산식이 미래의 수익을 보장하지 않으며 모든 투자의 책임은 본인에게 있습니다", get_font, start_sz=15, min_sz=11, fill=(90, 90, 90))
+                        _draw_legal_basis_footer(draw, W, get_font)
                         return img
 
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
@@ -7838,10 +7960,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         resp = req.execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("🎬 1단계: 45초 맞춤형 장부 해부 쇼츠(.mp4) 생성", key=f"btn_mp4_v7_{tk}", use_container_width=True, type="primary"):
+                    if st.button("🎬 1단계: 45초 맞춤형 장부·배당 해부 쇼츠(.mp4) 생성", key=f"btn_mp4_v8_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re, random
-                            with st.spinner("버핏·S&P500 기준 비교 · 10년 통일 · 실제 FCF 증감률 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
+                            with st.spinner("순수 배당 4년 차트 · 10년 일관성 판독 · FCF 역성장 판독 쇼츠(.mp4)를 고속 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
@@ -7933,7 +8055,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf:
-                                    st.session_state[f"saved_shorts_mp4_v7_{clean_tk}"] = vf.read()
+                                    st.session_state[f"saved_shorts_mp4_v8_{clean_tk}"] = vf.read()
 
                                 for p_rm in cleanup_files:
                                     if os.path.exists(p_rm):
@@ -7949,42 +8071,50 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
 
                     if is_en_shorts:
-                        default_yt_title = f"[{today_tag_str}] {comp_name} ({clean_tk}) 10Y Financial Breakdown ({cap_ret_name_en} {cap_ret_val:.1f}%) #shorts #stocks"
+                        default_yt_title = f"[{today_tag_str}] {comp_name} ({clean_tk}) 10Y Financial & Dividend Breakdown #shorts #stocks"
                         default_yt_desc = (
                             f"📊 [{today_tag_str}] {comp_name} ({clean_tk}) Quantitative Summary\n"
                             f"• Price: {p_str} ({thumb_compare_bar})\n"
                             f"• Profit/Share Trend: {eps_badge_short} / {cap_ret_name_en}: {cap_ret_val:.1f}% (vs S&P 500 12%)\n"
-                            f"• Total Shareholder Yield: {tsy_total:.1f}% ({tsy_badge_short})\n\n"
-                            f"※ For educational and statistical purposes based on public SEC/DART filings. Not financial advice.\n\n"
-                            f"#shorts #{clean_tk} #valueinvesting #stockmarket"
+                            f"• Pure Dividend Yield: {div:.1f}% ({div_badge_short})\n"
+                            f"• 10Y FCF Growth: {'Negative Growth (Unmeasurable / 2% floor)' if is_fcf_neg_growth else f'{hist_fcf_g_pct:+.1f}%/yr'}\n\n"
+                            f"[Calculation Basis & Legal Disclaimer]\n"
+                            f"- Data Source: SEC EDGAR 10-K & DART 10-year annual filings.\n"
+                            f"- ROIC = NOPAT / Invested Capital | Discount Rate = max(10Y US Treasury, 9.0%).\n"
+                            f"- For educational and statistical purposes only. Not investment advice or buy/sell recommendation.\n\n"
+                            f"#shorts #{clean_tk} #valueinvesting #dividendstocks"
                         )
                     else:
                         if has_guru_sh:
                             subj_yt = _josa(g_main['name'], "이/가")
-                            default_yt_title = f"{subj_yt} 포트폴리오 {g_main['weight']:.1f}% 담은 {comp_name}, 10년 장부 팩트체크 #shorts #가치투자"
+                            default_yt_title = f"{subj_yt} 포트폴리오 {g_main['weight']:.1f}% 담은 {comp_name}, 10년 장부·배당 팩트체크 #shorts #가치투자"
                         elif is_earnings_mode:
                             default_yt_title = f"[{today_tag_str}] {comp_name} 실적발표 전후 비교 : 당기순이익 {earn_ni_chg:+.1f}% 변화 #shorts #주식"
                         else:
                             title_templates = [
                                 f"[{today_tag_str}] {comp_name} 10년 장부 분석 : 10년 평균 대비 {disc_txt} #shorts #가치투자",
-                                f"{comp_name} {cap_ret_name_ko} 연 {cap_ret_val:.1f}% (S&P500 평균 12% 비교) #shorts",
-                                f"{comp_name} 1주당 순이익 추이와 10년 배당 일관성 팩트체크 #shorts #주식공부"
+                                f"{comp_name} {cap_ret_name_ko} 연 {cap_ret_val:.1f}% · 10년 배당 일관성 점검 #shorts",
+                                f"{comp_name} 1주당 순이익 추이와 최근 4년 배당 성장 팩트체크 #shorts #주식공부"
                             ]
                             tpl_idx = sum(ord(c) for c in clean_tk) % len(title_templates)
                             default_yt_title = title_templates[tpl_idx]
 
                         default_yt_desc = (
-                            f"📊 [{today_tag_str} 기준] {comp_name} ({clean_tk}) 10년 장부 정량 브리핑\n"
+                            f"📊 [{today_tag_str} 기준] {comp_name} ({clean_tk}) 10년 장부 & 배당 정량 브리핑\n"
                             f"• 현재 주가: {p_str} ({thumb_compare_bar})\n"
                             f"• 1주당 순이익 추이: {eps_badge_short}\n"
                             f"• {cap_ret_name_ko}: 연 {cap_ret_val:.1f}% (S&P 500 평균 12% · 버핏 기준 15% 비교)\n"
-                            f"• 총주주환원율(배당+자사주): 연 {tsy_total:.1f}% ({tsy_badge_short})\n\n"
-                            f"※ 본 영상은 금융감독원(DART) 및 미국 증권거래위원회(SEC)의 공개 공시 데이터를 바탕으로 작성된 학술·교육용 시각화 자료이며, 특정 종목의 매수·매도 추천이 아닙니다. 모든 투자의 책임은 투자자 본인에게 있습니다.\n\n"
-                            f"#shorts #{clean_tag_name} #가치투자 #재무제표분석"
+                            f"• 순수 배당수익률: 연 {div:.1f}% ({div_badge_short}, 10년 중 {div_paid_years}년 지급)\n"
+                            f"• 10년 FCF 성장률: {'과거 10년 역성장으로 정상 성장률 측정 불가 (모델 하한 2.0% 규칙)' if is_fcf_neg_growth else f'연 {hist_fcf_g_pct:+.1f}%'}\n\n"
+                            f"[산출 근거 및 법적 고지 (Disclaimer)]\n"
+                            f"1. 데이터 출처: 금융감독원 전자공시(DART) 및 미국 증권거래위원회(SEC EDGAR 10-K) 최근 10개년 연결재무제표.\n"
+                            f"2. 계산 산식: 사업수익률(ROIC) = 세후영업이익(NOPAT) ÷ 투하자본 / 역산 DCF 할인율 = max(10년물 미국채 금리, 연 9.0%) / 과거 잉여현금흐름(FCF) 역성장 시 모델상 하한선(2.0%)이 적용되므로 영상 내에서는 '역성장(측정 불가)'으로 표기합니다.\n"
+                            f"3. 면책 고지: 본 영상은 공개된 공시 데이터를 바탕으로 기계적 산식에 의해 작성된 학술·교육용 통계 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다. 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
+                            f"#shorts #{clean_tag_name} #가치투자 #배당주 #재무제표분석"
                         )
 
-                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v7_{clean_tk}_{mode_tag_k}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=165, key=f"yt_d_v7_{clean_tk}_{mode_tag_k}")
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v8_{clean_tk}_{mode_tag_k}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션 (산출 근거 및 면책 고지 자동 포함)", value=default_yt_desc, height=200, key=f"yt_d_v8_{clean_tk}_{mode_tag_k}")
 
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
@@ -8000,23 +8130,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
                             ],
-                            key=f"yt_p_v7_{clean_tk}"
+                            key=f"yt_p_v8_{clean_tk}"
                         )
                     is_scheduled_mode = yt_up_priv.startswith("scheduled")
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v7_{clean_tk}")
+                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v8_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v7_{clean_tk}")
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v8_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
-                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v7_{clean_tk}")
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v8_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v7_{clean_tk}")
+                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v8_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
@@ -8030,10 +8160,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         publish_at_iso_str = combined_kst.strftime("%Y-%m-%dT%H:%M:%S+09:00")
                         st.caption(f"✅ **최종 예약 공개 시각 (KST):** `{combined_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}`")
 
-                    has_video_ready = (f"saved_shorts_mp4_v7_{clean_tk}" in st.session_state)
+                    has_video_ready = (f"saved_shorts_mp4_v8_{clean_tk}" in st.session_state)
                     if has_video_ready:
-                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v7_{clean_tk}"]
-                        st.success("🎉 버핏·S&P500 기준 비교 & 10년 통일 쇼츠 준비 완료!")
+                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v8_{clean_tk}"]
+                        st.success("🎉 순수 배당 4년 차트 & 10년 일관성 판독 쇼츠 준비 완료!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label="📥 완성형 쇼츠(.mp4) 내 기기에 다운로드",
@@ -8041,13 +8171,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             file_name=f"AGIE_{clean_tk}_{mode_tag_k}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
                             use_container_width=True,
-                            key=f"dl_btn_v7_{clean_tk}"
+                            key=f"dl_btn_v8_{clean_tk}"
                         )
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
-                        if st.button(btn_yt_label, key=f"btn_yt_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v8_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
                             tags_arr = ["shorts", comp_name, clean_tk, "stocks" if is_en_shorts else "가치투자"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
@@ -8063,7 +8193,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v8_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -8091,7 +8221,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v7_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v8_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
@@ -8116,7 +8246,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     st.markdown("#### 📜 최종 적용 7컷 대본 미리보기 (~45초)")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
-                # ▲▲▲ 여기까지 덮어쓰세요 ▲▲▲
+                # ▲▲▲ [교체 1 끝] ▲▲▲
                 # =====================================================================
                 st.divider()
                 st.subheader(t("📊 10년 핵심 장부 요약 및 차트", "📊 10-Year Financials & Charts"))
@@ -9225,17 +9355,17 @@ with tab_vs:
                     def_vs_spd = 28 if "박창수" in vs_voice else 30
                     vs_speed = st.slider("3️⃣ 말하기 배속", 10, 45, def_vs_spd, 1, format="+%d%%", key="vs_shorts_spd")
 
+                # ▼▼▼ [교체 2 시작] 탭 2(tab_vs) 내부 약 3505행 `na, nb = res_a['name'], res_b['name']` 부터 `vs_pop_chunks = [...]` 끝까지 덮어쓰기 ▼▼▼
                 na, nb = res_a['name'], res_b['name']
                 is_kr_or_pbr = (res_a['tk'].endswith(('.KS', '.KQ')) or res_b['tk'].endswith(('.KS', '.KQ')) or res_a['is_fin'] or res_b['is_fin'])
                 w_roe = na if res_a['roe'] >= res_b['roe'] else nb
                 w_mos = na if res_a['mos'] >= res_b['mos'] else nb
-                w_tsy = na if res_a['tsy'] >= res_b['tsy'] else nb
+                w_div = na if res_a['div'] >= res_b['div'] else nb
 
                 roe_gap = abs(res_a['roe'] - res_b['roe'])
                 mos_gap = abs(res_a['mos'] - res_b['mos'])
-                tsy_gap = abs(res_a['tsy'] - res_b['tsy'])
+                div_gap = abs(res_a['div'] - res_b['div'])
 
-                # ▼▼▼ [교체 위치 3] 약 2414행 ~ 2436행 구간을 아래 코드로 덮어쓰세요 ▼▼▼
                 today_vs_str = datetime.now().strftime("%Y.%m.%d")
                 if is_kr_or_pbr:
                     wa_won = int(round(res_a['f_pbr'] * 100, 0) * 100)
@@ -9244,21 +9374,19 @@ with tab_vs:
                 else:
                     m_line_vs = f"순이익 기준 원금 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년입니다"
 
-                # [탭 2 - 1:1 맞대결] vs_pop_chunks 첫 번째 줄 수정
                 vs_pop_chunks = [
                     (f"버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
                     (m_line_vs, "VS_1"),
-                    # ... (이하 동일)
                     (f"10년 평균 대비 가격 할인 폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%입니다", "VS_2"),
                     (f"평소 대비 가격 안전마진은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높습니다", "VS_2"),
                     (f"자본을 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%입니다", "VS_3"),
                     (f"자본 증식 효율성은 {w_roe} 쪽이 {roe_gap:.1f}%p 더 앞섭니다", "VS_3"),
-                    (f"배당과 자사주 소각 환원율은 연 {res_a['tsy']:.1f}% 대 {res_b['tsy']:.1f}%입니다", "VS_4"),
-                    (f"주주환원 매력도는 {w_tsy} 쪽이 {tsy_gap:.1f}%p 더 우수합니다", "VS_4"),
+                    (f"순수 현금 배당수익률은 연 {res_a['div']:.1f}% 대 {res_b['div']:.1f}%입니다", "VS_4"),
+                    (f"배당 수익 매력도는 {w_div} 쪽이 {div_gap:.1f}%p 더 높습니다", "VS_4"),
                     (f"요약하면 자본 수익성은 {w_roe}, 가격 할인 폭은 {w_mos} 우위입니다", "VS_4"),
                     ("10년 장부 맞대결, 여러분의 포트폴리오 선택은 어디인가요?", "VS_4")
                 ]
-                # ▲▲▲ [교체 위치 3 끝] ▲▲▲
+                # ▲▲▲ [교체 2 끝] ▲▲▲
 
                 if st.button("🎬 100% 음슴체 · 괄호제거 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
                     try:
@@ -9409,8 +9537,8 @@ with tab_vs:
                                     sa, sb = f"예금의 {max(0.1, res_a['roe']/3.5):.1f}배", f"예금의 {max(0.1, res_b['roe']/3.5):.1f}배"
                                     badge_vs = f"자본 수익성 우위 : {w_roe} +{roe_gap:.1f}%p"
                                 else:
-                                    m_lbl = "비교 4. 배당 + 자사주 소각 환원율"
-                                    va, vb = f"연 {res_a['tsy']:.1f}%", f"연 {res_b['tsy']:.1f}%"
+                                    m_lbl = "비교 4. 순수 현금 배당수익률"
+                                    va, vb = f"연 {res_a['div']:.1f}%", f"연 {res_b['div']:.1f}%"
                                     sa, sb = f"종합 {res_a['score']}점", f"종합 {res_b['score']}점"
                                     badge_vs = f"수익성은 {w_roe} · 가격할인은 {w_mos} 우위"
 
@@ -10694,16 +10822,20 @@ with st.expander("🎨 유튜브 채널 프로필 로고(800x800) & 상단 표�
                 )
         except Exception as e:
             st.error(f"로고 생성 중 오류 발생: {e}")
-# ▼▼▼ 맨 하단 면책 조항 및 카피라이트 부분을 아래 코드로 교체하세요 ▼▼▼
+# ▼▼▼ [교체 3 시작] 맨 하단 면책 조항 및 계산 근거 보충 블록 ▼▼▼
 st.divider()
-lbl_disc_title = t('[법적 고지 및 면책 조항 / Legal Disclaimer]', '[Legal Disclaimer]')
+lbl_disc_title = t('[법적 고지, 산출 근거 및 면책 조항 / Legal Disclaimer & Calculation Basis]', '[Legal Disclaimer & Calculation Basis]')
 lbl_disc_1 = t(
-    '1. 본 웹 프로그램(AGIE)은 기업 비즈니스 모델 해부, 산업 분석 및 정량적 밸류에이션 프레임워크 연구를 위한 순수 학술·교육용 데이터 시각화 도구입니다. 자본시장과 금융투자업에 관한 법률상 투자자문업이나 유사투자자문업에 해당하지 않으며, 특정 종목의 매수·매도 추천이나 유료 리딩을 일절 제공하지 않습니다.',
+    '1. [비자문 고지] 본 웹 프로그램(AGIE)은 기업 비즈니스 모델 해부, 산업 분석 및 정량적 밸류에이션 프레임워크 연구를 위한 순수 학술·교육용 데이터 시각화 도구입니다. 자본시장과 금융투자업에 관한 법률상 투자자문업이나 유사투자자문업에 해당하지 않으며, 특정 종목의 매수·매도 추천이나 유료 리딩을 일절 제공하지 않습니다.',
     '1. AGIE is an educational data visualization tool for business model dissection and quantitative valuation frameworks. It does not provide investment advice or buy/sell recommendations.'
 )
 lbl_disc_2 = t(
-    '2. 표출되는 모든 정량 스코어, DCF 시뮬레이션 및 거버넌스 요약은 공개된 공시 자료(DART, SEC)와 통계적 산식에 의해 기계적으로 산출된 참고 지표일 뿐이며, 정확성이나 완전성을 보장하지 않습니다. 모든 투자의 최종 판단과 책임은 전적으로 이용자 본인에게 있습니다.',
-    '2. All quantitative scores, DCF simulations, and governance summaries are mechanically derived from public filings (DART, SEC) and statistical formulas. Final investment decisions and responsibilities rest entirely with the user.'
+    '2. [정량 지표 계산 근거] (1) 재무 원천: 한국 기업은 금융감독원 전자공시시스템(DART), 미국 기업은 증권거래위원회(SEC EDGAR 10-K)의 최근 10개년 연결재무제표를 기준으로 합니다. (2) 수익성 지표: ROE = 당기순이익 ÷ 자본총계, ROIC(사업수익률) = 세후영업이익(NOPAT) ÷ 투하자본(유이자부채+자본총계-현금성자산)으로 산출합니다. (3) 멀티플 및 선행 지표: 과거 5년·10년 평균 PER/PBR은 연중 수정주가와 연간 확정 실적을 결합한 TTM 방식으로 산출하며, 선행(Forward) PER은 시장 컨센서스 EPS를, 선행 PBR은 예상 ROE와 내부유보율을 반영해 산출합니다. (4) DCF 및 FCF 성장률: 최근 3개년 평균 잉여현금흐름(영업현금흐름-설비투자)을 기초로 할인율 max(10년물 미국채 금리, 연 9.0%)을 적용하며, 과거 10년 FCF가 역성장(음수)하거나 적자인 경우 모델 왜곡 방지를 위해 하한선(2.0%)이 기계적으로 적용되므로 쇼츠 브리핑에서는 "역성장으로 인한 측정 불가"로 판독합니다. (5) 배당 일관성: 자사주 매입을 제외한 순수 현금 배당의 최근 10개년 지급 횟수 및 최근 4개년 주당배당금(DPS) 증감 추이를 바탕으로 일관된 주주친화 여부를 판별합니다.',
+    '2. [Calculation Basis] Derived from 10-year DART and SEC 10-K filings. ROIC = NOPAT / Invested Capital. DCF uses max(10Y Treasury, 9.0%) discount rate; negative historical FCF growth hits the 2.0% model floor and is flagged as unmeasurable in video briefings. Dividend consistency evaluates 10-year pure cash dividend history and 4-year DPS trends.'
+)
+lbl_disc_3 = t(
+    '3. [책임의 한계] 표출되는 모든 정량 스코어, 수동 시뮬레이션 결과 및 거버넌스 요약은 공개된 공시 자료와 통계적 산식에 의해 기계적으로 산출된 참고 지표일 뿐이며, 데이터의 정확성이나 미래 수익을 보장하지 않습니다. 모든 투자의 최종 판단과 책임은 전적으로 이용자 본인에게 있습니다.',
+    '3. All quantitative scores and simulations are mechanically derived reference metrics and do not guarantee accuracy or future returns. Final investment decisions and responsibilities rest entirely with the user.'
 )
 lbl_copy = t(
     '본 프로그램의 분석 로직, 산식 및 데이터 표출 양식은 저작권법의 보호를 받으며, 원작자의 허가 없는 무단 복제, 배포, 상업적 이용을 엄격히 금지합니다.',
@@ -10711,13 +10843,14 @@ lbl_copy = t(
 )
 
 st.markdown(f"""
-<div style='text-align: center; color: #8892b0; font-size: 0.85rem; line-height: 1.6;'>
+<div style='text-align: center; color: #8892b0; font-size: 0.84rem; line-height: 1.65;'>
     <p><b>{lbl_disc_title}</b><br>
     {lbl_disc_1}<br>
-    {lbl_disc_2}</p>
+    {lbl_disc_2}<br>
+    {lbl_disc_3}</p>
     <p><b>[Copyright]</b><br>
     (c) 2026 AGIE. All rights reserved.<br>
     {lbl_copy}</p>
 </div>
 """, unsafe_allow_html=True)
-# ▲▲▲ 여기까지 교체 ▲▲▲
+# ▲▲▲ [교체 3 끝] ▲▲▲
