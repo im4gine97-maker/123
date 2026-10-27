@@ -1765,12 +1765,12 @@ def _load_df_from_disk_cache(clean_code):
         pass
     return pd.DataFrame()
 
+# ▼▼▼ [수리 1 시작] def _fallback_naver_fnguide_yf_10yr 부터 get_10yr_dart_financials_v2 끝까지 덮어쓰기 ▼▼▼
 def _fallback_naver_fnguide_yf_10yr(clean_code):
     """
     [주말·야간 24시간 무휴 백업 엔진]
-    DART 서버가 주말 점검이거나 해외 IP를 차단할 때,
-    1) 에프앤가이드(FnGuide) Snapshot + 2) 네이버 금융 연간 실적표 + 3) yfinance를 교차 결합해
-    끊김 없이 장기 재무제표(억 원 단위)를 생성합니다.
+    FnGuide(현금흐름표 포함) + 네이버 금융 + yfinance를 결합해
+    9.영업현금흐름, 10.설비투자(CAPEX), 11.투자현금흐름, 12.잉여현금흐름(FCF)까지 완벽 복원합니다.
     """
     all_rows = []
     headers = {
@@ -1778,7 +1778,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
         'Referer': 'https://finance.naver.com/'
     }
 
-    # 1. 에프앤가이드(FnGuide) 기업정보 스냅샷 크롤링 (주말·야간 365일 무휴 작동, 최대 5~6개년 연간 장부 제공)
+    # 1. 에프앤가이드(FnGuide) 메인 스냅샷 크롤링
     try:
         fn_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{clean_code}"
         r_fn = requests.get(fn_url, headers=headers, timeout=6)
@@ -1828,42 +1828,49 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
     except Exception:
         pass
 
-    # 2. 네이버 금융 종목분석 연간 실적 테이블 스캔
+    # 2. 에프앤가이드 재무제표 탭(SVD_Finance.asp)에서 영업현금흐름 & 설비투자(유형·무형자산 취득) 추출
     try:
-        nv_url = f"https://finance.naver.com/item/main.naver?code={clean_code}"
-        r_nv = requests.get(nv_url, headers=headers, timeout=5)
-        r_nv.encoding = 'euc-kr'
-        soup_nv = BeautifulSoup(r_nv.text, 'html.parser')
-        cop_analysis = soup_nv.select_one('div.section.cop_analysis div.sub_section table')
-        if cop_analysis:
-            thead_trs = cop_analysis.select('thead tr')
-            if len(thead_trs) >= 2:
-                ths = thead_trs[1].find_all('th')[:4]  # 최근 4개 확정 연간 실적
-                nv_years = []
-                for th in ths:
-                    m_y = re.search(r'(20\d{2})\.\d{2}', th.text.strip())
-                    nv_years.append(m_y.group(1) if m_y else None)
+        fn_fin_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Finance.asp?pGB=1&gicode=A{clean_code}"
+        r_ff = requests.get(fn_fin_url, headers=headers, timeout=6)
+        if r_ff.status_code == 200:
+            r_ff.encoding = 'utf-8'
+            soup_ff = BeautifulSoup(r_ff.text, 'html.parser')
+            cf_div = soup_ff.find('div', {'id': 'divCashY'})
+            if cf_div:
+                tbl_cf = cf_div.find('table')
+                if tbl_cf:
+                    ths = tbl_cf.find('thead').find_all('th')[1:5]
+                    cf_years = []
+                    for th in ths:
+                        m_y = re.search(r'(20\d{2})/\d{2}', th.text.strip())
+                        cf_years.append(m_y.group(1) if m_y else None)
 
-                for tr in cop_analysis.select('tbody tr'):
-                    th_nm = tr.find('th')
-                    if not th_nm:
-                        continue
-                    nm_txt = th_nm.text.strip()
-                    std_l = None
-                    if '매출액' in nm_txt: std_l = '1. 매출액'
-                    elif '영업이익' in nm_txt and '률' not in nm_txt: std_l = '3. 영업이익'
-                    elif '당기순이익' in nm_txt: std_l = '4. 당기순이익'
-                    if std_l:
+                    capex_acc = {}
+                    for tr in tbl_cf.find('tbody').find_all('tr'):
+                        th_t = tr.find('th')
+                        if not th_t:
+                            continue
+                        t_nm = re.sub(r'\s+', '', th_t.text.strip())
                         tds = tr.find_all('td')[:4]
-                        for y_s, td in zip(nv_years, tds):
-                            if y_s:
-                                v_c = re.sub(r'[^\d\.\-]', '', td.text)
-                                if v_c not in ['', '-']:
-                                    all_rows.append({'연도': y_s, '계정': std_l, '금액': safe_float(v_c)})
+                        for y_s, td in zip(cf_years, tds):
+                            if not y_s:
+                                continue
+                            v_c = re.sub(r'[^\d\.\-]', '', td.text)
+                            if v_c in ['', '-']:
+                                continue
+                            val_f = safe_float(v_c)
+                            if '영업활동으로인한현금흐름' in t_nm:
+                                all_rows.append({'연도': y_s, '계정': '9. 영업현금흐름', '금액': val_f})
+                            elif '투자활동으로인한현금흐름' in t_nm:
+                                all_rows.append({'연도': y_s, '계정': '11. 투자현금흐름', '금액': val_f})
+                            elif any(k in t_nm for k in ['유형자산의증가', '유형자산의취득', '무형자산의증가', '무형자산의취득']):
+                                capex_acc[y_s] = capex_acc.get(y_s, 0.0) + abs(val_f)
+                    for y_s, cx_v in capex_acc.items():
+                        all_rows.append({'연도': y_s, '계정': '10. 설비투자 (CAPEX)', '금액': cx_v})
     except Exception:
         pass
 
-    # 3. yfinance 재무제표 결합 (현금흐름표·유동자산·매출총이익 보완)
+    # 3. yfinance 재무제표 결합 (현금흐름표·CAPEX·잉여현금흐름 보완)
     for suffix in [".KS", ".KQ"]:
         try:
             stk = yf.Ticker(clean_code + suffix)
@@ -1873,7 +1880,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
             if inc is None or inc.empty:
                 continue
 
-            def _add_yf_row(df_src, keys, std_label):
+            def _add_yf_row(df_src, keys, std_label, is_abs=False):
                 if df_src is None or df_src.empty:
                     return
                 for k in keys:
@@ -1881,7 +1888,10 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
                         for c_date, v in df_src.loc[k].dropna().items():
                             y_s = str(c_date)[:4]
                             if y_s.isdigit():
-                                all_rows.append({'연도': y_s, '계정': std_label, '금액': safe_float(v) / 100000000.0})
+                                val_uk = safe_float(v) / 100000000.0
+                                if is_abs:
+                                    val_uk = abs(val_uk)
+                                all_rows.append({'연도': y_s, '계정': std_label, '금액': val_uk})
                         break
 
             _add_yf_row(inc, ['Total Revenue', 'Operating Revenue'], '1. 매출액')
@@ -1893,8 +1903,9 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
             _add_yf_row(bs, ['Total Liabilities Net Minority Interest', 'Total Debt'], '7. 부채총계')
             _add_yf_row(bs, ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity'], '8. 자본총계')
             _add_yf_row(cf, ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities'], '9. 영업현금흐름')
-            _add_yf_row(cf, ['Investing Cash Flow'], '10. 투자현금흐름')
-            _add_yf_row(cf, ['Financing Cash Flow'], '11. 재무현금흐름')
+            _add_yf_row(cf, ['Capital Expenditure', 'Capital Expenditures'], '10. 설비투자 (CAPEX)', is_abs=True)
+            _add_yf_row(cf, ['Investing Cash Flow'], '11. 투자현금흐름')
+            _add_yf_row(cf, ['Free Cash Flow'], '12. 잉여현금흐름 (FCF)')
             break
         except Exception:
             continue
@@ -1905,7 +1916,18 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
     df = pd.DataFrame(all_rows).dropna().drop_duplicates(subset=['연도', '계정'], keep='first')
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
 
-    # 4. 만약 DART 점검 중에 처음 조회한 종목이라 연도가 5개년 미만이면, 과거 연도를 보수적 추세로 확장해 10년 엔진 멈춤 방지
+    # 12. 잉여현금흐름 (FCF) = 9. 영업현금흐름 - 10. 설비투자(CAPEX) 자동 계산 및 주입
+    for col_y in pivot_df.columns:
+        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y]) if '9. 영업현금흐름' in pivot_df.index else 0.0
+        capex_v = abs(safe_float(pivot_df.loc['10. 설비투자 (CAPEX)', col_y])) if '10. 설비투자 (CAPEX)' in pivot_df.index else 0.0
+        icf_v = safe_float(pivot_df.loc['11. 투자현금흐름', col_y]) if '11. 투자현금흐름' in pivot_df.index else 0.0
+        fcf_existing = safe_float(pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y]) if '12. 잉여현금흐름 (FCF)' in pivot_df.index else 0.0
+
+        if ocf_v != 0 and capex_v > 0:
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - capex_v
+        elif fcf_existing == 0.0 and ocf_v != 0 and icf_v != 0:
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v + icf_v
+
     avail_cols = sorted(pivot_df.columns, reverse=True)
     if 2 <= len(avail_cols) < 6:
         oldest_y = int(avail_cols[-1])
@@ -1919,14 +1941,19 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
         '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
-        '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
+        '9. 영업현금흐름', '10. 설비투자 (CAPEX)', '11. 투자현금흐름', '12. 잉여현금흐름 (FCF)'
     ]
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index])
 
 
 @st.cache_data(ttl=86400*7, show_spinner=False)
-def _fetch_pure_dart_10yr_cached(corp_code, api_key):
-    """[DART 1순위 수집기] 야간·주말 방화벽 지연에 대비해 타임아웃을 8초로 늘리고 자동 재시도(Retry) 적용"""
+def _fetch_pure_dart_10yr_cached_v3(corp_code, api_key):
+    """
+    [DART 정통 10년 수집기 v3]
+    기존처럼 요약 API(fnlttSinglAcnt)에서 조기 종료하여 현금흐름표를 증발시키지 않고,
+    전체 재무제표 API(fnlttSinglAcntAll)를 끝까지 호출하여
+    9.영업현금흐름, 10.설비투자(CAPEX), 11.투자현금흐름, 12.잉여현금흐름(FCF = OCF - CAPEX)을 100% 추출합니다!
+    """
     base_y = 2025 if datetime.now().year >= 2026 else 2024
     years = [base_y, base_y - 2, base_y - 5, base_y - 8]
 
@@ -1950,10 +1977,17 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         'ifrs-full_EquityAttributableToOwnersOfParent': '8. 자본총계',
         'ifrs-full_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
         'ifrs_CashFlowsFromUsedInOperatingActivities': '9. 영업현금흐름',
-        'ifrs-full_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
-        'ifrs_CashFlowsFromUsedInInvestingActivities': '10. 투자현금흐름',
-        'ifrs-full_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름',
-        'ifrs_CashFlowsFromUsedInFinancingActivities': '11. 재무현금흐름'
+        'ifrs-full_CashFlowsFromUsedInInvestingActivities': '11. 투자현금흐름',
+        'ifrs_CashFlowsFromUsedInInvestingActivities': '11. 투자현금흐름'
+    }
+
+    capex_ids = {
+        'ifrs-full_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities',
+        'ifrs_PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities',
+        'dart_PurchaseOfPropertyPlantAndEquipment',
+        'ifrs-full_PurchaseOfIntangibleAssetsClassifiedAsInvestingActivities',
+        'ifrs_PurchaseOfIntangibleAssetsClassifiedAsInvestingActivities',
+        'dart_PurchaseOfIntangibleAssets'
     }
 
     def _parse_amt(val_str):
@@ -1962,15 +1996,74 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
         clean_s = re.sub(r'[^\d\-]', '', str(val_str))
         return float(clean_s) if clean_s not in ['', '-'] else None
 
-    def _fetch_year_resilient(y):
+    def _fetch_year_full(y):
         y_rows = []
-        light_success = False
-        url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
+        capex_by_yr = {}
+        full_success = False
 
-        # 야간·주말 지연을 견디는 2회 재시도 루프 (타임아웃 7.5초)
-        for attempt in range(2):
+        # [핵심 수리] 현금흐름표와 CAPEX가 모두 들어 있는 fnlttSinglAcntAll.json을 1순위로 호출!
+        for fs_div in ['CFS', 'OFS']:
+            url_all = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
+            for attempt in range(2):
+                try:
+                    r = session.get(url_all, timeout=8.0)
+                    if r.status_code == 200:
+                        data = r.json()
+                        if data.get('status') == '000' and data.get('list'):
+                            for item in data.get('list', []):
+                                acct_id = item.get('account_id', '').strip()
+                                raw_nm = re.sub(r'[\s\(\)\.\-\_\[\]]', '', item.get('account_nm', ''))
+                                sj_div = item.get('sj_div', '').strip()
+
+                                # 1) 설비투자(CAPEX: 유형자산의 취득 + 무형자산의 취득) 정밀 합산
+                                is_capex_item = (acct_id in capex_ids) or (
+                                    sj_div == 'CF' and any(k in raw_nm for k in [
+                                        '유형자산의취득', '유형자산의증가', '유형자산취득',
+                                        '무형자산의취득', '무형자산의증가', '무형자산취득'
+                                    ]) and '처분' not in raw_nm and '감소' not in raw_nm
+                                )
+                                if is_capex_item:
+                                    for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
+                                        v_num = _parse_amt(item.get(k_amt))
+                                        if v_num is not None and v_num != 0:
+                                            yr_k = str(y - offset)
+                                            capex_by_yr[yr_k] = capex_by_yr.get(yr_k, 0.0) + abs(v_num)
+                                    continue
+
+                                # 2) 표준 계정 매핑 (1~9번, 11번)
+                                std_nm = std_mapping.get(acct_id)
+                                if not std_nm:
+                                    if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
+                                    elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
+                                    elif raw_nm in ['영업이익', '영업이익손실']: std_nm = '3. 영업이익'
+                                    elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익', '당기순이익손실']): std_nm = '4. 당기순이익'
+                                    elif raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
+                                    elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
+                                    elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
+                                    elif raw_nm.endswith('자본총계'): std_nm = '8. 자본총계'
+                                    elif '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
+                                    elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 투자현금흐름'
+
+                                if std_nm:
+                                    for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
+                                        v_num = _parse_amt(item.get(k_amt))
+                                        if v_num is not None:
+                                            y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
+                            full_success = True
+                            break
+                except Exception:
+                    time.sleep(0.25)
+            if full_success:
+                break
+
+        for yr_k, cx_tot in capex_by_yr.items():
+            y_rows.append({'연도': yr_k, '계정': '10. 설비투자 (CAPEX)', '금액': cx_tot})
+
+        # 만약 전체 API가 실패한 연도에 한해서만 요약 API 보조 호출
+        if not full_success:
+            url_light = f"https://opendart.fss.or.kr/api/fnlttSinglAcnt.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011"
             try:
-                r_l = session.get(url_light, timeout=7.5)
+                r_l = session.get(url_light, timeout=6.0)
                 if r_l.status_code == 200:
                     data_l = r_l.json()
                     if data_l.get('status') == '000' and data_l.get('list'):
@@ -1992,52 +2085,15 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
                                             v_num = _parse_amt(item.get(k_amt))
                                             if v_num is not None:
                                                 y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
-                                light_success = True
                                 break
-                        break
-            except Exception:
-                time.sleep(0.3 * (attempt + 1))
-
-        if light_success:
-            return y_rows
-
-        for fs_div in ['CFS', 'OFS']:
-            url_all = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={api_key}&corp_code={corp_code}&bsns_year={y}&reprt_code=11011&fs_div={fs_div}"
-            try:
-                r = session.get(url_all, timeout=8.0)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('status') == '000' and data.get('list'):
-                        for item in data.get('list', []):
-                            acct_id = item.get('account_id', '').strip()
-                            raw_nm = re.sub(r'[\s\(\)\.\-\_]', '', item.get('account_nm', ''))
-                            std_nm = std_mapping.get(acct_id)
-                            if not std_nm:
-                                if any(k in raw_nm for k in ['매출액', '영업수익', '이자수익', '보험수익', '순영업수익']): std_nm = '1. 매출액'
-                                elif '매출총이익' in raw_nm: std_nm = '2. 매출총이익'
-                                elif '영업이익' in raw_nm: std_nm = '3. 영업이익'
-                                elif any(k in raw_nm for k in ['당기순이익', '연결당기순이익', '지배기업소유주지분순이익']): std_nm = '4. 당기순이익'
-                                elif raw_nm.endswith('자산총계'): std_nm = '5. 자산총계'
-                                elif raw_nm.endswith('유동자산'): std_nm = '6. 유동자산'
-                                elif raw_nm.endswith('부채총계'): std_nm = '7. 부채총계'
-                                elif raw_nm.endswith('자본총계'): std_nm = '8. 자본총계'
-                                elif '영업활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '9. 영업현금흐름'
-                                elif '투자활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '10. 투자현금흐름'
-                                elif '재무활동' in raw_nm and '현금흐름' in raw_nm: std_nm = '11. 재무현금흐름'
-                            if std_nm:
-                                for offset, k_amt in [(0, 'thstrm_amount'), (1, 'frmtrm_amount'), (2, 'bfefrmtrm_amount')]:
-                                    v_num = _parse_amt(item.get(k_amt))
-                                    if v_num is not None:
-                                        y_rows.append({'연도': str(y - offset), '계정': std_nm, '금액': v_num})
-                        break
             except Exception:
                 pass
+
         return y_rows
 
     all_data = []
-    # 동시 요청 수를 2개로 낮춰 금감원 방화벽의 주말·야간 Rate Limit 차단 원천 방지
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(_fetch_year_resilient, y) for y in years]
+        futures = [executor.submit(_fetch_year_full, y) for y in years]
         for fut in concurrent.futures.as_completed(futures):
             try:
                 all_data.extend(fut.result())
@@ -2052,10 +2108,28 @@ def _fetch_pure_dart_10yr_cached(corp_code, api_key):
     if len(pivot_df.columns) < 5:
         raise RuntimeError("DART 연도 부족")
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]] / 100000000.0
+
+    # [핵심] 한국 주식 정통 FCF = 9. 영업현금흐름 - 10. 설비투자(CAPEX) 계산하여 12번 행에 공식 생성!
+    for col_y in pivot_df.columns:
+        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y]) if '9. 영업현금흐름' in pivot_df.index else 0.0
+        capex_v = abs(safe_float(pivot_df.loc['10. 설비투자 (CAPEX)', col_y])) if '10. 설비투자 (CAPEX)' in pivot_df.index else 0.0
+        icf_v = safe_float(pivot_df.loc['11. 투자현금흐름', col_y]) if '11. 투자현금흐름' in pivot_df.index else 0.0
+        ni_v = safe_float(pivot_df.loc['4. 당기순이익', col_y]) if '4. 당기순이익' in pivot_df.index else 0.0
+
+        if ocf_v != 0 and capex_v > 0:
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - capex_v
+        elif ocf_v != 0 and icf_v != 0:
+            # CAPEX 세부 계정이 없는 일부 금융/지주사는 OCF + ICF 적용하되, 단기금융상품 예치 왜곡 방어
+            raw_fcf = ocf_v + icf_v
+            if raw_fcf <= 0 and ocf_v > 0 and ni_v > 0:
+                pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = min(ocf_v * 0.70, ni_v * 0.85)
+            else:
+                pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = raw_fcf
+
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
         '5. 자산총계', '6. 유동자산', '7. 부채총계', '8. 자본총계',
-        '9. 영업현금흐름', '10. 투자현금흐름', '11. 재무현금흐름'
+        '9. 영업현금흐름', '10. 설비투자 (CAPEX)', '11. 투자현금흐름', '12. 잉여현금흐름 (FCF)'
     ]
     return pivot_df.reindex([i for i in final_idx if i in pivot_df.index])
 
@@ -2065,41 +2139,55 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
     if clean_code.endswith("5") and clean_code[:-1] + "0" in DART_CORP_MAP_BUILTIN:
         clean_code = clean_code[:-1] + "0"
 
-    # 1순위: 세션 메모리 캐시 확인 (0.00초)
-    cache_key = f"dart_df_cache_{clean_code}"
+    # [핵심] 기존 잘못된 캐시(현금흐름표가 빠진 캐시)를 무시하도록 캐시 키를 v3로 업그레이드!
+    cache_key = f"dart_df_cache_v3_{clean_code}"
     if cache_key in st.session_state and not st.session_state[cache_key].empty:
         cached_df = st.session_state[cache_key]
-        if len(cached_df.columns) >= 5:
+        if len(cached_df.columns) >= 5 and '12. 잉여현금흐름 (FCF)' in cached_df.index:
             return cached_df, "성공 (메모리 캐시 연동)"
 
-    # 2순위: 로컬 디스크 영구 캐시 확인 (주말·야간에도 0.01초 만에 10년 치 즉시 로드!)
-    disk_df = _load_df_from_disk_cache(clean_code)
-    if not disk_df.empty and len(disk_df.columns) >= 5:
-        st.session_state[cache_key] = disk_df
-        return disk_df, "성공 (영구 디스크 백업 연동)"
+    disk_file_v3 = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_10yr_v3.json")
+    try:
+        if os.path.exists(disk_file_v3):
+            disk_df = pd.read_json(disk_file_v3, orient="split")
+            if not disk_df.empty and len(disk_df.columns) >= 5 and '12. 잉여현금흐름 (FCF)' in disk_df.index:
+                disk_df.columns = [str(c) for c in disk_df.columns]
+                st.session_state[cache_key] = disk_df
+                return disk_df, "성공 (영구 디스크 백업 v3 연동)"
+    except Exception:
+        pass
 
-    # 3순위: DART 공식 API 호출 (성공 시 디스크에 영구 저장)
     effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
     corp_code = mapping.get(clean_code)
 
     if corp_code:
         try:
-            dart_df = _fetch_pure_dart_10yr_cached(corp_code, effective_key)
+            dart_df = _fetch_pure_dart_10yr_cached_v3(corp_code, effective_key)
             if not dart_df.empty and len(dart_df.columns) >= 5:
+                # 만약 DART에서 현금흐름표가 일부 누락된 경우 백업 엔진으로 9~12번 행만 보충
+                if '12. 잉여현금흐름 (FCF)' not in dart_df.index:
+                    fb_sub = _fallback_naver_fnguide_yf_10yr(clean_code)
+                    for cf_row in ['9. 영업현금흐름', '10. 설비투자 (CAPEX)', '11. 투자현금흐름', '12. 잉여현금흐름 (FCF)']:
+                        if cf_row in fb_sub.index:
+                            for c_y in dart_df.columns:
+                                if c_y in fb_sub.columns:
+                                    dart_df.loc[cf_row, c_y] = fb_sub.loc[cf_row, c_y]
                 st.session_state[cache_key] = dart_df
-                _save_df_to_disk_cache(clean_code, dart_df)
-                return dart_df, "성공 (DART 10년 실시간 연동)"
+                try:
+                    dart_df.to_json(disk_file_v3, orient="split", force_ascii=False)
+                except Exception:
+                    pass
+                return dart_df, "성공 (DART 10년 정통 FCF 실시간 연동)"
         except Exception:
             pass
 
-    # 4순위: 주말·야간 무휴 백업 엔진 (FnGuide + 네이버 금융 + yfinance 결합)
     fb_df = _fallback_naver_fnguide_yf_10yr(clean_code)
     if not fb_df.empty:
         st.session_state[cache_key] = fb_df
         return fb_df, "성공 (주말·야간 24시간 백업 엔진 연동)"
     return fb_df, "데이터 확인 필요"
-# ▲▲▲ 여기까지 교체 (바로 아래에 def get_yf_info(stk): 가 이어지면 됩니다) ▲▲▲
+# ▲▲▲ [수리 1 끝] ▲▲▲
 def get_yf_info(stk):
     try:
         res = stk.info
@@ -4182,8 +4270,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     yp = get_avg_price(y_int)
                     if yp <= 0: yp = reg_p
                     
+                    # ▼▼▼ get_10yr_custom_metrics 내부 'elif kr:' 블록 안쪽 (약 1615행) ocf / icf / calc_fcf 부분 교체 ▼▼▼
                     ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
-                    icf = safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0
+                    capex = abs(safe_float(dart_df.loc['10. 설비투자 (CAPEX)', y_str])) * 100000000 if '10. 설비투자 (CAPEX)' in dart_df.index else 0
+                    fcf_direct = safe_float(dart_df.loc['12. 잉여현금흐름 (FCF)', y_str]) * 100000000 if '12. 잉여현금흐름 (FCF)' in dart_df.index else 0
                     _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000 if '4. 당기순이익' in dart_df.index else 0
                     _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000 if '8. 자본총계' in dart_df.index else 0
                     _op = safe_float(dart_df.loc['3. 영업이익', y_str]) * 100000000 if '3. 영업이익' in dart_df.index else 0
@@ -4194,9 +4284,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _eq <= 0 and _ast > _liab and _liab > 0:
                         _eq = _ast - _liab
 
-                    calc_fcf = ocf + icf if (ocf != 0 or icf != 0) else 0
-                    if calc_fcf <= 0 and _ni > 0:
-                        calc_fcf = min(ocf * 0.7, _ni * 0.85) if ocf > 0 else (_ni * 0.85)
+                    calc_fcf = fcf_direct if fcf_direct != 0 else ((ocf - capex) if (ocf != 0 and capex > 0) else 0)
+                    if calc_fcf <= 0 and _ni > 0 and ocf > 0:
+                        calc_fcf = min(ocf * 0.7, _ni * 0.85)
+                    # ▲▲▲ 여기까지 교체 ▲▲▲
                     if calc_fcf != 0:
                         fcf_list.append(calc_fcf)
                     if _ni > 0:
@@ -6327,28 +6418,39 @@ with tab1:
                     
                     cd = tk.split('.')[0] if kr else tk
                     
-                    # --- 1. 한국 주식: DART API 연동 ---
+                    # ▼▼▼ [수리 2] 약 2245행 '# --- 1. 한국 주식: DART API 연동 ---' 블록 덮어쓰기 ▼▼▼
                     if kr and DART_API_KEY:
                         dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
                         if not dart_df.empty:
-                            # 신생기업 유도리: 존재하는 연도만 오름차순 정렬
                             df_sorted = dart_df[sorted(dart_df.columns)]
                             years = df_sorted.columns.tolist()
                             
-                            # DART 데이터는 내부적으로 억 원 단위로 축소되어 있으므로 스케일링 함수 호환을 위해 원 단위로 복원
                             if '1. 매출액' in df_sorted.index: rev = (df_sorted.loc['1. 매출액'].fillna(0) * 1e8).tolist()
                             if '4. 당기순이익' in df_sorted.index: ni = (df_sorted.loc['4. 당기순이익'].fillna(0) * 1e8).tolist()
                             
-                            ocf = df_sorted.loc['9. 영업현금흐름'].fillna(0) * 1e8 if '9. 영업현금흐름' in df_sorted.index else pd.Series(0, index=years)
-                            icf = df_sorted.loc['10. 투자현금흐름'].fillna(0) * 1e8 if '10. 투자현금흐름' in df_sorted.index else pd.Series(0, index=years)
-                            
-                            fcf_series = ocf + icf
-                            if (ocf.sum() != 0 or icf.sum() != 0):
-                                fcf_chart = fcf_series.tolist()
-                                fcf_years = years
-                                
+                            # 1순위: DART 정통 산식(OCF - CAPEX)으로 생성된 '12. 잉여현금흐름 (FCF)' 행 사용
+                            if '12. 잉여현금흐름 (FCF)' in df_sorted.index:
+                                fcf_s_kr = df_sorted.loc['12. 잉여현금흐름 (FCF)'].fillna(0) * 1e8
+                                if (fcf_s_kr.abs().sum() > 0):
+                                    fcf_chart = fcf_s_kr.tolist()
+                                    fcf_years = years
+                            # 2순위: 만약 DART에서 누락되었을 경우 yfinance 현금흐름표로 즉시 보완
+                            if not fcf_chart and stk is not None:
+                                try:
+                                    cf_yf = stk.cash_flow
+                                    if cf_yf is not None and not cf_yf.empty:
+                                        cf_cols = cf_yf.columns[:10]
+                                        fcf_years = [str(c)[:4] for c in cf_cols][::-1]
+                                        if 'Free Cash Flow' in cf_yf.index:
+                                            fcf_chart = cf_yf.loc['Free Cash Flow'].iloc[:len(cf_cols)].values[::-1].tolist()
+                                        elif 'Operating Cash Flow' in cf_yf.index and 'Capital Expenditure' in cf_yf.index:
+                                            fcf_chart = (cf_yf.loc['Operating Cash Flow'] + cf_yf.loc['Capital Expenditure']).iloc[:len(cf_cols)].values[::-1].tolist()
+                                except Exception:
+                                    pass
+                                    
                             if len(rev) > 0 and len(ni) > 0:
                                 api_success = True
+                    # ▲▲▲ [수리 2 끝] ▲▲▲
 
                     # --- 2. 미국 주식: SEC EDGAR API 연동 (ADR 제외) ---
                     elif not kr and not is_adr:
@@ -6584,49 +6686,68 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "💡 Pure dividend 10Y consistency & 4Y chart, manual metric overrides (10Y FCF Growth, Fwd PER, Fwd PBR), FCF negative growth detection, and legal calculation basis."
                     ))
 
-                    # =========================================================================
-                    # [신규 기능] 사용자가 직접 수정 가능한 핵심 지표 3종 컨트롤러
-                    # (수정 즉시 쇼츠 내 모든 대본·차트·할인율에 100% 연동, 자체 FCF 재계산 금지 준수)
-                    # =========================================================================
-                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 직접 수정 (원본값 자동 로드 · 수정 시 대본/차트 즉시 반영)")
-                    ov_col1, ov_col2, ov_col3 = st.columns(3)
-                    with ov_col1:
+                    # ▼▼▼ [수리 3 시작] 쇼츠 스튜디오 상단 5대 핵심 지표 직접 수정 패널 ▼▼▼
+                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 5종 직접 수정 (키움증권·시킹알파 수치로 수정 시 대본/차트 즉시 반영)")
+                    ov_c1, ov_c2, ov_c3, ov_c4, ov_c5 = st.columns(5)
+                    with ov_c1:
                         sh_fcf_g_pct = st.number_input(
-                            "📉 10년 FCF 성장률 (%, 2.0%=역성장 하한선)",
+                            "📉 10년 FCF 성장률(%)",
                             min_value=-50.0, max_value=100.0,
                             value=float(round(final_g * 100.0, 2)),
                             step=0.1, format="%.2f",
-                            help="본문 DCF 모델에서 역성장 시 2.0%로 고정된 값입니다. 2.0% 이하일 경우 쇼츠에서 자동으로 '역성장(측정 불가)'으로 안내합니다.",
+                            help="역성장 시 모델 하한선인 2.0%로 고정됩니다. 2.0% 이하일 경우 쇼츠에서 자동으로 '역성장(측정 불가)'으로 안내합니다.",
                             key=f"sh_ov_fcfg_{tk}"
                         )
-                    with ov_col2:
+                    with ov_c2:
                         sh_f_pe = st.number_input(
-                            "⏱️ 선행 PER (Fwd PER, 배/년)",
+                            "⏱️ 선행 PER (배)",
                             min_value=0.0, max_value=500.0,
                             value=float(round(max(0.0, f_pe), 2)),
                             step=0.1, format="%.2f",
-                            help="시킹알파·증권사 컨센서스 기준 본전 회수 기간(배)을 직접 수정할 수 있습니다.",
+                            help="시킹알파·네이버 컨센서스 기준 선행 PER(본전 회수 기간)을 직접 수정합니다.",
                             key=f"sh_ov_fpe_{tk}"
                         )
-                    with ov_col3:
+                    with ov_c3:
+                        sh_a_pe = st.number_input(
+                            "📊 10년 평균 PER (배)",
+                            min_value=0.0, max_value=500.0,
+                            value=float(round(max(0.0, a_pe), 2)),
+                            step=0.1, format="%.2f",
+                            help="키움증권 기준 10년(또는 5년) 평균 PER을 직접 입력하여 할인율을 교정할 수 있습니다.",
+                            key=f"sh_ov_ape_{tk}"
+                        )
+                    with ov_c4:
                         sh_f_pbr = st.number_input(
-                            "🏛️ 선행 PBR (Fwd PBR, 배)",
+                            "🏛️ 선행 PBR (배)",
                             min_value=0.0, max_value=200.0,
                             value=float(round(max(0.0, f_pbr), 2)),
                             step=0.01, format="%.2f",
-                            help="장부상 순자산 대비 주가 배수(PBR)를 직접 수정할 수 있습니다.",
+                            help="현재 또는 선행 기준 주가순자산비율(PBR)을 직접 수정합니다.",
                             key=f"sh_ov_fpbr_{tk}"
                         )
+                    with ov_c5:
+                        sh_a_pbr = st.number_input(
+                            "📐 10년 평균 PBR (배)",
+                            min_value=0.0, max_value=200.0,
+                            value=float(round(max(0.0, a_pbr), 2)),
+                            step=0.01, format="%.2f",
+                            help="키움증권 기준 10년(또는 5년) 평균 PBR을 직접 입력하여 할인율을 교정할 수 있습니다.",
+                            key=f"sh_ov_apbr_{tk}"
+                        )
 
-                    # 수동 입력값 기반 파생 지표 동기화 (쇼츠 전용)
+                    # 쇼츠 스튜디오 내 모든 대본·차트가 수동 수정된 10년 평균 PER/PBR을 참조하도록 동기화
+                    a_pe = sh_a_pe
+                    a_pbr = sh_a_pbr
+
                     sh_ey = (100.0 / sh_f_pe) if sh_f_pe > 0 else 0.0
                     if is_financial or kr or is_cyclical:
                         sh_pmos_val = ((a_pbr - sh_f_pbr) / a_pbr) * 100.0 if (sh_f_pbr > 0 and a_pbr > 0) else 0.0
                     else:
                         sh_pmos_val = ((a_pe - sh_f_pe) / a_pe) * 100.0 if (sh_f_pe > 0 and a_pe > 0) else 0.0
 
-                    # [핵심 요구사항] FCF 자체 계산 금지! 본문 final_g(또는 수정값)가 2.0% 고정치 이하이거나 FCF 적자면 '역성장 측정 불가' 판정
+                    # FCF 자체 계산 금지! 본문 final_g(또는 수동 입력값)가 2.0% 이하이거나 FCF 적자면 '역성장 측정 불가' 판정
                     is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct <= 2.001)
+                    # ▲▲▲ [수리 3 끝] (바로 아래에 mode_col1, mode_col2 = st.columns([1.8, 1.2]) 가 이어집니다) ▲▲▲
 
                     mode_col1, mode_col2 = st.columns([1.8, 1.2])
                     with mode_col1:
@@ -7279,7 +7400,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         scene_codes_fixed = ["SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_3", "SCENE_4"]
 
                     hook_key_tag = selected_hook_idx if (not is_en_shorts and not is_earnings_mode) else 0
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_{sh_f_pbr:.2f}"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_{a_pe:.1f}_{sh_f_pbr:.2f}_{a_pbr:.2f}"
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}_H{hook_key_tag}_{ov_sig}_V8"
 
                     st.markdown("##### ✏️ 6️⃣ 쇼츠 7컷 대본 직접 수정 (약 45초 황금 길이 · 한 줄이 1컷입니다)")
