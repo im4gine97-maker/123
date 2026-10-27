@@ -6610,40 +6610,37 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     is_earnings_mode = ("모드 2" in shorts_content_mode)
 
                     col_sh1, col_sh2 = st.columns([1.5, 1.5])
+                    # ▼▼▼ 교체할 부분 시작 (성우 및 배속 설정) ▼▼▼
                     with col_sh1:
                         if is_en_shorts:
                             voice_choice = st.selectbox(
-                                "1️⃣ 미국 본토 AI 성우 선택 (US Finance 채널 추천순)",
+                                "1️⃣ 미국 본토 AI 성우 선택",
                                 [
-                                    "🥇 1위 [Andrew Neural] 월스트리트 모닝 브리핑 남성 (신뢰도 1위)",
-                                    "🥈 2위 [Brian Neural] 차분한 다큐멘터리 내레이션 남성",
-                                    "🥉 3위 [Christopher Neural] 권위 있는 애널리스트 남성",
-                                    "4위 [Ava Neural] 깔끔한 뉴스 앵커 여성"
+                                    "🥇 1위 [Andrew] 월스트리트 모닝 브리핑 남성 (신뢰도 1위)",
+                                    "🥈 2위 [Brian] 차분한 다큐멘터리 남성",
+                                    "🥉 3위 [Ava] 깔끔한 뉴스 앵커 여성"
                                 ],
                                 key=f"shorts_voice_en_v5_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
-                                "1️⃣ 쇼츠 AI 성우 선택 (3050 신뢰도 추천순 정렬)",
+                                "1️⃣ 쇼츠 AI 성우 선택 (45초 압축 템포 최적화)",
                                 [
-                                    "🥇 1위 [ElevenLabs Brian·Adam 톤] 월스트리트 라디오·뉴스 남성 (강력 추천)",
+                                    "🥇 1위 [ElevenLabs Brian 톤] 월스트리트 라디오·뉴스 남성 (강력 추천)",
                                     "🥈 2위 [OpenAI Onyx 톤] 중후한 다큐멘터리 내레이션 남성",
-                                    "🥉 3위 [Typecast 진우·건우 톤] 팩트체크 경제 스페셜리스트 남성",
-                                    "4위 [CLOVA 아라 / OpenAI Nova 톤] 차분한 뉴스 브리핑 여성",
-                                    "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
-                                    "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
+                                    "🥉 3위 [CLOVA 아라 톤] 차분한 뉴스 브리핑 여성",
+                                    "4위 [충청도 청년 박창수 톤] 친근한 스토리텔링 남성"
                                 ],
                                 key=f"shorts_voice_ko_v5_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
-                            "2️⃣ 배경음악 선택 (시청 지속시간 추천순 정렬)",
+                            "2️⃣ 배경음악 선택",
                             [
-                                "🥇 1위 🎧 모던 금융 다큐멘터리 칠 비트 (머니그라피·삼프로 감성)",
-                                "🥈 2위 🌆 월스트리트 딥 신스웨이브 (경제·이슈 쇼츠 트렌드)",
-                                "🥉 3위 ☕ 재즈 로파이 라운지 (워런 버핏의 서재 감성)",
-                                "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
-                                "5위 🔇 배경음악 없음 (성우 목소리만)"
+                                "🥇 1위 🎧 모던 금융 다큐멘터리 칠 비트",
+                                "🥈 2위 🌆 월스트리트 딥 신스웨이브",
+                                "🥉 3위 ⚡ 업비트 테크 플럭 (빠른 템포용)",
+                                "4위 🔇 배경음악 없음"
                             ],
                             key=f"shorts_bgm_v5_{tk}"
                         )
@@ -6651,25 +6648,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     col_sh3, col_sh4 = st.columns([1.5, 1.5])
                     with col_sh3:
                         sfx_choice = st.selectbox(
-                            "3️⃣ 화면 전환 짧은 효과음 (SFX · 추천순 정렬)",
+                            "3️⃣ 화면 전환 짧은 효과음 (SFX)",
                             [
-                                "🥇 1위 ✨ 모던 휙(Whoosh) + 결론 맑은 딩(Chime) [가장 세련됨]",
-                                "🥈 2위 🫧 토스·애플 스타일 소프트 팝 (깔끔한 UI 클릭음)",
-                                "🥉 3위 💨 시네마틱 로우 스우시 (묵직한 다큐멘터리 전환음)",
-                                "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
-                                "5위 🔇 화면 전환 효과음 없음"
+                                "🥇 1위 ✨ 모던 휙(Whoosh) + 결론 맑은 딩(Chime)",
+                                "🥈 2위 🫧 토스·애플 스타일 소프트 팝",
+                                "3위 🔇 화면 전환 효과음 없음"
                             ],
                             key=f"shorts_sfx_v5_{tk}"
                         )
                     with col_sh4:
-                        # [핵심] 배속 한도 100%까지 대폭 확장 및 기본값 상향(+25%)
-                        default_spd = 15 if is_en_shorts else 25
+                        # [수정] 45초 영상 최적화를 위해 기본 배속을 30%로 상향
+                        default_spd = 20 if is_en_shorts else 30
                         voice_speed = st.slider(
-                            "4️⃣ 성우 말하기 배속 (몰아치는 템포 +25% 기본 세팅)",
+                            "4️⃣ 성우 말하기 배속",
                             min_value=0, max_value=100, value=default_spd, step=5,
                             format="+%d%%",
                             key=f"shorts_spd_v5_{tk}"
                         )
+# ▲▲▲ 교체할 부분 끝 ▲▲▲
 
                     def _josa(word, pair="이/가"):
                         w = str(word).strip()
@@ -6871,134 +6867,96 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         hook_opt_4 = f"은행 이자 3% 시대, {comp_name} 장부는, 연 {roe:.1f}% 속도로 자본을 불리는 중."
                         thumb_q_4 = f"“예금 이자의 {bank_mult:.1f}배 속도? 연 {roe:.1f}% 복리 장부의 비밀!”"
 
+                        # ▼▼▼ 교체할 부분 시작 (스크립트 및 로직 생성부) ▼▼▼
                         if not is_earnings_mode:
-                            st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (3050 타겟 맞춤형 4선)")
+                            st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택")
+                            if has_guru_sh:
+                                subj_guru = _josa(g_main['hook_title'], "이/가")
+                                hook_opt_1 = f"{subj_guru}, 포트폴리오에 {g_main['weight']:.1f}% 담은 {comp_name}, {yr_span_str} 장부 팩트체크."
+                                thumb_q_1 = f"“왜 {comp_name} 주식을 {g_main['weight']:.1f}%나 샀을까?”"
+                            else:
+                                hook_opt_1 = f"워런 버핏의 관점으로, {comp_name} {yr_span_str} 치 핵심 장부 팩트체크."
+                                thumb_q_1 = f"“버핏의 기준으로 본 {comp_name}, 장부 점수는?”"
+
                             hook_options_list = [
-                                (f"🥇 추천 1 [거장·대가의 시선] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
-                                (f"🔥 추천 2 [마진 팩폭형] : \"{hook_opt_2}\"", hook_opt_2, thumb_q_2),
-                                (f"📊 추천 3 [평균 가격 비교형] : \"{hook_opt_3}\"", hook_opt_3, thumb_q_3),
-                                (f"🏦 추천 4 [예금 금리 비교형] : \"{hook_opt_4}\"", hook_opt_4, thumb_q_4),
+                                (f"🥇 추천 1 [거장의 시선] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
                             ]
-                            hook_labels = [item[0] for item in hook_options_list]
                             selected_hook_idx = st.radio(
-                                "원하시는 초반 3초 오프닝과 썸네일 문구를 선택하세요",
-                                range(len(hook_labels)),
-                                format_func=lambda idx: hook_labels[idx],
-                                index=0,
+                                "원하시는 초반 3초 오프닝을 선택하세요",
+                                range(len(hook_options_list)),
+                                format_func=lambda idx: hook_options_list[idx][0],
                                 key=f"hook_sel_v5_{tk}"
                             )
                             opening_cut1 = hook_options_list[selected_hook_idx][1]
                             selected_thumb_quote = hook_options_list[selected_hook_idx][2]
                         else:
                             selected_hook_idx = 99
-                            opening_cut1 = f"{comp_name} 최신 실적 발표 완료, 직전 대비 장부 숫자 핵심 요약."
-                            selected_thumb_quote = f"“{comp_name} 실적 발표! 영업이익 {earn_op_chg:+.1f}% 변화, 현재 주가는?”"
+                            opening_cut1 = f"{comp_name} 최신 실적 발표 완료, 장부 숫자 핵심 요약."
+                            selected_thumb_quote = f"“{comp_name} 실적 발표! 현재 주가 위치는?”"
 
-                        if is_financial or use_pbr_m:
-                            pbr_reason_tag = f"순자산 1만원당 가격 비교 ({yr_span_str} 평균 vs 현재)"
+                        # [통합 1] PBR / PER 비교 (쉬운 용어로 1줄 압축)
+                        if use_pbr_m or is_financial:
                             thumb_compare_bar = f"순자산 1만원당 : {yr_span_str} 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
-                            thumb_giant_num = disc_short_badge
-                            thumb_red_quote = selected_thumb_quote
-                            hook_cut2 = f"순자산 대비 현재 주가 배수는, {yr_span_str} 평균보다, {disc_txt}."
-                            val_cut3 = f"장부상 순자산 1만 원어치가, 평소 {avg_pbr_won:,}원에서, 현재 {cur_pbr_won:,}원에 거래됨."
+                            hook_cut2 = f"순자산 대비 현재 주가는 10년 평균보다 {abs_pmos:.0f}% {'낮은' if pmos_val >= 0 else '높은'} 구간으로, 평소 1만 원이던 장부가 현재 {cur_pbr_won:,}원에 거래 중임."
                         else:
-                            pbr_reason_tag = f"순이익 원금 회수 기간 비교 ({yr_span_str} 평균 vs 현재)"
                             thumb_compare_bar = f"이익 회수기간 : {yr_span_str} 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
-                            thumb_giant_num = disc_short_badge
-                            thumb_red_quote = selected_thumb_quote
-                            hook_cut2 = f"순이익 기준 원금 회수 기간은, {yr_span_str} 평균보다, {disc_txt}."
-                            val_cut3 = f"이익 기준 회수 기간이, 평소 {a_pe:.1f}년에서, 현재 {f_pe:.1f}년 수준임."
+                            hook_cut2 = f"현재 본전 회수 기간은 {f_pe:.1f}년으로, 10년 평균보다 {abs_pmos:.0f}% {'저렴함' if pmos_val >= 0 else '비쌈'}."
 
+                        thumb_giant_num = disc_short_badge
+                        thumb_red_quote = selected_thumb_quote
+
+                        # [통합 2] 금융주(ROE) vs 일반주(ROIC) 분리 및 EPS 지속성장 추가
                         if is_financial:
-                            moat_cut4 = f"자기자본이익률은 연 {roe:.1f}%. 시중 예금 금리의 {bank_mult:.1f}배 수준임." if roe > 0 else f"현재 자기자본이익률은, 연 {roe:.1f}%로 집계됨."
-                            moat_cut5 = f"금융권 분석 기준치인 10% 대비, {abs(roe - 10.0):.1f}%p {'높음' if roe >= 10 else '낮음'}."
+                            moat_cut3 = f"돈 불리는 속도인 자본수익률은 연 {roe:.1f}% 수준임."
+                            gap_badge_txt = f"금융주 핵심 지표 : PBR {f_pbr:.2f}배 · ROE {roe:.1f}%"
                         else:
-                            if abs(margin_diff) < 0.5:
-                                moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로, 시장 평균 {avg_margin_bench:.0f}원과 비슷함."
-                            elif margin_diff >= 0.5:
-                                moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로, 시장 평균보다 {margin_diff:.1f}원 높음."
-                            elif op_m > 0:
-                                moat_cut4 = f"매출 100원당 영업이익은 {op_m:.1f}원으로, 시장 평균보다 {abs(margin_diff):.1f}원 낮음."
-                            else:
-                                moat_cut4 = f"현재 매출 대비 영업이익률은 {op_m:.1f}%로, 적자 구간임."
+                            moat_cut3 = f"진짜 돈 굴리는 실력인 투하자본수익률은 연 {roic_val:.1f}% 수준임."
+                            gap_badge_txt = f"실제 투자금 대비 수익률 (ROIC): 연 {roic_val:.1f}%"
+                        
+                        gap_badge_col = (5, 122, 85) if (is_financial and roe >= 8) or (not is_financial and roic_val >= 10) else (239, 68, 68)
 
-                            if roe >= 15.0:
-                                moat_cut5 = f"자본 복리 수익률은 연 {roe:.1f}%로, 버핏의 기준치보다 {roe_vs_buffett:.1f}%p 높음."
-                            elif roe > 0:
-                                moat_cut5 = f"자본 복리 수익률은 연 {roe:.1f}%로, 시중 예금 금리의 {bank_mult:.1f}배 수준임."
-                            else:
-                                moat_cut5 = f"현재 자본 수익률은 연 {roe:.1f}%로, 공시 데이터상 마이너스임."
-
-                        ey_gap = ey - ty
-                        if abs(ey_gap) < 0.2:
-                            ey_cut6 = f"현재 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.1f}%와 유사함."
+                        if eps_g_val > 5.0:
+                            eps_cut4 = f"1주당 버는 돈은 직전 대비 {eps_g_val:.1f}% 증가하며, 꾸준한 이익 성장을 증명함."
+                        elif eps_g_val > 0:
+                            eps_cut4 = f"1주당 버는 돈은 직전 대비 {eps_g_val:.1f}% 늘어나며, 성장을 유지 중임."
                         else:
-                            ey_cut6 = f"현재 이익수익률은 연 {ey:.1f}%로, 미국채 금리보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap > 0 else '낮음'}."
+                            eps_cut4 = f"다만 1주당 버는 돈은 직전 대비 역성장하여, 이익 추세 점검이 필요함."
 
-                        if abs(tsy_vs_mkt) < 0.3:
-                            tsy_cut7 = f"배당과 자사주 소각을 합친 주주환원율은, 연 {tsy_total:.1f}%로 시장 평균 수준임."
+                        # [통합 3] 주주환원 일관성 체크
+                        if tsy_total >= 3.0:
+                            if div > 0 and bb_yield > 0:
+                                tsy_cut5 = f"배당과 주식 소각을 합친 환원율은 연 {tsy_total:.1f}%로, 과거부터 일관되게 주주 친화적임."
+                            else:
+                                tsy_cut5 = f"현재 총 주주환원율은 연 {tsy_total:.1f}%이나, 최근에 반짝 늘어난 수치인지 점검이 필요함."
                         elif tsy_total > 0:
-                            tsy_cut7 = f"배당과 자사주 소각 환원율은 연 {tsy_total:.1f}%로, 평균보다 {abs(tsy_vs_mkt):.1f}%p {'높음' if tsy_vs_mkt > 0 else '낮음'}."
-                        elif tsy_total == 0:
-                            tsy_cut7 = "공시 기준 현재 주주환원 대신, 사내 유보 및 재투자를 선택 중임."
+                            tsy_cut5 = f"주주환원율은 연 {tsy_total:.1f}% 수준으로, 시장 평균 수준을 방어 중임."
                         else:
-                            tsy_cut7 = f"신주 발행 등으로 인해, 유통주식수가 연 {abs(tsy_total):.1f}% 증가했음."
+                            tsy_cut5 = f"현재 뚜렷한 주주환원 없이, 사내 유보 및 재투자에 집중하고 있음."
 
+                        # [통합 4] 역산 DCF 1줄 통폐합 (금융주 제외)
                         if is_financial:
-                            dcf_cut8 = f"금융업 특성상 현금흐름 모델 대신, 장부 순자산과 자본수익률을 핵심 지표로 평가함."
-                            dcf_cut9 = f"현재 순자산 배수는 {f_pbr:.2f}배, 자기자본이익률은 연 {roe:.1f}%를 기록 중임."
-                            gap_badge_txt = f"금융주 핵심 지표 : PBR {f_pbr:.2f}배 ({yr_span_str} 평균 {a_pbr:.2f}배) · ROE {roe:.1f}%"
-                            gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                            dcf_cut6 = f"금융주는 특성상 현금흐름 대신 장부 가치와 자본수익률을 밸류에이션의 핵심으로 평가함."
                         elif implied_g_shorts is not None:
                             if imp_g_pct < 0:
-                                dcf_cut8 = f"현재 주가를 역산하면, 향후 현금이 매년 {abs(imp_g_pct):.1f}%씩 줄어도 정당화되는 수준임."
-                                if hist_fcf_g_pct > 0:
-                                    dcf_cut9 = f"반면 과거 {yr_span_str}간 실제 현금흐름은, 매년 {hist_fcf_g_pct:.1f}%씩 증가함."
-                                    gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 실제 추이(+{hist_fcf_g_pct:.1f}%)"
-                                    gap_badge_col = (5, 122, 85)
-                                else:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 현금흐름 변동률은, 연 {hist_fcf_g_pct:.1f}% 수준이었음."
-                                    gap_badge_txt = f"주가 반영치({imp_g_pct:.1f}%) vs 과거 추이({hist_fcf_g_pct:.1f}%)"
-                                    gap_badge_col = (29, 78, 216)
+                                dcf_cut6 = f"현재 주가를 역산하면 향후 현금이 매년 {abs(imp_g_pct):.1f}%씩 감소해도 설명되는데, 실제 10년 현금흐름은 매년 {hist_fcf_g_pct:.1f}%씩 성장했음."
                             else:
-                                dcf_cut8 = f"현재 주가를 현금흐름 모델로 역산하면, 매년 {imp_g_pct:.1f}%의 성장이 요구됨."
-                                if growth_gap_pp > 3.0:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률 연 {hist_fcf_g_pct:.1f}%보다, 현재 주가 기대치가 {growth_gap_pp:.1f}%p 더 높음."
-                                    gap_badge_txt = f"실제 성장({hist_fcf_g_pct:.1f}%) < 주가 요구치({imp_g_pct:.1f}%)"
-                                    gap_badge_col = (185, 28, 28)
-                                elif growth_gap_pp < -2.0:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 성장률은 연 {hist_fcf_g_pct:.1f}%로, 주가 요구치보다 확실히 높음."
-                                    gap_badge_txt = f"실제 성장(연 {hist_fcf_g_pct:.1f}%) > 주가 요구치(연 {imp_g_pct:.1f}%)"
-                                    gap_badge_col = (5, 122, 85)
-                                else:
-                                    dcf_cut9 = f"과거 {yr_span_str} 실제 현금 성장률 연 {hist_fcf_g_pct:.1f}%와, 현재 주가 기대치가 부합함."
-                                    gap_badge_txt = f"주가 요구치({imp_g_pct:.1f}%) ≈ 실제 성장({hist_fcf_g_pct:.1f}%)"
-                                    gap_badge_col = (29, 78, 216)
+                                dcf_cut6 = f"현재 주가를 정당화하려면 매년 {imp_g_pct:.1f}%의 성장이 필요한데, 실제 10년 현금흐름은 연 {hist_fcf_g_pct:.1f}% 수준임."
                         else:
-                            dcf_cut8 = f"현재 순자산 배수는 {f_pbr:.2f}배로, {yr_span_str} 평균 {a_pbr:.2f}배와 비교됨."
-                            dcf_cut9 = f"순자산 배수는 {yr_span_str} 평균 대비, {disc_txt}."
-                            gap_badge_txt = f"순자산 {yr_span_str} 평균 대비 {disc_txt}"
-                            gap_badge_col = (5, 122, 85) if pmos_val >= 0 else (185, 28, 28)
+                            dcf_cut6 = f"현재 현금흐름 적자 또는 변동성이 커서, 미래 가치 추정이 불가능한 상태임."
 
-                        # [핵심] 10번 컷 삭제 -> 총 9컷 스크립트로 압축
-                        if is_earnings_mode:
-                            u_str_e = "억원" if kr else "십억달러"
-                            default_script_lines = [
-                                opening_cut1,
-                                f"먼저 매출액은 직전 {earn_rev_prev:,.0f}{u_str_e}에서, {earn_rev_curr:,.0f}{u_str_e}로 {earn_rev_chg:+.1f}% 변동함.",
-                                f"실제 장사 마진인 영업이익은 직전 대비 {earn_op_chg:+.1f}% 변화하며, 마진율 {op_m:.1f}%를 기록함.",
-                                f"당기순이익은 직전 대비 {earn_ni_chg:+.1f}% 변동했고, 연 복리 자본수익률은 {roe:.1f}%임.",
-                                hook_cut2,
-                                ey_cut6,
-                                tsy_cut7,
-                                dcf_cut8,
-                                dcf_cut9
-                            ]
-                        else:
-                            default_script_lines = [
-                                opening_cut1, hook_cut2, val_cut3, moat_cut4, moat_cut5,
-                                ey_cut6, tsy_cut7, dcf_cut8, dcf_cut9
-                            ]
+                        # 45초 이내 6컷(6문장)으로 초압축 최적화 완료
+                        default_script_lines = [
+                            opening_cut1, 
+                            hook_cut2, 
+                            moat_cut3, 
+                            eps_cut4, 
+                            tsy_cut5, 
+                            dcf_cut6
+                        ]
+
+                    # 컷 수가 줄었으므로 씬 매핑도 6컷에 맞춤
+                    scene_codes_fixed = ["SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_4"]
+# ▲▲▲ 교체할 부분 끝 ▲▲▲
 
                     if is_earnings_mode:
                         scene_codes_fixed = ["SCENE_EARN_1", "SCENE_EARN_1", "SCENE_EARN_2", "SCENE_EARN_2", "SCENE_1", "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4"]
@@ -7566,10 +7524,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                             draw.rounded_rectangle([54, 576, W-54, 632], radius=12, fill=gap_badge_col)
                             _fit_single_line(draw, W//2, 604, W-140, gap_badge_txt, get_font, start_sz=22, min_sz=14, fill=(255, 255, 255))
-
-                            s4_chk_lbl = f"5 Quantitative Pillars : {pass_cnt} / 5 Passed" if is_en_shorts else f"공시 데이터 5대 정량 기준 : {pass_cnt} / 5 충족"
-                            _fit_single_line(draw, W//2, 664, W-100, s4_chk_lbl, get_font, start_sz=23, min_sz=15, fill=(250, 204, 21))
-                            _draw_5block_signal_gauge(draw, W, 690, get_font)
 
                         sub_clean = str(sub_text).replace(" ,", ",").strip()
                         is_hook_cut = (chunk_idx <= 1) and not is_en_shorts
