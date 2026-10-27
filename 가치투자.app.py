@@ -7725,12 +7725,36 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
 
+                    # ▼▼▼ 기존 코드에서 이 부분을 찾으세요 ▼▼▼
                     st.markdown("---")
                     st.markdown("#### 🚀 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
 
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
+                    
+                    # ----------------------------------------------------
+                    # ▼▼▼ 여기에 누락되었던 유튜브 텍스트용 변수들을 복구합니다 ▼▼▼
+                    abs_pmos = abs(pmos_val)
+                    if is_en_shorts:
+                        if pmos_val >= 3.0: disc_txt = f"{abs_pmos:.0f}% below {yr_span_str} avg"
+                        elif pmos_val <= -3.0: disc_txt = f"{abs_pmos:.0f}% above {yr_span_str} avg"
+                        else: disc_txt = f"in line with {yr_span_str} avg"
+                    else:
+                        if pmos_val >= 3.0: disc_txt = f"{abs_pmos:.0f}% 낮은 구간"
+                        elif pmos_val <= -3.0: disc_txt = f"{abs_pmos:.0f}% 높은 구간"
+                        else: disc_txt = f"{yr_span_str} 평균과 유사"
 
+                    margin_won = max(0, int(round(op_m)))
+                    tsy_total = div + bb_yield
+                    cur_pbr_won = int(round(f_pbr * 100, 0) * 100)
+                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
+                    
+                    if is_financial or use_pbr_m:
+                        thumb_compare_bar = f"P/B: {yr_span_str} Avg {a_pbr:.2f}x ➔ Now {f_pbr:.2f}x" if is_en_shorts else f"순자산 1만원당 : {yr_span_str} 평균 {avg_pbr_won:,}원 ➔ 현재 {cur_pbr_won:,}원"
+                    else:
+                        thumb_compare_bar = f"P/E: {yr_span_str} Avg {a_pe:.1f}x ➔ Now {f_pe:.1f}x" if is_en_shorts else f"이익 회수기간 : {yr_span_str} 평균 {a_pe:.1f}년 ➔ 현재 {f_pe:.1f}년"
+                    # ▲▲▲ 복구 완료 (이제 유튜브 제목과 설명란에 완벽하게 꽂힙니다) ▲▲▲
+                    # ---------------------------------------------------
                     if is_en_shorts:
                         default_yt_title = f"[{today_tag_str}] {comp_name} ({clean_tk}) {yr_span_str} Financial Breakdown #shorts #stocks"
                         default_yt_desc = (
