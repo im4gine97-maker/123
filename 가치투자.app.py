@@ -6708,19 +6708,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # =========================================================================
                     if is_financial:
                         cap_ret_val = roe
-                        bench_sp500_val = 12.0   # 금융권 및 S&P500 기준
-                        bench_buffett_val = 15.0 # 버핏의 우량 자본수익률 기준
-                        cap_ret_name_ko = "내 자본 복리수익률"
+                        bench_sp500_val = 12.0
+                        bench_buffett_val = 15.0
+                        cap_ret_name_ko = "자본 수익률"
                         cap_ret_short_ko = "자본수익률"
                         cap_ret_name_en = "Return on Equity"
                     else:
                         cap_ret_val = roic_val if roic_val != 0 else roe
-                        bench_sp500_val = 12.0   # S&P 500 평균 ROIC (12%)
-                        bench_buffett_val = 15.0 # 워런 버핏의 경제적 해자 기준 (15%)
-                        cap_ret_name_ko = "실제 사업 투자수익률"
+                        bench_sp500_val = 12.0
+                        bench_buffett_val = 15.0
+                        cap_ret_name_ko = "사업 수익률"   # (또는 "본업 마진율", "장사 수익률" 중 취향대로 변경 가능)
                         cap_ret_short_ko = "사업수익률"
-                        cap_ret_name_en = "Return on Invested Capital"
-
+                        cap_ret_name_en = "Business Return"
                     diff_vs_sp500 = cap_ret_val - bench_sp500_val
                     diff_vs_buffett = cap_ret_val - bench_buffett_val
 
@@ -7178,25 +7177,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             val_1line_ko = f"순이익 기준 원금 회수기간이 평소 {a_pe:.1f}년에서 현재 {f_pe:.1f}년으로 산출돼, 10년 평균보다 {disc_txt}임."
 
                         # [요청 반영] 자체 10년 평균 대신 '버핏의 우량 기준(15%)' 및 'S&P 500 평균(12%)'과 직접 비교!
-                        if is_financial:
-                            if cap_ret_val >= 15.0:
-                                cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균 12%와 버핏의 기준치 15%를 모두 웃도는 수준임."
-                            elif cap_ret_val >= 12.0:
-                                cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균 12%를 상회하며 양호한 수익성을 기록함."
-                            elif cap_ret_val > 0:
-                                cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균 12% 대비 {abs(diff_vs_sp500):.1f}%p 낮은 수준임."
-                            else:
-                                cap_line_ko = f"현재 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 마이너스 적자 구간에 머물러 있음."
+                        if cap_ret_val >= 15.0:
+                            cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 시장 평균 12%와 버핏 기준 15%를 모두 웃돎."
+                        elif cap_ret_val >= 12.0:
+                            cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 시장 평균인 12%를 넘는 양호한 수준임."
+                        elif cap_ret_val > 0:
+                            cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 시장 평균 12%보다 {abs(diff_vs_sp500):.1f}%p 낮음."
                         else:
-                            if cap_ret_val >= 15.0:
-                                cap_line_ko = f"설비와 자본을 굴려 버는 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균 12%와 버핏 기준 15%를 모두 크게 웃돎."
-                            elif cap_ret_val >= 12.0:
-                                cap_line_ko = f"설비와 자본을 굴려 버는 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균인 12%를 상회하는 양호한 수준임."
-                            elif cap_ret_val > 0:
-                                cap_line_ko = f"설비와 자본을 굴려 버는 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P 500 평균 12% 및 버핏 기준 15% 대비 낮음."
-                            else:
-                                cap_line_ko = f"현재 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 자본비용을 밑도는 적자 구간임."
-
+                            cap_line_ko = f"현재 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 적자 구간에 머물러 있음."
                         ey_gap = ey - ty
                         if abs(ey_gap) < 0.2:
                             ey_line_ko = f"주가 대비 이익수익률은 연 {ey:.1f}%로, 10년물 미국채 금리 {ty:.1f}%와 비슷한 수준임."
