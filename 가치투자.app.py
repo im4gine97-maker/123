@@ -6897,86 +6897,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             tsy_consistency_txt = "현재 배당이나 자사주 소각 대신 사업 재투자에 집중하는 구조임."
                             tsy_badge_short = "배당 없음 (사업 재투자 집중)"
 
-                    # =========================================================================
-                    # [핵심 수정 5] DCF 과거 FCF 성장률 2.0% 고정 버그 완벽 해결!
-                    # (max(0.02, ...) 하한선에 막히지 않은 실제 10년 원본 현금흐름 증감률을 직접 역산)
-                    # =========================================================================
-                    raw_fcf_history = []
-                    try:
-                        if kr:
-                            _d_fcf, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
-                            if not _d_fcf.empty:
-                                for y_c in sorted(_d_fcf.columns):
-                                    _ocf = safe_float(_d_fcf.loc['9. 영업현금흐름', y_c]) if '9. 영업현금흐름' in _d_fcf.index else 0.0
-                                    _icf = safe_float(_d_fcf.loc['10. 투자현금흐름', y_c]) if '10. 투자현금흐름' in _d_fcf.index else 0.0
-                                    _ni_f = safe_float(_d_fcf.loc['4. 당기순이익', y_c]) if '4. 당기순이익' in _d_fcf.index else 0.0
-                                    _val_f = (_ocf + _icf) if (_ocf != 0 or _icf != 0) else (_ni_f * 0.85)
-                                    if _val_f != 0:
-                                        raw_fcf_history.append(_val_f)
-                        else:
-                            _facts_f = get_sec_company_facts_cached(cd)
-                            _ug_f = _facts_f.get('facts', {}).get('us-gaap', {})
-                            if _ug_f:
-                                _ocf_d, _cap_d = {}, {}
-                                for tag_o in ['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations']:
-                                    if tag_o in _ug_f:
-                                        for it in _ug_f[tag_o].get('units', {}).get('USD', []):
-                                            if it.get('form') in ['10-K', '10-K/A'] and it.get('fp') == 'FY' and str(it.get('fy', '')).isdigit():
-                                                _ocf_d[int(it.get('fy'))] = safe_float(it.get('val'))
-                                        if _ocf_d:
-                                            break
-                                for tag_c in ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets']:
-                                    if tag_c in _ug_f:
-                                        for it in _ug_f[tag_c].get('units', {}).get('USD', []):
-                                            if it.get('form') in ['10-K', '10-K/A'] and it.get('fp') == 'FY' and str(it.get('fy', '')).isdigit():
-                                                _cap_d[int(it.get('fy'))] = abs(safe_float(it.get('val')))
-                                        if _cap_d:
-                                            break
-                                for y_k in sorted(_ocf_d.keys())[-10:]:
-                                    raw_fcf_history.append(_ocf_d[y_k] - _cap_d.get(y_k, 0.0))
-                    except Exception:
-                        pass
-
-                    if len(raw_fcf_history) < 2 and stk is not None:
-                        try:
-                            _cf_raw = stk.cash_flow
-                            if _cf_raw is not None and not _cf_raw.empty:
-                                if 'Free Cash Flow' in _cf_raw.index:
-                                    raw_fcf_history = [safe_float(v) for v in _cf_raw.loc['Free Cash Flow'].dropna().values[::-1]]
-                        except Exception:
-                            pass
-
-                    # 2% 하한선 없는 진짜 과거 FCF 연평균 증감률 계산 (음수 역성장도 그대로 반영!)
-                    real_fcf_cagr_pct = None
-                    if len(raw_fcf_history) >= 2:
-                        f_old = raw_fcf_history[0]
-                        f_new = raw_fcf_history[-1]
-                        n_f_span = max(1, len(raw_fcf_history) - 1)
-                        # 최근 2년 평균 vs 과거 2년 평균으로 노이즈 완화 후 진성 증감률 도출
-                        if len(raw_fcf_history) >= 4:
-                            f_old_avg = (raw_fcf_history[0] + raw_fcf_history[1]) / 2.0
-                            f_new_avg = (raw_fcf_history[-2] + raw_fcf_history[-1]) / 2.0
-                        else:
-                            f_old_avg, f_new_avg = f_old, f_new
-
-                        if f_old_avg > 0 and f_new_avg > 0:
-                            real_fcf_cagr_pct = ((f_new_avg / f_old_avg) ** (1.0 / n_f_span) - 1.0) * 100.0
-                        elif f_old > 0 and f_new > 0:
-                            real_fcf_cagr_pct = ((f_new / f_old) ** (1.0 / n_f_span) - 1.0) * 100.0
-                        elif f_old_avg > 0 and f_new_avg <= 0:
-                            real_fcf_cagr_pct = -12.0  # 흑자에서 적자로 꺾인 경우 음수 표기
-                        elif f_old_avg <= 0 and f_new_avg > 0:
-                            real_fcf_cagr_pct = 12.0   # 적자에서 흑자로 돌아선 경우
-
-                    if real_fcf_cagr_pct is None:
-                        # 만약 FCF 원본이 없으면 EPS 실제 성장률 또는 기본값을 사용 (단, 무조건 2.0%로 고정되지 않도록 처리)
-                        real_fcf_cagr_pct = eps_cagr_pct if len(eps_hist_vals) >= 2 else (final_g * 100.0)
-
-                    real_fcf_cagr_pct = max(-35.0, min(45.0, real_fcf_cagr_pct))
-
+                    # [완벽 동기화] 쇼츠가 따로 계산하지 않고 본문 '평균 시나리오'의 성장률(final_g)을 100% 그대로 사용!
                     implied_g_shorts = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_pct = (implied_g_shorts * 100.0) if implied_g_shorts is not None else 0.0
-                    hist_fcf_g_pct = real_fcf_cagr_pct  # [핵심] 2% 고정값이 아닌 진짜 과거 성장률을 연결!
+                    hist_fcf_g_pct = final_g * 100.0  # 본문 카드(평균 시나리오 성장률)와 100% 동일한 수치!
 
                     imp_g_fmt = f"연 {imp_g_pct:+.1f}%" if not is_en_shorts else f"{imp_g_pct:+.1f}%/yr"
                     actual_g_fmt = f"연 {hist_fcf_g_pct:+.1f}%" if not is_en_shorts else f"{hist_fcf_g_pct:+.1f}%/yr"
