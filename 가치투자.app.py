@@ -6905,6 +6905,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     is_en_shorts = ("🇺🇸" in shorts_lang_mode)
                     is_earnings_mode = ("모드 2" in shorts_content_mode)
 
+                    # ▼▼▼ 에러가 발생한 col_sh1 ~ col_sh4 부분(약 6910~6970행)을 아래 코드로 덮어쓰세요 ▼▼▼
                     col_sh1, col_sh2 = st.columns([1.5, 1.5])
                     with col_sh1:
                         if is_en_shorts:
@@ -6916,7 +6917,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "🥉 3위 [Christopher Neural] 권위 있는 애널리스트 남성",
                                     "4위 [Ava Neural] 깔끔한 뉴스 앵커 여성"
                                 ],
-                                key=f"shorts_voice_en_{tk}"
+                                key=f"shorts_voice_en_v2_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
@@ -6929,7 +6930,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "5위 [CLOVA 민상·동현 톤] 속도감 있는 트렌디 브리핑 남성",
                                     "6위 [충청도 청년 박창수 톤] 친근하고 찰진 스토리텔링 남성"
                                 ],
-                                key=f"shorts_voice_{tk}"
+                                key=f"shorts_voice_ko_v2_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
@@ -6941,7 +6942,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 ⚡ 업비트 테크 플럭 (빠른 템포 숫자 전달용)",
                                 "5위 🔇 배경음악 없음 (성우 목소리만)"
                             ],
-                            key=f"shorts_bgm_{tk}"
+                            key=f"shorts_bgm_v2_{tk}"
                         )
 
                     col_sh3, col_sh4 = st.columns([1.5, 1.5])
@@ -6955,18 +6956,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4위 🪙 골드 벨 & 코인 핑 (수익·배당 강조 타격감)",
                                 "5위 🔇 화면 전환 효과음 없음"
                             ],
-                            key=f"shorts_sfx_{tk}"
+                            key=f"shorts_sfx_v2_{tk}"
                         )
                     with col_sh4:
-                        # [핵심 패치] 배속이 너무 빠르다는 피드백 반영 -> 기본 배속을 +16%로 하향 조정 및 최소 0%부터 조절 가능!
                         default_spd = 12 if is_en_shorts else 16
                         voice_speed = st.slider(
                             "4️⃣ 성우 말하기 배속 (또박또박 집중 잘 되는 +16% 기본 세팅)",
                             min_value=0, max_value=35, value=default_spd, step=2,
                             format="+%d%%",
-                            key=f"shorts_spd_{tk}"
+                            key=f"shorts_spd_v2_{tk}"
                         )
-
+                    # ▲▲▲ 여기까지 덮어쓰세요 ▲▲▲
                     # -----------------------------------------------------------------
                     # [한국어 받침 자동 판별기] '리 루이', '가이 스피어이' 원천 차단 함수
                     # -----------------------------------------------------------------
