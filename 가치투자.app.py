@@ -6873,22 +6873,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         hook_opt_4 = f"시중 은행 예금 이자 3% 받을 때, {comp_name} 장부는, 연 {roe:.1f}% 속도로 자본을 굴리고 있었습니다"
                         thumb_q_4 = f"“예금 이자의 {bank_mult:.1f}배 속도? 연 {roe:.1f}% 복리 장부의 비밀!”"
 
+                        # ▼▼▼ 기존 'if not is_earnings_mode:' (5️⃣번 오프닝 선택기) 부터 'pop_chunks.append(...)' 까지를 아래 코드로 교체하세요 ▼▼▼
                         if not is_earnings_mode:
                             st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (3050 타겟 맞춤형 4선)")
-                            hook_options_map = {
-                                f"🥇 추천 1 [거장·대가의 시선] : \"{hook_opt_1}\"": (hook_opt_1, thumb_q_1),
-                                f"🔥 추천 2 [마진 팩폭형] : \"{hook_opt_2}\"": (hook_opt_2, thumb_q_2),
-                                f"📊 추천 3 [평균 가격 비교형] : \"{hook_opt_3}\"": (hook_opt_3, thumb_q_3),
-                                f"🏦 추천 4 [예금 금리 비교형] : \"{hook_opt_4}\"": (hook_opt_4, thumb_q_4),
-                            }
-                            selected_hook_label = st.radio(
-                                "원하시는 초반 3초 오프닝과 썸네일 문구를 선택하세요",
-                                list(hook_options_map.keys()),
+                            hook_options_list = [
+                                (f"🥇 추천 1 [거장·대가의 시선] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
+                                (f"🔥 추천 2 [마진 팩폭형] : \"{hook_opt_2}\"", hook_opt_2, thumb_q_2),
+                                (f"📊 추천 3 [평균 가격 비교형] : \"{hook_opt_3}\"", hook_opt_3, thumb_q_3),
+                                (f"🏦 추천 4 [예금 금리 비교형] : \"{hook_opt_4}\"", hook_opt_4, thumb_q_4),
+                            ]
+                            hook_labels = [item[0] for item in hook_options_list]
+                            selected_hook_idx = st.radio(
+                                "원하시는 초반 3초 오프닝과 썸네일 문구를 선택하세요 (선택 즉시 아래 대본과 영상에 100% 반영됩니다)",
+                                range(len(hook_labels)),
+                                format_func=lambda idx: hook_labels[idx],
                                 index=0,
-                                key=f"hook_sel_v3_{tk}"
+                                key=f"hook_sel_v4_{tk}"
                             )
-                            opening_cut1, selected_thumb_quote = hook_options_map[selected_hook_label]
+                            opening_cut1 = hook_options_list[selected_hook_idx][1]
+                            selected_thumb_quote = hook_options_list[selected_hook_idx][2]
                         else:
+                            selected_hook_idx = 99
                             opening_cut1 = f"{comp_name} 최신 실적 발표 완료, 직전 대비 장부 숫자가 어떻게 달라졌는지 비교했습니다"
                             selected_thumb_quote = f"“{comp_name} 실적 발표! 영업이익 {earn_op_chg:+.1f}% 변화, 현재 주가 위치는?”"
 
@@ -7006,13 +7011,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         scene_codes_fixed = ["SCENE_HOOK", "SCENE_HOOK", "SCENE_1", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_3", "SCENE_4", "SCENE_4", "SCENE_4"]
 
-                    st.markdown("##### ✏️ 6️⃣ 쇼츠 대본 직접 수정 (쉼표 `,`를 넣으면 성우가 한 박자 쉬어 읽으며 강조합니다!)")
-                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}"
+                    # [핵심 수리] selected_hook_idx를 key에 직접 포함시켜, 라디오 버튼을 바꾸는 즉시 대본 편집창과 영상이 100% 새로고침되도록 해결!
+                    hook_key_tag = selected_hook_idx if (not is_en_shorts and not is_earnings_mode) else 0
+                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{'EARN' if is_earnings_mode else 'BOOK'}_H{hook_key_tag}"
+
+                    st.markdown("##### ✏️ 6️⃣ 쇼츠 대본 직접 수정 (위 오프닝을 선택하거나 여기서 직접 고치면 영상에 100% 반영됩니다!)")
                     editable_script_text = st.text_area(
                         "대본 편집창 (한 줄이 1컷입니다)",
                         value="\n".join(default_script_lines),
                         height=220,
-                        key=f"custom_script_v3_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v4_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
@@ -7022,6 +7030,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     for idx_l, u_line in enumerate(user_lines[:12]):
                         sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_4"
                         pop_chunks.append((u_line, sc_map))
+                    # ▲▲▲ 여기까지 교체하세요 ▲▲▲
 
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
