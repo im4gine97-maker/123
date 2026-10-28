@@ -2660,7 +2660,60 @@ def get_data(tk):
         return stk, p, i, kr
     except Exception as e:
         return None, None, {}, False
-# ▼▼▼ [수리 1-A] 약 1150행 def get_base_dcf_data 및 def calc_custom_dcf 교체 ▼▼▼
+# ▼▼▼ [수리 1 시작] 만능 CAGR 계산기(음수·공란·기저효과 완벽 처리) + DCF 시나리오 수리 (약 1150행~) ▼▼▼
+def calc_smart_cagr(val_series_chrono, years_chrono=None):
+    """
+    [시작값/끝값 음수·공란 완벽 대응 만능 성장률(CAGR) 산출 엔진]
+    - val_series_chrono: 과거(오래된 순) -> 최신 순으로 정렬된 숫자 리스트 (예: [2016년, 2017년, ..., 2025년])
+    - 반환값: (cagr_소수점, status_코드, span_연수, 설명_텍스트)
+    """
+    # 1. 공란(None, NaN, 0) 제거 후 실제 유효한 데이터만 추출
+    valid_pts = []
+    for idx, v in enumerate(val_series_chrono):
+        if v is not None and not pd.isna(v) and safe_float(v) != 0.0:
+            yr_num = int(years_chrono[idx]) if (years_chrono and idx < len(years_chrono) and str(years_chrono[idx])[:4].isdigit()) else idx
+            valid_pts.append((yr_num, safe_float(v)))
+
+    if len(valid_pts) < 2:
+        return 0.0, "INSUFFICIENT", 0, "유효 데이터 2개년 미만"
+
+    start_yr, start_v = valid_pts[0]
+    end_yr, end_v = valid_pts[-1]
+    span = max(1, end_yr - start_yr) if end_yr > start_yr else max(1, len(valid_pts) - 1)
+
+    # 2. 끝값(최근)이 음수(적자)인 경우 -> 성장률 측정 불가 (적자 상태)
+    if end_v < 0:
+        if start_v > 0:
+            return -0.99, "TURN_LOSS", span, "최근 적자 전환 (성장률 측정 불가)"
+        else:
+            return -0.99, "CONT_LOSS", span, "적자 지속 (성장률 측정 불가)"
+
+    # 3. 시작값이 음수(과거 적자)이고 끝값이 양수(최근 흑자)인 경우 -> 흑자 전환 첫 해부터 CAGR 계산!
+    if start_v < 0 and end_v > 0:
+        pos_pts = [(y, v) for y, v in valid_pts if v > 0]
+        if len(pos_pts) >= 2:
+            p_start_yr, p_start_v = pos_pts[0]
+            p_span = max(1, end_yr - p_start_yr) if end_yr > p_start_yr else max(1, len(pos_pts) - 1)
+            cagr = (end_v / p_start_v) ** (1.0 / p_span) - 1.0
+            return max(-0.95, min(cagr, 2.00)), "TURNAROUND", p_span, f"과거 적자 후 흑자전환 ({p_span}년간 연 {cagr*100:+.1f}% 성장)"
+        return 0.15, "TURNAROUND_1Y", 1, "최근 흑자 전환 성공"
+
+    # 4. 시작값과 끝값이 모두 양수(+)인 정상 경우 -> 기저효과(단일 연도 급락) 방어 포함 CAGR 산출
+    raw_cagr = (end_v / start_v) ** (1.0 / span) - 1.0
+    if len(valid_pts) >= 6:
+        pos_only = [v for _, v in valid_pts if v > 0]
+        if len(pos_only) >= 6:
+            oldest_2 = (pos_only[0] + pos_only[1]) / 2.0
+            recent_2 = (pos_only[-2] + pos_only[-1]) / 2.0
+            if oldest_2 > 0 and recent_2 > 0:
+                smooth_cagr = (recent_2 / oldest_2) ** (1.0 / max(1, span - 1)) - 1.0
+                if abs(raw_cagr - smooth_cagr) > 0.25:
+                    raw_cagr = smooth_cagr
+
+    status_code = "NORMAL_UP" if raw_cagr >= 0 else "NORMAL_DOWN"
+    return max(-0.95, min(raw_cagr, 2.00)), status_code, span, f"{span}년간 연평균 {raw_cagr*100:+.1f}%"
+
+
 def get_base_dcf_data(stk, i):
     try:
         if stk is None: return None, None, 0.0, 0, False
@@ -2668,37 +2721,48 @@ def get_base_dcf_data(stk, i):
         cf = stk.cash_flow
         
         if cf is not None and not cf.empty:
-            if 'Free Cash Flow' in cf.index: fcf_s = cf.loc['Free Cash Flow'].dropna()
-            elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).dropna()
+            if 'Free Cash Flow' in cf.index:
+                fcf_s = cf.loc['Free Cash Flow'].dropna()
+            elif 'Operating Cash Flow' in cf.index:
+                ocf_s = cf.loc['Operating Cash Flow'].dropna()
+                cap_s = None
+                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                    if ck in cf.index:
+                        cap_s = cf.loc[ck].dropna()
+                        break
+                if cap_s is not None:
+                    common_idx = ocf_s.index.intersection(cap_s.index)
+                    fcf_s = pd.Series([safe_float(ocf_s[c]) - abs(safe_float(cap_s[c])) for c in common_idx], index=common_idx)
+                else:
+                    fcf_s = ocf_s * 0.75
                 
-        avg_fcf = None
+        # 최근 FCF 체력 산출: 성장 기업이 과거 3년 평균 때문에 저평가/고평가 왜곡되지 않도록 최근 연도 가중치(60%) 부여
+        weighted_fcf = None
         if fcf_s is not None and not fcf_s.empty:
-            vals = fcf_s.values[:3]
-            valid_vals = [safe_float(v) for v in vals if pd.notna(v)]
-            if len(valid_vals) > 0:
-                avg_fcf = sum(valid_vals) / len(valid_vals)
+            vals = [safe_float(v) for v in fcf_s.values[:3] if pd.notna(v) and safe_float(v) != 0]
+            if len(vals) == 1:
+                weighted_fcf = vals[0]
+            elif len(vals) == 2:
+                weighted_fcf = (vals[0] * 0.65) + (vals[1] * 0.35) if vals[0] > 0 else (sum(vals) / 2.0)
+            elif len(vals) >= 3:
+                weighted_fcf = (vals[0] * 0.60) + (vals[1] * 0.25) + (vals[2] * 0.15) if vals[0] > 0 else (sum(vals) / 3.0)
                 
-        fcf = avg_fcf if avg_fcf is not None else safe_float(i.get('freeCashflow'))
+        fcf = weighted_fcf if weighted_fcf is not None else safe_float(i.get('freeCashflow'))
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.0, 0
         is_zigzag = False
         
         if fcf_s is not None and len(fcf_s) >= 2:
-            vals = [safe_float(v) for v in fcf_s.values[::-1]] # 과거 -> 최신 순
-            c, o = vals[-1], vals[0]
-            data_len = len(vals)
-            if c > 0 and o > 0:
-                g = (c / o) ** (1.0 / (data_len - 1)) - 1.0
-            elif c <= 0 or o <= 0:
-                # 적자 전환 또는 과거 적자로 복리 연산이 불가능한 경우 음수(-0.99) 플래그 부여 (기존처럼 +5%로 둔갑 방지)
-                g = -0.99 if c <= 0 else ((c - o) / (abs(o) * max(1, data_len - 1)) if o != 0 else 0.0)
+            vals_chrono = [safe_float(v) for v in fcf_s.values[::-1]]
+            yrs_chrono = [str(c)[:4] for c in fcf_s.index[::-1]]
+            data_len = len(vals_chrono)
+            g, _, _, _ = calc_smart_cagr(vals_chrono, yrs_chrono)
             
             if data_len >= 3:
                 directions = []
                 for idx in range(1, data_len):
-                    prev, curr = vals[idx-1], vals[idx]
+                    prev, curr = vals_chrono[idx-1], vals_chrono[idx]
                     if prev == 0:
                         directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
                     else:
@@ -2713,8 +2777,6 @@ def get_base_dcf_data(stk, i):
             if eg != 0.0: g = eg
             data_len = 1 if fcf_s is None else len(fcf_s)
             
-        # [핵심 수정] 2% 하한선 및 15% 상한선 강제 고정 해제! (실제 역성장 및 초고성장 그대로 반환)
-        g = max(-0.95, min(g, 2.00))
         return fcf, sh, g, data_len, is_zigzag
     except:
         return None, None, 0.0, 0, False
@@ -2725,8 +2787,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if not sh or sh <= 0: return 0, 0, t("주식수 누락 (데이터 부족)", "Missing Shares Outstanding")
     try:
         dr = max(ty / 100, 0.09)
-        # 실제 성장률(g) 표시는 제한을 풀되, 10년 복리 적정주가(IV) 산출 시에만 과도한 발산 방지를 위해 -15% ~ +25% 범위 적용
-        dcf_g = max(-0.15, min(g, 0.25)) if g > -0.90 else 0.0
+        dcf_g = max(-0.15, min(g, 0.30)) if g > -0.90 else 0.0
         cv = fcf
         fut = []
         for y in range(1, 11):
@@ -2742,8 +2803,7 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
         return iv, mos, None
     except:
         return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
-# ▲▲▲ [수리 1-A 끝] ▲▲▲
-
+# ▲▲▲ [수리 1 끝] ▲▲▲
 def get_implied_g(fcf, sh, p, ty):
     if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0: return None
     low, high = -0.5, 1.0 
@@ -4255,9 +4315,11 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # 2. 한국 기업 (DART 10년 정통 FCF + 상하한선 제한 해제)
+    # ▼▼▼ def get_10yr_custom_metrics 내부의 '# 2. 한국 기업' 줄부터 함수 끝까지 덮어쓰기 ▼▼▼
+    # 2. 한국 기업 (DART 10년 정통 FCF + CAPEX 교차보완 + 음수/공란 만능 CAGR)
     elif kr:
         pe_list, pbr_list, fcf_list = [], [], []
+        fcf_years_kr = []
         try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
             if not dart_df.empty:
@@ -4296,6 +4358,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         calc_fcf = min(ocf * 0.7, _ni * 0.85)
                     if calc_fcf != 0:
                         fcf_list.append(calc_fcf)
+                        fcf_years_kr.append(y_int)
                     if _ni > 0:
                         ni_positive_list.append(_ni * 0.85)
 
@@ -4328,18 +4391,15 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
 
                 yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, cached_i)
                 if len(fcf_list) >= 2:
-                    c, o = fcf_list[0], fcf_list[-1]
-                    base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                    # 최근 체력을 반영한 가중 FCF (최근 1년 60% + 2년전 25% + 3년전 15%)
+                    if len(fcf_list) >= 3 and fcf_list[0] > 0:
+                        base_fcf_10y = (fcf_list[0] * 0.60) + (fcf_list[1] * 0.25) + (fcf_list[2] * 0.15)
+                    else:
+                        base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
                     if base_fcf_10y <= 0 and yf_fcf and yf_fcf > 0:
                         base_fcf_10y = yf_fcf
 
-                    if c > 0 and o > 0:
-                        final_g_10y = (c / o) ** (1.0 / max(1, len(fcf_list) - 1)) - 1.0
-                    elif c <= 0 or base_fcf_10y <= 0:
-                        final_g_10y = -0.99
-                    else:
-                        final_g_10y = yf_g
-                    final_g_10y = max(-0.95, min(final_g_10y, 2.00))
+                    final_g_10y, _, _, _ = calc_smart_cagr(fcf_list[::-1], fcf_years_kr[::-1])
 
                     rev_fcf = fcf_list[::-1]
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
@@ -4356,7 +4416,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except Exception:
             pass
 
-    # 3. 미국 기업 (SEC EDGAR 10년 정밀 FCF + 상하한선 제한 해제)
+    # 3. 미국 기업 (SEC EDGAR + yfinance CAPEX 교차보완 + 음수/공란 만능 CAGR)
     else:
         try:
             facts = get_sec_company_facts_cached(cd)
@@ -4383,6 +4443,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                                                 if item.get('fp') not in ['FY', None]: continue
                                         elif item.get('fp') not in ['FY', None]:
                                             continue
+                                    # [핵심 수리] fy(보고서 제출연도)가 아니라 end(실제 결산연도)를 최우선 사용하여 중복 복사 버그 차단!
                                     end_yr = str(end_s)[:4]
                                     fy_yr = str(item.get('fy', ''))
                                     y_key = end_yr if (end_yr.isdigit() and int(end_yr) >= 2010) else fy_yr
@@ -4417,7 +4478,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     'PaymentsToAcquireProductiveAssets',
                     'PaymentsToAcquireOtherPropertyPlantAndEquipment',
                     'PaymentsForCapitalImprovements',
-                    'AdditionsToNoncurrentAssets'
+                    'AdditionsToNoncurrentAssets',
+                    'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'
                 ], unit='USD', is_instant=False)
                 sec_op = get_sec_fact([
                     'OperatingIncomeLoss',
@@ -4435,6 +4497,24 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_shares_inst = get_sec_fact([
                     'CommonStockSharesOutstanding'
                 ], unit='shares', is_instant=True)
+
+                # yfinance 현금흐름표에서 최근 4~5개년 OCF 및 CAPEX를 가져와 SEC 태그 누락 완벽 보완!
+                try:
+                    cf_yf = stk.cash_flow
+                    if cf_yf is not None and not cf_yf.empty:
+                        for c_dt in cf_yf.columns:
+                            y_s = str(c_dt)[:4]
+                            if not y_s.isdigit(): continue
+                            if y_s not in sec_ocf:
+                                for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
+                                    if ok in cf_yf.index and pd.notna(cf_yf.loc[ok, c_dt]):
+                                        sec_ocf[y_s] = safe_float(cf_yf.loc[ok, c_dt]); break
+                            if y_s not in sec_capex or sec_capex.get(y_s, 0) == 0:
+                                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                    if ck in cf_yf.index and pd.notna(cf_yf.loc[ck, c_dt]):
+                                        sec_capex[y_s] = abs(safe_float(cf_yf.loc[ck, c_dt])); break
+                except Exception:
+                    pass
 
                 all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
                 curr_cal_yr = datetime.now().year
@@ -4461,7 +4541,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                         adj_eps_map[y_i] = _ni_v / sh_norm
                     adj_sh_map[y_i] = sh_norm
 
-                pe_list, pbr_list, fcf_list = [], [], []
+                pe_list, pbr_list = [], []
                 fcf_by_year = {}
                 last_valid_eq = 0
 
@@ -4500,12 +4580,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     else:
                         hist_roic_10y.append(0)
 
-                    if y_str in sec_ocf:
+                    if y_str in sec_ocf and sec_ocf[y_str] != 0:
                         ocf_v = sec_ocf[y_str]
                         capex_v = abs(sec_capex.get(y_str, 0))
-                        fcf_v = ocf_v - capex_v
-                        fcf_list.append(fcf_v)
-                        fcf_by_year[y_int] = fcf_v
+                        fcf_by_year[y_int] = ocf_v - capex_v
 
                     eps_curr = adj_eps_map.get(y_int, 0)
                     eps_prev = adj_eps_map.get(y_int - 1, eps_curr)
@@ -4521,18 +4599,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _eq > 0 and mkt_cap > 0:
                         pbr_list.append(mkt_cap / _eq)
 
-                try:
-                    cf_yf = stk.cash_flow
-                    if cf_yf is not None and not cf_yf.empty and 'Free Cash Flow' in cf_yf.index:
-                        for c_dt, v_f in cf_yf.loc['Free Cash Flow'].dropna().items():
-                            y_i = int(str(c_dt)[:4])
-                            if y_i not in fcf_by_year or (sec_capex.get(str(y_i), 0) == 0 and safe_float(v_f) != 0):
-                                fcf_by_year[y_i] = safe_float(v_f)
-                        if fcf_by_year:
-                            fcf_list = [fcf_by_year[k] for k in sorted(fcf_by_year.keys(), reverse=True)[:10]]
-                except Exception:
-                    pass
-
                 if pe_list:
                     a_pe_10y = _calc_robust_multiple_avg(pe_list, 160.0)
                     st.session_state[f"pe_5y_{tk}"] = _calc_robust_multiple_avg(pe_list[:5], 160.0)
@@ -4541,32 +4607,22 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
 
                 data_len = len(sec_years)
+                sorted_fcf_yrs_desc = sorted(fcf_by_year.keys(), reverse=True)[:10]
+                fcf_list = [fcf_by_year[k] for k in sorted_fcf_yrs_desc]
+
                 if len(fcf_list) >= 2:
-                    c, o = fcf_list[0], fcf_list[-1]
-                    base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    span_f = max(1, len(fcf_list) - 1)
-
-                    if c > 0 and o > 0:
-                        raw_cagr = (c / o) ** (1.0 / span_f) - 1.0
-                        if len(fcf_list) >= 6:
-                            recent_2y = sum(fcf_list[:2]) / 2.0
-                            oldest_2y = sum(fcf_list[-2:]) / 2.0
-                            if recent_2y > 0 and oldest_2y > 0:
-                                smooth_cagr = (recent_2y / oldest_2y) ** (1.0 / max(1, span_f - 1)) - 1.0
-                                if abs(raw_cagr - smooth_cagr) > 0.25:
-                                    raw_cagr = smooth_cagr
-                        final_g_10y = raw_cagr
-                    elif c <= 0 or base_fcf_10y <= 0:
-                        final_g_10y = -0.99
+                    # [핵심 수리] 엔비디아 같은 고성장주가 3년 단순평균 때문에 FCF가 반토막 나지 않도록 최근 연도 가중평균(60:25:15) 적용!
+                    if len(fcf_list) >= 3 and fcf_list[0] > 0:
+                        base_fcf_10y = (fcf_list[0] * 0.60) + (fcf_list[1] * 0.25) + (fcf_list[2] * 0.15)
                     else:
-                        pos_indices = [idx for idx, val in enumerate(fcf_list) if val > 0]
-                        if len(pos_indices) >= 2 and pos_indices[-1] > 0:
-                            oldest_pos_idx = pos_indices[-1]
-                            final_g_10y = (c / fcf_list[oldest_pos_idx]) ** (1.0 / oldest_pos_idx) - 1.0
-                        else:
-                            final_g_10y = 0.0
+                        base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
+                    # 만약 TTM FCF(info)가 최근 연간 FCF보다 더 최신이고 크다면 50:50 블렌딩하여 역산 DCF 정밀도 극대화
+                    ttm_fcf = safe_float(cached_i.get('freeCashflow'))
+                    if ttm_fcf > base_fcf_10y and base_fcf_10y > 0:
+                        base_fcf_10y = (base_fcf_10y * 0.5) + (ttm_fcf * 0.5)
 
-                    final_g_10y = max(-0.95, min(final_g_10y, 2.00))
+                    # 음수/공란 만능 CAGR 함수로 10년 FCF 성장률 산출
+                    final_g_10y, _, _, _ = calc_smart_cagr(fcf_list[::-1], sorted_fcf_yrs_desc[::-1])
 
                     rev_fcf = fcf_list[::-1]
                     dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
@@ -4645,7 +4701,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         a_pbr_10y = safe_float(cached_i.get('priceToBook', 1.0))
 
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
-# ▲▲▲ 여기까지 통째로 덮어쓰기 (바로 아래에 def generate_quick_ai_preview(tk): 가 이어집니다) ▲▲▲
+# ▲▲▲ 여기까지 덮어쓰기 ▲▲▲
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
     if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
@@ -5892,6 +5948,7 @@ with tab1:
                         
                         iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
                         iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
+                    
                 # -----------------------------------------------
 
                 roic_val = real_roic if real_roic is not None else 0
@@ -6765,19 +6822,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "💡 Pure dividend 10Y consistency & 4Y chart, manual metric overrides (10Y FCF Growth, Fwd PER, Fwd PBR), FCF negative growth detection, and legal calculation basis."
                     ))
 
-                    # ▼▼▼ [수리 3 시작] 쇼츠 스튜디오 상단 5대 핵심 지표 직접 수정 패널 ▼▼▼
-                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 5종 직접 수정 (키움증권·시킹알파 수치로 수정 시 대본/차트 즉시 반영)")
-                    ov_c1, ov_c2, ov_c3, ov_c4, ov_c5 = st.columns(5)
+                    # ▼▼▼ [수리 4-A] 쇼츠용 6대 핵심 밸류에이션 지표 직접 수정 패널 (역산 DCF 요구성장률 추가!) ▼▼▼
+                    implied_g_auto = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
+                    imp_g_auto_pct = float(round(implied_g_auto * 100.0, 2)) if implied_g_auto is not None else 0.0
+
+                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 6종 직접 수정 (수정 즉시 대본·차트·설명란에 100% 반영)")
+                    ov_c1, ov_c2, ov_c3, ov_c4, ov_c5, ov_c6 = st.columns(6)
                     with ov_c1:
                         sh_fcf_g_pct = st.number_input(
                             "📉 10년 FCF 성장률(%)",
-                            min_value=-50.0, max_value=100.0,
+                            min_value=-99.9, max_value=200.0,
                             value=float(round(final_g * 100.0, 2)),
                             step=0.1, format="%.2f",
-                            help="역성장 시 모델 하한선인 2.0%로 고정됩니다. 2.0% 이하일 경우 쇼츠에서 자동으로 '역성장(측정 불가)'으로 안내합니다.",
+                            help="과거 10년간 실제 잉여현금흐름(FCF) 연평균 복리성장률입니다. 음수(<0%)일 경우 쇼츠에서 '역성장(측정 불가)'으로 판독합니다.",
                             key=f"sh_ov_fcfg_{tk}"
                         )
                     with ov_c2:
+                        sh_imp_g_pct = st.number_input(
+                            "🎯 역산 DCF 요구치(%)",
+                            min_value=-50.0, max_value=200.0,
+                            value=imp_g_auto_pct,
+                            step=0.1, format="%.2f",
+                            help="현재 주가를 정당화하기 위해 향후 10년간 매년 달성해야 하는 요구 FCF 성장률(Reverse DCF)입니다.",
+                            key=f"sh_ov_impg_{tk}"
+                        )
+                    with ov_c3:
                         sh_f_pe = st.number_input(
                             "⏱️ 선행 PER (배)",
                             min_value=0.0, max_value=500.0,
@@ -6786,7 +6855,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             help="시킹알파·네이버 컨센서스 기준 선행 PER(본전 회수 기간)을 직접 수정합니다.",
                             key=f"sh_ov_fpe_{tk}"
                         )
-                    with ov_c3:
+                    with ov_c4:
                         sh_a_pe = st.number_input(
                             "📊 10년 평균 PER (배)",
                             min_value=0.0, max_value=500.0,
@@ -6795,7 +6864,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             help="키움증권 기준 10년(또는 5년) 평균 PER을 직접 입력하여 할인율을 교정할 수 있습니다.",
                             key=f"sh_ov_ape_{tk}"
                         )
-                    with ov_c4:
+                    with ov_c5:
                         sh_f_pbr = st.number_input(
                             "🏛️ 선행 PBR (배)",
                             min_value=0.0, max_value=200.0,
@@ -6804,7 +6873,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             help="현재 또는 선행 기준 주가순자산비율(PBR)을 직접 수정합니다.",
                             key=f"sh_ov_fpbr_{tk}"
                         )
-                    with ov_c5:
+                    with ov_c6:
                         sh_a_pbr = st.number_input(
                             "📐 10년 평균 PBR (배)",
                             min_value=0.0, max_value=200.0,
@@ -6814,7 +6883,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             key=f"sh_ov_apbr_{tk}"
                         )
 
-                    # 쇼츠 스튜디오 내 모든 대본·차트가 수동 수정된 10년 평균 PER/PBR을 참조하도록 동기화
                     a_pe = sh_a_pe
                     a_pbr = sh_a_pbr
 
@@ -6824,6 +6892,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         sh_pmos_val = ((a_pe - sh_f_pe) / a_pe) * 100.0 if (sh_f_pe > 0 and a_pe > 0) else 0.0
 
+                    is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct < 0.0)
+                    # ▲▲▲ [수리 4-A 끝] ▲▲▲
                     # FCF 자체 계산 금지! 본문 final_g(또는 수동 입력값)가 2.0% 이하이거나 FCF 적자면 '역성장 측정 불가' 판정
                     is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct <= 2.001)
                     # ▲▲▲ [수리 3 끝] (바로 아래에 mode_col1, mode_col2 = st.columns([1.8, 1.2]) 가 이어집니다) ▲▲▲
@@ -6975,9 +7045,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     diff_vs_sp500 = cap_ret_val - bench_sp500_val
                     diff_vs_buffett = cap_ret_val - bench_buffett_val
                     # ▲▲▲ [수리 2-A 끝] ▲▲▲
-                    # 1주당 순이익(EPS) 10년 추이
+                    # ▼▼▼ [수리 4-B] 1주당 순이익(EPS) 10년 추이 (액면분할 100% 보정 + 시작/끝 음수·공란 완벽 처리) ▼▼▼
                     eps_hist_vals = []
                     eps_hist_years = []
+                    try:
+                        _sp_d = stk.splits if stk is not None else pd.Series(dtype=float)
+                    except Exception:
+                        _sp_d = pd.Series(dtype=float)
+
                     try:
                         if kr:
                             _d_df_eps, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
@@ -6985,7 +7060,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _sh_eps = max(1.0, safe_float(i.get('sharesOutstanding', 1.0)))
                                 for y_c in sorted(_d_df_eps.columns):
                                     ni_v = safe_float(_d_df_eps.loc['4. 당기순이익', y_c]) * 1e8
-                                    if ni_v != 0:
+                                    if pd.notna(ni_v) and ni_v != 0:
+                                        # 현재(액면분할 이후) 총발행주식수로 나누어 과거 10년 EPS를 분할 보정 기준으로 일관되게 산출
                                         eps_hist_vals.append(ni_v / _sh_eps)
                                         eps_hist_years.append(str(y_c))
                         else:
@@ -6995,19 +7071,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             for t_tag in ['EarningsPerShareDiluted', 'EarningsPerShareBasic']:
                                 if t_tag in _ug_eps:
                                     for it in _ug_eps[t_tag].get('units', {}).get('USD/shares', []):
-                                        if it.get('form') in ['10-K', '10-K/A'] and it.get('fp') == 'FY':
-                                            fy_s = str(it.get('fy', ''))
-                                            if fy_s.isdigit():
+                                        if it.get('form') in ['10-K', '10-K/A']:
+                                            start_s, end_s = it.get('start', ''), it.get('end', '')
+                                            if start_s and end_s:
+                                                try:
+                                                    days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
+                                                    if days < 330 or days > 380: continue
+                                                except Exception:
+                                                    pass
+                                            end_y = str(end_s)[:4]
+                                            fy_s = end_y if (end_y.isdigit() and int(end_y) >= 2010) else str(it.get('fy', ''))
+                                            if fy_s.isdigit() and safe_float(it.get('val')) != 0:
                                                 _eps_dict[int(fy_s)] = safe_float(it.get('val'))
                                     if len(_eps_dict) >= 3:
                                         break
                             if len(_eps_dict) >= 3:
-                                try:
-                                    _sp_d = stk.splits
-                                except Exception:
-                                    _sp_d = pd.Series(dtype=float)
-                                ref_e = t_eps if t_eps != 0 else list(_eps_dict.values())[-1]
-                                for y_k in sorted(_eps_dict.keys())[-10:]:
+                                curr_cal_y = datetime.now().year
+                                valid_eps_yrs = [y for y in sorted(_eps_dict.keys()) if y < curr_cal_y][-10:]
+                                if len(valid_eps_yrs) < 3:
+                                    valid_eps_yrs = sorted(_eps_dict.keys())[-10:]
+                                ref_e = t_eps if t_eps != 0 else _eps_dict[valid_eps_yrs[-1]]
+                                for y_k in valid_eps_yrs:
                                     eps_hist_vals.append(normalize_split_eps(_eps_dict[y_k], y_k, ref_e, _sp_d))
                                     eps_hist_years.append(str(y_k))
                     except Exception:
@@ -7022,70 +7106,75 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         s_e = _inc_e.loc[ek].dropna()
                                         if len(s_e) >= 2:
                                             _sh_f = max(1.0, safe_float(i.get('sharesOutstanding', 1.0))) if ek == 'Net Income' else 1.0
-                                            eps_hist_vals = [safe_float(v) / _sh_f for v in s_e.values[::-1]]
-                                            eps_hist_years = [str(c)[:4] for c in s_e.index[::-1]]
+                                            ref_e = t_eps if t_eps != 0 else (safe_float(s_e.values[0]) / _sh_f)
+                                            for c_dt, v_raw in zip(s_e.index[::-1], s_e.values[::-1]):
+                                                y_i = int(str(c_dt)[:4])
+                                                v_per_sh = safe_float(v_raw) / _sh_f
+                                                if ek != 'Net Income':
+                                                    v_per_sh = normalize_split_eps(v_per_sh, y_i, ref_e, _sp_d)
+                                                if v_per_sh != 0:
+                                                    eps_hist_vals.append(v_per_sh)
+                                                    eps_hist_years.append(str(y_i))
                                             break
                         except Exception:
                             pass
 
                     eps_up_count = 0
-                    eps_span_yrs = max(1, len(eps_hist_vals) - 1)
-                    eps_cagr_pct = 0.0
+                    eps_cagr_raw, eps_status_code, eps_span_yrs, _ = calc_smart_cagr(eps_hist_vals, eps_hist_years)
+                    eps_cagr_pct = eps_cagr_raw * 100.0 if eps_status_code not in ["TURN_LOSS", "CONT_LOSS", "INSUFFICIENT"] else 0.0
                     is_eps_steady_up = False
 
                     if len(eps_hist_vals) >= 2:
                         for idx_e in range(1, len(eps_hist_vals)):
                             if eps_hist_vals[idx_e] >= eps_hist_vals[idx_e - 1]:
                                 eps_up_count += 1
-                        e_start, e_end = eps_hist_vals[0], eps_hist_vals[-1]
-                        if e_start > 0 and e_end > 0:
-                            eps_cagr_pct = ((e_end / e_start) ** (1.0 / eps_span_yrs) - 1.0) * 100.0
-                        elif e_start > 0 and e_end < 0:
-                            eps_cagr_pct = -15.0
-                        elif e_start <= 0 and e_end > 0:
-                            eps_cagr_pct = 15.0
-
-                        if eps_up_count >= max(1, int(eps_span_yrs * 0.7)) and e_end > e_start:
+                        if eps_up_count >= max(1, int((len(eps_hist_vals) - 1) * 0.7)) and eps_hist_vals[-1] > eps_hist_vals[0] and eps_hist_vals[-1] > 0:
                             is_eps_steady_up = True
 
                     if is_en_shorts:
-                        if len(eps_hist_vals) >= 2:
+                        if eps_status_code in ["TURNAROUND", "TURNAROUND_1Y"]:
+                            eps_script_line = f"Profit per share turned around from past deficits to profitability, growing {eps_cagr_pct:+.1f} percent annually since turning positive."
+                            eps_badge_short = f"Turnaround ({eps_cagr_pct:+.1f}%/yr)"
+                        elif eps_status_code in ["TURN_LOSS", "CONT_LOSS"]:
+                            eps_script_line = "Profit per share is currently in deficit territory, making normal growth rate unmeasurable."
+                            eps_badge_short = "Deficit (Growth N/A)"
+                        elif len(eps_hist_vals) >= 2:
                             if is_eps_steady_up and eps_cagr_pct > 0:
                                 eps_script_line = f"Profit per share has grown steadily over the long term, averaging {eps_cagr_pct:+.1f} percent per year."
                                 eps_badge_short = f"Steady Growth ({eps_cagr_pct:+.1f}%/yr)"
                             elif eps_cagr_pct > 0:
                                 eps_script_line = f"Profit per share had cyclical swings, but grew {eps_cagr_pct:+.1f} percent annually over the long run."
                                 eps_badge_short = f"Upward Trend ({eps_cagr_pct:+.1f}%/yr)"
-                            elif eps_hist_vals[-1] > 0:
-                                eps_script_line = "Profit per share remains positive, though fluctuating with industry cycles."
-                                eps_badge_short = "Positive / Cyclical"
                             else:
-                                eps_script_line = "Profit per share is currently in deficit territory on the books."
-                                eps_badge_short = "Deficit Territory"
+                                eps_script_line = f"Profit per share remains positive, though declining {abs(eps_cagr_pct):.1f} percent annually from peak levels."
+                                eps_badge_short = f"Cyclical ({eps_cagr_pct:+.1f}%/yr)"
                         else:
                             eps_script_line = f"Profit per share is expected to shift by {eps_g_val:+.1f} percent based on consensus."
                             eps_badge_short = f"Est. {eps_g_val:+.1f}%"
                     else:
-                        if len(eps_hist_vals) >= 2:
+                        if eps_status_code == "TURNAROUND":
+                            eps_script_line = f"1주당 순이익은 과거 적자에서 흑자 전환에 성공한 뒤, 연평균 {eps_cagr_pct:.1f}%씩 성장함."
+                            eps_badge_short = f"흑자전환 후 연 {eps_cagr_pct:+.1f}%"
+                        elif eps_status_code == "TURNAROUND_1Y":
+                            eps_script_line = "1주당 순이익은 과거 적자 구간을 벗어나 최근 흑자 전환에 성공함."
+                            eps_badge_short = "최근 흑자 전환 성공"
+                        elif eps_status_code in ["TURN_LOSS", "CONT_LOSS"]:
+                            eps_script_line = "현재 1주당 순이익이 적자 구간이어서 정상 성장률 측정이 불가하며 흑자 전환 확인이 필요함."
+                            eps_badge_short = "적자 구간 (측정 불가)"
+                        elif len(eps_hist_vals) >= 2:
                             if is_eps_steady_up and eps_cagr_pct > 0:
                                 eps_script_line = f"1주당 벌어들이는 순이익은 장기적으로 연평균 {eps_cagr_pct:.1f}%씩 꾸준히 우상향함."
                                 eps_badge_short = f"꾸준한 우상향 (연 {eps_cagr_pct:+.1f}%)"
                             elif eps_cagr_pct > 0:
                                 eps_script_line = f"1주당 순이익은 연도별 등락이 있었으나, 장기적으로 연평균 {eps_cagr_pct:.1f}% 증가하며 성장함."
                                 eps_badge_short = f"장기 우상향 (연 {eps_cagr_pct:+.1f}%)"
-                            elif eps_hist_vals[-1] > 0 and eps_hist_vals[0] <= 0:
-                                eps_script_line = "1주당 순이익은 과거 적자 구간을 지나, 최근 흑자 전환 흐름을 기록함."
-                                eps_badge_short = "최근 흑자 전환"
-                            elif eps_hist_vals[-1] > 0:
-                                eps_script_line = "1주당 순이익은 흑자를 유지 중이나, 경기 사이클에 따라 등락을 반복함."
-                                eps_badge_short = "흑자 유지 (사이클 등락)"
                             else:
-                                eps_script_line = "현재 1주당 순이익은 적자 구간에 머물러 있어, 이익 턴어라운드 확인이 필요함."
-                                eps_badge_short = "적자 구간 (확인 필요)"
+                                eps_script_line = f"1주당 순이익은 흑자를 유지 중이나 과거 대비 연평균 {abs(eps_cagr_pct):.1f}% 감소하며 사이클 등락을 겪음."
+                                eps_badge_short = f"사이클 등락 (연 {eps_cagr_pct:+.1f}%)"
                         else:
                             eps_script_line = f"1주당 순이익은 전년 대비 {eps_g_str} 흐름으로 집계됨."
                             eps_badge_short = f"전년비 {eps_g_str}"
-
+                    # ▲▲▲ [수리 4-B 끝] ▲▲▲
                     # ▼▼▼ [액면분할 100% 보정 완료] 10년 배당 데이터 추출 블록 교체 ▼▼▼
                     div_10y_dict = {}
                     curr_y_int = datetime.now().year
@@ -8377,19 +8466,37 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             tpl_idx = sum(ord(c) for c in clean_tk) % len(title_templates)
                             default_yt_title = title_templates[tpl_idx]
 
+                        # ▼▼▼ [수리 4-C] 공통 설명란 / 캡션에 상세 계산 공식 및 산출 근거 자동 삽입 ▼▼▼
                         default_yt_desc = (
-                            f"📊 [{today_tag_str} 기준] {comp_name} ({clean_tk}) 10년 장부 & 배당 정량 브리핑\n"
+                            f"📊 [{today_short}] {comp_name} ({clean_tk}) 10년 장부 & 배당 정량 브리핑\n"
                             f"• 현재 주가: {p_str} ({thumb_compare_bar})\n"
-                            f"• 1주당 순이익 추이: {eps_badge_short}\n"
-                            f"• {cap_ret_name_ko}: 연 {cap_ret_val:.1f}% (S&P 500 평균 12% · 버핏 기준 15% 비교)\n"
-                            f"• 순수 배당수익률: 연 {div:.1f}% ({div_badge_short}, 10년 중 {div_paid_years}년 지급)\n"
-                            f"• 10년 FCF 성장률: {'과거 10년 역성장으로 정상 성장률 측정 불가 (모델 하한 2.0% 규칙)' if is_fcf_neg_growth else f'연 {hist_fcf_g_pct:+.1f}%'}\n\n"
-                            f"[산출 근거 및 법적 고지 (Disclaimer)]\n"
-                            f"1. 데이터 출처: 금융감독원 전자공시(DART) 및 미국 증권거래위원회(SEC EDGAR 10-K) 최근 10개년 연결재무제표.\n"
-                            f"2. 계산 산식: 사업수익률(ROIC) = 세후영업이익(NOPAT) ÷ 투하자본 / 역산 DCF 할인율 = max(10년물 미국채 금리, 연 9.0%) / 과거 잉여현금흐름(FCF) 역성장 시 모델상 하한선(2.0%)이 적용되므로 영상 내에서는 '역성장(측정 불가)'으로 표기합니다.\n"
-                            f"3. 면책 고지: 본 영상은 공개된 공시 데이터를 바탕으로 기계적 산식에 의해 작성된 학술·교육용 통계 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다. 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
-                            f"#shorts #{clean_tag_name} #가치투자 #배당주 #재무제표분석"
+                            f"• 1주당 순이익(EPS) 추이: {eps_badge_short}\n"
+                            f"• {cap_ret_name_ko}(ROIC): 연 {cap_ret_val:.1f}% (ROE: 연 {roe:.1f}% | S&P 500 평균 12% · 버핏 기준 15% 비교)\n"
+                            f"• 순수 배당수익률(Div Yield): 연 {div:.1f}% ({div_badge_short}, 최근 10년 중 {div_paid_years}년 지급)\n"
+                            f"• 역산 DCF 요구 성장률: 연 {imp_g_pct:+.1f}% vs 10년 실제 FCF 성장률: {'역성장/적자 구간으로 측정 불가' if is_fcf_neg_growth else f'연 {hist_fcf_g_pct:+.1f}%'}\n\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"📐 [핵심 지표 계산 공식 및 데이터 산출 근거]\n"
+                            f"1. 데이터 원천: 한국 기업은 금융감독원 전자공시시스템(DART), 미국 기업은 증권거래위원회(SEC EDGAR 10-K)의 최근 10개년 연간 사업보고서 및 시장 컨센서스 기준입니다.\n"
+                            f"2. 액면분할·증자 보정: 과거 10년 주당순이익(EPS), 주당배당금(DPS), 발행주식수는 액면분할(Splits) 비율을 소급 반영하여 현재 주식수 기준으로 정규화했습니다.\n"
+                            f"3. 멀티플 및 할인율 산식:\n"
+                            f"   • 선행 PER (Fwd PER) = 현재 주가 ÷ 향후 12개월 컨센서스 EPS (10년 평균 PER은 연중 수정주가와 TTM EPS 결합 산출)\n"
+                            f"   • 선행 PBR (Fwd PBR) = 현재 주가 ÷ 예상 주당순자산(BPS) (할인율 = (10년 평균 멀티플 - 선행 멀티플) ÷ 10년 평균 멀티플 × 100)\n"
+                            f"   • 이익수익률 (Earnings Yield) = (1 ÷ 선행 PER) × 100 (무위험자산인 10년물 미국채 금리 {ty:.2f}%와 기회비용 비교)\n"
+                            f"4. 실제 장사 수익률 (ROIC) 및 자본수익률 (ROE) 산식:\n"
+                            f"   • ROIC = 세후영업이익[NOPAT = 영업이익 × (1 - 유효세율)] ÷ 투하자본[Invested Capital = 총차입금 + 자본총계 - 현금성자산]\n"
+                            f"   • ROE = 지배주주 당기순이익 ÷ 자본총계\n"
+                            f"5. 잉여현금흐름(FCF) 및 역산 DCF (Reverse DCF) 산식:\n"
+                            f"   • 연간 FCF = 영업활동현금흐름(OCF) - 설비투자(CAPEX: 유형·무형자산 취득액)\n"
+                            f"   • 역산 DCF 요구 성장률(g): 기준 FCF(최근 3개년 가중평균)가 향후 10년간 매년 g% 성장하고 10년 이후 영구성장률(2.0% 또는 0%)로 성장할 때, 할인율 r = max(10년물 미국채 금리, 연 9.0%)로 할인한 내재가치 합계가 현재 주가({p_str})와 일치하는 역산 성장률입니다.\n"
+                            f"6. 음수(적자)·공란 데이터 처리 기준 (CAGR):\n"
+                            f"   • 복리성장률(CAGR) = (최신값 ÷ 시작값)^(1 / 경과연수) - 1\n"
+                            f"   • 과거 초기 연도에 공란이 있는 경우 첫 유효 공시 연도를 시작점으로 산출하며, 과거 적자(음수)에서 최근 흑자(양수)로 전환된 경우 흑자 전환 첫 해부터의 복리 성장률을 산출합니다. 최근 연도가 적자(음수)이거나 역성장인 경우 복리 연산 왜곡 방지를 위해 '측정 불가(역성장)'로 판독합니다.\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"⚖️ [법적 고지 및 면책 조항]\n"
+                            f"본 영상은 공개된 공시 데이터를 바탕으로 통계적 산식에 의해 작성된 순수 학술·교육용 시각화 자료이며, 자본시장법상 투자자문이나 특정 종목의 매수·매도 추천이 아닙니다. 데이터의 완전성이나 미래 수익을 보장하지 않으며, 모든 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.\n\n"
+                            f"#shorts #{clean_tag_name} #가치투자 #재무제표분석 #배당주"
                         )
+                        # ▲▲▲ [수리 4-C 끝] ▲▲▲
 
                     yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v8_{clean_tk}_{mode_tag_k}")
                     yt_up_desc = st.text_area("공통 설명란 / 캡션 (산출 근거 및 면책 고지 자동 포함)", value=default_yt_desc, height=200, key=f"yt_d_v8_{clean_tk}_{mode_tag_k}")
@@ -8525,7 +8632,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     st.markdown("#### 📜 최종 적용 7컷 대본 미리보기 (~45초)")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                 # ▲▲▲ [교체 1 끝] ▲▲▲
-                # =====================================================================
+                # ▼▼▼ [수리 3 시작] 📊 10년 핵심 장부 요약 및 차트 (한국/미국 CAPEX & FCF 행 정식 표출 + SEC 중복버그 제거 + 10년 분할보정 주식수) ▼▼▼
                 st.divider()
                 st.subheader(t("📊 10년 핵심 장부 요약 및 차트", "📊 10-Year Financials & Charts"))
 
@@ -8539,7 +8646,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         years = plot_df.columns.tolist()
                         fig = go.Figure()
                         
-                        # 텍스트 라벨 기반 유연한 차트 렌더링
                         for idx_val in plot_df.index:
                             if '매출액' in str(idx_val) or 'Revenue' in str(idx_val):
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('매출액', 'Revenue'), marker_color='#74b9ff'))
@@ -8547,40 +8653,66 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('영업이익', 'Op. Income'), marker_color='#fdcb6e'))
                             elif '순이익' in str(idx_val) or 'Net Income' in str(idx_val):
                                 fig.add_trace(go.Bar(x=years, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
+                            elif '잉여현금흐름' in str(idx_val) or 'FCF' in str(idx_val):
+                                fig.add_trace(go.Scatter(x=years, y=plot_df.loc[idx_val], name=t('잉여현금흐름(FCF)', 'FCF'), mode='lines+markers', line=dict(color='#a29bfe', width=3)))
                         
                         fig.update_layout(barmode='group', height=400, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#8892b0'), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
-                    # [핵심 수술] 미국 데이터(12.재무현금흐름)와 충돌하지 않도록 '13. 발행주식수'로 안전하게 추가
-                    def append_shares(df, stk_obj, is_kr):
+                    def append_shares_split_adjusted(df, stk_obj, is_kr, cd_str):
+                        """액면분할(Splits)을 100% 보정한 10년 발행주식수 행 추가"""
                         if df is None or df.empty or stk_obj is None: return df
-                        scale = 100000000 if is_kr else 1000000
+                        scale = 100000000.0 if is_kr else 1000000.0
                         s_dict = {}
+                        sh_now_ref = safe_float(i.get('sharesOutstanding', 0.0))
+                        try:
+                            sp_series = stk_obj.splits
+                        except Exception:
+                            sp_series = pd.Series(dtype=float)
+
+                        # 1) 미국 주식 SEC 10년 희석주식수 추출 후 액면분할 보정
+                        if not is_kr:
+                            try:
+                                f_sec = get_sec_company_facts_cached(cd_str)
+                                ug = f_sec.get('facts', {}).get('us-gaap', {})
+                                for stag in ['WeightedAverageNumberOfDilutedSharesOutstanding', 'WeightedAverageNumberOfSharesOutstandingBasic', 'CommonStockSharesOutstanding']:
+                                    if stag in ug:
+                                        for it in ug[stag].get('units', {}).get('shares', []):
+                                            if it.get('form') in ['10-K', '10-K/A']:
+                                                end_y = str(it.get('end', ''))[:4]
+                                                if end_y.isdigit() and int(end_y) >= 2012:
+                                                    raw_s = safe_float(it.get('val'))
+                                                    if raw_s > 0:
+                                                        norm_s = normalize_split_shares(raw_s, int(end_y), sh_now_ref, sp_series)
+                                                        s_dict[end_y] = norm_s / scale
+                                        if len(s_dict) >= 5:
+                                            break
+                            except Exception:
+                                pass
+
+                        # 2) yfinance 손익계산서 주식수 보완 (액면분할 보정 포함)
                         try:
                             inc = stk_obj.income_stmt
                             if inc is not None and not inc.empty:
-                                s_row = None
-                                if 'Basic Average Shares' in inc.index: s_row = inc.loc['Basic Average Shares']
-                                elif 'Diluted Average Shares' in inc.index: s_row = inc.loc['Diluted Average Shares']
+                                s_row = inc.loc['Diluted Average Shares'] if 'Diluted Average Shares' in inc.index else (inc.loc['Basic Average Shares'] if 'Basic Average Shares' in inc.index else None)
                                 if s_row is not None:
                                     for c_date in s_row.index:
                                         y = str(c_date)[:4]
                                         v = safe_float(s_row[c_date])
-                                        if v > 0: s_dict[y] = v / scale
-                        except: pass
+                                        if v > 0 and y.isdigit():
+                                            norm_v = normalize_split_shares(v, int(y), sh_now_ref, sp_series)
+                                            s_dict[y] = norm_v / scale
+                        except Exception:
+                            pass
                         
                         if s_dict:
-                            row_vals = []
-                            for col in df.columns:
-                                y_key = str(col).split('-')[0]
-                                row_vals.append(s_dict.get(y_key, None))
-                                
+                            row_vals = [s_dict.get(str(col).split('-')[0], None) for col in df.columns]
                             if any(pd.notna(x) for x in row_vals):
-                                df.loc['13. 발행주식수 (Shares)'] = row_vals
+                                df.loc['15. 발행주식수 (Shares, 분할보정)'] = row_vals
                         return df
 
                     def fallback_yfinance():
-                        st.info("💡 공공 데이터를 찾을 수 없어 yfinance(최근 4년치)로 대체 시각화합니다.")
+                        st.info("💡 공공 데이터를 찾을 수 없어 yfinance(최근 4~5년치)로 대체 시각화합니다.")
                         inc_df = stk.income_stmt
                         bs_df = stk.balance_sheet
                         cf_df = stk.cash_flow
@@ -8598,8 +8730,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 if 'Stockholders Equity' in bs_df.index: combined_dict['7. 자본총계 (Equity)'] = bs_df.loc['Stockholders Equity']
                             if cf_df is not None and not cf_df.empty:
                                 if 'Operating Cash Flow' in cf_df.index: combined_dict['8. 영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow']
-                                if 'Investing Cash Flow' in cf_df.index: combined_dict['9. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow']
-                                if 'Financing Cash Flow' in cf_df.index: combined_dict['10. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow']
+                                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                    if ck in cf_df.index:
+                                        combined_dict['9. 설비투자 (CAPEX)'] = cf_df.loc[ck].abs()
+                                        break
+                                if 'Investing Cash Flow' in cf_df.index: combined_dict['10. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow']
+                                if 'Financing Cash Flow' in cf_df.index: combined_dict['11. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow']
+                                if 'Free Cash Flow' in cf_df.index:
+                                    combined_dict['12. 잉여현금흐름 (FCF)'] = cf_df.loc['Free Cash Flow']
                             
                             if combined_dict:
                                 yf_df = pd.DataFrame(combined_dict).T
@@ -8607,29 +8745,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 yf_df = yf_df / (100000000 if kr else 1000000)
                                 
                                 draw_financial_chart(yf_df)
-                                yf_df = append_shares(yf_df, stk, kr)
+                                yf_df = append_shares_split_adjusted(yf_df, stk, kr, cd)
                                 
                                 try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 st.dataframe(formatted_yf, use_container_width=True)
                             else:
                                 st.warning("재무제표 데이터를 가져올 수 없습니다.")
-                        except Exception as e:
+                        except Exception:
                             st.warning("데이터 처리 중 에러가 발생했습니다.")
 
-                    # =========================================================
-                    # [한국 주식] DART (v2 함수명 적용 완료)
-                    # =========================================================
+                    # [한국 주식] DART 10년 장부 (10. 설비투자 CAPEX & 12. 잉여현금흐름 FCF 포함)
                     if kr:
-                        st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터)', 'Financials (DART)')}** {t('(단위: 억 원, 억 주)', '(Unit: 100M KRW)')}")
+                        st.write(f"**{t('핵심 장부 추이 (한국 DART 공공데이터 · CAPEX 및 FCF 포함)', 'Financials (DART)')}** {t('(단위: 억 원, 억 주)', '(Unit: 100M KRW)')}")
                         dart_success = False
                         
                         if DART_API_KEY:
-                            with st.spinner("금융감독원 DART에서 데이터를 수집 중입니다..."):
+                            with st.spinner("금융감독원 DART에서 10년 재무제표 및 CAPEX/FCF를 수집 중입니다..."):
                                 dart_df, debug_msg = get_10yr_dart_financials_v2(cd, DART_API_KEY)
                                 if not dart_df.empty:
                                     draw_financial_chart(dart_df)
-                                    dart_df = append_shares(dart_df, stk, kr)
+                                    dart_df = append_shares_split_adjusted(dart_df, stk, kr, cd)
                                     
                                     try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                     except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
@@ -8643,32 +8779,41 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if not dart_success:
                             fallback_yfinance()
                             
-                    # =========================================================
-                    # [미국 주식] SEC EDGAR (봇 우회용 헤더 교체 및 충돌 방지)
-                    # =========================================================
+                    # [미국 주식] SEC EDGAR 10년 장부 (연도 중복 복사 버그 제거 + 11. 설비투자 CAPEX & 14. 잉여현금흐름 FCF 정식 추가!)
                     else:
-                        st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 백만 주)', '(Unit: Million USD)')}")
+                        st.write(f"**{t('핵심 장부 추이 (미국 SEC 공공데이터 · CAPEX 및 FCF 포함)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 백만 주)', '(Unit: Million USD)')}")
                         sec_success = False
-                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 핵심 데이터를 수집 중입니다..."):
+                        with st.spinner("미국 증권거래위원회(SEC)에서 10년치 핵심 데이터 및 CAPEX/FCF를 수집 중입니다..."):
                             try:
-                                # SEC 방화벽을 우회하기 위한 정식 User-Agent 포맷
-                                sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
-                                # 기존 1513~1526행의 tickers_res / facts_res 호출을 아래 2줄로 대체 가능
                                 facts_res = get_sec_company_facts_cached(cd)
                                 if facts_res:
                                     us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
                                     
-                                    def extract_annual_data(tags):
+                                    def extract_annual_data(tags, is_instant=False):
                                         res = {}
                                         for tag in tags:
                                             if tag in us_gaap:
                                                 usd_data = us_gaap[tag].get('units', {}).get('USD', [])
                                                 for item in usd_data:
-                                                    if item.get('form') in ['10-K', '10-K/A'] and item.get('fp') == 'FY':
-                                                        y_val = str(item.get('fy'))
+                                                    if item.get('form') in ['10-K', '10-K/A']:
+                                                        start_s, end_s = item.get('start', ''), item.get('end', '')
+                                                        if not is_instant:
+                                                            if start_s and end_s:
+                                                                try:
+                                                                    days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
+                                                                    if days < 330 or days > 380: continue
+                                                                except Exception:
+                                                                    if item.get('fp') not in ['FY', None]: continue
+                                                            elif item.get('fp') not in ['FY', None]:
+                                                                continue
+                                                        # [핵심 수리] fy 대신 end(실제 결산연도)를 사용하여 옆 칸에 똑같은 숫자가 복사되는 버그 완벽 해결!
+                                                        end_yr = str(end_s)[:4]
+                                                        fy_yr = str(item.get('fy', ''))
+                                                        y_val = end_yr if (end_yr.isdigit() and int(end_yr) >= 2010) else fy_yr
                                                         val = item.get('val', 0)
-                                                        if y_val not in res or abs(val) > abs(res[y_val]):
-                                                            res[y_val] = val
+                                                        if y_val.isdigit() and val != 0:
+                                                            if y_val not in res or abs(val) > abs(res[y_val]):
+                                                                res[y_val] = val
                                         return res
                                     
                                     rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
@@ -8677,52 +8822,79 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     op = extract_annual_data(['OperatingIncomeLoss'])
                                     ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
                                     
-                                    assets = extract_annual_data(['Assets'])
-                                    curr_assets = extract_annual_data(['AssetsCurrent'])
-                                    liab = extract_annual_data(['Liabilities'])
-                                    equity = extract_annual_data(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'])
+                                    assets = extract_annual_data(['Assets'], is_instant=True)
+                                    curr_assets = extract_annual_data(['AssetsCurrent'], is_instant=True)
+                                    liab = extract_annual_data(['Liabilities'], is_instant=True)
+                                    equity = extract_annual_data(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], is_instant=True)
                                     
-                                    ocf = extract_annual_data(['NetCashProvidedByUsedInOperatingActivities'])
+                                    ocf = extract_annual_data(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'])
+                                    capex = extract_annual_data([
+                                        'PaymentsToAcquirePropertyPlantAndEquipment',
+                                        'PaymentsToAcquireProductiveAssets',
+                                        'PaymentsToAcquireOtherPropertyPlantAndEquipment',
+                                        'PaymentsForCapitalImprovements',
+                                        'AdditionsToNoncurrentAssets',
+                                        'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'
+                                    ])
                                     icf = extract_annual_data(['NetCashProvidedByUsedInInvestingActivities'])
                                     fcf_f = extract_annual_data(['NetCashProvidedByUsedInFinancingActivities'])
+
+                                    # yfinance 현금흐름표로 최근 연도 OCF / CAPEX 누락분 교차 보완
+                                    try:
+                                        cf_yf = stk.cash_flow
+                                        if cf_yf is not None and not cf_yf.empty:
+                                            for c_dt in cf_yf.columns:
+                                                y_s = str(c_dt)[:4]
+                                                if not y_s.isdigit(): continue
+                                                if y_s not in ocf or ocf.get(y_s, 0) == 0:
+                                                    for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
+                                                        if ok in cf_yf.index and pd.notna(cf_yf.loc[ok, c_dt]):
+                                                            ocf[y_s] = safe_float(cf_yf.loc[ok, c_dt]); break
+                                                if y_s not in capex or capex.get(y_s, 0) == 0:
+                                                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                                        if ck in cf_yf.index and pd.notna(cf_yf.loc[ck, c_dt]):
+                                                            capex[y_s] = abs(safe_float(cf_yf.loc[ck, c_dt])); break
+                                    except Exception:
+                                        pass
                                     
-                                    all_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()))), reverse=True)[:10]
+                                    curr_cal_y = datetime.now().year
+                                    raw_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()) + list(assets.keys()))), reverse=True)
+                                    comp_years = [y for y in raw_years if int(y) < curr_cal_y]
+                                    all_years = comp_years[:10] if len(comp_years) >= 10 else raw_years[:10]
                                     
                                     if all_years:
                                         sec_data = []
                                         for y in all_years:
-                                            # [추가] 미국 SEC 에드거 원시 데이터로 10년 ROE / ROIC 역산
-                                            _ni = ni.get(y, 0)
-                                            _eq = equity.get(y, 0)
-                                            _op = op.get(y, 0)
-                                            _ast = assets.get(y, 0)
-                                            _ca = curr_assets.get(y, 0)
-                                            
-                                            if _eq > 0: hist_roe_10y.append((_ni / _eq) * 100)
-                                            _inv_cap = _ast - _ca if (_ast - _ca) > 0 else _ast
-                                            if _inv_cap > 0: hist_roic_10y.append((_op * 0.75 / _inv_cap) * 100) # 미국 법인세율 25% 단순 가정
+                                            ocf_y = ocf.get(y, 0)
+                                            capex_y = abs(capex.get(y, 0))
+                                            fcf_y = (ocf_y - capex_y) if ocf_y != 0 else 0
+                                            rev_y = rev.get(y, 0)
+                                            cogs_y = cogs.get(y, 0)
+                                            gp_y = gp.get(y, (rev_y - cogs_y) if (rev_y > 0 and cogs_y > 0) else 0)
 
                                             sec_data.append({
                                                 '연도': y,
-                                                '1. 매출액 (Revenue)': rev.get(y, 0),
-                                                '2. 매출원가 (COGS)': cogs.get(y, 0),
-                                                '3. 매출총이익 (Gross Profit)': gp.get(y, 0),
+                                                '1. 매출액 (Revenue)': rev_y,
+                                                '2. 매출원가 (COGS)': cogs_y,
+                                                '3. 매출총이익 (Gross Profit)': gp_y,
                                                 '4. 영업이익 (Op. Income)': op.get(y, 0),
                                                 '5. 당기순이익 (Net Income)': ni.get(y, 0),
                                                 '6. 자산총계 (Assets)': assets.get(y, 0),
                                                 '7. 유동자산 (Current Assets)': curr_assets.get(y, 0),
                                                 '8. 부채총계 (Liabilities)': liab.get(y, 0),
                                                 '9. 자본총계 (Equity)': equity.get(y, 0),
-                                                '10. 영업현금흐름 (Op. CF)': ocf.get(y, 0),
-                                                '11. 투자현금흐름 (Inv. CF)': icf.get(y, 0),
-                                                '12. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0)
+                                                '10. 영업현금흐름 (Op. CF)': ocf_y,
+                                                '11. 설비투자 (CAPEX)': capex_y,
+                                                '12. 투자현금흐름 (Inv. CF)': icf.get(y, 0),
+                                                '13. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0),
+                                                '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_y
                                             })
                                         
                                         sec_df = pd.DataFrame(sec_data).set_index('연도').T
                                         sec_df = sec_df / 1000000 
                                         
                                         draw_financial_chart(sec_df)
-                                        sec_df = append_shares(sec_df, stk, kr)
+                                        sec_df = append_shares_split_adjusted(sec_df, stk, kr, cd)
                                         
                                         try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
                                         except: formatted_sec = sec_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
@@ -8732,6 +8904,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         
                         if not sec_success:
                             fallback_yfinance()
+                # ▲▲▲ [수리 3 끝] ▲▲▲
                             
 # ==========================================
 # 탭 2: 유명 투자자 13F 포트폴리오
