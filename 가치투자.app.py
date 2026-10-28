@@ -5378,14 +5378,47 @@ with tab1:
                 
                 st.success(f"{i.get('shortName', tk)} ({tk}) {t('분석 완료', 'Analysis Complete')}") 
                 
-                # ▼▼▼ [신규 추가] 한국 주식 10년 데이터 출처 및 DART API 점검 상태 실시간 알림 배너 ▼▼▼
-                if kr:
-                    cd_chk = tk.split('.')[0]
-                    _, dart_st_msg = get_10yr_dart_financials_v2(cd_chk, DART_API_KEY)
-                    if "🚨" in dart_st_msg:
-                        st.warning(dart_st_msg)
+                # ▼▼▼ [수리 1] 앱 본문에 '재무제표 기준 결산월 및 최근 실적발표 시점' 자동 판독 및 표출 (약 1897행) ▼▼▼
+                latest_annual_period = "확인 중"
+                latest_qtr_period = "확인 중"
+                earnings_date_info = ""
+                try:
+                    if kr:
+                        cd_chk = tk.split('.')[0]
+                        _d_chk, dart_st_msg = get_10yr_dart_financials_v2(cd_chk, DART_API_KEY)
+                        if not _d_chk.empty:
+                            latest_annual_period = f"{_d_chk.columns[0]}년 연간 사업보고서"
                     else:
-                        st.caption(f"📡 **장기 재무 데이터 소스:** {dart_st_msg}")
+                        dart_st_msg = "SEC EDGAR 10-K 공식 공시 연동"
+
+                    if stk is not None:
+                        _inc_a = stk.income_stmt
+                        if _inc_a is not None and not _inc_a.empty:
+                            c_a_str = str(_inc_a.columns[0])[:7] # 예: 2025-12
+                            latest_annual_period = f"{c_a_str[:4]}년 {int(c_a_str[5:7])}월 결산(연간)"
+                        _inc_q = stk.quarterly_income_stmt
+                        if _inc_q is not None and not _inc_q.empty:
+                            c_q_str = str(_inc_q.columns[0])[:7] # 예: 2026-06
+                            yr_q, mo_q = c_q_str[:4], int(c_q_str[5:7])
+                            q_num = (mo_q - 1) // 3 + 1
+                            latest_qtr_period = f"{yr_q}년 {q_num}분기({mo_q}월말)"
+
+                    # 최근 또는 예정된 실적발표일(Earnings Date) 추출
+                    ts_earn = i.get('earningsTimestamp', i.get('earningsTimestampStart'))
+                    if ts_earn:
+                        dt_earn = datetime.fromtimestamp(int(ts_earn)).strftime('%Y.%m.%d')
+                        earnings_date_info = f" · 최근/예정 실적발표일: <b>{dt_earn}</b>"
+                except Exception:
+                    pass
+
+                shorts_filing_badge = f"{latest_qtr_period} 실적 반영" if latest_qtr_period != "확인 중" else f"{latest_annual_period} 반영"
+                st.markdown(
+                    f"<div style='background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.3); padding:10px 16px; border-radius:10px; font-size:0.9rem; color:var(--text-color); margin-bottom:12px;'>"
+                    f"📅 <b>재무 데이터 기준 시점:</b> 연간장부 <b>[{latest_annual_period}]</b> · 최신분기 <b>[{latest_qtr_period}]</b>{earnings_date_info} "
+                    f"<span style='color:#8892b0; font-size:0.85em;'>({dart_st_msg})</span></div>",
+                    unsafe_allow_html=True
+                )
+                # ▲▲▲ [수리 1 끝] ▲▲▲
                 # ▲▲▲ 여기까지 추가 ▲▲▲
                 
                 off = i.get('companyOfficers', [])
@@ -6872,14 +6905,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             ],
                             key=f"shorts_sfx_v8_{tk}"
                         )
+                    # ▼▼▼ [수리 2-A] 성우 배속 + 컷 뒤 쉬는 시간(초) 슬라이더 + '실제 장사 수익률(ROIC)' 명칭 적용 ▼▼▼
                     with col_sh4:
-                        default_spd = 10 if is_en_shorts else 15
-                        voice_speed = st.slider(
-                            "4️⃣ 성우 말하기 배속 (45초 호흡 최적화 +15% 기본 세팅)",
-                            min_value=0, max_value=100, value=default_spd, step=5,
-                            format="+%d%%",
-                            key=f"shorts_spd_v8_{tk}"
-                        )
+                        spd_c1, spd_c2 = st.columns(2)
+                        with spd_c1:
+                            default_spd = 10 if is_en_shorts else 15
+                            voice_speed = st.slider(
+                                "4️⃣ 성우 말하기 배속",
+                                min_value=0, max_value=100, value=default_spd, step=5,
+                                format="+%d%%",
+                                key=f"shorts_spd_v8_{tk}"
+                            )
+                        with spd_c2:
+                            pause_dur_sec = st.slider(
+                                "⏸️ 컷 끝난 뒤 쉬는 시간(초)",
+                                min_value=0.00, max_value=1.20, value=0.25, step=0.05,
+                                format="%.2f초",
+                                help="각 문장(컷)이 끝난 뒤 다음 컷으로 넘어가기 전 여백 시간을 직접 조절합니다. (빠른 호흡=0.10초, 여유 있는 호흡=0.40초)",
+                                key=f"shorts_pause_v8_{tk}"
+                            )
 
                     def _josa(word, pair="이/가"):
                         w = str(word).strip()
@@ -6907,11 +6951,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     comp_name_en = str(i.get('shortName', tk)).split(",")[0].split("Inc")[0].strip() or tk
                     comp_name = comp_name_en if is_en_shorts else comp_name_ko
                     clean_tk = tk.split('.')[0] if kr else tk
-                    today_short = datetime.now().strftime("%Y.%m.%d")
+
+                    # [핵심] 쇼츠 상단에 주가 기준일과 '언제 발표된 실적 기준인지' 함께 표기!
+                    filing_tag_short = locals().get("shorts_filing_badge", "최신 공시 반영")
+                    today_short = f"{datetime.now().strftime('%Y.%m.%d')} · {filing_tag_short}"
 
                     actual_yr_cnt = 10 if (not data_len or int(data_len) >= 5) else max(2, int(data_len))
                     yr_span_str = f"{actual_yr_cnt}년" if not is_en_shorts else f"{actual_yr_cnt}Y"
 
+                    # [요청 반영] 초보자도 단번에 이해하는 '실제 장사 수익률' (영상 표에는 ROIC 병기)
                     if is_financial:
                         cap_ret_val = roe
                         bench_sp500_val = 12.0
@@ -6922,11 +6970,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         cap_ret_val = roic_val if roic_val != 0 else roe
                         bench_sp500_val = 12.0
                         bench_buffett_val = 15.0
-                        cap_ret_name_ko = "사업 수익률"
+                        cap_ret_name_ko = "실제 장사 수익률"
                         cap_ret_name_en = "Business Return"
                     diff_vs_sp500 = cap_ret_val - bench_sp500_val
                     diff_vs_buffett = cap_ret_val - bench_buffett_val
-
+                    # ▲▲▲ [수리 2-A 끝] ▲▲▲
                     # 1주당 순이익(EPS) 10년 추이
                     eps_hist_vals = []
                     eps_hist_years = []
@@ -7038,13 +7086,38 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             eps_script_line = f"1주당 순이익은 전년 대비 {eps_g_str} 흐름으로 집계됨."
                             eps_badge_short = f"전년비 {eps_g_str}"
 
-                    # =========================================================================
-                    # [핵심 요구사항] 자사주 매입 완전 제거! 오직 '순수 배당'의 10년 일관성 판독 & 4년 시각화 데이터 추출
-                    # =========================================================================
+                    # ▼▼▼ [액면분할 100% 보정 완료] 10년 배당 데이터 추출 블록 교체 ▼▼▼
                     div_10y_dict = {}
                     curr_y_int = datetime.now().year
 
-                    # 1순위: yfinance dividends 시계열 (최대 10년 완료 연도)
+                    # 액면분할(Splits) 이력 로드 (과거 미보정 DPS 교정용)
+                    try:
+                        _div_splits = stk.splits if stk is not None else pd.Series(dtype=float)
+                    except Exception:
+                        _div_splits = pd.Series(dtype=float)
+
+                    def _adjust_dps_for_splits(raw_dps, yr_int, ref_curr_dps):
+                        """과거 연도(yr_int) 이후 발생한 액면분할 배수를 계산해 과거 DPS를 현재 주식수 기준으로 정규화"""
+                        if raw_dps <= 0:
+                            return 0.0
+                        if _div_splits is None or _div_splits.empty:
+                            return raw_dps
+                        # yr_int 이후에 발생한 액면분할 배수 누적 곱산
+                        cum_split = 1.0
+                        for s_dt, s_ratio in _div_splits.items():
+                            if s_dt.year > yr_int and float(s_ratio) > 0:
+                                cum_split *= float(s_ratio)
+                        if cum_split == 1.0:
+                            return raw_dps
+                        adj_dps = raw_dps / cum_split
+                        # 만약 SEC 비교재무제표에서 이미 소급 보정된 값이라면 ref_curr_dps와 더 가까운 쪽을 채택
+                        if ref_curr_dps > 0:
+                            dist_raw = abs((raw_dps / ref_curr_dps) - 1.0)
+                            dist_adj = abs((adj_dps / ref_curr_dps) - 1.0)
+                            return adj_dps if dist_adj < dist_raw else raw_dps
+                        return adj_dps
+
+                    # 1순위: yfinance dividends 시계열 (기본적으로 Split-Adjusted 되어 있으나, 같은 해 분할 시 혼재 방어)
                     try:
                         if stk is not None:
                             d_ser = stk.dividends
@@ -7059,28 +7132,66 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     except Exception:
                         pass
 
-                    # 2순위: SEC EDGAR 10-K 배당 데이터 보완 (미국 주식 중 시계열 누락 시)
+                    # 1-B순위 (한국 주식 전용): yfinance 배당 누락 시 FnGuide 스냅샷의 주당배당금(DPS) 보완
+                    if kr and len(div_10y_dict) < 4:
+                        try:
+                            fn_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{cd}"
+                            r_fn = requests.get(fn_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
+                            if r_fn.status_code == 200:
+                                soup_fn = BeautifulSoup(r_fn.text, 'html.parser')
+                                h_div = soup_fn.find('div', {'id': 'highlight_D_Y'})
+                                if h_div and h_div.find('table'):
+                                    tbl_d = h_div.find('table')
+                                    thead_trs = tbl_d.find('thead').find_all('tr')
+                                    if len(thead_trs) >= 2:
+                                        yr_ths = thead_trs[1].find_all('th')
+                                        yr_cols = []
+                                        for idx_th, th in enumerate(yr_ths):
+                                            m_yr = re.search(r'(20\d{2})/\d{2}', th.text.strip())
+                                            if m_yr and '(E)' not in th.text:
+                                                yr_cols.append((idx_th, int(m_yr.group(1))))
+                                        for tr in tbl_d.find('tbody').find_all('tr'):
+                                            th_t = tr.find('th')
+                                            if th_t and '주당배당금' in re.sub(r'\s+', '', th_t.text):
+                                                tds = tr.find_all('td')
+                                                for idx_c, y_i in yr_cols:
+                                                    if idx_c < len(tds):
+                                                        v_clean = re.sub(r'[^\d\.]', '', tds[idx_c].text)
+                                                        if v_clean and safe_float(v_clean) > 0:
+                                                            div_10y_dict[y_i] = safe_float(v_clean)
+                                                break
+                        except Exception:
+                            pass
+
+                    # 2순위: SEC EDGAR 10-K 배당 데이터 보완 (액면분할 정규화 적용!)
                     if len(div_10y_dict) < 3 and not kr:
                         try:
                             _facts_d = get_sec_company_facts_cached(cd)
                             _ug_d = _facts_d.get('facts', {}).get('us-gaap', {})
+                            sh_div_ref = max(1.0, safe_float(i.get('sharesOutstanding', 1.0)))
+                            ref_dps_now = safe_float(i.get('dividendRate', p * (div / 100.0) if div > 0 else 0.0))
+
                             for d_tag in ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid', 'PaymentsOfDividendsCommonStock', 'PaymentsOfDividends']:
                                 if d_tag in _ug_d:
                                     u_key = 'USD/shares' if 'PerShare' in d_tag else 'USD'
-                                    sh_div_ref = max(1.0, safe_float(i.get('sharesOutstanding', 1.0)))
                                     for it in _ug_d[d_tag].get('units', {}).get(u_key, []):
                                         if it.get('form') in ['10-K', '10-K/A'] and it.get('fp') == 'FY':
                                             fy_i = int(it.get('fy', 0))
                                             val_d = abs(safe_float(it.get('val', 0)))
                                             if curr_y_int - 10 <= fy_i < curr_y_int and val_d > 0:
-                                                dps_v = val_d if u_key == 'USD/shares' else (val_d / sh_div_ref)
+                                                if u_key == 'USD/shares':
+                                                    # [핵심] 10-K 주당배당금 원문에 액면분할 보정 적용!
+                                                    dps_v = _adjust_dps_for_splits(val_d, fy_i, ref_dps_now)
+                                                else:
+                                                    # 배당총액을 현재(분할 후) 총주식수로 나누므로 자동 분할 보정됨
+                                                    dps_v = val_d / sh_div_ref
                                                 div_10y_dict[fy_i] = max(div_10y_dict.get(fy_i, 0.0), dps_v)
                                     if len(div_10y_dict) >= 3:
                                         break
                         except Exception:
                             pass
 
-                    # 3순위: 현금흐름표 Cash Dividends Paid 백업
+                    # 3순위: 현금흐름표 Cash Dividends Paid ÷ 현재 총주식수 (분할 후 주식수 기준이므로 자동 보정)
                     if len(div_10y_dict) < 2 and stk is not None:
                         try:
                             _cf_d = stk.cash_flow
@@ -7095,6 +7206,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         break
                         except Exception:
                             pass
+                    # ▲▲▲ [액면분할 100% 보정 완료] 여기까지 교체 ▲▲▲
 
                     sorted_div_years = sorted(div_10y_dict.keys())[-10:]
                     sorted_div_vals = [div_10y_dict[y] for y in sorted_div_years]
@@ -7656,10 +7768,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             gTTS(text=tts_ready_text, lang='en' if is_en_shorts else 'ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
+                        # ▼▼▼ [수리 2-B] _generate_chunk_voice 함수 내부 af_filter 교체 ▼▼▼
                         af_filter = (
-                            "silenceremove=start_periods=1:start_threshold=-42dB,"
-                            f"{eq_str},apad=pad_dur=0.35"
+                            "silenceremove=start_periods=1:start_threshold=-42dB:"
+                            "stop_periods=-1:stop_threshold=-42dB:stop_duration=0.06,"
+                            f"{eq_str},apad=pad_dur={pause_dur_sec:.2f}"
                         )
+                        # ▲▲▲ [수리 2-B 끝] ▲▲▲
                         try:
                             subprocess.run([
                                 ffmpeg_exe, "-y", "-i", raw_mp3_path,
@@ -7996,36 +8111,33 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 254, base_y3 - h_ey - 22, 110, f"{sh_ey:.1f}%", get_font, start_sz=25, min_sz=14, fill=ey_bar_col)
                             _fit_single_line(draw, 254, base_y3 + 20, 100, "E-Yield" if is_en_shorts else "이익수익률", get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
 
-                            # [요청사항 완벽 구현] 우측 보라색 박스: 자사주 매입 제거 & 최근 4개년 배당금 성장 막대차트!
+                            # ▼▼▼ [수리 2-C] SCENE_3 우측 보라색 박스: 막대 위 헷갈리는 숫자(53, 60...) 제거 버전 ▼▼▼
                             draw.rounded_rectangle([372, 392, W-54, 695], radius=20, fill=(30, 41, 59), outline=(192, 132, 252), width=2)
-                            _fit_single_line(draw, 519, 424, 265, "4Y Dividend Growth" if is_en_shorts else "최근 4개년 주당배당 추이", get_font, start_sz=21, min_sz=13, fill=(192, 132, 252))
+                            _fit_single_line(draw, 519, 418, 270, "4Y Dividend (DPS) Trend" if is_en_shorts else "최근 4개년 주당배당 추이 (DPS)", get_font, start_sz=19, min_sz=12, fill=(192, 132, 252))
+                            _fit_single_line(draw, 519, 442, 270, f"Div Yield: {div:.1f}%  |  10Y Paid: {div_paid_years}/10 yrs", get_font, start_sz=12, min_sz=9, fill=(148, 163, 184))
 
                             if sum(div_4y_vals) <= 0 and div <= 0:
-                                _fit_single_line(draw, 519, 535, 250, "무배당 기조" if not is_en_shorts else "No Dividend", get_font, start_sz=28, min_sz=16, fill=(148, 163, 184))
-                                _fit_single_line(draw, 519, 585, 250, "(사업 재투자 집중)" if not is_en_shorts else "(Reinvestment Focus)", get_font, start_sz=18, min_sz=12, fill=(100, 116, 139))
+                                _fit_single_line(draw, 519, 535, 250, "무배당 기조 (DPS = 0)" if not is_en_shorts else "No Dividend (DPS = 0)", get_font, start_sz=24, min_sz=14, fill=(148, 163, 184))
+                                _fit_single_line(draw, 519, 585, 250, "(사업 재투자 집중)" if not is_en_shorts else "(Reinvestment Focus)", get_font, start_sz=17, min_sz=11, fill=(100, 116, 139))
                             else:
-                                max_d4 = max(max(div_4y_vals), 0.01) * 1.28
-                                db_w = 42
+                                max_d4 = max(max(div_4y_vals), 0.01) * 1.20
+                                db_w = 44
                                 db_gap = int((244 - db_w * 4) / 5)
                                 for idx_d4, (dv_item, dy_lbl) in enumerate(zip(div_4y_vals, div_4y_years)):
                                     bx_d = 396 + db_gap + idx_d4 * (db_w + db_gap)
-                                    bh_d = int(max(14, min(145, (max(0.0, dv_item) / max_d4) * 145))) if dv_item > 0 else 8
+                                    bh_d = int(max(16, min(155, (max(0.0, dv_item) / max_d4) * 155))) if dv_item > 0 else 8
                                     if idx_d4 == 3:
                                         b_col_d = (168, 85, 247) if not is_recent_spike_only else (250, 204, 21)
                                     else:
                                         b_col_d = (126, 34, 206) if dv_item > 0 else (71, 85, 105)
-                                    draw.rounded_rectangle([bx_d, base_y3 - bh_d, bx_d + db_w, base_y3], radius=6, fill=b_col_d)
-                                    if kr:
-                                        dv_str = f"{int(round(dv_item)):,}" if dv_item >= 10 else (f"{dv_item:.1f}" if dv_item > 0 else "0")
-                                    else:
-                                        dv_str = f"${dv_item:.2f}" if dv_item > 0 else "$0"
-                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 - bh_d - 16, db_w + 18, dv_str, get_font, start_sz=14, min_sz=9, fill=(233, 213, 255))
+                                    # 막대 위 숫자(53, 60...) 없이 깔끔한 막대그래프와 하단 연도만 표시!
+                                    draw.rounded_rectangle([bx_d, base_y3 - bh_d, bx_d + db_w, base_y3], radius=8, fill=b_col_d)
                                     _fit_single_line(draw, bx_d + db_w//2, base_y3 + 20, db_w + 16, str(dy_lbl)[-2:] + ("년" if not is_en_shorts else "Y"), get_font, start_sz=14, min_sz=10, fill=(148, 163, 184))
 
-                            # 하단 요약 바: 순수 배당수익률 + 10년 배당 일관성 판정 (자사주 매입 완전 제거)
                             draw.rounded_rectangle([54, 710, W-54, 776], radius=14, fill=(30, 41, 59), outline=(168, 85, 247), width=2)
-                            b3_sub = f"Div Yield {div:.1f}% (10Y Paid: {div_paid_years}y)  |  {div_badge_short}" if is_en_shorts else f"배당률 연 {div:.1f}% (10년 중 {div_paid_years}년 지급)  |  {div_badge_short}"
-                            _fit_single_line(draw, W//2, 743, W-130, b3_sub, get_font, start_sz=20, min_sz=12, fill=(255, 255, 255))
+                            b3_sub = f"Div Yield {div:.1f}% (10Y Paid: {div_paid_years}y)  |  {div_badge_short}" if is_en_shorts else f"배당률(Div Yield) 연 {div:.1f}% (10년 중 {div_paid_years}년 지급)  |  {div_badge_short}"
+                            _fit_single_line(draw, W//2, 743, W-130, b3_sub, get_font, start_sz=19, min_sz=11, fill=(255, 255, 255))
+                            # ▲▲▲ [수리 2-C 끝] ▲▲▲
 
                         else:
                             if is_financial:
