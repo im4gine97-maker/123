@@ -4729,7 +4729,7 @@ def generate_quick_ai_preview(tk):
     
     # [추가] 미리보기 함수용 시클리컬 판독 로직
     cyclical_eng_kw = ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
-    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
+    cyclical_kor_kw = ['메모리', '철강', '해운', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '전기차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
     is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
