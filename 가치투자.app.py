@@ -7781,7 +7781,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 1072, W-36, "[Legal Notice] Purely educational & statistical data visualization. Not financial advice or buy/sell recommendation.", get_font, start_sz=15, min_sz=10, fill=(110, 115, 125))
                             _fit_single_line(draw, W//2, 1100, W-36, "Past metrics do not guarantee future returns. All investment decisions and responsibilities rest with the viewer.", get_font, start_sz=14, min_sz=10, fill=(90, 95, 105))
                         else:
-                            _fit_single_line(draw, W//2, 1042, W-36, "[산출근거] DART·SEC 10-K 10년 공시 | ROIC=세후영업이익/투하자본 | 할인율=max(10년국채,9%) | FCF역성장=측정불가(하한2%규칙)", get_font, start_sz=14, min_sz=10, fill=(135, 145, 160))
                             _fit_single_line(draw, W//2, 1072, W-36, "[법적고지] 본 영상은 공시 데이터 기반 학술·교육용 통계 자료이며 자본시장법상 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(110, 115, 125))
                             _fit_single_line(draw, W//2, 1100, W-36, "과거 재무 지표 및 컨센서스 산식이 미래 수익을 보장하지 않으며 모든 투자의 최종 판단과 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(90, 95, 105))
 
