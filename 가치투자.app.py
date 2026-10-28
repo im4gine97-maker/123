@@ -7113,48 +7113,45 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception:
                             pass
 
+                    # ▼▼▼ [여기부터 복사해서 기존 동명 구간에 덮어쓰세요] ▼▼▼
                     eps_cagr_raw, eps_status_code, eps_span_yrs, _ = calc_smart_cagr(eps_hist_vals, eps_hist_years)
                     eps_cagr_pct = eps_cagr_raw * 100.0 if eps_status_code not in ["TURN_LOSS", "CONT_LOSS", "INSUFFICIENT"] else 0.0
                     eps_neg_cnt = sum(1 for v in eps_hist_vals if v < 0)
 
-                    # 초보자도 단번에 이해하는 1주당 순이익(EPS) 스토리텔링 문장
+                    # [간소화 완료] 1주당 순이익(EPS) 한 줄 요약
                     if is_en_shorts:
                         if eps_status_code in ["TURNAROUND", "TURNAROUND_1Y"]:
-                            eps_script_line = f"Profit per share turned positive from past deficits, growing {eps_cagr_pct:+.1f} percent per year over the last {eps_span_yrs} years."
+                            eps_script_line = f"Profit per share turned positive, growing {eps_cagr_pct:+.1f}% annually over {eps_span_yrs} years."
                             eps_badge_short = f"Turnaround ({eps_span_yrs}Y {eps_cagr_pct:+.1f}%/yr)"
                         elif eps_status_code in ["TURN_LOSS", "CONT_LOSS"]:
-                            eps_script_line = "Profit per share is currently in deficit territory, requiring a turnaround check."
+                            eps_script_line = "Profit per share is currently in deficit territory."
                             eps_badge_short = "Deficit Zone"
                         elif len(eps_hist_vals) >= 2:
-                            eps_script_line = f"Profit per share changed by {eps_cagr_pct:+.1f} percent annually over {eps_span_yrs} years."
+                            eps_script_line = f"Profit per share changed {eps_cagr_pct:+.1f}% annually over {eps_span_yrs} years."
                             eps_badge_short = f"{eps_span_yrs}Y Avg {eps_cagr_pct:+.1f}%/yr"
                         else:
-                            eps_script_line = f"Profit per share is expected to shift by {eps_g_val:+.1f} percent."
+                            eps_script_line = f"Profit per share shifted {eps_g_val:+.1f}% YoY."
                             eps_badge_short = f"Est. {eps_g_val:+.1f}%"
                     else:
                         if eps_status_code == "TURNAROUND":
-                            eps_script_line = f"주식 1주가 벌어오는 순이익은 과거 적자 구간을 지나 흑자로 돌아선 뒤, 최근 {eps_span_yrs}년간 매년 평균 {eps_cagr_pct:.1f}%씩 늘어남."
+                            eps_script_line = f"1주당 순이익은 흑자 전환 후 {eps_span_yrs}년간 연평균 {eps_cagr_pct:.1f}%씩 증가함."
                             eps_badge_short = f"흑자전환 후 {eps_span_yrs}년 연 {eps_cagr_pct:+.1f}%"
                         elif eps_status_code == "TURNAROUND_1Y":
-                            eps_script_line = "주식 1주가 벌어오는 순이익은 과거 적자 터널을 벗어나 최근 흑자로 돌아섬."
+                            eps_script_line = "1주당 순이익은 과거 적자를 벗어나 최근 흑자 전환함."
                             eps_badge_short = "최근 흑자 전환 성공"
                         elif eps_status_code in ["TURN_LOSS", "CONT_LOSS"]:
-                            eps_script_line = "현재 주식 1주당 순이익이 적자 상태여서 이익이 플러스로 돌아서는지 확인이 필요함."
+                            eps_script_line = "현재 1주당 순이익은 적자 구간이어서 흑자 전환 확인이 필요함."
                             eps_badge_short = "적자 구간 (흑자전환 확인)"
                         elif len(eps_hist_vals) >= 2:
-                            mult_eps = (1.0 + eps_cagr_raw) ** max(1, eps_span_yrs)
-                            if eps_cagr_pct >= 10.0:
-                                eps_script_line = f"주식 1주가 벌어오는 순이익은 최근 {eps_span_yrs}년간 매년 평균 {eps_cagr_pct:.1f}%씩 불어나 약 {mult_eps:.1f}배로 커짐."
-                                eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}% ({mult_eps:.1f}배)"
-                            elif eps_cagr_pct > 0:
-                                mid_loss_note = f" 중간에 적자였던 해가 {eps_neg_cnt}번 있었으나," if eps_neg_cnt > 0 else ""
-                                eps_script_line = f"주식 1주당 순이익은{mid_loss_note} 최근 {eps_span_yrs}년간 연평균 {eps_cagr_pct:.1f}%씩 증가함."
+                            if eps_cagr_pct > 0:
+                                mid_loss_note = f" (중간 적자 {eps_neg_cnt}회)" if eps_neg_cnt > 0 else ""
+                                eps_script_line = f"1주당 순이익은 {eps_span_yrs}년간 연평균 {eps_cagr_pct:.1f}%씩 꾸준히 증가함{mid_loss_note}."
                                 eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%"
                             else:
-                                eps_script_line = f"주식 1주당 순이익은 흑자를 내고 있으나, 경기 사이클 영향으로 {eps_span_yrs}년간 연평균 {abs(eps_cagr_pct):.1f}% 줄어듦."
+                                eps_script_line = f"1주당 순이익은 흑자를 유지 중이나, {eps_span_yrs}년간 연평균 {abs(eps_cagr_pct):.1f}% 감소함."
                                 eps_badge_short = f"사이클 등락 (연 {eps_cagr_pct:+.1f}%)"
                         else:
-                            eps_script_line = f"주식 1주당 순이익은 전년 대비 {eps_g_str} 흐름으로 집계됨."
+                            eps_script_line = f"1주당 순이익은 전년 대비 {eps_g_str} 흐름임."
                             eps_badge_short = f"전년비 {eps_g_str}"
 
                     # 10년 배당 데이터 추출 (액면분할 100% 보정)
@@ -7271,40 +7268,40 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         div_4y_years = [str(curr_y_int - 4 + idx_y) for idx_y in range(4)]
                         div_4y_vals = [0.0, 0.0, 0.0, dps_est]
 
-                    # 1,000만원 투자 시 연간 배당금 비유
                     div_per_10m_manwon = round(div * 10.0, 1)
 
+                    # [간소화 완료] 순수 배당 한 줄 요약
                     if is_en_shorts:
                         if div_paid_years >= 7 and not is_recent_spike_only and div_inc_years >= max(4, div_paid_years - 3):
-                            div_consistency_txt = f"paying cash dividends for {div_paid_years} of the last 10 years with steady growth."
+                            div_consistency_txt = f"growing steadily over {div_paid_years} of the last 10 years."
                             div_badge_short = f"10Y Steady Div ({div:.1f}%)"
                         elif div_paid_years >= 7 and not is_recent_spike_only:
-                            div_consistency_txt = f"paying cash dividends consistently for {div_paid_years} of the last 10 years."
+                            div_consistency_txt = f"paid consistently in {div_paid_years} of the last 10 years."
                             div_badge_short = f"{div_paid_years}/10Y Paid ({div:.1f}%)"
                         elif is_recent_spike_only and (div > 0 or div_paid_years > 0):
-                            div_consistency_txt = "though the dividend was recently initiated or spiked."
+                            div_consistency_txt = "recently initiated or spiked."
                             div_badge_short = f"Recent Div ({div:.1f}%)"
                         elif div_paid_years >= 4:
-                            div_consistency_txt = f"paid in {div_paid_years} of the last 10 years, fluctuating with earnings."
+                            div_consistency_txt = f"paid {div_paid_years} times in 10 years, fluctuating with profit."
                             div_badge_short = f"Fluctuating ({div:.1f}%)"
                         else:
-                            div_consistency_txt = "currently paying 0% dividend to reinvest 100% into growth."
+                            div_consistency_txt = "reinvesting 100% into growth instead of dividends."
                             div_badge_short = "0% Div (Reinvesting)"
                     else:
                         if div_paid_years >= 7 and not is_recent_spike_only and div_inc_years >= max(4, div_paid_years - 3):
-                            div_consistency_txt = f"1,000만 원 보유 시 매년 약 {div_per_10m_manwon:g}만 원 수준이며, 최근 10년 중 {div_paid_years}년간 배당금을 꾸준히 늘려옴."
+                            div_consistency_txt = f"10년 중 {div_paid_years}년간 배당금을 꾸준히 늘려옴."
                             div_badge_short = f"연 {div:.1f}% (10년 꾸준한 배당성장)"
                         elif div_paid_years >= 7 and not is_recent_spike_only:
-                            div_consistency_txt = f"1,000만 원 보유 시 매년 약 {div_per_10m_manwon:g}만 원 수준이며, 최근 10년 중 {div_paid_years}년간 거르지 않고 배당을 지급함."
+                            div_consistency_txt = f"10년 중 {div_paid_years}년간 거르지 않고 배당을 지급함."
                             div_badge_short = f"연 {div:.1f}% (10년 중 {div_paid_years}년 지급)"
                         elif is_recent_spike_only and (div > 0 or div_paid_years > 0):
-                            div_consistency_txt = f"1,000만 원당 연 {div_per_10m_manwon:g}만 원 수준이나, 과거 10년 내내 준 것이 아니라 최근에 시작됐거나 반짝 늘어난 배당임."
+                            div_consistency_txt = "최근에 시작됐거나 반짝 늘어난 배당이라 지속성 확인이 필요함."
                             div_badge_short = f"연 {div:.1f}% (최근 배당 시작·증가)"
                         elif div_paid_years >= 4:
-                            div_consistency_txt = f"최근 10년 중 {div_paid_years}번 배당을 주었으나, 그해 장사 실적에 따라 배당금이 오르내리는 흐름임."
+                            div_consistency_txt = f"10년 중 {div_paid_years}번 지급했으며 실적에 따라 등락함."
                             div_badge_short = f"연 {div:.1f}% (실적 연동형 등락)"
                         else:
-                            div_consistency_txt = "현재 현금 배당을 주는 대신 벌어들인 돈을 100% 미래 사업 확장에 재투자하고 있음."
+                            div_consistency_txt = "배당 대신 100% 미래 사업 확장에 재투자 중임."
                             div_badge_short = "무배당 (100% 미래 재투자)"
 
                     hist_fcf_g_pct = sh_fcf_g_pct
@@ -7371,59 +7368,58 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     abs_pmos = abs(sh_pmos_val)
                     cur_pbr_won = int(round(sh_cur_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
-                    pe_diff_yrs = abs(a_pe - sh_f_pe)
 
                     if is_en_shorts:
                         if sh_pmos_val >= 3.0:
-                            disc_txt = f"{abs_pmos:.0f}% below {yr_span_str} avg"
-                            disc_short_badge = f"-{abs_pmos:.0f}% vs {yr_span_str} Avg"
+                            disc_txt = f"{abs_pmos:.0f}% below 10Y avg"
+                            disc_short_badge = f"-{abs_pmos:.0f}% vs 10Y Avg"
                         elif sh_pmos_val <= -3.0:
-                            disc_txt = f"{abs_pmos:.0f}% above {yr_span_str} avg"
-                            disc_short_badge = f"+{abs_pmos:.0f}% vs {yr_span_str} Avg"
+                            disc_txt = f"{abs_pmos:.0f}% above 10Y avg"
+                            disc_short_badge = f"+{abs_pmos:.0f}% vs 10Y Avg"
                         else:
-                            disc_txt = f"in line with {yr_span_str} avg"
-                            disc_short_badge = f"Near {yr_span_str} Avg"
+                            disc_txt = "near 10Y avg"
+                            disc_short_badge = "Near 10Y Avg"
                     else:
                         if sh_pmos_val >= 3.0:
-                            disc_txt = f"{abs_pmos:.0f}% 할인된 가격대"
+                            disc_txt = f"{abs_pmos:.0f}% 낮아짐"
                             disc_short_badge = f"10년 평균 대비 -{abs_pmos:.0f}% 할인"
                         elif sh_pmos_val <= -3.0:
-                            disc_txt = f"{abs_pmos:.0f}% 프리미엄이 붙은 가격대"
+                            disc_txt = f"{abs_pmos:.0f}% 높아짐"
                             disc_short_badge = f"10년 평균 대비 +{abs_pmos:.0f}% 할증"
                         else:
-                            disc_txt = "10년 평균과 비슷한 가격대"
+                            disc_txt = "10년 평균과 비슷함"
                             disc_short_badge = "10년 평균과 유사 수준"
 
                     # =========================================================================
-                    # [대본 생성 엔진] 현재 PBR 비교 + 양수 전환 시점 N년 FCF 성장률 + 역산 DCF 비교 삭제
+                    # [다이어트 완료] 컷당 30~40자 이내 초간결 7컷 대본 생성기
                     # =========================================================================
                     if is_en_shorts:
                         val_1line_en = (
-                            f"Current price-to-book is {sh_cur_pbr:.2f}x versus its 10-year average of {a_pbr:.2f}x, trading {disc_txt}."
+                            f"Current P/B is {sh_cur_pbr:.2f}x vs 10Y avg {a_pbr:.2f}x, {disc_txt}."
                             if use_pbr_m else
-                            f"Payback period is {sh_f_pe:.1f} years versus its 10-year average of {a_pe:.1f} years, trading {disc_txt}."
+                            f"Payback period is {sh_f_pe:.1f}y vs 10Y avg {a_pe:.1f}y, {disc_txt}."
                         )
-                        cap_line_en = f"{cap_ret_name_en} is {cap_ret_val:.1f}% per year—about {bank_multiple:.1f}x a 3.5% bank deposit and compared to S&P 500's 12%."
-                        ey_line_en = f"If this stock were a bond, its earnings yield is {sh_ey:.1f}% per year versus the 10-year US Treasury at {ty:.1f}%."
-                        div_line_en = f"Pure dividend yield is {div:.1f}%, {div_consistency_txt}"
+                        cap_line_en = f"{cap_ret_name_en} is {cap_ret_val:.1f}%, or {bank_multiple:.1f}x a 3.5% bank rate."
+                        ey_line_en = f"Earnings yield is {sh_ey:.1f}%, vs 10Y US Treasury at {ty:.1f}%."
+                        div_line_en = f"Dividend yield is {div:.1f}%, {div_consistency_txt}"
 
                         if is_financial:
-                            fcf_1line_en = f"For financial firms, we focus on current book multiple of {sh_cur_pbr:.2f}x and equity return of {roe:.1f}%."
+                            fcf_1line_en = f"For financials, key metrics are current P/B {sh_cur_pbr:.2f}x and ROE {roe:.1f}%."
                             fcf_badge_txt = f"Current P/B {sh_cur_pbr:.2f}x (10Y Avg {a_pbr:.2f}x) · ROE {roe:.1f}%"
                         elif is_fcf_curr_loss:
-                            fcf_1line_en = f"Pure leftover cash (FCF) is currently in deficit territory, with {fcf_neg_cnt} deficit years over the past decade."
+                            fcf_1line_en = f"Pure leftover cash is currently in deficit ({fcf_neg_cnt} deficit yrs in 10Y)."
                             fcf_badge_txt = f"10Y FCF: Currently in Deficit ({fcf_neg_cnt} Deficit Yrs)"
                         elif fcf_status_auto in ["TURNAROUND", "TURNAROUND_1Y"] or fcf_neg_cnt > 0:
-                            fcf_1line_en = f"Pure leftover cash (FCF) had {fcf_neg_cnt} deficit years in the past, but grew {hist_fcf_g_pct:+.1f}% annually over the {sh_fcf_span} years since turning positive."
+                            fcf_1line_en = f"After past deficits ({fcf_neg_cnt}x), leftover cash grew {hist_fcf_g_pct:+.1f}%/yr for {sh_fcf_span} years."
                             fcf_badge_txt = f"Post-Turnaround {sh_fcf_span}Y FCF Avg: {hist_fcf_g_pct:+.1f}%/yr ({fcf_neg_cnt} Deficit Yrs)"
                         else:
-                            fcf_1line_en = f"Pure leftover cash (FCF) has grown by an average of {hist_fcf_g_pct:+.1f}% per year over the last {sh_fcf_span} years without a single deficit."
+                            fcf_1line_en = f"Pure leftover cash grew {hist_fcf_g_pct:+.1f}% annually for {sh_fcf_span} years with 0 deficits."
                             fcf_badge_txt = f"{sh_fcf_span}Y Pure Cash (FCF) Growth: {hist_fcf_g_pct:+.1f}%/yr (0 Deficit Yrs)"
 
                         if is_earnings_mode:
                             default_script_lines = [
-                                f"Breaking down {comp_name}'s latest earnings and 10-year financial chart.",
-                                f"Revenue shifted by {earn_rev_chg:+.1f}% and net profit changed by {earn_ni_chg:+.1f}%.",
+                                f"{comp_name}'s latest earnings and 10Y scorecard.",
+                                f"Revenue shifted {earn_rev_chg:+.1f}% and net profit changed {earn_ni_chg:+.1f}%.",
                                 eps_script_line,
                                 cap_line_en,
                                 val_1line_en,
@@ -7432,7 +7428,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             ]
                             selected_thumb_quote = f"“{comp_name} Earnings: Net Profit {earn_ni_chg:+.1f}%!”"
                         else:
-                            open_en = f"{g_name_en} holds {g_main['weight']:.1f}% in {comp_name}. Let's check its 10-year visual scorecard." if has_guru_sh else f"Breaking down {comp_name}'s 10-year financial scorecard."
+                            open_en = f"{g_name_en} holds {g_main['weight']:.1f}% in {comp_name}. 10Y summary." if has_guru_sh else f"{comp_name}'s 10-year financial scorecard."
                             default_script_lines = [
                                 open_en,
                                 val_1line_en,
@@ -7447,36 +7443,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         thumb_compare_bar = f"Current P/B {sh_cur_pbr:.2f}x (10Y Avg {a_pbr:.2f}x)" if use_pbr_m else f"Payback {sh_f_pe:.1f}y (10Y Avg {a_pe:.1f}y)"
                         thumb_giant_num = disc_short_badge
                         thumb_red_quote = selected_thumb_quote
-                        pbr_reason_tag = "Current P/B vs 10Y Avg P/B (Split-Adjusted)" if use_pbr_m else "Payback Period (PE) vs 10Y Avg"
+                        pbr_reason_tag = "Current P/B vs 10Y Avg P/B" if use_pbr_m else "Payback Period (PE) vs 10Y Avg"
                         gap_badge_col = (5, 122, 85) if (not is_fcf_curr_loss and hist_fcf_g_pct >= 0) else (185, 28, 28)
 
                     else:
                         if has_guru_sh:
-                            subj_guru = _josa(g_main['hook_title'], "이/가")
-                            subj_short = _josa(g_main['name'], "은/는")
-                            hook_opt_1 = f"{subj_guru}, 포트폴리오 비중 {g_main['weight']:.1f}%로 담은 {comp_name}, 10년 장부 4대 차트 요약."
+                            subj_short = _josa(g_main['name'], "이/가")
+                            hook_opt_1 = f"{subj_short} {g_main['weight']:.1f}% 비중으로 담은 {comp_name}, 10년 장부 핵심 요약."
                             thumb_q_1 = f"“{subj_short} 왜 {comp_name} 주식을 {g_main['weight']:.1f}%나 담았을까?”"
                         else:
-                            hook_opt_1 = f"워런 버핏의 장부 기준으로 본, {comp_name} 10년 치 가격·이익·배당·현금흐름 요약."
-                            thumb_q_1 = f"“{comp_name} 10년 장부, 실제 돈 버는 속도와 현금흐름은?”"
+                            hook_opt_1 = f"워런 버핏 기준으로 본 {comp_name}, 10년 장부 핵심 요약."
+                            thumb_q_1 = f"“{comp_name} 10년 장부, 돈 버는 속도와 현금흐름은?”"
 
-                        hook_opt_2 = f"소문 무성한 {comp_name}, 1주당 순이익과 순수 여윳돈이 10년간 어떻게 변했는지 확인함."
-                        thumb_q_2 = f"“{comp_name} 1주당 순이익·여윳돈, 10년간 꾸준히 늘었을까?”"
+                        hook_opt_2 = f"소문 무성한 {comp_name}, 10년간 순이익과 여윳돈이 늘었는지 확인함."
+                        thumb_q_2 = f"“{comp_name} 순이익·여윳돈, 10년간 꾸준히 늘었을까?”"
 
                         if use_pbr_m:
-                            hook_opt_3 = f"회사 순자산 1만 원어치 금고를 평소 {avg_pbr_won:,}원에 거래하던 {comp_name}, 현재 가격은 {cur_pbr_won:,}원임."
-                            thumb_q_3 = f"“순자산 1만원 금고가 현재 {cur_pbr_won:,}원! 10년 평균과 비교하면?”"
+                            hook_opt_3 = f"순자산 1만 원 금고가 평소 {avg_pbr_won:,}원이던 {comp_name}, 현재 {cur_pbr_won:,}원임."
+                            thumb_q_3 = f"“순자산 1만원 금고가 현재 {cur_pbr_won:,}원! 10년 평균 대비 위치는?”"
                         else:
-                            hook_opt_3 = f"평소 원금 회수에 {a_pe:.1f}년 걸리던 {comp_name}, 현재 이익 기준 회수 기간은 {sh_f_pe:.1f}년임."
+                            hook_opt_3 = f"평소 원금 회수에 {a_pe:.1f}년 걸리던 {comp_name}, 현재는 {sh_f_pe:.1f}년임."
                             thumb_q_3 = f"“원금 회수기간 {sh_f_pe:.1f}년! 10년 평균({a_pe:.1f}년)과 비교하면?”"
 
-                        hook_opt_4 = f"은행 예금 이자 3.5% 시대, {comp_name}의 {cap_ret_name_ko}은 예금의 {bank_multiple:.1f}배인 연 {cap_ret_val:.1f}%를 기록 중임."
+                        hook_opt_4 = f"예금 이자 3.5% 시대, {comp_name}의 실제 장사수익률은 연 {cap_ret_val:.1f}%임."
                         thumb_q_4 = f"“은행 예금의 {bank_multiple:.1f}배 속도! {comp_name} 연 {cap_ret_val:.1f}%”"
 
                         if not is_earnings_mode:
-                            st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (초보자 직관 비유 4선)")
+                            st.markdown("##### 🎯 5️⃣ 초반 3초 오프닝 후킹 스타일 선택 (초간결 4선)")
                             hook_options_list = [
-                                (f"🥇 추천 1 [거장·4대 차트 해부형] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
+                                (f"🥇 추천 1 [거장·핵심 요약형] : \"{hook_opt_1}\"", hook_opt_1, thumb_q_1),
                                 (f"📈 추천 2 [순이익·여윳돈 추이형] : \"{hook_opt_2}\"", hook_opt_2, thumb_q_2),
                                 (f"📊 추천 3 [1만원 금고·회수기간 비유형] : \"{hook_opt_3}\"", hook_opt_3, thumb_q_3),
                                 (f"🏦 추천 4 [은행 예금 배수 비교형] : \"{hook_opt_4}\"", hook_opt_4, thumb_q_4),
@@ -7493,75 +7488,70 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             selected_thumb_quote = hook_options_list[selected_hook_idx][2]
                         else:
                             selected_hook_idx = 99
-                            opening_cut1 = f"{comp_name} 최신 실적 발표 완료, 직전 대비 매출과 순이익 변화 핵심 요약."
-                            selected_thumb_quote = f"“{comp_name} 실적 발표! 순이익 {earn_ni_chg:+.1f}% 변화, 현재 위치는?”"
+                            opening_cut1 = f"{comp_name} 최신 실적 발표, 매출과 순이익 변화 핵심 요약."
+                            selected_thumb_quote = f"“{comp_name} 실적 발표! 순이익 {earn_ni_chg:+.1f}% 변화”"
 
-                        # ① 가격 비교 (시클리컬/대만/홍콩/중국/한국/금융주는 현재 PBR 비교!)
+                        # [02] 가격 비교 (현재 PBR 또는 회수기간 PER - 한 호흡으로 단축)
                         if use_pbr_m:
                             pbr_reason_tag = "순자산 1만원당 현재 주가 비교 (현재 PBR vs 10년 평균 PBR)"
                             thumb_compare_bar = f"현재 PBR {sh_cur_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배)"
                             thumb_giant_num = disc_short_badge
                             thumb_red_quote = selected_thumb_quote
-                            val_1line_ko = f"회사 순자산 1만 원어치 금고가 10년 평균 {avg_pbr_won:,}원(PBR {a_pbr:.2f}배)에서 현재 {cur_pbr_won:,}원(현재 PBR {sh_cur_pbr:.2f}배)에 거래돼, 평소보다 {disc_txt}임."
+                            val_1line_ko = f"순자산 1만 원 금고가 10년 평균 {avg_pbr_won:,}원에서 현재 {cur_pbr_won:,}원으로 {disc_txt}."
                         else:
                             pbr_reason_tag = "순이익 원금 회수기간 비교 (선행 PER vs 10년 평균 PER)"
                             thumb_compare_bar = f"회수기간 {sh_f_pe:.1f}년 (10년 평균 {a_pe:.1f}년)"
                             thumb_giant_num = disc_short_badge
                             thumb_red_quote = selected_thumb_quote
-                            faster_slower = f"{pe_diff_yrs:.1f}년 빨라진" if sh_f_pe < a_pe else f"{pe_diff_yrs:.1f}년 길어진"
-                            val_1line_ko = f"순이익으로 투자 원금을 회수하는 기간이 10년 평균 {a_pe:.1f}년에서 현재 {sh_f_pe:.1f}년으로 평소보다 {faster_slower} {disc_txt}임."
+                            val_1line_ko = f"원금 회수 기간은 10년 평균 {a_pe:.1f}년에서 현재 {sh_f_pe:.1f}년으로 {disc_txt}."
 
-                        # ② 실제 장사 수익률 (은행 예금 3.5% 및 S&P500 12%와 쉬운 비유)
-                        if cap_ret_val >= 15.0:
-                            cap_line_ko = f"가게에 묶인 돈으로 실제 벌어들인 장사수익률은 연 {cap_ret_val:.1f}%로, 시중 은행 예금 이자(3.5%)의 약 {bank_multiple:.1f}배 속도이며 버핏 기준인 15%도 훌쩍 넘김."
-                        elif cap_ret_val >= 10.0:
-                            cap_line_ko = f"실제 장사수익률은 연 {cap_ret_val:.1f}%로, 시중 은행 예금 이자(3.5%)보다 약 {bank_multiple:.1f}배 빠른 속도로 자본을 불리고 있음."
+                        # [04] 실제 장사 수익률 (은행 예금 배수만 깔끔하게 강조)
+                        if cap_ret_val >= 3.5:
+                            cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 은행 예금(3.5%)의 {bank_multiple:.1f}배 속도임."
                         elif cap_ret_val > 0:
-                            cap_line_ko = f"실제 장사수익률은 연 {cap_ret_val:.1f}%로 은행 예금(3.5%) 수준은 넘지만, 미국 S&P500 평균인 12%보다는 다소 완만한 속도임."
+                            cap_line_ko = f"{cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, S&P500 평균(12%)보다 완만함."
                         else:
-                            cap_line_ko = f"현재 실제 장사수익률은 연 {cap_ret_val:.1f}%로, 투자 비용 대비 일시적 적자 구간을 지나고 있음."
+                            cap_line_ko = f"현재 {cap_ret_name_ko}은 연 {cap_ret_val:.1f}%로, 일시적 적자 구간임."
 
-                        # ③ 이익수익률 vs 미국채 금리 (채권 이자 비유)
+                        # [05] 이익수익률 vs 미국채 금리 (군더더기 수식어 제거)
                         ey_gap = sh_ey - ty
-                        ey_line_ko = f"현재 주가로 주식을 사서 매년 나오는 순이익을 이자처럼 환산하면 연 {sh_ey:.1f}%로, 안전자산인 10년물 미국채 이자({ty:.1f}%)와 비교해 연 {abs(ey_gap):.1f}%p {'더 높음' if ey_gap >= 0 else '낮은 수준임'}."
+                        ey_line_ko = f"주가 대비 이익수익률은 연 {sh_ey:.1f}%로, 10년물 미국채({ty:.1f}%)보다 {abs(ey_gap):.1f}%p {'높음' if ey_gap >= 0 else '낮음'}."
 
-                        # ④ 순수 배당 일관성 (1,000만원 투자 시 체감 비유)
-                        div_line_ko = f"순수 현금 배당률은 연 {div:.1f}%로, {div_consistency_txt}"
+                        # [06] 순수 배당 일관성
+                        div_line_ko = f"순수 배당률은 연 {div:.1f}%이며, {div_consistency_txt}"
 
-                        # ⑤ FCF(순수 여윳돈) 10년 평균 성장률 & 양수 전환 시점(N년) & 적자 구간 설명 (역산 DCF 완전 제외!)
+                        # [07] 순수 여윳돈(FCF) N년 평균 성장률 & 적자 횟수 요약
                         if is_financial:
-                            fcf_1line_ko = f"금융·지주사는 고객 예치금 특성상 현금흐름 대신 현재 순자산 배수(현재 PBR {sh_cur_pbr:.2f}배)와 자본수익률(연 {roe:.1f}%)을 핵심 척도로 봄."
+                            fcf_1line_ko = f"금융주 특성상 현재 PBR {sh_cur_pbr:.2f}배와 자본수익률 연 {roe:.1f}%를 핵심으로 봄."
                             fcf_badge_txt = f"금융주 핵심 : 현재 PBR {sh_cur_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배) · ROE {roe:.1f}%"
                             gap_badge_col = (5, 122, 85) if sh_pmos_val >= 0 else (185, 28, 28)
                         elif is_fcf_curr_loss:
-                            fcf_1line_ko = f"공장 설비투자를 빼고 통장에 진짜 남는 순수 여윳돈(FCF)은 과거 10년 중 {fcf_neg_cnt}번 적자가 있었고 최근에도 투자 지출이 더 많은 적자 구간임."
+                            fcf_1line_ko = f"통장에 남는 순수 여윳돈은 10년 중 {fcf_neg_cnt}번 적자였고 최근에도 적자 구간임."
                             fcf_badge_txt = f"10년 순수 여윳돈(FCF) : 최근 설비투자·적자 구간 (10년 중 적자 {fcf_neg_cnt}회)"
                             gap_badge_col = (185, 28, 28)
                         elif fcf_status_auto == "TURNAROUND" or (fcf_neg_cnt > 0 and hist_fcf_g_pct > 0):
-                            fcf_mult = (1.0 + (hist_fcf_g_pct / 100.0)) ** max(1, sh_fcf_span)
-                            fcf_1line_ko = f"공장 짓는 돈을 빼고 통장에 진짜 남는 순수 여윳돈(FCF)은 과거 적자이던 시기가 {fcf_neg_cnt}번 있었으나, 흑자로 돌아선 시점부터 최근 {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:.1f}%씩 증가함."
-                            fcf_badge_txt = f"흑자전환 후 {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:+.1f}% 성장 (과거 적자 {fcf_neg_cnt}회 극복)"
+                            fcf_1line_ko = f"순수 여윳돈은 과거 적자({fcf_neg_cnt}회)가 있었으나, 흑자 전환 후 {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:.1f}%씩 증가함."
+                            fcf_badge_txt = f"흑자전환 후 {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:+.1f}% 성장 (과거 적자 {fcf_neg_cnt}회)"
                             gap_badge_col = (5, 122, 85)
                         elif fcf_status_auto == "TURNAROUND_1Y":
-                            fcf_1line_ko = f"통장에 남는 순수 여윳돈(FCF)은 과거 대규모 설비투자로 적자인 해가 있었으나, 최근 플러스(+) 흑자 전환에 성공함."
+                            fcf_1line_ko = f"순수 여윳돈은 과거 적자({fcf_neg_cnt}회) 구간을 지나 최근 흑자 전환함."
                             fcf_badge_txt = f"순수 여윳돈(FCF) 최근 흑자(+) 전환 성공 (과거 적자 {fcf_neg_cnt}회)"
                             gap_badge_col = (5, 122, 85)
                         elif hist_fcf_g_pct > 0:
-                            fcf_mult = (1.0 + (hist_fcf_g_pct / 100.0)) ** max(1, sh_fcf_span)
-                            fcf_1line_ko = f"공장 유지비를 다 빼고 통장에 진짜 남는 순수 여윳돈(FCF)은 최근 {sh_fcf_span}년간 단 한 번의 적자 없이 연평균 {hist_fcf_g_pct:.1f}%씩(총 {fcf_mult:.1f}배) 불어남."
+                            fcf_1line_ko = f"통장에 남는 순수 여윳돈은 {sh_fcf_span}년간 적자 없이 연평균 {hist_fcf_g_pct:.1f}%씩 불어남."
                             fcf_badge_txt = f"최근 {sh_fcf_span}년간 순수 여윳돈(FCF) 연평균 {hist_fcf_g_pct:+.1f}% 성장 (적자 0회)"
                             gap_badge_col = (5, 122, 85)
                         else:
-                            mid_txt = f"중간에 적자였던 해가 {fcf_neg_cnt}번 있었으며, " if fcf_neg_cnt > 0 else ""
-                            fcf_1line_ko = f"통장에 남는 순수 여윳돈(FCF)은 {mid_txt}최근 설비투자 확대 등으로 {sh_fcf_span}년간 연평균 {abs(hist_fcf_g_pct):.1f}% 감소하며 숨고르기 중임."
-                            fcf_badge_txt = f"최근 {sh_fcf_span}년간 순수 여윳돈(FCF) 연평균 {hist_fcf_g_pct:+.1f}% (설비투자·사이클 영향)"
+                            mid_txt = f"중간 적자 {fcf_neg_cnt}회가 있었고, " if fcf_neg_cnt > 0 else ""
+                            fcf_1line_ko = f"순수 여윳돈은 {mid_txt}설비투자 확대로 {sh_fcf_span}년간 연평균 {abs(hist_fcf_g_pct):.1f}% 감소함."
+                            fcf_badge_txt = f"최근 {sh_fcf_span}년간 순수 여윳돈(FCF) 연평균 {hist_fcf_g_pct:+.1f}% (설비투자 영향)"
                             gap_badge_col = (217, 119, 6)
 
                         if is_earnings_mode:
                             u_str_e = "억원" if kr else "십억달러"
                             default_script_lines = [
                                 opening_cut1,
-                                f"매출액은 직전 {earn_rev_prev:,.0f}{u_str_e}에서 {earn_rev_curr:,.0f}{u_str_e}로 {earn_rev_chg:+.1f}% 변동했고, 당기순이익은 {earn_ni_chg:+.1f}% 변화함.",
+                                f"매출은 {earn_rev_curr:,.0f}{u_str_e}({earn_rev_chg:+.1f}%), 순이익은 {earn_ni_chg:+.1f}% 변화함.",
                                 eps_script_line,
                                 cap_line_ko,
                                 val_1line_ko,
@@ -7578,7 +7568,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 div_line_ko,
                                 fcf_1line_ko
                             ]
-
+                    # ▲▲▲ [여기까지 덮어쓰세요 (바로 아래 if is_earnings_mode: scene_codes_fixed... 로 이어집니다)] ▲▲▲
                     if is_earnings_mode:
                         scene_codes_fixed = ["SCENE_EARN_1", "SCENE_EARN_2", "SCENE_2", "SCENE_2", "SCENE_1", "SCENE_3", "SCENE_4"]
                     else:
