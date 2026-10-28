@@ -3219,65 +3219,130 @@ def calc_buyback_yield(stk, i, p, kr, adr_fx_ratio=1.0, is_adr=False):
         return max(-30.0, min(20.0, final_by))
     except Exception:
         return 0.0
-# ▼▼▼ [적용 1] 무차원 비율 항등식(ROE = PBR / Fwd PER) 1순위 적용으로 왜곡을 원천 차단한 calc_accurate_f_pbr ▼▼▼
 def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr, adr_fx_ratio=1.0, is_adr=False, multiplier=1.0):
     if tk in ["BRK-B", "BRK-A"] or (pbr <= 0 and base_bv <= 0) or reg_p <= 0:
         return pbr * multiplier if (pbr > 0 and multiplier != 1.0) else pbr
 
-    # 1. 시뮬레이터 배수(multiplier)가 이미 pbr에 곱해져 들어온 경우 원본 pbr_0 복원
-    raw_pbr_in = (pbr / multiplier) if (pbr > 0 and multiplier != 1.0 and multiplier > 0) else pbr
-    pbr_0 = (reg_p / base_bv) if (raw_pbr_in <= 0 and base_bv > 0) else raw_pbr_in
+    # 1. 통화 단위가 100% 일치하는 기준 PBR0 및 BPS0 확정
+    pbr_0 = (reg_p / base_bv) if (pbr <= 0 and base_bv > 0) else pbr
     if pbr_0 <= 0:
         return 0.0
-    eff_bv = reg_p / pbr_0
+    eff_bv = reg_p / pbr_0  # reg_p와 동일한 통화(USD 또는 KRW)로 정렬된 현재 BPS
 
-    # 2. 선행 ROE(f_roe) 산출: 통화·주식수 단위 오염이 없는 [PBR_0 / Fwd_PER] 항등식을 1순위로 사용!
+    # 2. 통화 단위가 100% 일치하는 예상 EPS(eff_f_eps) 및 예상 ROE(f_roe) 산출
+    # ADR(TSMC, 알리바바, 핀둬둬 등)에서 f_eps가 현지통화(TWD/CNY)로 들어오는 오류를 막기 위해 f_pe 비율을 우선 활용
     f_pe_raw = safe_float(i.get('forwardPE', i.get('trailingPE')))
-    t_pe_raw = safe_float(i.get('trailingPE'))
-    t_roe_raw = safe_float(i.get('returnOnEquity'))
+    currency_trade = str(i.get('currency', 'USD')).upper()
+    currency_fin = str(i.get('financialCurrency', currency_trade)).upper()
+    same_currency = (currency_trade == currency_fin) or kr
 
-    if f_pe_raw > 0:
-        f_roe = pbr_0 / f_pe_raw
-    elif f_eps != 0 and eff_bv > 0 and ( str(i.get('currency', 'USD')).upper() == str(i.get('financialCurrency', 'USD')).upper() or kr ):
-        f_roe = f_eps / eff_bv
-    elif t_pe_raw > 0:
-        f_roe = pbr_0 / t_pe_raw
+    if not same_currency and is_adr and adr_fx_ratio != 1.0 and f_eps > 0:
+        # ADR의 f_eps가 현지 통화로 과대 계상되어 있을 경우 f_pe로 역산하여 달러 기준 정렬
+        if f_pe_raw > 0 and (reg_p / f_eps) < 1.0:
+            eff_f_eps = reg_p / f_pe_raw
+        else:
+            eff_f_eps = f_eps
+    elif f_eps != 0:
+        eff_f_eps = f_eps
+    elif f_pe_raw > 0:
+        eff_f_eps = reg_p / f_pe_raw
     else:
-        f_roe = t_roe_raw if -0.50 <= t_roe_raw <= 1.0 else 0.10
+        eff_f_eps = 0.0
 
-    # 비정상 이상치 방어: 실제 ROE 및 선행 PER 대비 불가능한 수치 클램핑
-    f_roe = max(-0.35, min(0.50, f_roe))
+    f_roe = eff_f_eps / eff_bv if eff_bv > 0 else 0.0  # 1년 선행 ROE (무차원 비율)
 
-    # 3. 배당수익률(y_div) 및 자사주 순매입률(y_bb) 추출
+    # 3. 정확한 배당수익률(y_div) 및 자사주 순매입·소각률(y_bb) 추출
     div_pct = calc_accurate_div_yield(stk, i, reg_p, kr)
     bb_pct = calc_buyback_yield(stk, i, reg_p, kr, adr_fx_ratio, is_adr)
     y_div = max(0.0, min(0.25, div_pct / 100.0))
-    y_bb = max(-0.20, min(0.12, bb_pct / 100.0))
+    y_bb = max(-0.25, min(0.15, bb_pct / 100.0))
 
-    # 4. 클린 서플러스 공식 기반 1년 뒤 자본 증가율(equity_growth_rate) 및 유통주식수 변화율(share_factor)
+    # 4. 현금흐름표 기반 최근 3개년 실제 내부유보율(Retention Ratio) 교차 산출
+    cf_retention = None
+    try:
+        inc = stk.income_stmt
+        cf = stk.cash_flow
+        if inc is not None and not inc.empty and cf is not None and not cf.empty:
+            ni_sum, div_sum, bb_sum, sbc_sum = 0.0, 0.0, 0.0, 0.0
+            for col in inc.columns[:3]:
+                ni_v = safe_float(inc.loc['Net Income', col]) if ('Net Income' in inc.index and col in inc.columns) else 0.0
+                if ni_v <= 0:
+                    continue
+                ni_sum += ni_v
+                if col in cf.columns:
+                    for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
+                        if dk in cf.index and pd.notna(cf.loc[dk, col]):
+                            div_sum += abs(safe_float(cf.loc[dk, col]))
+                            break
+                    rep_v, iss_v = 0.0, 0.0
+                    for rk in ['Repurchase Of Capital Stock', 'Common Stock Payments']:
+                        if rk in cf.index and pd.notna(cf.loc[rk, col]):
+                            rep_v = abs(safe_float(cf.loc[rk, col]))
+                            break
+                    for ik in ['Issuance Of Capital Stock', 'Common Stock Issuance']:
+                        if ik in cf.index and pd.notna(cf.loc[ik, col]):
+                            iss_v = abs(safe_float(cf.loc[ik, col]))
+                            break
+                    bb_sum += max(0.0, rep_v - iss_v)
+                    for sk in ['Stock Based Compensation', 'Share Based Compensation']:
+                        if sk in cf.index and pd.notna(cf.loc[sk, col]):
+                            sbc_sum += abs(safe_float(cf.loc[sk, col]))
+                            break
+            if ni_sum > 0 and (div_sum + bb_sum) > 0:
+                net_out = max(0.0, div_sum + bb_sum - sbc_sum)
+                cf_retention = max(0.05, min(1.0, 1.0 - (net_out / ni_sum)))
+    except Exception:
+        pass
+
+    # 5. 기업 유형별 1년 뒤 자본총계 변화율(equity_growth_rate) 및 유통주식수 변화율(share_factor) 정밀 계산
     if f_roe < 0:
-        # 적자 예상 기업: 적자율과 배당 유출만큼 자본 감소
-        equity_growth_rate = max(-0.35, f_roe - (pbr_0 * y_div))
-        share_factor = (1.0 + abs(y_bb)) if y_bb < 0 else (1.0 - max(0.0, y_bb))
-    else:
-        # 흑자 예상 기업: 내부유보 자본증가율 = 선행 ROE - (PBR_0 * 배당수익률)
-        retained_roe = f_roe - (pbr_0 * y_div)
-        if pbr_0 > 6.0:
-            # 고PBR 기업(테슬라, 엔비디아, 비자 등)은 자사주 매입액에 의해 장부자본이 마이너스로 왜곡되지 않도록 내부유보 이익만 반영
-            equity_growth_rate = max(0.0, min(0.35, retained_roe if retained_roe > 0 else f_roe * 0.75))
-            share_factor = (1.0 + min(0.05, abs(y_bb))) if y_bb < 0 else max(0.92, 1.0 - y_bb)
+        # (A) 적자 예상 기업: 적자만큼 자본 감소 + 배당 유출
+        equity_growth_rate = f_roe - (pbr_0 * y_div)
+        if y_bb < 0:  # 적자 기업이 유상증자(y_bb < 0)까지 한 경우
+            d = abs(y_bb)
+            equity_growth_rate += (pbr_0 * d)
+            share_factor = 1.0 + d
         else:
-            # 일반 및 저PBR 기업(PBR <= 6.0): 자사주 매입·소각 시 분모(주식수) 감소에 따른 BPS 상승 효과 반영
-            direct_growth = retained_roe - (pbr_0 * max(0.0, y_bb))
-            equity_growth_rate = max(-0.15, min(0.35, direct_growth if direct_growth > -0.10 else retained_roe * 0.5))
-            share_factor = (1.0 + min(0.10, abs(y_bb))) if y_bb < 0 else max(0.88, 1.0 - y_bb)
+            share_factor = 1.0 - max(0.0, y_bb)
+    else:
+        # (B) 흑자 예상 기업 (한국/중국/대만/홍콩/시클리컬/금융/미국 전체 통합)
+        if y_bb >= 0:
+            # 자사주 순매입·소각 기업 (또는 변동 없음)
+            # 주당 현금유출에 따른 자본 차감률 = PBR_0 * (배당률 + 자사주매입률)
+            direct_equity_growth = f_roe - (pbr_0 * (y_div + y_bb))
 
-    # 5. 최종 선행 PBR(f_pbr) 도출
+            # 고PBR/고ROE 기업(PBR > 6 또는 ROE > 35%: 마스터카드, 비자, 무디스, TSMC 등)은
+            # 주가 급등에 따른 y_bb 과소계상 왜곡을 막기 위해 현금흐름표 내부유보율(cf_retention)과 교차 제어
+            if pbr_0 > 6.0 or f_roe > 0.35:
+                eff_ret = cf_retention if cf_retention is not None else 0.25
+                if f_roe > 0.40:
+                    eff_ret = min(eff_ret, 0.22)
+                cf_based_growth = f_roe * eff_ret
+                equity_growth_rate = min(direct_equity_growth, cf_based_growth) if direct_equity_growth > 0 else cf_based_growth
+            else:
+                # 일반 및 저PBR 기업(한국 주식, 시클리컬, 은행/보험, 중국 가치주 등):
+                # PBR < 1.0 구간에서 자사주 매입 시 자본 차감(PBR_0 * y_bb)보다 주식수 감소(y_bb)가 더 커서 BPS가 점프하는 효과를 100% 반영!
+                if direct_equity_growth < 0 and cf_retention is not None:
+                    equity_growth_rate = f_roe * cf_retention
+                else:
+                    equity_growth_rate = max(-0.20, direct_equity_growth)
+
+            share_factor = max(0.85, 1.0 - y_bb)  # 자사주 소각으로 분모(유통주식수) 감소
+        else:
+            # 유상증자·전환사채 등으로 주식수가 늘어난 기업 (y_bb < 0, 희석 발생)
+            d = abs(y_bb)  # 신주 발행률
+            # 신주 발행으로 유입된 자본(PBR_0 * d)을 더하더라도 분모(1 + d)가 커져 저PBR 기업은 BPS가 깎임(희석 페널티)!
+            equity_growth_rate = f_roe - (pbr_0 * y_div) + (pbr_0 * d)
+            share_factor = 1.0 + d
+
+    # 6. 최종 예상 PBR(f_pbr) 도출: PBR_0 * (유통주식수 비율) / (자본총계 비율)
     denom = 1.0 + equity_growth_rate
-    raw_fpbr = pbr_0 * (share_factor / denom) if denom > 0.2 else pbr_0
+    if denom > 0.1:
+        raw_fpbr = pbr_0 * (share_factor / denom)
+    else:
+        raw_fpbr = pbr_0
 
     return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
-# ▲▲▲ [적용 1 끝] ▲▲▲
 # =========================================================================
 # [신규 추가 엔진 2] 이익의 질(OCF/NI) 및 SBC 차감 보수적 FCF 분석 함수
 # =========================================================================
@@ -6757,108 +6822,88 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "💡 Pure dividend 10Y consistency & 4Y chart, manual metric overrides (10Y FCF Growth, Fwd PER, Fwd PBR), FCF negative growth detection, and legal calculation basis."
                     ))
 
-                    # ▼▼▼ [적용 2 시작] 7대 지표(비교 연수 10년 포함) 직접 수정 & 차트·대본 100% 실시간 동기화 블록 ▼▼▼
+                    # ▼▼▼ [수리 4-A] 쇼츠용 6대 핵심 밸류에이션 지표 직접 수정 패널 (역산 DCF 요구성장률 추가!) ▼▼▼
                     implied_g_auto = get_implied_g(base_fcf, sh, p, ty) if not is_financial else None
                     imp_g_auto_pct = float(round(implied_g_auto * 100.0, 2)) if implied_g_auto is not None else 0.0
-                    default_yr_cnt = 10 if (not data_len or int(data_len) >= 5) else max(2, int(data_len))
 
-                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 지표 & 비교 연수(10년) 직접 수정 (수정 즉시 대본 + 영상 차트 막대 100% 동시 반영!)")
-                    ov_r1_c1, ov_r1_c2, ov_r1_c3, ov_r1_c4 = st.columns(4)
-                    with ov_r1_c1:
-                        sh_custom_yr = st.number_input(
-                            "🗓️ 비교 기준 연수 (기본 10년)",
-                            min_value=1, max_value=30,
-                            value=int(default_yr_cnt),
-                            step=1,
-                            help="'과거 10년 실제 현금흐름', '10년 평균' 등의 연수 표기를 5년, 7년, 10년 등으로 자유롭게 변경합니다. 대본과 차트에 즉시 반영됩니다.",
-                            key=f"sh_ov_yr_{tk}"
-                        )
-                    with ov_r1_c2:
+                    st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 밸류에이션 지표 6종 직접 수정 (수정 즉시 대본·차트·설명란에 100% 반영)")
+                    ov_c1, ov_c2, ov_c3, ov_c4, ov_c5, ov_c6 = st.columns(6)
+                    with ov_c1:
                         sh_fcf_g_pct = st.number_input(
-                            f"📉 과거 {sh_custom_yr}년 실제 FCF 성장률(%)",
-                            min_value=-99.9, max_value=300.0,
-                            value=float(round(final_g * 100.0, 1)),
-                            step=0.1, format="%.1f",
-                            help="대본의 '과거 N년 실제 현금 흐름은 연 OO%씩 증가함' 및 마지막 컷 차트의 아래쪽 막대 수치입니다. 음수(<0%) 입력 시 '역성장(측정 불가)'으로 전환됩니다.",
+                            "📉 10년 FCF 성장률(%)",
+                            min_value=-99.9, max_value=200.0,
+                            value=float(round(final_g * 100.0, 2)),
+                            step=0.1, format="%.2f",
+                            help="과거 10년간 실제 잉여현금흐름(FCF) 연평균 복리성장률입니다. 음수(<0%)일 경우 쇼츠에서 '역성장(측정 불가)'으로 판독합니다.",
                             key=f"sh_ov_fcfg_{tk}"
                         )
-                    with ov_r1_c3:
+                    with ov_c2:
                         sh_imp_g_pct = st.number_input(
-                            "🎯 주가 요구 성장률 (역산 DCF, %)",
-                            min_value=-50.0, max_value=300.0,
-                            value=float(round(imp_g_auto_pct, 1)),
-                            step=0.1, format="%.1f",
-                            help="대본의 '현재 주가는 매년 OO% 현금 성장이 필요하며' 및 마지막 컷 차트의 위쪽 막대 수치입니다.",
+                            "🎯 역산 DCF 요구치(%)",
+                            min_value=-50.0, max_value=200.0,
+                            value=imp_g_auto_pct,
+                            step=0.1, format="%.2f",
+                            help="현재 주가를 정당화하기 위해 향후 10년간 매년 달성해야 하는 요구 FCF 성장률(Reverse DCF)입니다.",
                             key=f"sh_ov_impg_{tk}"
                         )
-                    with ov_r1_c4:
-                        sh_roic_override = st.number_input(
-                            f"🏭 {'자본수익률(ROE)' if is_financial else '실제 장사 수익률(ROIC)'}(%)",
-                            min_value=-50.0, max_value=300.0,
-                            value=float(round(roe if is_financial else (roic_val if roic_val != 0 else roe), 1)),
-                            step=0.1, format="%.1f",
-                            help="S&P 500 평균(12%) 및 버핏 기준(15%)과 비교되는 우측 차트 막대 수치입니다.",
-                            key=f"sh_ov_roic_{tk}"
-                        )
-
-                    ov_r2_c1, ov_r2_c2, ov_r2_c3, ov_r2_c4 = st.columns(4)
-                    with ov_r2_c1:
+                    with ov_c3:
                         sh_f_pe = st.number_input(
-                            "⏱️ 선행 PER (Fwd PER, 배/년)",
+                            "⏱️ 선행 PER (배)",
                             min_value=0.0, max_value=500.0,
-                            value=float(round(max(0.0, f_pe), 1)),
-                            step=0.1, format="%.1f",
+                            value=float(round(max(0.0, f_pe), 2)),
+                            step=0.1, format="%.2f",
+                            help="시킹알파·네이버 컨센서스 기준 선행 PER(본전 회수 기간)을 직접 수정합니다.",
                             key=f"sh_ov_fpe_{tk}"
                         )
-                    with ov_r2_c2:
+                    with ov_c4:
                         sh_a_pe = st.number_input(
-                            f"📊 {sh_custom_yr}년 평균 PER (배/년)",
+                            "📊 10년 평균 PER (배)",
                             min_value=0.0, max_value=500.0,
-                            value=float(round(max(0.0, a_pe), 1)),
-                            step=0.1, format="%.1f",
+                            value=float(round(max(0.0, a_pe), 2)),
+                            step=0.1, format="%.2f",
+                            help="키움증권 기준 10년(또는 5년) 평균 PER을 직접 입력하여 할인율을 교정할 수 있습니다.",
                             key=f"sh_ov_ape_{tk}"
                         )
-                    with ov_r2_c3:
+                    with ov_c5:
                         sh_f_pbr = st.number_input(
-                            "🏛️ 선행 PBR (Fwd PBR, 배)",
+                            "🏛️ 선행 PBR (배)",
                             min_value=0.0, max_value=200.0,
                             value=float(round(max(0.0, f_pbr), 2)),
                             step=0.01, format="%.2f",
+                            help="현재 또는 선행 기준 주가순자산비율(PBR)을 직접 수정합니다.",
                             key=f"sh_ov_fpbr_{tk}"
                         )
-                    with ov_r2_c4:
+                    with ov_c6:
                         sh_a_pbr = st.number_input(
-                            f"📐 {sh_custom_yr}년 평균 PBR (배)",
+                            "📐 10년 평균 PBR (배)",
                             min_value=0.0, max_value=200.0,
                             value=float(round(max(0.0, a_pbr), 2)),
                             step=0.01, format="%.2f",
+                            help="키움증권 기준 10년(또는 5년) 평균 PBR을 직접 입력하여 할인율을 교정할 수 있습니다.",
                             key=f"sh_ov_apbr_{tk}"
                         )
 
-                    # [핵심!] 차트 그리기 함수(_draw_visual_dashboard_board, _draw_core_frame)가 참조하는
-                    # 모든 원본 변수를 수동 입력값으로 강제 덮어쓰기! (이제 차트와 대본이 100% 동시에 바뀝니다)
-                    actual_yr_cnt = int(sh_custom_yr)
-                    f_pe = float(sh_f_pe)
-                    a_pe = float(sh_a_pe)
-                    f_pbr = float(sh_f_pbr)
-                    a_pbr = float(sh_a_pbr)
-                    ey = (100.0 / f_pe) if f_pe > 0 else 0.0
-                    sh_ey = ey
+                    a_pe = sh_a_pe
+                    a_pbr = sh_a_pbr
 
+                    sh_ey = (100.0 / sh_f_pe) if sh_f_pe > 0 else 0.0
                     if is_financial or kr or is_cyclical:
-                        pmos_val = ((a_pbr - f_pbr) / a_pbr) * 100.0 if (f_pbr > 0 and a_pbr > 0) else 0.0
+                        sh_pmos_val = ((a_pbr - sh_f_pbr) / a_pbr) * 100.0 if (sh_f_pbr > 0 and a_pbr > 0) else 0.0
                     else:
-                        pmos_val = ((a_pe - f_pe) / a_pe) * 100.0 if (f_pe > 0 and a_pe > 0) else 0.0
-                    sh_pmos_val = pmos_val
+                        sh_pmos_val = ((a_pe - sh_f_pe) / a_pe) * 100.0 if (sh_f_pe > 0 and a_pe > 0) else 0.0
 
-                    is_fcf_neg_growth = (sh_fcf_g_pct < 0.0)
+                    is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct < 0.0)
+                    # ▲▲▲ [수리 4-A 끝] ▲▲▲
+                    # FCF 자체 계산 금지! 본문 final_g(또는 수동 입력값)가 2.0% 이하이거나 FCF 적자면 '역성장 측정 불가' 판정
+                    is_fcf_neg_growth = (base_fcf is None or base_fcf <= 0 or sh_fcf_g_pct <= 2.001)
+                    # ▲▲▲ [수리 3 끝] (바로 아래에 mode_col1, mode_col2 = st.columns([1.8, 1.2]) 가 이어집니다) ▲▲▲
 
                     mode_col1, mode_col2 = st.columns([1.8, 1.2])
                     with mode_col1:
                         shorts_content_mode = st.radio(
                             "🎬 쇼츠 콘텐츠 주제 선택",
                             [
-                                f"📊 [모드 1] 워런 버핏의 시선 · {actual_yr_cnt}년 장부 & 배당 일관성 해부",
+                                "📊 [모드 1] 워런 버핏의 시선 · 10년 장부 & 배당 일관성 해부",
                                 "⚡ [모드 2] 실적 발표(Earnings) 전후 변화 비교 · 매출·순이익 얼마나 바뀌었나?"
                             ],
                             horizontal=False,
@@ -6930,6 +6975,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             ],
                             key=f"shorts_sfx_v8_{tk}"
                         )
+                    # ▼▼▼ [수리 2-A] 성우 배속 + 컷 뒤 쉬는 시간(초) 슬라이더 + '실제 장사 수익률(ROIC)' 명칭 적용 ▼▼▼
                     with col_sh4:
                         spd_c1, spd_c2 = st.columns(2)
                         with spd_c1:
@@ -6945,6 +6991,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "⏸️ 컷 끝난 뒤 쉬는 시간(초)",
                                 min_value=0.00, max_value=1.20, value=0.25, step=0.05,
                                 format="%.2f초",
+                                help="각 문장(컷)이 끝난 뒤 다음 컷으로 넘어가기 전 여백 시간을 직접 조절합니다. (빠른 호흡=0.10초, 여유 있는 호흡=0.40초)",
                                 key=f"shorts_pause_v8_{tk}"
                             )
 
@@ -6975,25 +7022,29 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     comp_name = comp_name_en if is_en_shorts else comp_name_ko
                     clean_tk = tk.split('.')[0] if kr else tk
 
+                    # [핵심] 쇼츠 상단에 주가 기준일과 '언제 발표된 실적 기준인지' 함께 표기!
                     filing_tag_short = locals().get("shorts_filing_badge", "최신 공시 반영")
                     today_short = f"{datetime.now().strftime('%Y.%m.%d')} · {filing_tag_short}"
 
-                    # 내가 수정한 비교 연수(예: 10년 -> 5년, 8년 등)가 모든 텍스트와 차트에 동기화됨
+                    actual_yr_cnt = 10 if (not data_len or int(data_len) >= 5) else max(2, int(data_len))
                     yr_span_str = f"{actual_yr_cnt}년" if not is_en_shorts else f"{actual_yr_cnt}Y"
 
-                    # 내가 수정한 실제 장사 수익률(ROIC / ROE) 동기화
-                    cap_ret_val = float(sh_roic_override)
-                    bench_sp500_val = 12.0
-                    bench_buffett_val = 15.0
+                    # [요청 반영] 초보자도 단번에 이해하는 '실제 장사 수익률' (영상 표에는 ROIC 병기)
                     if is_financial:
+                        cap_ret_val = roe
+                        bench_sp500_val = 12.0
+                        bench_buffett_val = 15.0
                         cap_ret_name_ko = "자본 수익률"
                         cap_ret_name_en = "Return on Equity"
                     else:
+                        cap_ret_val = roic_val if roic_val != 0 else roe
+                        bench_sp500_val = 12.0
+                        bench_buffett_val = 15.0
                         cap_ret_name_ko = "실제 장사 수익률"
                         cap_ret_name_en = "Business Return"
                     diff_vs_sp500 = cap_ret_val - bench_sp500_val
                     diff_vs_buffett = cap_ret_val - bench_buffett_val
-                    # ▲▲▲ [적용 2-1 끝] (바로 아래에 eps_hist_vals = [] 및 div_10y_dict = {} 블록이 이어집니다) ▲▲▲
+                    # ▲▲▲ [수리 2-A 끝] ▲▲▲
                     # ▼▼▼ [수리 4-B] 1주당 순이익(EPS) 10년 추이 (액면분할 100% 보정 + 시작/끝 음수·공란 완벽 처리) ▼▼▼
                     eps_hist_vals = []
                     eps_hist_years = []
