@@ -6716,7 +6716,7 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # [수정됨: 공유하기 익스팬더 최신 동적 포맷 연동]
+                # [수정 완료: 공유하기 익스팬더 - f_pbr 완전 제거 및 pbr(현재 PBR) 적용]
                 st.divider()
                 with st.expander(t("5. 분석 결과 공유하기 (클릭하여 열기)", "5. Share Analysis Results (Click to expand)")):
                     st.write(t("아래 텍스트 박스 우측 상단의 **'복사 아이콘'**을 누르면 깔끔하게 정리된 분석 리포트를 카카오톡이나 블로그 등에 바로 붙여넣을 수 있습니다.", "Click the **'Copy icon'** on the top right of the box below to paste the clean report into Gemini or messengers."))
@@ -6784,8 +6784,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
 - Current Price: {p_str}
 - Est. Fair Value (DCF): {share_fv}
 - DCF Margin of Safety: {share_mos}
-- Fwd PE: {f_pe:.1f}x (5y Avg: {a_pe:.1f}x) -> {clean_per_mos}
-- Fwd PBR: {f_pbr:.2f}x (5y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
+- Fwd PE: {f_pe:.1f}x (10y Avg: {a_pe:.1f}x) -> {clean_per_mos}
+- Current PBR: {pbr:.2f}x (10y Avg: {a_pbr:.2f}x) -> {clean_pbr_mos}
 
 [2] Fundamentals & Moat
 - ROE: {roe:.1f}% / ROIC: {roic_display}
