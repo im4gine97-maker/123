@@ -8187,13 +8187,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 str_top = f"{a_pbr:.2f}x" if is_en_shorts else f"{a_pbr:.2f}배"
                                 str_bot = f"{sh_f_pbr:.2f}x" if is_en_shorts else f"{sh_f_pbr:.2f}배"
                             else:
-                                s4_hdr = "Implied Growth vs 10Y Actual Cash Flow Growth" if is_en_shorts else "주가 요구 성장률  vs  과거 10년 실제 현금 증감률"
-                                _fit_single_line(draw, W//2, 412, W-110, s4_hdr, get_font, start_sz=23, min_sz=14, fill=(255, 255, 255))
+                                s4_hdr = f"Reverse DCF Implied Growth vs {yr_span_str} FCF CAGR" if is_en_shorts else f"주가 요구 성장률 (Reverse DCF)  vs  {yr_span_str} 실제 (FCF CAGR)"
+                                _fit_single_line(draw, W//2, 410, W-90, s4_hdr, get_font, start_sz=20, min_sz=12, fill=(255, 255, 255))
                                 v_top = imp_g_pct if implied_g_shorts is not None else 0.0
                                 v_bot = 0.0 if is_fcf_neg_growth else hist_fcf_g_pct
-                                lbl_top = "Implied" if is_en_shorts else "주가 요구치"
-                                lbl_bot = "10Y Actual" if is_en_shorts else "10년 실제추이"
-                                str_top = imp_g_fmt
+                                lbl_top = "Implied g" if is_en_shorts else "주가 요구치 (Implied g)"
+                                lbl_bot = f"{yr_span_str} FCF CAGR" if is_en_shorts else f"{yr_span_str} 실제 (FCF CAGR)"
                                 str_bot = actual_g_fmt
 
                             max_g_bar = max(abs(v_top), abs(v_bot), 5.0) * 1.25
