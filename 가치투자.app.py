@@ -7905,10 +7905,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 1072, W-36, "[안내] 본 영상은 공시 데이터 기반 학술·교육용 통계 자료이며 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(110, 115, 125))
                             _fit_single_line(draw, W//2, 1100, W-36, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(90, 95, 105))
 
-                    # =========================================================================
-                    # [핵심 업그레이드] 쇼츠 1페이지(썸네일 & 첫 컷) 2x2 4분할 올-비주얼 미니 차트 보드!
-                    # 텍스트 나열 대신 ①가격 비교 바, ②EPS 미니 차트, ③ROIC 예금비교 바, ④배당 미니 차트를 모두 시각적으로 그림
-                    # =========================================================================
                     def _draw_visual_dashboard_board(draw, W, get_font):
                         giant_col = (52, 211, 153) if sh_pmos_val >= 3.0 else ((248, 113, 113) if sh_pmos_val <= -3.0 else (250, 204, 21))
 
@@ -7954,10 +7950,53 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             bx_q = 395 + bg_q2 + idx_q2 * (bw_q2 + bg_q2)
                             bh_q = int(max(12, min(72, (abs(ev_q) / mx_q2) * 72)))
                             bc_q = (248, 113, 113) if ev_q < 0 else ((52, 211, 153) if idx_q2 == nb_q2 - 1 else (56, 189, 248))
-                            draw.rounded_rectangle([bx_q, by_q - bh_q, bx_q + bw_q2, by_q], radius=5, fill=bc_q)
-                            _fit_single_line(draw, bx_q + bw_q2//2, by_q + 13, bw_q2 + 10, str(ey_q)[-2:], get_font, start_sz=12, min_sz=9, fill=(148, 163, 184))
+                            draw.rounded_rectangle([bx_q, by_q2 - bh_q, bx_q + bw_q2, by_q2], radius=5, fill=bc_q)
+                            # [오타 수리 완료] by_q -> by_q2, ey_q 적용
+                            _fit_single_line(draw, bx_q + bw_q2//2, by_q2 + 13, bw_q2 + 10, str(ey_q)[-2:], get_font, start_sz=12, min_sz=9, fill=(148, 163, 184))
 
                         _fit_single_line(draw, 520, 552, 280, eps_badge_short, get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
+
+                        # [좌하단 Q3: 실제 장사수익률(ROIC) vs 은행 예금·S&P500 미니 막대차트] (x: 48~352, y: 590~780)
+                        draw.rounded_rectangle([48, 590, 352, 780], radius=16, fill=(22, 32, 54), outline=(52, 211, 153), width=2)
+                        q3_title = "Business Return" if is_en_shorts else f"③ {cap_ret_name_ko}(ROIC)"
+                        _fit_single_line(draw, 200, 614, 280, q3_title, get_font, start_sz=18, min_sz=12, fill=(52, 211, 153))
+
+                        by_q3 = 718
+                        mx_q3 = max(abs(cap_ret_val), 15.0) * 1.2
+                        q3_items = [
+                            ("예금" if not is_en_shorts else "Bank", 3.5, (100, 116, 139)),
+                            ("S&P500", 12.0, (148, 163, 184)),
+                            ("현재기업" if not is_en_shorts else "Firm", cap_ret_val, (52, 211, 153) if cap_ret_val >= 12.0 else (250, 204, 21))
+                        ]
+                        for idx_q3, (lbl_3, val_3, col_3) in enumerate(q3_items):
+                            bx_3 = 76 + idx_q3 * 88
+                            bh_3 = int(max(12, min(68, (max(0.5, abs(val_3)) / mx_q3) * 68)))
+                            draw.rounded_rectangle([bx_3, by_q3 - bh_3, bx_3 + 56, by_q3], radius=6, fill=col_3)
+                            _fit_single_line(draw, bx_3 + 28, by_q3 - bh_3 - 12, 74, f"{val_3:.1f}%", get_font, start_sz=14, min_sz=10, fill=col_3)
+                            _fit_single_line(draw, bx_3 + 28, by_q3 + 14, 76, lbl_3, get_font, start_sz=12, min_sz=9, fill=(203, 213, 225))
+
+                        q3_sub = f"은행 예금(3.5%)의 약 {bank_multiple:.1f}배 속도" if not is_en_shorts else f"{bank_multiple:.1f}x Bank Rate (3.5%)"
+                        _fit_single_line(draw, 200, 756, 280, q3_sub, get_font, start_sz=15, min_sz=11, fill=(250, 204, 21))
+
+                        # [우하단 Q4: 최근 4개년 순수 주당배당금(DPS) 미니 막대그래프] (x: 368~672, y: 590~780)
+                        draw.rounded_rectangle([368, 590, 672, 780], radius=16, fill=(22, 32, 54), outline=(192, 132, 252), width=2)
+                        q4_title = "4Y Dividend Trend" if is_en_shorts else "④ 순수 배당금 4년 추이"
+                        _fit_single_line(draw, 520, 614, 280, q4_title, get_font, start_sz=18, min_sz=12, fill=(192, 132, 252))
+
+                        by_q4 = 718
+                        if sum(div_4y_vals) <= 0 and div <= 0:
+                            draw.rounded_rectangle([405, 650, 635, 712], radius=10, fill=(15, 23, 42), outline=(71, 85, 105), width=1)
+                            _fit_single_line(draw, 520, 681, 210, "무배당 (100% 성장 재투자)" if not is_en_shorts else "0% Div (100% Reinvest)", get_font, start_sz=16, min_sz=11, fill=(148, 163, 184))
+                        else:
+                            mx_q4 = max(max(div_4y_vals), 0.01) * 1.18
+                            for idx_q4, (dv_4, dy_4) in enumerate(zip(div_4y_vals, div_4y_years)):
+                                bx_4 = 398 + idx_q4 * 64
+                                bh_4 = int(max(10, min(68, (max(0.0, dv_4) / mx_q4) * 68))) if dv_4 > 0 else 6
+                                bc_4 = (192, 132, 252) if idx_q4 == 3 else (126, 34, 206)
+                                draw.rounded_rectangle([bx_4, by_q4 - bh_4, bx_4 + 44, by_q4], radius=6, fill=bc_4)
+                                _fit_single_line(draw, bx_4 + 22, by_q4 + 14, 54, str(dy_4)[-2:] + ("년" if not is_en_shorts else "Y"), get_font, start_sz=12, min_sz=9, fill=(148, 163, 184))
+
+                        _fit_single_line(draw, 520, 756, 280, div_badge_short, get_font, start_sz=15, min_sz=10, fill=(233, 213, 255))
 
                         # [좌하단 Q3: 실제 장사수익률(ROIC) vs 은행 예금·S&P500 미니 막대차트] (x: 48~352, y: 590~780)
                         draw.rounded_rectangle([48, 590, 352, 780], radius=16, fill=(22, 32, 54), outline=(52, 211, 153), width=2)
