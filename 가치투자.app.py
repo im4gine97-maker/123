@@ -7806,7 +7806,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"1️⃣ 비즈니스 해자: {stamp_moat_word} (현재 {cap_ret_name_ko} 연 {cap_ret_val:.1f}% vs S&P500 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p)\n"
                         f"2️⃣ 버핏 10초 암산 가격: {stamp_val_word} (1/현재PER {cur_ey_val:.1f}% + 암산 요구성장률 {req_g_val:+.1f}% = 10% 허들 vs 실제 FCF 성장률 연 {actual_fcf_g_val:+.1f}%)\n"
                         f"3️⃣ 거시 기회비용: {stamp_macro_word} (주식 이익수익률 {cur_ey_val:.1f}% vs 10년물 미국채 금리 {ty:.2f}% · 스프레드 {erp_val:+.2f}%p)\n"
-                        f"4️⃣ 순수 현금배당: {stamp_div_word} (1천만 원 투자 시 연 {div_per_10m_manwon:.1f}만 원 현금 배당)\n\n"
+                        
                         f"⚖️ [안내] 본 영상은 DART 및 SEC EDGAR 10-K 공시 데이터를 바탕으로 작성된 순수 학술·교육용 통계 시각화 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
                         f"#shorts #{clean_tag_name} #가치투자 #주식공부 #배당주"
                     )
