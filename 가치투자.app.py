@@ -6364,8 +6364,7 @@ with tab1:
                     implied_g=implied_g_val
                 )
 
-                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 10년 평균 FCF 적용)</div>", unsafe_allow_html=True)
-                    st.markdown(reverse_dcf_html, unsafe_allow_html=True)
+                  st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 10년 평균 FCF 적용)</div>", unsafe_allow_html=True)
                     
                     str_g = t("성장률", "Growth")
                     str_mos = t("안전마진", "MoS")
