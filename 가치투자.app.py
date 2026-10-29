@@ -7165,12 +7165,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         stamp_macro_word = f"국채대비 {erp_val:.1f}%p 열위"
                         stamp_macro_col = (255, 23, 68)
 
-                    # --- [이탈률 방어형 5컷 대본 (자사주 일체 제외)] ---
-                    c1_hook = f"워런 버핏이 {comp_name}을 본다면 과연 몇 점을 줄까요? 딱 4가지만 보세요!"
-                    c2_moat = f"첫째, 비즈니스 해자! 현재 장사수익률 연 {cap_ret_val:.1f}%로 S&P500 평균 12%보다 무려 {roic_vs_spy_gap:+.1f}%p 높습니다!"
-                    c3_buffett = f"둘째, 버핏의 10초 암산 가격! 연 10% 수익에 필요한 성장률은 {req_g_val:+.1f}%인데, 실제 현금 성장은 {actual_fcf_g_val:+.1f}%로 안전마진 완벽 확보!"
-                    c4_macro = f"셋째, 미국채 기회비용! 현재 주식 이익수익률 {cur_ey_val:.1f}%로 10년물 미국채 금리 {ty:.1f}%보다 {erp_val:+.1f}%p 더 줍니다!"
-                    c5_loop = f"넷째, 최종 성적표 {total_score_val}점! 그렇다면 지금 미스터 마켓이 숨겨둔 이 주식의 정체는 바로"
+                    # =========================================================================
+                    # [이탈률 최적화 & 무한루프형 5컷 초압축 대본]
+                    # - 0~2초 강력한 오프닝 훅으로 시선 집중 (데드존 제거)
+                    # - 정확한 점수 숫자를 제거하고 버핏의 시선과 핵심 팩트만 타격
+                    # - 마지막 결론 문장이 첫 문장("워런 버핏이...")으로 자연스럽게 이어지는 무한루프 구조
+                    # =========================================================================
+                    if is_en_shorts:
+                        c1_hook = f"If Warren Buffett looks at {comp_name}, what score would he give? Let's check 4 brutal facts!"
+                        c2_moat = f"First, Moat! Operating return is {cap_ret_val:.1f}%, crushing the S&P 500 average by {roic_vs_spy_gap:+.1f}%p!"
+                        c3_buffett = f"Second, Buffett's 10-second math! Required growth is {req_g_val:+.1f}%, but actual FCF grew {actual_fcf_g_val:+.1f}% for a massive margin of safety!"
+                        c4_macro = f"Third, Opportunity cost! Earnings yield is {cur_ey_val:.1f}%, beating the 10-year Treasury yield by {erp_val:+.1f}%p!"
+                        c5_loop = f"Fourth, ultimate rating! The true identity of this hidden gem that Buffett loves is" # 바로 "If Warren Buffett looks at..."로 순환 연결!
+                    else:
+                        c1_hook = f"워런 버핏이 {comp_name}을 본다면 과연 몇 점을 줄까요? 10초 만에 팩트 폭격합니다!"
+                        c2_moat = f"첫째, 비즈니스 해자! 실제 장사수익률이 연 {cap_ret_val:.1f}%로 S&P500 평균 12%보다 무려 {roic_vs_spy_gap:+.1f}%p 더 높습니다!"
+                        c3_buffett = f"둘째, 버핏의 10초 암산 가격! 연 10% 수익에 필요한 요구 성장률은 {req_g_val:+.1f}%인데, 실제 현금 성장은 {actual_fcf_g_val:+.1f}%로 안전마진 완벽 확보!"
+                        c4_macro = f"셋째, 미국채 기회비용! 주식 이익수익률이 {cur_ey_val:.1f}%로 10년물 미국채 금리 {ty:.1f}%보다 {erp_val:+.1f}%p 더 높아 현금 파킹보다 유리합니다!"
+                        c5_loop = f"넷째, 최종 성적표 최상위권! 그렇다면 미스터 마켓이 숨겨둔 이 위대한 기업의 정체는 바로" # 바로 "워런 버핏이..."로 순환 연결!
 
                     default_script_lines = [c1_hook, c2_moat, c3_buffett, c4_macro, c5_loop]
                     scene_codes_fixed = ["SCENE_HOOK", "SCENE_MOAT", "SCENE_BUFFETT", "SCENE_MACRO", "SCENE_SUMMARY"]
@@ -7783,10 +7795,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
 
-                    # [에러 완벽 해결] 신규 4대 축(해자 · 버핏역산 · 미국채비교 · 순수배당) 변수로 유튜브 제목·설명란 동기화!
-                    default_yt_title = f"{comp_name}! 워런 버핏 기준 점수는 {total_score_val}점 💥 ({stamp_moat_word} · {stamp_val_word}) #shorts #가치투자"
+                    # [에러 방어] 변수 안전 정의
+                    safe_div = div if 'div' in locals() else 0.0
+                    div_per_10m_manwon = round(safe_div * 10.0, 1)
+
+                    # 유튜브 설명란 / 캡션 (점수 숫자를 뺀 객관적 팩트 중심)
+                    default_yt_title = f"{comp_name}! 워런 버핏이 이 주식을 본다면 몇 점을 줄까요? 💥 ({stamp_moat_word} · {stamp_val_word}) #shorts #가치투자"
                     default_yt_desc = (
-                        f"💥 [{today_short}] {comp_name} ({clean_tk}) 워런 버핏 10년 장부 4대 핵심 팩트체크 (종합 {total_score_val}점)\n"
+                        f"💥 [{today_short}] {comp_name} ({clean_tk}) 워런 버핏 10년 장부 4대 핵심 팩트체크\n"
                         f"1️⃣ 비즈니스 해자: {stamp_moat_word} (현재 {cap_ret_name_ko} 연 {cap_ret_val:.1f}% vs S&P500 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p)\n"
                         f"2️⃣ 버핏 10초 암산 가격: {stamp_val_word} (1/현재PER {cur_ey_val:.1f}% + 암산 요구성장률 {req_g_val:+.1f}% = 10% 허들 vs 실제 FCF 성장률 연 {actual_fcf_g_val:+.1f}%)\n"
                         f"3️⃣ 거시 기회비용: {stamp_macro_word} (주식 이익수익률 {cur_ey_val:.1f}% vs 10년물 미국채 금리 {ty:.2f}% · 스프레드 {erp_val:+.2f}%p)\n"
@@ -7797,7 +7813,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v12_{clean_tk}_{mode_tag_k}")
                     yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=180, key=f"yt_d_v12_{clean_tk}_{mode_tag_k}")
-
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
                     now_kst = datetime.now(kst_tz)
