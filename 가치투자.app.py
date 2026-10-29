@@ -3630,30 +3630,30 @@ def analyze_share_dilution(stk, cd, kr):
     return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # ▲▲▲ [교체 2 끝] ▲▲▲
 # =========================================================================
-# [바이블 헌장 반영] 워런 버핏 · 찰리 멍거 · 리루 정통 가치투자 종합 판정 엔진 v4
+# [바이블 헌장 100% 반영] 워런 버핏 · 찰리 멍거 · 리루 정통 가치투자 종합 판정 엔진 v5
+# - Fwd PER 및 10년 평균 멀티플 비교 완전 삭제 / 현재 PER 및 버핏 10초 암산 역산(1/PER + g = 10%) 탑재
 # =========================================================================
 def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None, buyback_yield_pct=0.0):
     score_details = {}
     tk_upper = str(tk).upper()
+    cur_pe = f_pe  # 호출부에서 현재 PER(t_pe)이 전달됨
 
     # -------------------------------------------------------------
-    # 1. 최고 경영진의 진실성(Integrity) & 거버넌스 (버핏 3대 자질, 피셔 15번)
-    # "정직함이 없으면 지능과 열정이 주주를 파멸시킨다. 의심 시 즉각 배제"
+    # 1. 최고 경영진의 진실성(Integrity) & 거버넌스 (PDF Part 1-2C, Part 2-15번)
     # -------------------------------------------------------------
     kw_fatal_current = [
         "구속", "횡령", "배임", "분식회계", "사기", "은폐 조작", "부품 바꿔치기", 
-        "먹튀", "미공개 정보", "내부자 거래", "기습 유상증자", "합병 비율 조작"
+        "먹튀", "미공개 정보", "내부자 거래", "기습 유상증자", "합병 비율 조작", "주주 이해상충 논란"
     ]
     kw_severe_neg = [
-        "물적분할", "주주가치 훼손", "뇌물", "탈세", "유죄", "불법", "정경유착", 
-        "불완전판매", "내부통제 부실", "압수수색"
+        "물적분할", "주주가치 훼손", "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "정경유착", 
+        "불완전판매", "내부통제 부실", "내부통제 미흡", "압수수색", "법적 제재"
     ]
     kw_super_pos = [
         "교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", 
         "전량 소각", "압도적인 마진", "탁월한 자본수익률", "철저한 ROE", "버핏이 극찬", "멍거가 극찬", "리루가 극찬"
     ]
-    kw_pos = ["자사주 매입", "주주친화", "상생", "독보적", "시장 장악", "잉여현금 극대화", "배당 확대", "투명한 소통"]
-
+    kw_pos = ["자사주 매입", "주주친화", "상생", "독보적", "시장 장악", "잉여현금 극대화", "배당 확대", "투명한 소통", "연속 배당 성장"]
     past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
 
     is_fatal_compromised = False
@@ -3665,10 +3665,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
         for k in kw_fatal_current:
             if k in sentence:
                 if not is_past:
-                    is_fatal_compromised = True # 원스트라이크 아웃 플래그
-                    raw_ceo_score -= 40
+                    is_fatal_compromised = True
+                    raw_ceo_score -= 45
                 else:
-                    raw_ceo_score -= 10
+                    raw_ceo_score -= 12
                 sentence = sentence.replace(k, "")
         for k in kw_severe_neg:
             if k in sentence:
@@ -3676,7 +3676,7 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 sentence = sentence.replace(k, "")
         for k in kw_super_pos:
             if k in sentence:
-                raw_ceo_score += 25
+                raw_ceo_score += 24
                 sentence = sentence.replace(k, "")
         for k in kw_pos:
             if k in sentence:
@@ -3684,22 +3684,23 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 sentence = sentence.replace(k, "")
 
     if is_fatal_compromised:
-        ceo_score = -30
-        ceo_reason = t("최고경영진 진실성 결여(분식·배임 등 원스트라이크 탈락 사유)", "Integrity compromised (Fatal governance issue)")
+        ceo_score = -35
+        ceo_reason = t("최고경영진 진실성 결여 (분식·배임·주주가치 훼손 원스트라이크 탈락)", "Integrity compromised (Fatal governance issue - Reject)")
     else:
-        ceo_score = max(-25, min(25, int(raw_ceo_score * 0.5)))
+        ceo_score = max(-25, min(25, int(round(raw_ceo_score * 0.45))))
         if ceo_score >= 12:
-            ceo_reason = t("검증된 도덕성과 탁월한 자본배분 이력 입증", "Proven integrity & superior capital allocation")
-        elif ceo_score >= 0:
-            ceo_reason = t("특이 결격 사유 없음 (중립적 거버넌스)", "Standard governance / No red flags")
+            ceo_reason = t("검증된 도덕성(Integrity)과 투명한 자본배분 이력 입증", "Proven integrity & superior capital allocation")
+        elif ceo_score > 0:
+            ceo_reason = t("양호한 경영 트랙레코드 및 주주친화 기조 확인", "Good management track record")
+        elif ceo_score == 0:
+            ceo_reason = t("특이 법적 결격 사유 없음 (중립적 거버넌스)", "Neutral governance / No major red flags")
         else:
-            ceo_reason = t("주주가치 훼손 및 지배구조 리스크 주의", "Governance & shareholder alignment concerns")
+            ceo_reason = t("과거 내부통제 미흡 또는 주주 이해상충 이력 주의", "Past governance or alignment concerns")
 
     score_details[t("경영진 진실성 및 거버넌스", "Management Integrity & Governance")] = (ceo_score, ceo_reason)
 
     # -------------------------------------------------------------
-    # 2. 경제적 해자 & 10년 자본수익률(ROIC/ROE) 복리 머신 검증 (지침서 Part 3-수학)
-    # "ROIC > 자본비용이며 잉여현금을 높은 ROIC로 재투자하는 복리의 바퀴"
+    # 2. 경제적 해자 & 10년 복리수익률(ROIC/ROE) 검증 (PDF Part 3-수학)
     # -------------------------------------------------------------
     hist_roe = [v for v in (hist_roe_10y if hist_roe_10y else []) if v != 0]
     hist_roic = [v for v in (hist_roic_10y if hist_roic_10y else []) if v != 0]
@@ -3717,205 +3718,233 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     hurdle = 10.0 if is_financial else 12.0
     target_metric = weighted_roe if is_financial else weighted_roic
 
-    # 복리 머신 점수 산정
     base_moat = (target_metric - hurdle) * 1.5
     moat_bonus = 0
-
-    # 10년 연속 방어력 보너스 / 적자 이력 감점
     eval_hist = hist_roe if is_financial else hist_roic
     if all(v >= hurdle for v in eval_hist):
-        moat_bonus += 10
+        moat_bonus += 8
     elif any(v < 0 for v in eval_hist):
-        moat_bonus -= 15
+        moat_bonus -= 12
 
     moat_score = max(-25, min(25, int(round(base_moat + moat_bonus))))
     m_name = "ROE" if is_financial else "ROIC"
     moat_reason = t(
-        f"{span_len}년 가중 {m_name} {target_metric:.1f}% (허들 {hurdle}% 대비 복리창출력 검증)", 
-        f"{span_len}Y Weighted {m_name} {target_metric:.1f}% vs Hurdle {hurdle}%"
+        f"{span_len}년 가중 {m_name} {target_metric:.1f}% (자본비용 허들 {hurdle:.1f}% 대비 복리창출력 검증)", 
+        f"{span_len}Y Weighted {m_name} {target_metric:.1f}% vs Hurdle {hurdle:.1f}%"
     )
     score_details[t("비즈니스 해자 및 복리수익률", "Economic Moat & ROIC Compounding")] = (moat_score, moat_reason)
 
     # -------------------------------------------------------------
-    # 3. 자본 경량성(Asset-light) & 레버리지 왜곡 방어 (지침서 Part 1-B, Part 3-공학)
-    # 무리한 빚으로 뻥튀기된 ROE 필터링 (단, 자사주 소각 우량주는 정상 참작)
+    # 3. 자본 구조 및 재무 안전판 (PDF Part 1-2B 자본경량성, Part 3-공학 Redundancy)
     # -------------------------------------------------------------
     lev_score = 0
     if not is_financial and weighted_roic > 0 and weighted_roe > 0:
         gap = weighted_roe - weighted_roic
-        # 자사주 매입으로 자본이 줄어든 초고ROIC 기업(비자, 애플 등)은 레버리지 감점 면제
         if weighted_roic >= 20.0 and (buyback_yield_pct > 0 or weighted_roic >= 25.0):
-            lev_score = 8
-            lev_reason = t("자본경량형 고효율 구조 (자사주 소각에 의한 건전한 ROE 확장)", "Asset-light high ROIC with buyback-driven ROE expansion")
+            lev_score = 10
+            lev_reason = t("자본경량형(Asset-light) 고효율 구조 (자사주 소각에 의한 건전한 ROE 확장)", "Asset-light high ROIC with buyback-driven ROE")
         else:
             if gap <= 0:
-                lev_score = 8
-                lev_reason = t("무차입에 가까운 무결점 자본 건전성 (단일 실패지점 없음)", "Zero/low debt pristine capital structure")
+                lev_score = 10
+                lev_reason = t("무차입에 가까운 재무 안전판 구축 (단일 실패 지점 차단 완료)", "Pristine debt-free redundancy")
             elif gap <= 6:
-                lev_score = 3
-                lev_reason = t(f"적정 수준의 레버리지 활용 (ROE-ROIC 격차 {gap:.1f}%p)", f"Moderate healthy leverage ({gap:.1f}%p gap)")
+                lev_score = 4
+                lev_reason = t(f"적정 수준의 안전 레버리지 활용 (ROE-ROIC 격차 {gap:.1f}%p)", f"Healthy leverage ({gap:.1f}%p gap)")
             elif gap <= 15:
-                lev_score = -5
-                lev_reason = t(f"부채 의존도 주의 (ROE가 ROIC를 {gap:.1f}%p 초과)", f"Debt leverage warning ({gap:.1f}%p gap)")
+                lev_score = -6
+                lev_reason = t(f"차입금 의존도 주의 (부채로 인해 ROE가 ROIC를 {gap:.1f}%p 초과)", f"Debt leverage warning ({gap:.1f}%p gap)")
             else:
                 lev_score = -15
-                lev_reason = t(f"과도한 차입에 의한 ROE 왜곡 (사업수익률 대비 부채위험 과다)", "Excessive debt distortion")
+                lev_reason = t(f"과도한 차입 레버리지에 의한 ROE 왜곡 (불황 시 재무 취약)", "Excessive debt distortion")
     else:
-        lev_score = 0
-        lev_reason = t("금융업 규제자본 기준 충족 여부 점검", "Financial capital adequacy check")
+        lev_score = 4 if roe_current >= 10.0 else (-5 if roe_current < 5.0 else 0)
+        lev_reason = t(f"금융업 자본적정성 및 ROE({roe_current:.1f}%) 방어력 점검", "Financial capital adequacy check")
 
     score_details[t("자본 구조 및 재무 안전판", "Capital Structure & Redundancy")] = (lev_score, lev_reason)
 
     # -------------------------------------------------------------
-    # 4. 자본 배분 효율성: 배당 vs 사내 재투자의 조화 (지침서 Part 4-6)
-    # "배당은 재투자 기회 고갈 시 환원 수단. ROIC 높은 기업의 재투자는 정당함"
+    # 4. 자본 배분 및 주주환원 일관성 (PDF Part 2-13번 희석 배제, Part 4-6 자본배분 5경로)
     # -------------------------------------------------------------
     alloc_score = 0
-    if target_metric >= 18.0:
-        # 초고수익 기업: 배당이 적거나 없어도 자본을 잘 불리면 최고점
-        if div_yield_pct >= 2.0:
+    if buyback_yield_pct <= -1.5:
+        alloc_score = -12
+        alloc_reason = t(f"주주가치 희석 경고 (유상증자·스톡옵션 등으로 주식수 연 {abs(buyback_yield_pct):.1f}% 증가)", "Shareholder dilution warning")
+    elif target_metric >= 15.0:
+        if buyback_yield_pct > 0.5 and (0 < cur_pe <= 22.0 or (kr and 0 < pbr <= 1.5)):
             alloc_score = 15
-            alloc_reason = t(f"경이로운 재투자 수익률({target_metric:.1f}%)과 안정적 주주환원 병행", "Superior ROIC with solid dividend distribution")
-        else:
+            alloc_reason = t(f"고수익 재투자({target_metric:.1f}%) + 저평가 구간 자사주 매입·소각({buyback_yield_pct:+.1f}%) 및 배당({div_yield_pct:.1f}%) 조화", "Optimal reinvestment + undervalued buyback & dividend")
+        elif div_yield_pct >= 1.5 or buyback_yield_pct > 0:
             alloc_score = 12
-            alloc_reason = t(f"높은 사업수익률({target_metric:.1f}%) 기반의 내부 재투자가 주주에게 유리", "High ROIC internal compounding preferred over dividend")
-    elif target_metric >= 10.0:
-        # 중수익 기업: 적정 배당 환원이 필수
-        if div_yield_pct >= 3.5:
-            alloc_score = 12
-            alloc_reason = t(f"안정적 잉여현금의 충실한 배당 환원 (배당률 {div_yield_pct:.2f}%)", f"Disciplined cash return (Yield {div_yield_pct:.2f}%)")
-        elif div_yield_pct >= 1.5:
-            alloc_score = 6
-            alloc_reason = t(f"적정 배당 지급 및 사업 유지 (배당률 {div_yield_pct:.2f}%)", f"Moderate dividend yield {div_yield_pct:.2f}%")
+            alloc_reason = t(f"우수한 사업수익률({target_metric:.1f}%) 재투자와 일관된 주주환원(배당 {div_yield_pct:.1f}%) 병행", "High ROIC reinvestment with consistent returns")
         else:
-            alloc_score = -3
-            alloc_reason = t("보통의 사업수익률 대비 사내 현금 유보 과다/환원 미흡", "Suboptimal capital return for moderate ROIC")
+            alloc_score = 8
+            alloc_reason = t(f"높은 사업수익률({target_metric:.1f}%) 기반의 본업 재투자 최우선 집행 (배당 {div_yield_pct:.1f}%)", "High ROIC internal reinvestment prioritized")
+    elif target_metric >= 9.0:
+        if div_yield_pct >= 3.0:
+            alloc_score = 10
+            alloc_reason = t(f"성숙기 잉여현금의 충실한 현금배당 환원 (배당수익률 {div_yield_pct:.2f}%)", f"Disciplined dividend payout ({div_yield_pct:.2f}%)")
+        elif div_yield_pct >= 1.0:
+            alloc_score = 4
+            alloc_reason = t(f"보통 수준의 자본배분 및 배당 유지 (배당수익률 {div_yield_pct:.2f}%)", "Moderate dividend payout")
+        else:
+            alloc_score = -5
+            alloc_reason = t("성장성 둔화에도 사내 현금 유보 과다 (주주환원 일관성 미흡)", "Suboptimal cash retention with low payout")
     else:
-        # 저수익/적자 기업: 고배당은 제 살 깎아 먹기, 무배당은 무능력
         if div_yield_pct >= 5.0:
             alloc_score = -10
-            alloc_reason = t("낮은 수익성 대비 무리한 고배당 (자본잠식/배당 삭감 위험)", "Unsustainable dividend with poor ROIC (Yield Trap)")
+            alloc_reason = t("자본비용 미달 상태의 무리한 고배당 (자본잠식·배당삭감 함정 주의)", "Unsustainable dividend trap")
         else:
-            alloc_score = -8
-            alloc_reason = t("자본비용을 밑도는 저수익 상태 (자본배분 비효율)", "Sub-cost of capital returns (Value Destroyer)")
+            alloc_score = -10
+            alloc_reason = t(f"자본비용을 밑도는 저수익({target_metric:.1f}%) 자본배분 비효율 상태", "Value-destroying capital allocation")
 
     score_details[t("자본 배분 및 주주환원 일관성", "Capital Allocation & Shareholder Return")] = (alloc_score, alloc_reason)
 
     # -------------------------------------------------------------
-    # 5. 가격 안전마진: 거짓 정밀성 탈피 & 가치 함정 방어 (지침서 Part 1-3, Part 4-7)
-    # "해자 없는 저PBR은 가치함정. 암산으로도 명백히 쌀 때만 매수"
+    # 5. 가격 안전마진 (해자 대비 염가): 버핏 10초 암산 역산(1/PER + g = 10%) vs 실제 FCF 성장률 비교 (PDF Part 4-7A)
+    # - 10년 평균 PER/PBR 비교 완전 삭제!
     # -------------------------------------------------------------
     val_score = 0
-    # A. PBR 가치 함정 필터링 (지침서 Part 1-3)
-    if is_financial or kr or is_cyclical:
-        if pbr <= 0.8 and target_metric < 7.0:
-            val_score = -10
-            val_reason = t("가치 함정(Value Trap) 경고: PBR은 낮으나 자본잠식/해자 훼손", "Value Trap: Cheap PBR but no moat/declining capital")
-        else:
-            # 정상적인 안전마진 평가
-            if pmos >= 25.0:
-                val_score = 20; val_reason = t(f"과거 10년 평균 PBR 대비 {pmos:.1f}% 명백한 할인 구간", f"{pmos:.1f}% deep discount vs 10Y avg PBR")
-            elif pmos >= 8.0:
-                val_score = 10; val_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 적정 할인", f"{pmos:.1f}% discount vs 10Y avg PBR")
-            elif pmos >= -10.0:
-                val_score = 0; val_reason = t(f"과거 평균 PBR에 부합하는 적정 수준", "In line with 10Y avg PBR")
-            else:
-                val_score = -18; val_reason = t(f"과거 평균 PBR 대비 {abs(pmos):.1f}% 과도한 할증", f"{abs(pmos):.1f}% premium vs 10Y avg PBR")
-    else:
-        # B. 일반 기업의 PER 및 역산 안전마진 (지침서 Part 4-7)
-        if f_pe <= 0:
-            val_score = -15
-            val_reason = t("선행 이익 적자 또는 추정 불가 (안전마진 결여)", "Negative or missing forward earnings")
-        else:
-            if pmos >= 25.0:
-                val_score = 20; val_reason = t(f"10년 평균 멀티플 대비 {pmos:.1f}% 명백한 염가 구간", f"{pmos:.1f}% deep discount vs 10Y avg PE")
-            elif pmos >= 8.0:
-                val_score = 10; val_reason = t(f"과거 평균 대비 {pmos:.1f}% 유의미한 할인", f"{pmos:.1f}% discount vs 10Y avg PE")
-            elif pmos >= -8.0:
-                val_score = 0; val_reason = t(f"역사적 평균에 부합하는 공정 가치", "Fair value vs 10Y avg PE")
-            elif pmos >= -25.0:
-                val_score = -10; val_reason = t(f"이익 대비 {abs(pmos):.1f}% 고평가 구간", f"{abs(pmos):.1f}% valuation premium")
-            else:
-                val_score = -20; val_reason = t(f"역사적 상단 초과 ({abs(pmos):.1f}% 과열)", f"{abs(pmos):.1f}% severe overvaluation")
+    cur_ey = (100.0 / cur_pe) if cur_pe > 0 else 0.0
+    buffett_req_g = 10.0 - cur_ey          # 버핏 10% 허들 달성에 필요한 암산 요구 성장률(%)
+    actual_fcf_g = final_g * 100.0         # 기업의 실제 연간 FCF 성장률(%)
+    g_margin = actual_fcf_g - buffett_req_g # 성장률 안전마진(%p)
 
-    # DCF 상식 검증 (거짓 정밀성 배제, 거친 암산 안전마진만 보조 반영)
-    if not is_financial and base_fcf and base_fcf > 0 and not is_zigzag:
-        if mos >= 30.0: val_score = min(22, val_score + 4)
-        elif mos <= -30.0: val_score = max(-22, val_score - 4)
+    if is_financial:
+        if pbr <= 0:
+            val_score = -10; val_reason = t("장부가치(PBR) 확인 불가", "PBR N/A")
+        elif pbr <= 1.0 and roe_current < 6.0:
+            val_score = -12; val_reason = t(f"가치 함정(Value Trap) 경고: PBR({pbr:.2f}배)은 낮으나 저ROE({roe_current:.1f}%)로 자본 정체", "Value Trap: Low PBR but poor ROE")
+        elif pbr <= 0.8 and roe_current >= 10.0:
+            val_score = 22; val_reason = t(f"현재 PBR {pbr:.2f}배 + 고ROE {roe_current:.1f}% (이익수익률 {cur_ey:.1f}%로 10% 허들 즉시 충족)", "Deep value financial with high ROE")
+        elif pbr <= 1.2 and roe_current >= 9.0:
+            val_score = 12; val_reason = t(f"현재 PBR {pbr:.2f}배 (청산가치 부근의 합리적 안전마진 확보)", "Fair PBR with solid ROE")
+        else:
+            val_score = -10; val_reason = t(f"현재 PBR {pbr:.2f}배 (장부가치 대비 프리미엄 부담 구간)", "PBR premium warning")
+    else:
+        # 해자 없는 저PBR 가치함정 선제 차단 (PDF Part 1-원칙3)
+        if (kr or is_cyclical) and 0 < pbr <= 0.8 and target_metric < 7.0 and (base_fcf is None or base_fcf <= 0):
+            val_score = -15
+            val_reason = t(f"가치 함정(Value Trap) 판정: PBR({pbr:.2f}배)만 낮고 해자(ROIC {target_metric:.1f}%)와 FCF가 부재함", "Value Trap: Low PBR without moat or FCF")
+        elif cur_pe <= 0:
+            val_score = -18
+            val_reason = t("현재 순이익 적자 (1/PER 산출 불가로 버핏 암산 기준 안전마진 결여)", "Negative earnings (No margin of safety)")
+        else:
+            # 버핏 10초 암산 역산(1/PER + 요구성장률 = 10%) vs 실제 FCF 성장률 비교 스코어링
+            if cur_ey >= 10.0 and actual_fcf_g >= 0 and base_fcf > 0:
+                val_score = 25
+                val_reason = t(
+                    f"버핏 암산 만점: 이익수익률({cur_ey:.1f}%)만으로 10% 허들 돌파! (요구성장률 {buffett_req_g:+.1f}% vs 실제 FCF성장률 {actual_fcf_g:+.1f}%)",
+                    f"Earnings yield {cur_ey:.1f}% alone beats 10% hurdle (Actual FCF g {actual_fcf_g:+.1f}%)"
+                )
+            elif base_fcf and base_fcf > 0 and g_margin >= 10.0:
+                val_score = 22
+                val_reason = t(
+                    f"버핏 역산 대폭 할인: 실제 FCF성장률({actual_fcf_g:+.1f}%)이 암산 요구성장률({buffett_req_g:+.1f}%)을 +{g_margin:.1f}%p 압도 (1/PER {cur_ey:.1f}%)",
+                    f"Actual FCF growth ({actual_fcf_g:+.1f}%) beats required ({buffett_req_g:+.1f}%) by +{g_margin:.1f}%p"
+                )
+            elif base_fcf and base_fcf > 0 and g_margin >= 3.0:
+                val_score = 14
+                val_reason = t(
+                    f"버핏 역산 안전마진 확보: 실제 FCF성장률({actual_fcf_g:+.1f}%) > 암산 요구성장률({buffett_req_g:+.1f}%) (+{g_margin:.1f}%p 우위 · 1/PER {cur_ey:.1f}%)",
+                    f"Actual FCF growth ({actual_fcf_g:+.1f}%) exceeds required ({buffett_req_g:+.1f}%)"
+                )
+            elif base_fcf and base_fcf > 0 and g_margin >= -2.0:
+                val_score = 4
+                val_reason = t(
+                    f"버핏 역산 적정 수준: 실제 FCF성장률({actual_fcf_g:+.1f}%)과 암산 요구성장률({buffett_req_g:+.1f}%)이 균형 (1/PER {cur_ey:.1f}%)",
+                    f"Actual FCF growth matches required growth ({buffett_req_g:+.1f}%)"
+                )
+            elif base_fcf is None or base_fcf <= 0:
+                val_score = -14
+                val_reason = t(
+                    f"버핏 역산 미달: 암산 요구성장률은 {buffett_req_g:+.1f}%이나 현재 FCF(주주이익) 적자 상태 (1/PER {cur_ey:.1f}%)",
+                    f"Requires {buffett_req_g:+.1f}% growth but FCF is currently negative"
+                )
+            else:
+                val_score = -16 if g_margin <= -10.0 else -8
+                val_reason = t(
+                    f"버핏 역산 고평가 주의: 실제 FCF성장률({actual_fcf_g:+.1f}%)이 암산 요구성장률({buffett_req_g:+.1f}%)에 {g_margin:.1f}%p 미달 (1/PER {cur_ey:.1f}%)",
+                    f"Actual FCF growth ({actual_fcf_g:+.1f}%) trails required ({buffett_req_g:+.1f}%) by {g_margin:.1f}%p"
+                )
+
+            # 한국 주식은 지침에 따라 현재 PBR 절대 안전마진을 보조 가산
+            if kr and pbr > 0:
+                if pbr <= 0.8 and target_metric >= 8.0:
+                    val_score = min(25, val_score + 5)
+                    val_reason += f" · [한국주 PBR {pbr:.2f}배 청산가치 이하 가산]"
+                elif pbr >= 2.5 and target_metric < 12.0:
+                    val_score = max(-22, val_score - 5)
 
     score_details[t("가격 안전마진 (해자 대비 염가)", "Moat-driven Margin of Safety")] = (val_score, val_reason)
 
     # -------------------------------------------------------------
-    # 6. 거시 기회비용 (10년물 미국채 금리 vs 이익수익률) (지침서 Part 4-7)
+    # 6. 거시 기회비용 (vs 10년물 미국채 금리) (PDF Part 4-7)
     # -------------------------------------------------------------
     macro_score = 0
-    if f_pe > 0:
+    if cur_pe > 0:
         if erp >= 2.0:
             macro_score = 10
-            macro_reason = t(f"국채 대비 높은 주식 프리미엄 (이익수익률 {100/f_pe:.1f}% vs 국채 {erp:+.1f}%p)", "Generous equity risk premium over Treasury")
+            macro_reason = t(f"미국채 대비 압도적 이익수익률 우위 (현재 1/PER {cur_ey:.1f}% vs 국채 대비 {erp:+.1f}%p)", "Strong yield premium over 10Y Treasury")
         elif erp >= 0.0:
             macro_score = 4
-            macro_reason = t(f"국채 금리와 대등한 기대수익률 (스프레드 {erp:+.1f}%p)", "Competitive yield against 10Y Treasury")
-        elif erp >= -2.0:
-            macro_score = -6
-            macro_reason = t(f"국채 대비 매력도 열위 (스프레드 {erp:.1f}%p)", "Unfavorable risk-reward vs risk-free bond")
+            macro_reason = t(f"미국채 금리를 상회하는 이익수익률 확보 (스프레드 {erp:+.1f}%p)", "Positive yield spread vs 10Y Treasury")
+        elif erp >= -1.8:
+            macro_score = -5
+            macro_reason = t(f"국채 금리 대비 일시적 수익률 열위 (스프레드 {erp:.1f}%p · 성장으로 보완 필요)", "Slightly negative spread vs Treasury")
         else:
             macro_score = -14
-            macro_reason = t(f"극단적 고평가 (국채를 사는 것이 훨씬 유리한 구간)", "Severe negative yield spread vs Treasury")
+            macro_reason = t(f"국채 대비 매력도 현저히 열위 (스프레드 {erp:.1f}%p · 무위험 채권이 유리)", "Severe negative spread vs risk-free Treasury")
     else:
-        macro_score = -10
-        macro_reason = t("이익 적자로 인한 채권 대비 기회비용 열위", "Negative earnings yield")
+        macro_score = -12
+        macro_reason = t("순이익 적자로 인한 무위험 미국채 대비 기회비용 열위", "Negative earnings yield vs Treasury")
 
     score_details[t("거시 기회비용 (vs 10년물 미국채)", "Macro Opportunity Cost vs Treasury")] = (macro_score, macro_reason)
 
     # -------------------------------------------------------------
-    # 7. 시장 디스카운트 (지정학, 회계 신뢰도)
+    # 7. 지정학 및 거버넌스 구조적 디스카운트
     # -------------------------------------------------------------
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
     is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK")
     if is_china_hk:
-        score_details[t("지정학 및 거버넌스 디스카운트", "Geopolitical Discount")] = (-15, t("차이나/홍콩 거버넌스 및 국가 규제 리스크", "China/HK discount"))
+        score_details[t("지정학 및 거버넌스 디스카운트", "Geopolitical Discount")] = (-12, t("중국/홍콩 VIE 지배구조 및 정책 규제 리스크 반영", "China/HK regulatory discount"))
     elif kr:
-        score_details[t("시장 구조적 디스카운트", "Structural Market Discount")] = (-8, t("코리아 디스카운트 (낮은 주주환원율/거버넌스 한계)", "Korea discount"))
+        score_details[t("시장 구조적 디스카운트", "Structural Market Discount")] = (-5, t("코리아 디스카운트 (배당성향 및 지배구조 일반 할인)", "Korea market discount"))
 
     # -------------------------------------------------------------
-    # 최종 스코어 집계 및 "바이블 지침서 원칙" 하드 캡(Hard Cap) 적용
+    # 최종 스코어 집계 및 바이블 헌장 하드 캡(Hard Cap) 적용
     # -------------------------------------------------------------
     total_raw = sum(v[0] for v in score_details.values())
 
-    # [바이블 핵심 원칙 1] 경영진의 정직성에 치명적 결함(분식, 횡령, 배임)이 있으면 절대 '안전마진' 구간 불가!
     if is_fatal_compromised:
-        final_score = min(-25, total_raw)
-    # [바이블 핵심 원칙 2] 사업수익률(ROIC)이 자본비용(10%) 미만인 해자 없는 기업은 '심층 저평가' 불가!
+        final_score = min(-30, total_raw)
     elif target_metric < 7.0 and not is_financial:
-        final_score = min(20, total_raw)
+        final_score = min(15, total_raw)
     else:
         final_score = max(-100, min(100, total_raw))
 
     score = round(final_score)
 
-    # 10점 단위 명확한 밸류에이션 판정
     if score >= 65:
         title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
-        reason = t("강력한 경제적 해자와 정직한 경영진을 갖춘 위대한 기업이 미스터 마켓의 패닉으로 명백히 염가에 거래되는 구간입니다.", "A great moat business trading at an obvious bargain due to Mr. Market's panic.")
+        reason = t("강력한 경제적 해자와 정직한 경영진을 갖춘 기업이 버핏의 10초 암산 역산 기준에서도 명백한 염가에 거래되는 구간입니다.", "Great moat business trading at an obvious bargain on Buffett's mental math.")
     elif score >= 45:
         title, color = t(f"높은 안전마진 구간 ({score}점)", f"High Margin of Safety ({score} pts)"), "#0097e6"
-        reason = t("복리 모형(ROIC)이 견고하게 작동 중이며, 추정 내재가치 및 과거 멀티플 대비 충분한 안전마진이 확보되었습니다.", "Solid compounding engine (ROIC) with a proven margin of safety against intrinsic value.")
+        reason = t("복리의 바퀴(ROIC)가 견고하게 작동 중이며, 암산 요구 성장률 대비 실제 현금창출 성장률이 훨씬 높아 안전마진이 충분합니다.", "Solid ROIC compounding engine with actual FCF growth well above implied expectations.")
     elif score >= 25:
-        title, color = t(f"합리적 가치 매수 구간 ({score}점)", f"Fair Value Buy Zone ({score} pts)"), "#2ecc71"
-        reason = t("버핏의 원칙('적당한 기업을 헐값에 사는 것보다 위대한 기업을 적당한 가격에 사는 것이 낫다')에 완전히 부합하는 합리적 구간입니다.", "Aligned with Buffett's principle: 'A wonderful company at a fair price.'")
+        title, color = t(f"합리적 가치 구간 ({score}점)", f"Fair Value Buy Zone ({score} pts)"), "#2ecc71"
+        reason = t("버핏의 원칙('위대한 기업을 적당한 가격에 산다')에 부합하며, 현재 이익수익률과 FCF 성장률이 10% 허들을 넘어서는 구간입니다.", "Aligned with Buffett's principle: 'A wonderful company at a fair price.'")
     elif score >= 5:
-        title, color = t(f"내재가치 부합 (보유/관망) ({score}점)", f"Fair Value Hold ({score} pts)"), "#f1c40f"
-        reason = t("기업의 본질 가치와 시장 가격이 균형을 이루고 있습니다. 비상식적인 할인은 없으므로 추가 안전마진을 기다리며 관망하십시오.", "Fairly priced. Moat is intact but lacks an obvious discount cushion.")
+        title, color = t(f"내재가치 부합 / 관망 ({score}점)", f"Fair Value Hold ({score} pts)"), "#f1c40f"
+        reason = t("비즈니스 해자는 양호하나 현재 주가에 이미 적정 수준의 성장이 반영되어 있습니다. 미스터 마켓의 일시적 패닉을 기다리십시오.", "Fairly priced. Moat is intact but lacks an obvious discount cushion.")
     elif score >= -15:
-        title, color = t(f"미래 성장 선반영 (할증 주의) ({score}점)", f"Growth Priced In ({score} pts)"), "#fa8231"
-        reason = t("향후 수년간의 낙관적 성장이 가격에 이미 선반영되어 있어, 실적 미달 시 영구적 자본 손실 위험이 커지는 구간입니다.", "Future growth is already priced in. Vulnerable to multiple contraction if earnings miss.")
+        title, color = t(f"미래 성장 선반영 주의 ({score}점)", f"Growth Priced In ({score} pts)"), "#fa8231"
+        reason = t("버핏의 10% 암산 허들을 맞추기 위해 상당히 높은 미래 성장이 요구되는 구간입니다. 실적 둔화 시 멀티플 수축 위험이 있습니다.", "High future growth is already priced in.")
     elif score >= -35:
         title, color = t(f"밸류에이션 과열 경고 ({score}점)", f"Valuation Warning ({score} pts)"), "#ff4757"
-        reason = t("거시 기회비용(국채 금리) 대비 기대수익률이 현저히 떨어지며, 역사적 상단을 초과한 고평가 상태입니다.", "Unfavorable risk-reward compared to Treasury yield with stretched historical multiples.")
+        reason = t("거시 기회비용(국채 금리) 및 실제 FCF 성장률 대비 주가가 과도하게 할증되어 있어 영구적 자본 손실 위험이 존재합니다.", "Unfavorable risk-reward compared to Treasury yield and actual FCF growth.")
     else:
         title, color = t(f"자본파괴 / 심각한 거버넌스 훼손 ({score}점)", f"Capital Destroyer / Severe Risk ({score} pts)"), "#8c14fc"
-        reason = t("최고경영진의 진실성이 결여되었거나, 자본비용을 지속 훼손하는 가치 함정(Value Trap) 상태입니다. 즉각 검토를 중단하십시오.", "Integrity compromised or structural value trap destroying shareholder capital.")
+        reason = t("최고경영진의 진실성이 결여되었거나, 자본비용을 지속 훼손하는 가치 함정(Value Trap) 상태입니다. 즉각 검토를 중단하십시오.", "Integrity compromised or structural value trap.")
 
     return title, color, reason, score_details
     # ▲▲▲ 여기까지 교체 ▲▲▲
@@ -4761,34 +4790,28 @@ def generate_quick_ai_preview(tk):
         if pbr < 0.1 or pbr <= 0.0:
             pbr = a_pbr if a_pbr > 0 else 1.0
 
-    # 3. 할인율/할증률 및 ERP 계산 (시클리컬/대만/홍콩/중국/한국/금융주는 현재 PBR 기준)
-    if is_financial or kr or is_cyclical:
-        pmos_val = ((a_pbr - pbr) / a_pbr) * 100 if pbr > 0 and a_pbr > 0 else 0
-    else:
-        pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-        
-    ey = (1 / f_pe * 100) if f_pe > 0 else 0
+    # 3. 현재 PER(t_pe) 기반 이익수익률(ey) 및 버핏 역산 성장률 마진(pmos_val) 계산 (10년 평균 비교 삭제)
+    eff_cur_pe = t_pe if t_pe > 0 else f_pe
+    ey = (100.0 / eff_cur_pe) if eff_cur_pe > 0 else 0.0
     erp = ey - ty
+    buffett_req_g_prev = 10.0 - ey
+    pmos_val = (final_g * 100.0) - buffett_req_g_prev if eff_cur_pe > 0 else -20.0
+
     sh_dcf = safe_float(i.get('sharesOutstanding'))
     iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
     
     roic_val = real_roic if real_roic is not None else 0
-    
-    # [변경 후 코드 (1줄로 교체)]
     div = calc_accurate_div_yield(stk, i, p, kr)
-
     spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-    
-    # [추가] 자사주 순매입수익률 계산 후 투자의견 함수에 전달
     bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
     
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
+        f_pe=eff_cur_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
         hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
-        buyback_yield_pct=bb_yield  # <--- 이 줄 추가!
+        buyback_yield_pct=bb_yield
     )
     # =================================================================
 
@@ -5520,14 +5543,13 @@ with tab1:
                     if pbr < 0.1 or pbr <= 0.0:
                         pbr = a_pbr if a_pbr > 0 else 1.0
 
-                # 3. 할인율/할증률 및 ERP 계산 (한국/시클리컬/중국/홍콩/대만/금융주는 현재 PBR 비교)
-                if is_financial or kr or is_cyclical:
-                    pmos_val = ((a_pbr - pbr) / a_pbr) * 100 if pbr > 0 and a_pbr > 0 else 0
-                else:
-                    pmos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-                    
-                ey = (1 / f_pe * 100) if f_pe > 0 else 0
+                # 3. 현재 PER(t_pe) 기반 이익수익률(ey) 및 버핏 10초 암산 역산(1/PER + g = 10%) 마진 산출 (선행 PER 및 10년 평균 비교 삭제)
+                eff_cur_pe = t_pe if t_pe > 0 else f_pe
+                ey = (100.0 / eff_cur_pe) if eff_cur_pe > 0 else 0.0
                 erp = ey - ty
+                buffett_req_g_main = 10.0 - ey
+                actual_fcf_g_main = final_g * 100.0
+                pmos_val = actual_fcf_g_main - buffett_req_g_main if eff_cur_pe > 0 else -20.0
                 sh = safe_float(i.get('sharesOutstanding'))
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
@@ -5767,7 +5789,7 @@ with tab1:
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
                     is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=f_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
+                    f_pe=eff_cur_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
                     hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
                     buyback_yield_pct=bb_yield  # <--- 추가!
                 )
@@ -5807,25 +5829,20 @@ with tab1:
                     else: c2_st = "fail"
                     c2_sub = f"배당 {div:.1f}% · 거버넌스 {mgmt_sc:+.0f}점"
 
-                    # ③ 가격 안전마진 (과거 평균 멀티플 할인율 & DCF 안전마진)
-                    use_5y_chk = st.session_state.get("use_5y_avg", False)
-                    yr_tag = "5년" if use_5y_chk else "10년"
+                    # ③ 가격 안전마진 (버핏 10초 암산 역산: 1/현재PER + 요구성장률 = 10% vs 실제 FCF 성장률)
                     if is_financial:
-                        if pmos_val >= 10.0 or (0 < pbr <= 1.0): c3_st = "pass"
-                        elif pmos_val >= -10.0: c3_st = "warn"
+                        if 0 < pbr <= 1.0 and roe >= 9.0: c3_st = "pass"
+                        elif 0 < pbr <= 1.3: c3_st = "warn"
                         else: c3_st = "fail"
-                        c3_sub = f"{yr_tag}PBR 대비 {pmos_val:+.1f}%"
+                        c3_sub = f"현재 PBR {pbr:.2f}배 · ROE {roe:.1f}%"
                     else:
-                        has_valid_dcf = (base_fcf is not None and base_fcf > 0 and not is_zigzag)
-                        if (pmos_val >= 10.0 and (not has_valid_dcf or mos_val >= 0.0)) or pmos_val >= 20.0 or (has_valid_dcf and mos_val >= 20.0):
+                        if eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= 2.0:
                             c3_st = "pass"
-                        elif pmos_val >= -10.0 or (has_valid_dcf and mos_val >= -10.0):
+                        elif eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= -3.0:
                             c3_st = "warn"
                         else:
                             c3_st = "fail"
-                        m_type = "PBR" if (kr or is_cyclical) else "PER"
-                        dcf_short = f" · DCF {mos_val:+.0f}%" if has_valid_dcf else ""
-                        c3_sub = f"{yr_tag}{m_type} {pmos_val:+.1f}%{dcf_short}"
+                        c3_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF {actual_fcf_g_main:+.1f}%" if eff_cur_pe > 0 else "적자(역산불가)"
 
                     # ④ 재무 생존력 (버핏·멍거식 주주이익 FCF 창출력 & 부채·유동성 방어력)
                     if is_financial:
@@ -5948,15 +5965,14 @@ with tab1:
 
                 if is_financial:
                     beginner_summary = t(
-                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융사를 사면, 기업의 자산 대비 프리미엄을 <b>{pbr:.2f}배</b>(PBR) 지불하게 됩니다. 현재 회사는 이 자본을 굴려 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
-                        f"<b>Beginner Guide:</b> If you buy this financial stock for <b>{p_str}</b>, you pay <b>{pbr:.2f}x</b> its book value (PBR). The company currently grows its equity at <b>{roe:.1f}%/yr</b> (ROE)."
+                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 금융사를 사면, 기업의 순자산 대비 <b>{pbr:.2f}배</b>(현재 PBR)를 지불하게 됩니다. 현재 회사는 이 자본을 굴려 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
+                        f"<b>Beginner Guide:</b> You pay <b>{pbr:.2f}x</b> book value (Current PBR), and the company grows equity at <b>{roe:.1f}%/yr</b> (ROE)."
                     )
                 else:
                     beginner_summary = t(
-                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 회사를 사면, 본전을 찾는 데 <b>{f_pe:.1f}년</b>이 걸릴 것으로 예상되며(Fwd PER), 회사는 장사를 통해 내 돈을 1년에 <b>{roe:.1f}%</b>씩(ROE) 불려주고 있습니다.",
-                        f"<b>Beginner Guide:</b> It takes <b>{f_pe:.1f} yrs</b> to break even (예상 PE), and the company grows your money at <b>{roe:.1f}%/yr</b> (ROE)."
+                        f"<b>초보자 가이드:</b> 내가 <b>{p_str}</b>을 주고 이 회사를 사면, 현재 순이익 기준으로 본전을 찾는 데 <b>{eff_cur_pe:.1f}년</b>이 걸리며(현재 PER), 이익수익률(1/PER)은 연 <b>{ey:.1f}%</b>입니다. 워런 버핏의 연 10% 수익 허들을 맞추려면 앞으로 매년 <b>{buffett_req_g_main:+.1f}%</b> 성장해야 하는데, 이 회사의 실제 FCF 성장률은 연 <b>{actual_fcf_g_main:+.1f}%</b>입니다.",
+                        f"<b>Beginner Guide:</b> Current PE is <b>{eff_cur_pe:.1f}x</b> (Earnings Yield <b>{ey:.1f}%</b>). Needs <b>{buffett_req_g_main:+.1f}%</b> growth for Buffett's 10% rule vs actual FCF growth of <b>{actual_fcf_g_main:+.1f}%</b>."
                     )
-
                 # =====================================================================
                 # 통합 섹션: 기업 가치 심층 분석 (재무 -> DCF -> AI 검증)
                 # =====================================================================
@@ -6148,40 +6164,53 @@ with tab1:
                     elif mos_val >= -20: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[주의] ({abs(mos_val):.1f}% 할증)</span>"
                     else: clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>[매우 주의] ({abs(mos_val):.1f}% 할증)</span>"
     
-                # --- [수정] 모든 기업에 대해 PER, PBR UI 카드를 둘 다 표출 ---
-                per_mos_val = ((a_pe - f_pe) / a_pe) * 100 if f_pe > 0 and a_pe > 0 else 0
-                if per_mos_val >= 10: per_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{per_mos_val:.1f}% (저평가)</span>"
-                elif per_mos_val >= -5: per_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {per_mos_val:+.1f}% (적정수준)</span>"
-                else: per_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {per_mos_val:.1f}% (고평가)</span>"
-
-                t_pe_str = f"현재 PER: {t_pe:.1f}배" if t_pe > 0 else "현재 PER: N/A"
-                if f_pe > 0 and a_pe > 0:
-                    fwd_pe_val_str = f"{f_pe:.1f}배"
-                    
-                    fwd_pe_desc_str = f"{per_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: {a_pe:.1f}배</span>"
-                elif f_pe > 0 and a_pe <= 0:
-                    fwd_pe_val_str = f"{f_pe:.1f}배"
-                    fwd_pe_desc_str = f"{per_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
+                # --- [수정 완료] 선행 PER 및 10년 평균 PER/PBR 완전 삭제 -> 현재 PER & 현재 PBR + 버핏 10초 암산 역산 비교 ---
+                if eff_cur_pe > 0:
+                    fwd_pe_val_str = f"{eff_cur_pe:.1f}배"
+                    if ey >= 10.0:
+                        pe_sub_eval = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] 이익수익률 {ey:.1f}% (무성장 시에도 10% 충족)</span>"
+                    else:
+                        pe_sub_eval = f"<span style='color:#74b9ff; font-weight:bold;'>이익수익률(1/PER): 연 {ey:.1f}%</span>"
+                    fwd_pe_desc_str = f"{pe_sub_eval}<br><span style='font-size:0.95em; opacity:0.85;'>버핏 10% 허들 필요성장률: <b>연 {buffett_req_g_main:+.1f}%</b></span>"
                 else:
-                    fwd_pe_val_str = "N/A"
-                    fwd_pe_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (이익 적자/부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>{t_pe_str} | 10년 평균: N/A</span>"
-                lbl_fwd_pe_title = "본전 회수 기간 (예상 PER)"
+                    fwd_pe_val_str = "N/A (적자)"
+                    fwd_pe_desc_str = f"<span style='color:#ff7675; font-weight:600;'>현재 순이익 적자 (본전 회수 산출 불가)</span>"
+                lbl_fwd_pe_title = "본전 회수 기간 (현재 PER)"
 
-                pbr_mos_val = ((a_pbr - pbr) / a_pbr) * 100 if pbr > 0 and a_pbr > 0 else 0
-                if pbr_mos_val >= 10: pbr_mos_str = f"<span style='color:#2ecc71; font-weight:bold;'>[합격] +{pbr_mos_val:.1f}% (저평가)</span>"
-                elif pbr_mos_val >= -5: pbr_mos_str = f"<span style='color:#fdcb6e; font-weight:bold;'>[보통] {pbr_mos_val:+.1f}% (적정수준)</span>"
-                else: pbr_mos_str = f"<span style='color:#ff7675; font-weight:bold;'>[주의] {pbr_mos_val:.1f}% (고평가)</span>"
-
-                if pbr > 0 and a_pbr > 0:
+                if pbr > 0:
                     fwd_pbr_val_str = f"{pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str}<br><span style='font-size:0.95em; opacity:0.85;'>현재 PBR: {pbr:.2f}배 | 10년 평균: {a_pbr:.2f}배</span>"
-                elif pbr > 0 and a_pbr <= 0:
-                    fwd_pbr_val_str = f"{pbr:.2f}배"
-                    fwd_pbr_desc_str = f"{pbr_mos_str} <span style='color:#8892b0; font-weight:600; font-size:0.85em;'>(과거 평균 없음)</span><br><span style='font-size:0.95em; opacity:0.85;'>현재 PBR: {pbr:.2f}배 | 10년 평균: N/A</span>"
+                    if pbr <= 1.0 and (roe >= 8.0 or roic_val >= 8.0):
+                        pbr_sub_eval = "<span style='color:#2ecc71; font-weight:bold;'>[합격] 청산가치 이하 + 우량 수익성</span>"
+                    elif pbr <= 1.0:
+                        pbr_sub_eval = "<span style='color:#fdcb6e; font-weight:bold;'>[주의] 청산가치 이하나 수익성(해자) 점검 필수</span>"
+                    elif pbr <= 3.0:
+                        pbr_sub_eval = "<span style='color:#74b9ff; font-weight:bold;'>[양호] 적정 자산 프리미엄 구간</span>"
+                    else:
+                        pbr_sub_eval = "<span style='color:#fdcb6e; font-weight:bold;'>[자본경량/고PBR] 무형자산 해자·ROIC 기반 평가</span>"
+                    bps_disp_str = f"주당순자산(BPS): {int(bv):,}원" if (kr and bv > 0) else (f"BPS: ${bv:,.2f}" if bv > 0 else "")
+                    fwd_pbr_desc_str = f"{pbr_sub_eval}<br><span style='font-size:0.95em; opacity:0.85;'>{bps_disp_str}</span>"
                 else:
                     fwd_pbr_val_str = "N/A"
-                    fwd_pbr_desc_str = f"<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>{t('평가 불가 (자본 데이터 부재)', 'N/A')}</span><br><span style='font-size:0.95em; opacity:0.85;'>현재 PBR: N/A | 10년 평균: N/A</span>"
+                    fwd_pbr_desc_str = "<span style='color:var(--text-color); opacity:0.6; font-weight:600;'>자본 데이터 확인 필요</span>"
                 lbl_fwd_pbr_title = "장부가치 배수 (현재 PBR)"
+
+                if eff_cur_pe > 0 and base_fcf and base_fcf > 0:
+                    if pmos_val >= 3.0:
+                        clean_p_txt = f"<b style='color:#2ecc71;'>[버핏 역산 통과]</b> 실제 FCF성장({actual_fcf_g_main:+.1f}%) > 요구성장({buffett_req_g_main:+.1f}%)"
+                    elif pmos_val >= -2.0:
+                        clean_p_txt = f"<b style='color:#fdcb6e;'>[버핏 역산 적정]</b> 실제 FCF성장({actual_fcf_g_main:+.1f}%) ≈ 요구성장({buffett_req_g_main:+.1f}%)"
+                    else:
+                        clean_p_txt = f"<b style='color:#ff7675;'>[버핏 역산 주의]</b> 실제 FCF성장({actual_fcf_g_main:+.1f}%) < 요구성장({buffett_req_g_main:+.1f}%)"
+                else:
+                    clean_p_txt = f"<b style='color:#ff7675;'>[버핏 역산 불가]</b> 순이익 또는 FCF 적자"
+
+                if not is_financial:
+                    if base_fcf is None or base_fcf <= 0:
+                        clean_p_txt += f"<br><span style='color:#74b9ff;'>[DCF]</span> <span style='color:#ff7675; font-weight:600;'>FCF 적자 평가 제외</span>"
+                    elif mos_val >= 15:
+                        clean_p_txt += f"<br><span style='color:#74b9ff;'>[보조 DCF]</span> <span style='color:#2ecc71; font-weight:600;'>+{mos_val:.1f}% 안전마진</span>"
+                    else:
+                        clean_p_txt += f"<br><span style='color:#74b9ff;'>[보조 DCF]</span> <span style='color:#8892b0;'>안전마진 {mos_val:+.1f}%</span>"
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
@@ -6259,115 +6288,94 @@ with tab1:
                     with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
                         st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
                     
-                    implied_g = get_implied_g(base_fcf, sh, p, ty)
-                    if implied_g is not None:
-                        implied_g_str = f"{implied_g*100:.1f}%"
-                        if implied_g <= final_g:
-                            rev_dcf_color = "#2ecc71"
-                            rev_dcf_eval = t("[저평가] 시장의 기대성장률이 과거 평균보다 낮아 안전마진이 충분합니다.", "[Undervalued] Market expectation is lower than historical avg.")
-                        elif implied_g > 0.25:
-                            rev_dcf_color = "#ff7675"
-                            rev_dcf_eval = t("[고평가] 시장이 비현실적인 고성장을 기대하고 있습니다.", "[Overvalued] Market is expecting unrealistic high growth.")
-                        else:
-                            rev_dcf_color = "#fdcb6e"
-                            rev_dcf_eval = t("[적정] 시장의 기대치가 합리적인 수준에 형성되어 있습니다.", "[Fair] Market expectation is reasonable.")
+                    elif iv:
+                    with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
+                        st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
 
-                        reverse_dcf_html = f"""
-                        <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'> 역산 DCF (Reverse DCF)</div>
-                            <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
-                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 10년 평균 FCF)</span></div>
-                        </div>
-                        """
-                    else:
-                        reverse_dcf_html = ""
-
-                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 10년 평균 FCF 적용)</div>", unsafe_allow_html=True)
-                    st.markdown(reverse_dcf_html, unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt}</div>", unsafe_allow_html=True)
 
                     # =========================================================================
-                    # ▼▼▼ [수정 완료 & FCF 성장률 비교 추가] 들여쓰기 0칸 버전 (HTML 노출 방지) ▼▼▼
+                    # [에러 100% 수리 완료] 역산 DCF를 대체하는 '워런 버핏의 10초 암산 역산 밸류에이션'
+                    # - 공식 1 (버핏 10% 허들 역산): 1/현재PER + (요구 성장률) = 10%  ==> 요구 성장률 vs 실제 FCF 성장률 비교
+                    # - 공식 2 (국채+5%p 허들 역산): 1/현재PER + (국채대비 요구 성장률) = 10년물 국채금리 + 5%
                     # =========================================================================
-                    if f_pe > 0:
-                        cur_ey = (1.0 / f_pe) * 100.0
-                        req_yield = ty + 5.0
-                        buffett_max_pe = 100.0 / req_yield if req_yield > 0 else 10.0
-                        
-                        eff_eps_calc = (reg_p / f_pe) if f_pe > 0 else (t_eps if t_eps > 0 else 0)
-                        buffett_fair_price = eff_eps_calc * buffett_max_pe if eff_eps_calc > 0 else 0
-                        buffett_mos_pct = ((buffett_fair_price - p) / buffett_fair_price) * 100.0 if buffett_fair_price > 0 else 0.0
-                        ey_spread = cur_ey - req_yield
+                    if eff_cur_pe > 0:
+                        cur_ey = (1.0 / eff_cur_pe) * 100.0
+                        req_g_10 = 10.0 - cur_ey               # 1/PER + ( ? ) = 10% 에서 ( ? )에 해당하는 요구 성장률
+                        req_yield_bond = ty + 5.0              # 10년물 미국채 + 5.0%p 요구수익률
+                        req_g_bond = req_yield_bond - cur_ey   # 국채+5%p 달성에 필요한 요구 성장률
 
-                        # 1. 기업 실제 FCF 연평균 성장률(%) vs 시장 역산 기대 성장률(%) 비교
-                        actual_fcf_g = final_g * 100.0
-                        implied_g_val = (implied_g * 100.0) if implied_g is not None else 0.0
-                        g_spread = actual_fcf_g - implied_g_val
+                        actual_fcf_g = final_g * 100.0         # 기업 실제 FCF 연평균 성장률
+                        g_margin_10 = actual_fcf_g - req_g_10  # 실제 FCF 성장률 - 10% 허들 요구 성장률
 
-                        if implied_g is not None:
-                            if g_spread >= 0:
-                                g_cmp_txt = f"✅ [성장성 우위] 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 시장 역산 기대치({implied_g_val:+.1f}%)를 상회합니다!"
-                                g_cmp_col = "#2ecc71"
-                            else:
-                                g_cmp_txt = f"⚠️ [성장성 부담] 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 시장 역산 기대치({implied_g_val:+.1f}%)보다 낮습니다."
-                                g_cmp_col = "#ff7675"
+                        eff_eps_calc = t_eps if t_eps > 0 else (reg_p / eff_cur_pe)
+                        buffett_fair_p_10 = eff_eps_calc * 10.0 if eff_eps_calc > 0 else 0.0 # PER 10배(무성장 10% 수익률) 기준가
+                        p_bft_str = (f"{int(buffett_fair_p_10):,}원" if kr else f"${buffett_fair_p_10:,.2f}") if buffett_fair_p_10 > 0 else "산출 불가"
+
+                        # 1) 1/PER + (요구성장률) = 10% 공식 판정
+                        if cur_ey >= 10.0:
+                            b_col = "#2ecc71"
+                            b_title = f"✅ [10초 암산 즉시 통과] 성장이 0%여도 이익수익률({cur_ey:.2f}%)만으로 연 10% 수익 허들 돌파!"
+                            b_sub = f"공식 [ 1/현재PER({cur_ey:.2f}%) + 요구성장률({req_g_10:+.2f}%) = 10.0% ] ➔ 역산 요구성장률이 마이너스({req_g_10:+.2f}%)이므로 현재 이익만 유지해도 연 10% 이상을 주는 명백한 염가입니다."
+                        elif g_margin_10 >= 2.0 and base_fcf and base_fcf > 0:
+                            b_col = "#2ecc71"
+                            b_title = f"✅ [역산 안전마진 합격] 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 암산 요구성장률({req_g_10:+.1f}%)을 +{g_margin_10:.1f}%p 압도!"
+                            b_sub = f"공식 [ 1/현재PER({cur_ey:.2f}%) + 요구성장률({req_g_10:+.2f}%) = 10.0% ] ➔ 연 10% 수익을 위해 매년 {req_g_10:+.1f}% 성장이 필요한데, 실제 FCF는 매년 {actual_fcf_g:+.1f}%씩 성장해 충분한 안전마진이 확인됩니다."
+                        elif g_margin_10 >= -2.0 and base_fcf and base_fcf > 0:
+                            b_col = "#fdcb6e"
+                            b_title = f"⚠️ [역산 적정가치 부합] 실제 FCF 성장률({actual_fcf_g:+.1f}%)과 암산 요구성장률({req_g_10:+.1f}%)이 팽팽한 균형"
+                            b_sub = f"공식 [ 1/현재PER({cur_ey:.2f}%) + 요구성장률({req_g_10:+.2f}%) = 10.0% ] ➔ 현재 주가는 기업의 실제 FCF 성장 체력({actual_fcf_g:+.1f}%)을 정직하게 반영하고 있습니다."
                         else:
-                            g_cmp_txt = f"📊 기업 실제 FCF 연평균 성장률: {actual_fcf_g:+.1f}%"
-                            g_cmp_col = "#A0C4FF"
+                            b_col = "#ff7675"
+                            b_title = f"🚨 [역산 성장 부담 경고] 암산 요구성장률({req_g_10:+.1f}%) 대비 실제 FCF 성장률({actual_fcf_g:+.1f}%) 열위 ({g_margin_10:+.1f}%p)"
+                            b_sub = f"공식 [ 1/현재PER({cur_ey:.2f}%) + 요구성장률({req_g_10:+.2f}%) = 10.0% ] ➔ 현재 주가를 정당화하려면 매년 {req_g_10:+.1f}% 성장이 필요하나 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 이에 미치지 못합니다."
 
-                        if cur_ey >= req_yield:
-                            b_color = "#2ecc71"
-                            b_verdict = "✅ [10초 통과] 채권+5% 절대 안전마진 확보 (성장 없이도 염가)"
-                            b_desc = f"성장이 전혀 없더라도 이익수익률({cur_ey:.1f}%)만으로 미국채 10년물({ty:.1f}%) + 5.0%p 초과수익 요구치를 충족하는 명백한 염가 구간입니다."
-                        elif cur_ey >= (ty + 2.0):
-                            b_color = "#fdcb6e"
-                            b_verdict = "⚠️ [조건부 통과] 완만한 이익 성장(연 5~10%) 전제 시 합리적"
-                            b_desc = f"현재 이익수익률({cur_ey:.1f}%)은 국채 금리({ty:.1f}%)를 상회하지만, +5%p 마진을 채우려면 지속적인 이익 성장이 뒷받침되어야 합니다."
-                        else:
-                            b_color = "#ff7675"
-                            b_verdict = "🚨 [10초 탈락] 성장 프리미엄 과다 (채권 대비 기회비용 열위)"
-                            b_desc = f"이익수익률({cur_ey:.1f}%)이 미국채 금리+5%p({req_yield:.1f}%)에 크게 미달합니다. 향후 폭발적 성장이 장기간 지속되지 못하면 자본 손실 위험이 큽니다."
+                        # 2) 국채 금리 + 5%p 대비 보조 비교 문구
+                        bond_cmp_col = "#2ecc71" if actual_fcf_g >= req_g_bond else "#fdcb6e"
+                        bond_cmp_txt = (
+                            f"📌 <b>[10년물 미국채({ty:.2f}%) + 5%p = {req_yield_bond:.2f}% 허들 대입 시]</b> "
+                            f"1/현재PER({cur_ey:.2f}%) + <b>국채대비 요구성장률({req_g_bond:+.2f}%)</b> = {req_yield_bond:.2f}% "
+                            f"➔ 실제 FCF 성장률(<b>{actual_fcf_g:+.1f}%</b>)과 비교 시 <b>{actual_fcf_g - req_g_bond:+.1f}%p</b> 차이 (무성장 PER 10배 기준가: {p_bft_str})"
+                        )
 
-                        p_bft_str = (f"{int(buffett_fair_price):,}원" if kr else f"${buffett_fair_price:,.2f}") if buffett_fair_price > 0 else "산출 불가"
-
-                        buffett_mental_dcf_html = f"""<div style='background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(245, 158, 11, 0.05)); border: 1.5px solid #A0C4FF; padding: 20px; border-radius: 14px; margin-bottom: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
-    <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>
-        <span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 (Earnings Yield vs 10Y Treasury + 5%)</span>
-        <span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>
-    </div>
-    
-    <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-bottom:14px;'>
-        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>주식 이익수익률 (1/PER)</div>
-            <div style='font-size:1.35rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
-            <div style='font-size:0.8rem; color:#8892b0;'>선행 PER: {f_pe:.1f}배</div>
-        </div>
-        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 요구수익률 (국채+5%p)</div>
-            <div style='font-size:1.35rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
-            <div style='font-size:0.8rem; color:#8892b0;'>국채 {ty:.2f}% + 마진 5.0%p</div>
-        </div>
-        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>실제 FCF 성장률 vs 역산기대</div>
-            <div style='font-size:1.35rem; font-weight:900; color:{g_cmp_col};'>{actual_fcf_g:+.1f}%</div>
-            <div style='font-size:0.8rem; color:#8892b0;'>시장 역산 기대: {implied_g_val:+.1f}%</div>
-        </div>
-        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가</div>
-            <div style='font-size:1.35rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
-            <div style='font-size:0.8rem; color:{b_color}; font-weight:bold;'>안전마진: {buffett_mos_pct:+.1f}%</div>
-        </div>
-    </div>
-
-    <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px; margin-bottom:10px;'>
-        <div style='font-size:0.95rem; font-weight:800; color:{b_color}; margin-bottom:4px;'>{b_verdict}</div>
-        <div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_desc}</div>
-    </div>
-    
-    <div style='background:{g_cmp_col}18; border-left:4px solid {g_cmp_col}; padding:10px 14px; border-radius:8px;'>
-        <div style='font-size:0.88rem; font-weight:700; color:{g_cmp_col};'>{g_cmp_txt}</div>
-    </div>
-</div>"""
-
+                        # 들여쓰기 0칸 처리로 스트림릿 코드블록 오인 버그(image_be2539.png) 100% 원천 차단!
+                        buffett_mental_dcf_html = (
+                            f"<div style='background:linear-gradient(135deg, rgba(26,115,232,0.09), rgba(245,158,11,0.05)); border:1.5px solid #A0C4FF; padding:20px; border-radius:14px; margin-bottom:22px; box-shadow:0 4px 12px rgba(0,0,0,0.06);'>"
+                            f"<div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>"
+                            f"<span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 : 1/현재PER + (요구 성장률) = 10%</span>"
+                            f"<span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>"
+                            f"</div>"
+                            f"<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(185px, 1fr)); gap:12px; margin-bottom:14px;'>"
+                            f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>"
+                            f"<div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>① 이익수익률 (1/현재PER)</div>"
+                            f"<div style='font-size:1.35rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>"
+                            f"<div style='font-size:0.8rem; color:#8892b0;'>현재 PER: {eff_cur_pe:.1f}배</div>"
+                            f"</div>"
+                            f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>"
+                            f"<div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>② 암산 요구 성장률 (10%-①)</div>"
+                            f"<div style='font-size:1.35rem; font-weight:900; color:#facc15;'>{req_g_10:+.2f}%</div>"
+                            f"<div style='font-size:0.8rem; color:#8892b0;'>{cur_ey:.2f}% + ({req_g_10:+.2f}%) = 10.0%</div>"
+                            f"</div>"
+                            f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>"
+                            f"<div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>③ 실제 FCF 연평균 성장률</div>"
+                            f"<div style='font-size:1.35rem; font-weight:900; color:{b_col};'>{actual_fcf_g:+.1f}%</div>"
+                            f"<div style='font-size:0.8rem; color:#8892b0;'>최근 {data_len}년 FCF CAGR</div>"
+                            f"</div>"
+                            f"<div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>"
+                            f"<div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>④ 성장률 안전마진 (③ - ②)</div>"
+                            f"<div style='font-size:1.35rem; font-weight:900; color:{b_col};'>{g_margin_10:+.1f}%p</div>"
+                            f"<div style='font-size:0.8rem; color:{b_col}; font-weight:bold;'>{'실제 성장 우위 (저평가)' if g_margin_10 >= 0 else '요구 성장 미달 (할증)'}</div>"
+                            f"</div>"
+                            f"</div>"
+                            f"<div style='background:{b_col}18; border-left:4px solid {b_col}; padding:12px 16px; border-radius:8px; margin-bottom:10px;'>"
+                            f"<div style='font-size:0.95rem; font-weight:800; color:{b_col}; margin-bottom:4px;'>{b_title}</div>"
+                            f"<div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_sub}</div>"
+                            f"</div>"
+                            f"<div style='background:rgba(255,255,255,0.04); border-left:4px solid {bond_cmp_col}; padding:10px 14px; border-radius:8px; font-size:0.86rem; color:var(--text-color);'>"
+                            f"{bond_cmp_txt}"
+                            f"</div>"
+                            f"</div>"
+                        )
                         st.markdown(buffett_mental_dcf_html, unsafe_allow_html=True)
                     # ▲▲▲ [수정 완료 끝] ▲▲▲
 
