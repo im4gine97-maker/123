@@ -7483,7 +7483,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                         return _get_f
 
-                    d# ▼▼▼ [부분 교체 1 시작] def _fit_single_line 부터 def _draw_core_frame 끝까지 덮어쓰기 ▼▼▼
+                    # ▼▼▼ [부분 교체 1 시작] def _fit_single_line 부터 def _draw_core_frame 끝까지 덮어쓰기 ▼▼▼
                     def _clean_font_safe_text(txt):
                         """나눔고딕에서 네모(□)로 깨지는 원형 숫자(①~④) 및 특수 이모지를 완벽히 제거/치환"""
                         s = str(txt)
