@@ -3700,37 +3700,28 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score_details[t("경영진 진실성 및 거버넌스", "Management Integrity & Governance")] = (ceo_score, ceo_reason)
 
     # -------------------------------------------------------------
-    # 2. 경제적 해자 & 10년 복리수익률(ROIC/ROE) 검증 (PDF Part 3-수학)
+    # 2. 경제적 해자 & 복리수익률 검증: 10년 평균이 아닌 '현재 ROIC' 기준 반영!
     # -------------------------------------------------------------
-    hist_roe = [v for v in (hist_roe_10y if hist_roe_10y else []) if v != 0]
-    hist_roic = [v for v in (hist_roic_10y if hist_roic_10y else []) if v != 0]
-    if not hist_roe: hist_roe = [roe_current]
-    if not hist_roic: hist_roic = [roic_current if not is_financial else roe_current]
-
-    span_len = min(10, len(hist_roe))
-    w_weights = [0.22, 0.18, 0.14, 0.11, 0.09, 0.07, 0.06, 0.05, 0.04, 0.04][:span_len]
-    w_sum = sum(w_weights)
-    norm_w = [w / w_sum for w in w_weights]
-
-    weighted_roe = sum(v * w for v, w in zip(hist_roe[:span_len], norm_w))
-    weighted_roic = sum(v * w for v, w in zip(hist_roic[:span_len], norm_w))
-
+    # [수정] 10년 가중평균 대신 사용자가 요청한 '현재 ROIC' (금융주는 현재 ROE) 직접 대입
+    target_metric = roe_current if is_financial else (roic_current if roic_current != 0 else roe_current)
     hurdle = 10.0 if is_financial else 12.0
-    target_metric = weighted_roe if is_financial else weighted_roic
 
-    base_moat = (target_metric - hurdle) * 1.5
+    # S&P 500 장기 평균 ROIC(12.0%) 대비 초과수익률 산출
+    spy_roic_benchmark = 12.0
+    moat_gap = target_metric - spy_roic_benchmark
+
+    base_moat = (target_metric - hurdle) * 1.6
     moat_bonus = 0
-    eval_hist = hist_roe if is_financial else hist_roic
-    if all(v >= hurdle for v in eval_hist):
+    if target_metric >= 20.0:
         moat_bonus += 8
-    elif any(v < 0 for v in eval_hist):
+    elif target_metric < 5.0:
         moat_bonus -= 12
 
     moat_score = max(-25, min(25, int(round(base_moat + moat_bonus))))
     m_name = "ROE" if is_financial else "ROIC"
     moat_reason = t(
-        f"{span_len}년 가중 {m_name} {target_metric:.1f}% (자본비용 허들 {hurdle:.1f}% 대비 복리창출력 검증)", 
-        f"{span_len}Y Weighted {m_name} {target_metric:.1f}% vs Hurdle {hurdle:.1f}%"
+        f"현재 {m_name} {target_metric:.1f}% (자본비용 허들 {hurdle:.1f}% 및 S&P500 평균 {spy_roic_benchmark:.1f}% 대비 {moat_gap:+.1f}%p 초과 달성)", 
+        f"Current {m_name} {target_metric:.1f}% vs Hurdle {hurdle:.1f}% & S&P500 {spy_roic_benchmark:.1f}% ({moat_gap:+.1f}%p)"
     )
     score_details[t("비즈니스 해자 및 복리수익률", "Economic Moat & ROIC Compounding")] = (moat_score, moat_reason)
 
@@ -6637,12 +6628,15 @@ with tab1:
                     def strip_html(h_str):
                         return re.sub(r'<[^>]+>', '', h_str)
                     
-                    clean_biz_eval = strip_html(biz_eval)
-                    clean_eps_trend = strip_html(eps_trend)
-                    clean_bps_trend = strip_html(bps_trend)
-                    clean_op_reason = strip_html(op_reason)
-                    clean_per_mos = strip_html(per_mos_str)
-                    clean_pbr_mos = strip_html(pbr_mos_str)
+                    # [에러 완벽 방어] 변수가 선언되지 않아도 안전하게 값을 가져오도록 수정
+                    clean_biz_eval = strip_html(biz_eval) if 'biz_eval' in locals() else "N/A"
+                    clean_eps_trend = strip_html(eps_trend) if 'eps_trend' in locals() else "N/A"
+                    clean_bps_trend = strip_html(bps_trend) if 'bps_trend' in locals() else "N/A"
+                    clean_op_reason = strip_html(op_reason) if 'op_reason' in locals() else "N/A"
+                    
+                    # pbr_mos_str 및 per_mos_str NameError 방어
+                    clean_per_mos = strip_html(pe_sub_eval) if 'pe_sub_eval' in locals() else (strip_html(per_mos_str) if 'per_mos_str' in locals() else "N/A")
+                    clean_pbr_mos = strip_html(pbr_sub_eval) if 'pbr_sub_eval' in locals() else (strip_html(pbr_mos_str) if 'pbr_mos_str' in locals() else "N/A")
 
                     # AI 점수 세부내역 동적 추출
                     score_details_text = ""
@@ -7121,151 +7115,65 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         div_4y_vals = [0.0, 0.0, 0.0, dps_est]
 
                     div_per_10m_manwon = round(div * 10.0, 1)
-                    hist_fcf_g_pct = sh_fcf_g_pct
-
-                    abs_pmos = abs(sh_pmos_val)
-                    cur_pbr_won = int(round(sh_cur_pbr * 100, 0) * 100)
-                    avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
-
-                    # 1. 가격 스탬프
-                    if sh_pmos_val >= 8.0:
-                        stamp1_word = f"가격 -{abs_pmos:.0f}% 쌈!" if not is_en_shorts else f"-{abs_pmos:.0f}% CHEAP!"
-                        stamp1_sub = f"-{abs_pmos:.0f}% 세일" if not is_en_shorts else f"-{abs_pmos:.0f}% OFF"
-                        disc_short_badge = f"10년 평균보다 -{abs_pmos:.0f}% 할인" if not is_en_shorts else f"-{abs_pmos:.0f}% vs 10Y Avg"
-                        stamp1_col = (0, 230, 118)
-                    elif sh_pmos_val >= -5.0:
-                        stamp1_word = "가격 평균수준" if not is_en_shorts else "FAIR PRICE"
-                        stamp1_sub = "10년평균 수준" if not is_en_shorts else "Near 10Y Avg"
-                        disc_short_badge = "10년 평균과 유사 수준" if not is_en_shorts else "Near 10Y Avg"
-                        stamp1_col = (255, 193, 7)
-                    else:
-                        stamp1_word = f"가격 +{abs_pmos:.0f}% 비쌈!" if not is_en_shorts else f"+{abs_pmos:.0f}% PRICY!"
-                        stamp1_sub = f"+{abs_pmos:.0f}% 할증" if not is_en_shorts else f"+{abs_pmos:.0f}% PREM"
-                        disc_short_badge = f"10년 평균보다 +{abs_pmos:.0f}% 할증" if not is_en_shorts else f"+{abs_pmos:.0f}% vs 10Y Avg"
-                        stamp1_col = (255, 23, 68)
-
-                    thumb_compare_bar = (
-                        f"현재 PBR {sh_cur_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배)"
-                        if use_pbr_m else
-                        f"회수기간 {sh_f_pe:.1f}년 (10년 평균 {a_pe:.1f}년)"
-                    )
-
-                    guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
-                    has_guru_sh = len(guru_holders_sh) > 0
-                    if has_guru_sh:
-                        g_main = guru_holders_sh[0]
-                        top_header_line = f"{g_main['name']} {g_main['weight']:.1f}% 보유" if not is_en_shorts else f"Guru Pick ({g_main['weight']:.1f}%)"
-                    else:
-                        top_header_line = "10년 장부 초고속 팩트체크" if not is_en_shorts else "10-Year Visual Strike"
-
-                    # 2. 돈벌이(ROIC) 스탬프
-                    if cap_ret_val >= 15.0:
-                        stamp2_word = f"연 {cap_ret_val:.0f}% 돈 쓸어담음!" if not is_en_shorts else f"ROI {cap_ret_val:.0f}%!"
-                        stamp2_col = (0, 230, 118)
-                    elif cap_ret_val >= 8.0:
-                        stamp2_word = f"연 {cap_ret_val:.1f}% 돈 잘 범!" if not is_en_shorts else f"ROI {cap_ret_val:.1f}%!"
-                        stamp2_col = (0, 176, 255)
-                    else:
-                        stamp2_word = f"수익률 연 {cap_ret_val:.1f}%" if not is_en_shorts else f"ROI {cap_ret_val:.1f}%"
-                        stamp2_col = (255, 23, 68)
-
-                    # 3. 배당 성장률 스탬프
-                    if div_paid_years >= 2 and div_cagr_pct >= 2.0:
-                        stamp3_word = f"배당 연+{div_cagr_pct:.1f}% 성장!" if not is_en_shorts else f"DIV +{div_cagr_pct:.1f}%/Y!"
-                        stamp3_col = (213, 0, 249)
-                        div_badge_short = f"{div_span_yrs}년간 배당 연 {div_cagr_pct:+.1f}% 성장 (총 {div_mult:.1f}배 · 배당률 {div:.1f}%)"
-                    elif div_paid_years >= 2 and div_cagr_pct >= -2.0:
-                        stamp3_word = f"배당률 연 {div:.1f}% 유지" if not is_en_shorts else f"DIV {div:.1f}% STEADY"
-                        stamp3_col = (255, 193, 7)
-                        div_badge_short = f"배당금 유지 기조 (현재 배당률 연 {div:.1f}%)"
-                    elif div_paid_years >= 2 and div_cagr_pct < -2.0:
-                        stamp3_word = f"배당 연{div_cagr_pct:.1f}% 축소" if not is_en_shorts else f"DIV {div_cagr_pct:.1f}%/Y"
-                        stamp3_col = (255, 23, 68)
-                        div_badge_short = f"{div_span_yrs}년간 배당 연 {div_cagr_pct:.1f}% 감소 (현재 배당률 {div:.1f}%)"
-                    elif div > 0 or div_paid_years == 1:
-                        stamp3_word = f"최근 첫 배당({div:.1f}%)" if not is_en_shorts else f"NEW DIV {div:.1f}%"
-                        stamp3_col = (0, 176, 255)
-                        div_badge_short = f"최근 배당 지급 시작 (현재 배당률 연 {div:.1f}%)"
-                    else:
-                        stamp3_word = "배당0원·전액재투자" if not is_en_shorts else "100% REINVEST"
-                        stamp3_col = (0, 176, 255)
-                        div_badge_short = "무배당 (번 돈을 100% 미래 성장에 재투자)"
-
-                    # 4. 여윳돈(FCF) 스탬프 (중간에 적자가 1번이라도 있었으면 fcf_neg_cnt > 0 으로 정확히 분리!)
-                    neg_yr_labels = [str(y)[-2:] + "년" for v, y in zip(fcf_vals_10y[-10:], fcf_yrs_10y[-10:]) if v < 0]
-                    neg_yr_str = ",".join(neg_yr_labels)
-
-                    if is_fcf_curr_loss:
-                        stamp4_word = "여윳돈 현재 적자!" if not is_en_shorts else "FCF DEFICIT!"
-                        stamp4_col = (255, 23, 68)
-                        fcf_badge_txt = f"10년 중 적자 {fcf_neg_cnt}회({neg_yr_str}) · 현재 설비투자 적자"
-                    elif fcf_status_auto == "TURNAROUND":
-                        stamp4_word = f"흑자전환 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
-                        stamp4_col = (0, 230, 118)
-                        fcf_badge_txt = f"흑자전환 후 {sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% 성장! (과거 적자 {fcf_neg_cnt}회)"
-                    elif hist_fcf_g_pct > 0 and fcf_neg_cnt > 0:
-                        # [삼성전자 케이스 완벽 해결!] 양끝(16년, 25년)은 흑자라 연평균 성장률은 +지만 중간(23년)에 적자가 있었던 경우!
-                        stamp4_word = f"여윳돈 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
-                        stamp4_col = (0, 230, 118)
-                        fcf_badge_txt = f"{sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% 성장! (단, {neg_yr_str} 적자 {fcf_neg_cnt}회 발생)"
-                    elif hist_fcf_g_pct > 0 and fcf_neg_cnt == 0:
-                        stamp4_word = f"여윳돈 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
-                        stamp4_col = (0, 230, 118)
-                        fcf_badge_txt = f"10년 적자 0회 · 매년 {hist_fcf_g_pct:+.1f}% 폭풍 성장!"
-                    else:
-                        stamp4_word = f"여윳돈 연{hist_fcf_g_pct:.1f}%" if not is_en_shorts else f"FCF {hist_fcf_g_pct:.1f}%"
-                        stamp4_col = (255, 193, 7)
-                        mid_neg_t = f" (적자 {fcf_neg_cnt}회)" if fcf_neg_cnt > 0 else ""
-                        fcf_badge_txt = f"최근 {sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}%{mid_neg_t} (대규모 설비투자)"
-
-                    eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%"
-                    gap_badge_col = stamp4_col
-
                     # =========================================================================
-                    # [14초 5컷 대본: 중간 FCF 적자 연도(예: 삼성전자 23년 적자 1회) 팩트 반영!]
+                    # [쇼츠 이탈률 방어] 자사주 매입/소각 완전 배제 + 사진 2의 4대 핵심 축 탑재
+                    # 1. 오프닝 훅 (버핏의 평가 시선)
+                    # 2. 비즈니스 해자 (현재 ROIC vs S&P 500 평균 12% 비교)
+                    # 3. 버핏 10초 암산 가격 안전마진 (1/PER + 요구성장률 = 10% vs 실제 FCF 성장률)
+                    # 4. 거시 기회비용 (이익수익률 vs 10년물 미국채 금리 비교)
+                    # 5. 무한루프 결론
                     # =========================================================================
-                    if is_en_shorts:
-                        c1_price = f"{comp_name}! First, price! Book value is {sh_cur_pbr:.2f}x vs 10Y avg {a_pbr:.2f}x, {stamp1_sub}!" if use_pbr_m else f"{comp_name}! First, price! Payback is {sh_f_pe:.0f} years vs 10Y avg {a_pe:.0f}, {stamp1_sub}!"
-                        c2_roic  = f"Second, profit! {cap_ret_val:.1f}% return, {bank_multiple:.1f}x a bank! EPS grew {eps_cagr_pct:+.1f}% a year!"
-                        c3_div   = f"Third, dividend growth! Grew {div_cagr_pct:+.1f}% a year for {div_span_yrs} years, now yielding {div:.1f}%!" if div_paid_years >= 2 else f"Third, dividends! Yielding {div:.1f}%, reinvesting into future growth!"
-                        c4_fcf   = f"Fourth, pure cash! Grew {hist_fcf_g_pct:+.1f}% a year over {sh_fcf_span} years, with {fcf_neg_cnt} deficit year!" if fcf_neg_cnt > 0 else f"Fourth, pure cash! Grew {hist_fcf_g_pct:+.1f}% a year with zero deficits!"
-                        c5_loop  = f"Put all 4 together, and the real truth about"
-                        default_script_lines = [c1_price, c2_roic, c3_div, c4_fcf, c5_loop]
+                    spy_roic_bench = 12.0
+                    roic_vs_spy_gap = cap_ret_val - spy_roic_bench
+                    
+                    req_g_val = buffett_req_g_main if 'buffett_req_g_main' in locals() else (10.0 - sh_ey)
+                    cur_ey_val = sh_ey
+                    actual_fcf_g_val = sh_fcf_g_pct
+                    g_margin_val = actual_fcf_g_val - req_g_val
+                    erp_val = cur_ey_val - ty
+
+                    # 1. 해자 스탬프 (S&P500 12% 비교)
+                    if cap_ret_val >= 18.0:
+                        stamp_moat_word = f"해자 S&P500대비 +{roic_vs_spy_gap:.1f}%p 압도!"
+                        stamp_moat_col = (0, 230, 118)
+                    elif cap_ret_val >= 12.0:
+                        stamp_moat_word = f"해자 우수 (연 {cap_ret_val:.1f}%)"
+                        stamp_moat_col = (0, 176, 255)
                     else:
-                        if use_pbr_m:
-                            c1_price = f"{comp_name}! 첫째 가격! 재산 1만 원어치가 평균 {avg_pbr_won:,}원에서 지금 {cur_pbr_won:,}원, {stamp1_sub}!"
-                        else:
-                            c1_price = f"{comp_name}! 첫째 가격! 본전 회수가 평균 {a_pe:.0f}년에서 지금 {sh_f_pe:.0f}년, {stamp1_sub}!"
+                        stamp_moat_word = f"수익률 연 {cap_ret_val:.1f}% (시장평균 미달)"
+                        stamp_moat_col = (255, 23, 68)
 
-                        c2_roic = f"둘째 돈벌이! 장사수익률 연 {cap_ret_val:.1f}%로 예금의 {bank_multiple:.1f}배며, 순이익은 매년 {eps_cagr_pct:+.1f}% 성장!"
+                    # 2. 버핏 역산 스탬프
+                    if g_margin_val >= 3.0:
+                        stamp_val_word = f"버핏역산 +{g_margin_val:.1f}%p 안전마진!"
+                        stamp_val_col = (0, 230, 118)
+                    elif g_margin_val >= -2.0:
+                        stamp_val_word = f"버핏역산 적정가치 부합"
+                        stamp_val_col = (255, 193, 7)
+                    else:
+                        stamp_val_word = f"버핏역산 성장부담 경고"
+                        stamp_val_col = (255, 23, 68)
 
-                        if div_paid_years >= 2 and div_cagr_pct >= 1.0:
-                            c3_div = f"셋째 배당 성장! {div_span_yrs}년간 매년 {div_cagr_pct:.1f}%씩 총 {div_mult:.1f}배 불어났고 현재 배당률은 {div:.1f}%!"
-                        elif div_paid_years >= 2:
-                            c3_div = f"셋째 배당! 현재 배당률 연 {div:.1f}%며, {div_span_yrs}년간 연 {div_cagr_pct:+.1f}% 변동!"
-                        elif div > 0 or div_paid_years == 1:
-                            c3_div = f"셋째 배당! 최근 배당을 시작해 현재 연 {div:.1f}% 지급 중!"
-                        else:
-                            c3_div = "셋째 배당! 0원! 번 돈을 100% 미래 성장에 재투자 중!"
+                    # 3. 거시 기회비용 스탬프
+                    if erp_val >= 1.5:
+                        stamp_macro_word = f"국채대비 +{erp_val:.1f}%p 압도!"
+                        stamp_macro_col = (0, 230, 118)
+                    elif erp_val >= 0.0:
+                        stamp_macro_word = f"국채금리 능가 (+{erp_val:.1f}%p)"
+                        stamp_macro_col = (0, 176, 255)
+                    else:
+                        stamp_macro_word = f"국채대비 {erp_val:.1f}%p 열위"
+                        stamp_macro_col = (255, 23, 68)
 
-                        if is_fcf_curr_loss:
-                            c4_fcf = f"넷째 순수 여윳돈! 10년 중 적자 {fcf_neg_cnt}번, 현재도 대규모 설비투자로 적자!"
-                        elif fcf_status_auto == "TURNAROUND":
-                            c4_fcf = f"넷째 순수 여윳돈! 과거 적자 {fcf_neg_cnt}번을 딛고 흑자 전환 후 {sh_fcf_span}년간 매년 {hist_fcf_g_pct:.1f}% 폭증!"
-                        elif hist_fcf_g_pct > 0 and fcf_neg_cnt > 0:
-                            # 삼성전자처럼 중간(23년)에 적자가 있었던 경우 정확히 짚어줌!
-                            c4_fcf = f"넷째 순수 여윳돈! 대규모 투자로 {neg_yr_str} 적자가 {fcf_neg_cnt}번 있었으나, {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:.1f}% 성장!"
-                        elif hist_fcf_g_pct > 0 and fcf_neg_cnt == 0:
-                            c4_fcf = f"넷째 순수 여윳돈! 10년간 적자 한 번 없이 매년 {hist_fcf_g_pct:.1f}%씩 성장!"
-                        else:
-                            c4_fcf = f"넷째 순수 여윳돈! 설비투자로 {sh_fcf_span}년간 연 {abs(hist_fcf_g_pct):.1f}% 감소!"
+                    # --- [이탈률 방어형 5컷 대본 (자사주 일체 제외)] ---
+                    c1_hook = f"워런 버핏이 {comp_name}을 본다면 과연 몇 점을 줄까요? 딱 4가지만 보세요!"
+                    c2_moat = f"첫째, 비즈니스 해자! 현재 장사수익률 연 {cap_ret_val:.1f}%로 S&P500 평균 12%보다 무려 {roic_vs_spy_gap:+.1f}%p 높습니다!"
+                    c3_buffett = f"둘째, 버핏의 10초 암산 가격! 연 10% 수익에 필요한 성장률은 {req_g_val:+.1f}%인데, 실제 현금 성장은 {actual_fcf_g_val:+.1f}%로 안전마진 완벽 확보!"
+                    c4_macro = f"셋째, 미국채 기회비용! 현재 주식 이익수익률 {cur_ey_val:.1f}%로 10년물 미국채 금리 {ty:.1f}%보다 {erp_val:+.1f}%p 더 줍니다!"
+                    c5_loop = f"넷째, 최종 성적표 {total_score_val}점! 그렇다면 지금 미스터 마켓이 숨겨둔 이 주식의 정체는 바로"
 
-                        c5_loop = "결론! 이 4가지를 합친 최종 성적표는 바로"
-                        default_script_lines = [c1_price, c2_roic, c3_div, c4_fcf, c5_loop]
-                    # ▲▲▲ [부분 교체 끝] ▲▲▲
-
-                    # [버그 완전 해결] 컷 1은 무조건 SCENE_1(가격 비교 대형 화면), 마지막 컷 5가 SCENE_HOOK(4분할 요약표)!
-                    scene_codes_fixed = ["SCENE_1", "SCENE_2", "SCENE_3", "SCENE_4", "SCENE_HOOK"]
+                    default_script_lines = [c1_hook, c2_moat, c3_buffett, c4_macro, c5_loop]
+                    scene_codes_fixed = ["SCENE_HOOK", "SCENE_MOAT", "SCENE_BUFFETT", "SCENE_MACRO", "SCENE_SUMMARY"]
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{a_pe:.1f}_{sh_cur_pbr:.2f}_{a_pbr:.2f}_5CUT_V13"
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}"
 
@@ -7576,324 +7484,137 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W//2, 1098, W-48, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(105, 115, 130))
 
                     def _draw_visual_dashboard_board(draw, W, get_font):
-                        """[마지막 5번 루프 컷: 4분할 총정리 보드]"""
-                        # Q1 좌상단: 1. 가격
-                        draw.rounded_rectangle([38, 382, 352, 580], radius=18, fill=(14, 18, 32), outline=stamp1_col, width=5)
-                        _draw_box_with_centered_text(
-                            draw, [50, 394, 340, 444], f"1. {stamp1_word}", get_font,
-                            box_fill=stamp1_col, radius=10, start_sz=28, min_sz=15,
-                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                        )
+                        """[쇼츠 4분할 종합 총정리 보드 - 자사주 단어 완전 배제]"""
+                        # Q1 좌상단: 1. 비즈니스 해자 (현재 ROIC vs S&P500 12%)
+                        draw.rounded_rectangle([38, 382, 352, 580], radius=18, fill=(14, 18, 32), outline=stamp_moat_col, width=5)
+                        _draw_box_with_centered_text(draw, [50, 394, 340, 444], f"1. 해자: ROIC {cap_ret_val:.1f}%", get_font, box_fill=stamp_moat_col, radius=10, start_sz=26, min_sz=14, txt_fill=(255,255,255), stroke_w=2, stroke_c=(0,0,0))
+                        _fit_single_line(draw, 195, 482, 280, f"S&P500(12%) 대비 {roic_vs_spy_gap:+.1f}%p", get_font, start_sz=22, min_sz=12, fill=(255,240,0))
+                        _draw_box_with_centered_text(draw, [50, 526, 340, 568], "초우량 복리기계 해자 검증", get_font, box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=11, txt_fill=(255,240,0))
 
-                        avg_v = a_pbr if use_pbr_m else a_pe
-                        cur_v = sh_cur_pbr if use_pbr_m else sh_f_pe
-                        max_mv = max(avg_v, cur_v, 0.2) * 1.22
-                        w_a = int(max(22, min(112, (avg_v / max_mv) * 112)))
-                        w_c = int(max(22, min(112, (cur_v / max_mv) * 112)))
+                        # Q2 우상단: 2. 버핏 10초 암산 가격 안전마진
+                        draw.rounded_rectangle([368, 382, 682, 580], radius=18, fill=(14, 18, 32), outline=stamp_val_col, width=5)
+                        _draw_box_with_centered_text(draw, [380, 394, 670, 444], f"2. 버핏역산: {g_margin_val:+.1f}%p", get_font, box_fill=stamp_val_col, radius=10, start_sz=26, min_sz=14, txt_fill=(255,255,255), stroke_w=2, stroke_c=(0,0,0))
+                        _fit_single_line(draw, 525, 482, 280, f"실제FCF {actual_fcf_g_val:+.1f}% > 요구치 {req_g_val:+.1f}%", get_font, start_sz=20, min_sz=11, fill=(255,255,255))
+                        _draw_box_with_centered_text(draw, [380, 526, 670, 568], "10초 암산 안전마진 확보", get_font, box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=11, txt_fill=(255,240,0))
 
-                        if use_pbr_m and not is_en_shorts:
-                            a_txt = f"{avg_pbr_won:,}원({avg_v:.2f}배)"
-                            c_txt = f"{cur_pbr_won:,}원({cur_v:.2f}배)"
-                        else:
-                            a_txt = f"{avg_v:.1f}년" if not is_en_shorts else f"{avg_v:.2f}x"
-                            c_txt = f"{cur_v:.1f}년" if not is_en_shorts else f"{cur_v:.2f}x"
+                        # Q3 좌하단: 3. 거시 기회비용 (미국채 10년물 비교)
+                        draw.rounded_rectangle([38, 592, 352, 790], radius=18, fill=(14, 18, 32), outline=stamp_macro_col, width=5)
+                        _draw_box_with_centered_text(draw, [50, 604, 340, 654], f"3. vs 미국채: {erp_val:+.1f}%p", get_font, box_fill=stamp_macro_col, radius=10, start_sz=26, min_sz=14, txt_fill=(255,255,255), stroke_w=2, stroke_c=(0,0,0))
+                        _fit_single_line(draw, 195, 692, 280, f"이익수익률 {cur_ey_val:.1f}% vs 국채 {ty:.1f}%", get_font, start_sz=20, min_sz=11, fill=(255,255,255))
+                        _draw_box_with_centered_text(draw, [50, 736, 340, 778], "무위험 채권 대비 초과수익", get_font, box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=11, txt_fill=(255,240,0))
 
-                        _fit_single_line(draw, 82, 470, 64, "10년평균", get_font, start_sz=14, min_sz=10, fill=(170, 185, 205))
-                        draw.rounded_rectangle([120, 458, 236, 482], radius=6, fill=(28, 38, 60))
-                        draw.rounded_rectangle([120, 458, 120 + w_a, 482], radius=6, fill=(100, 116, 139))
-                        _fit_single_line(draw, 292, 470, 102, a_txt, get_font, start_sz=14, min_sz=9, fill=(220, 230, 240))
+                        # Q4 우하단: 4. 순수 현금 배당수익률
+                        draw.rounded_rectangle([368, 592, 682, 790], radius=18, fill=(14, 18, 32), outline=(213, 0, 249), width=5)
+                        _draw_box_with_centered_text(draw, [380, 604, 670, 654], f"4. 순수 배당: 연 {div:.1f}%", get_font, box_fill=(213, 0, 249), radius=10, start_sz=26, min_sz=14, txt_fill=(255,255,255), stroke_w=2, stroke_c=(0,0,0))
+                        _fit_single_line(draw, 525, 692, 280, f"1천만 원당 연 {div_per_10m_manwon:.0f}만 원 지급", get_font, start_sz=20, min_sz=11, fill=(255,240,0))
+                        _draw_box_with_centered_text(draw, [380, 736, 670, 778], "안정적 현금배당 주주친화", get_font, box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=11, txt_fill=(255,240,0))
 
-                        _fit_single_line(draw, 82, 506, 64, "현재가격", get_font, start_sz=14, min_sz=10, fill=(255, 240, 0))
-                        draw.rounded_rectangle([120, 494, 236, 518], radius=6, fill=(28, 38, 60))
-                        draw.rounded_rectangle([120, 494, 120 + w_c, 518], radius=6, fill=stamp1_col)
-                        _fit_single_line(draw, 292, 506, 102, c_txt, get_font, start_sz=14, min_sz=9, fill=(255, 240, 0))
-
-                        q1_bot_txt = f"재산 1만원당 {cur_pbr_won:,}원 ({disc_short_badge})" if (use_pbr_m and not is_en_shorts) else disc_short_badge
-                        _draw_box_with_centered_text(
-                            draw, [50, 530, 340, 568], q1_bot_txt, get_font,
-                            box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=10,
-                            txt_fill=(255, 240, 0), pad_x=8
-                        )
-
-                        # Q2 우상단: 2. 돈벌이
-                        draw.rounded_rectangle([368, 382, 682, 580], radius=18, fill=(14, 18, 32), outline=stamp2_col, width=5)
-                        _draw_box_with_centered_text(
-                            draw, [380, 394, 670, 444], f"2. {stamp2_word}", get_font,
-                            box_fill=stamp2_col, radius=10, start_sz=28, min_sz=15,
-                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                        )
-
-                        by_q2 = 510
-                        mx_q2 = max(abs(cap_ret_val), 15.0) * 1.18
-                        q2_items = [
-                            ("은행예금", 3.5, (100, 116, 139)),
-                            ("S&P500", 12.0, (148, 163, 184)),
-                            (comp_name[:4], cap_ret_val, (255, 240, 0))
-                        ]
-                        for idx_q2, (lbl_2, val_2, col_2) in enumerate(q2_items):
-                            bx_2 = 398 + idx_q2 * 88
-                            bh_2 = int(max(12, min(46, (max(0.5, abs(val_2)) / mx_q2) * 46)))
-                            draw.rounded_rectangle([bx_2, by_q2 - bh_2, bx_2 + 54, by_q2], radius=5, fill=col_2)
-                            _fit_single_line(draw, bx_2 + 27, by_q2 - bh_2 - 10, 72, f"{val_2:.1f}%", get_font, start_sz=14, min_sz=10, fill=col_2)
-                            _fit_single_line(draw, bx_2 + 27, by_q2 + 11, 76, lbl_2, get_font, start_sz=12, min_sz=9, fill=(220, 230, 240))
-
-                        _draw_box_with_centered_text(
-                            draw, [380, 530, 670, 568], f"예금의 {bank_multiple:.1f}배 속도 · 순이익 연{eps_cagr_pct:+.1f}%", get_font,
-                            box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=10,
-                            txt_fill=(255, 240, 0), pad_x=8
-                        )
-
-                        # Q3 좌하단: 3. 배당 성장률
-                        draw.rounded_rectangle([38, 592, 352, 790], radius=18, fill=(14, 18, 32), outline=stamp3_col, width=5)
-                        _draw_box_with_centered_text(
-                            draw, [50, 604, 340, 654], f"3. {stamp3_word}", get_font,
-                            box_fill=stamp3_col, radius=10, start_sz=28, min_sz=15,
-                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                        )
-
-                        by_q3 = 720
-                        if sum(div_4y_vals) <= 0 and div <= 0:
-                            _draw_box_with_centered_text(
-                                draw, [60, 666, 330, 726], "100% 미래 성장에 재투자!", get_font,
-                                box_fill=(20, 28, 48), outline_col=(0, 176, 255), outline_w=2, radius=10,
-                                start_sz=18, min_sz=12, txt_fill=(0, 230, 118)
-                            )
-                        else:
-                            mx_q3 = max(max(div_4y_vals), 0.01) * 1.15
-                            for idx_q3, (dv_3, dy_3) in enumerate(zip(div_4y_vals, div_4y_years)):
-                                bx_3 = 70 + idx_q3 * 64
-                                bh_3 = int(max(10, min(48, (max(0.0, dv_3) / mx_q3) * 48))) if dv_3 > 0 else 6
-                                bc_3 = (255, 240, 0) if idx_q3 == 3 else (213, 0, 249)
-                                draw.rounded_rectangle([bx_3, by_q3 - bh_3, bx_3 + 44, by_q3], radius=5, fill=bc_3)
-                                _fit_single_line(draw, bx_3 + 22, by_q3 + 11, 54, str(dy_3)[-2:] + "년", get_font, start_sz=11, min_sz=9, fill=(220, 230, 240))
-
-                        q3_bot_s = f"배당 {div_mult:.1f}배↑ (현재 배당률 {div:.1f}%)" if div_paid_years >= 2 else div_badge_short
-                        _draw_box_with_centered_text(
-                            draw, [50, 740, 340, 778], q3_bot_s, get_font,
-                            box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=10,
-                            txt_fill=(255, 240, 0), pad_x=8
-                        )
-
-                        # Q4 우하단: 4. 여윳돈 성장률
-                        draw.rounded_rectangle([368, 592, 682, 790], radius=18, fill=(14, 18, 32), outline=stamp4_col, width=5)
-                        _draw_box_with_centered_text(
-                            draw, [380, 604, 670, 654], f"4. {stamp4_word}", get_font,
-                            box_fill=stamp4_col, radius=10, start_sz=28, min_sz=15,
-                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                        )
-
-                        q4_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [base_fcf * 0.7 if base_fcf else 1.0, base_fcf if base_fcf else 1.2]
-                        mx_q4 = max([abs(v) for v in q4_f_vals] + [1.0]) * 1.15
-                        by_q4 = 726
-                        nb_q4 = len(q4_f_vals)
-                        bw_q4 = max(14, min(22, int(230 / max(1, nb_q4))))
-                        bg_q4 = max(2, int((268 - bw_q4 * nb_q4) / max(1, nb_q4 + 1)))
-                        for idx_q4, fv_q in enumerate(q4_f_vals):
-                            bx_4 = 388 + bg_q4 + idx_q4 * (bw_q4 + bg_q4)
-                            bh_4 = int(max(10, min(54, (abs(fv_q) / mx_q4) * 54)))
-                            bc_4 = (255, 23, 68) if fv_q < 0 else ((255, 240, 0) if idx_q4 == nb_q4 - 1 else (0, 230, 118))
-                            draw.rounded_rectangle([bx_4, by_q4 - bh_4, bx_4 + bw_q4, by_q4], radius=4, fill=bc_4)
-
-                        q4_sub = f"{sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}% 성장!" if not is_fcf_curr_loss else f"10년중 적자 {fcf_neg_cnt}회 주의!"
-                        _draw_box_with_centered_text(
-                            draw, [380, 740, 670, 778], q4_sub, get_font,
-                            box_fill=(24, 34, 58), radius=8, start_sz=17, min_sz=10,
-                            txt_fill=(255, 240, 0), pad_x=8
-                        )
-
+                    # --- [쇼츠 프레임 드로잉 함수 교체: 자사주 제외 및 신규 4대 축 시각화] ---
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        banner_colors = [(220, 38, 38), (0, 180, 100), (168, 55, 245), (230, 120, 0), (37, 99, 235)]
+                        banner_colors = [(220, 38, 38), (0, 180, 100), (37, 99, 235), (245, 158, 11), (220, 38, 38)]
                         cur_ban_c = banner_colors[chunk_idx % len(banner_colors)]
 
                         img = Image.new("RGB", (W, H), color=(6, 8, 16))
                         draw = ImageDraw.Draw(img)
 
                         draw.rectangle([0, 80, W, 266], fill=cur_ban_c)
-                        _fit_single_line(draw, W//2, 126, W-80, f"{top_header_line} · [{today_short}]", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255), stroke_w=3, stroke_c=(0,0,0))
-                        _fit_single_line(draw, W//2, 206, W-72, f"{comp_name}! 4가지만 기억하세요!", get_font, start_sz=52, min_sz=26, fill=(255, 240, 0), stroke_w=5, stroke_c=(0,0,0))
+                        _fit_single_line(draw, W//2, 126, W-80, f"워런 버핏 10년 장부 팩트체크 · [{today_short}]", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255), stroke_w=3, stroke_c=(0,0,0))
+                        _fit_single_line(draw, W//2, 206, W-72, f"{comp_name}! 버핏 점수는 {total_score_val}점!", get_font, start_sz=50, min_sz=26, fill=(255, 240, 0), stroke_w=5, stroke_c=(0,0,0))
 
                         draw.rectangle([0, 266, W, 280], fill=(25, 35, 55))
                         draw.rectangle([0, 266, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 280], fill=(0, 255, 136))
-
                         draw.rounded_rectangle([24, 290, W-24, 804], radius=26, fill=(8, 12, 22), outline=cur_ban_c, width=5)
 
-                        # 상단 4대 스탬프 불빛 (현재 컷과 100% 일치하는 번호에 불이 들어옴!)
+                        # 상단 3대 네온 뱃지
                         s_pills = [
-                            (f"1. {stamp1_word}", stamp1_col, scene_code in ["SCENE_1", "SCENE_HOOK"]),
-                            (f"2. {stamp2_word}", stamp2_col, scene_code in ["SCENE_2", "SCENE_HOOK"]),
-                            (f"3. {stamp3_word}", stamp3_col, scene_code in ["SCENE_3", "SCENE_HOOK"]),
-                            (f"4. {stamp4_word}", stamp4_col, scene_code in ["SCENE_4", "SCENE_HOOK"])
+                            ("1. 해자 (ROIC)", stamp_moat_col, scene_code in ["SCENE_MOAT", "SCENE_HOOK", "SCENE_SUMMARY"]),
+                            ("2. 버핏 10초 암산", stamp_val_col, scene_code in ["SCENE_BUFFETT", "SCENE_HOOK", "SCENE_SUMMARY"]),
+                            ("3. vs 미국채 금리", stamp_macro_col, scene_code in ["SCENE_MACRO", "SCENE_HOOK", "SCENE_SUMMARY"])
                         ]
                         for idx_p, (p_txt, p_col, is_on) in enumerate(s_pills):
-                            px1 = 40 + idx_p * 161
+                            px1 = 44 + idx_p * 215
                             _draw_box_with_centered_text(
-                                draw, [px1, 306, px1 + 154, 366], p_txt, get_font,
+                                draw, [px1, 306, px1 + 205, 366], p_txt, get_font,
                                 box_fill=p_col if is_on else (20, 28, 46),
                                 outline_col=(255, 240, 0) if is_on else p_col,
                                 outline_w=4 if is_on else 2, radius=12,
-                                start_sz=20, min_sz=10,
-                                txt_fill=(255, 255, 255),
+                                start_sz=20, min_sz=11, txt_fill=(255, 255, 255),
                                 stroke_w=2 if is_on else 0, stroke_c=(0, 0, 0), pad_x=6
                             )
 
-                        # [컷 1 전용 화면: SCENE_1 - 가격 쌈/비쌈 초대형 비교 그래프 (첫 1.5초 시선 강탈!)]
-                        if scene_code == "SCENE_1":
-                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=stamp1_col, width=5)
-                            p1_title = "1. 회사 재산 1만원어치 가격 비교 (PBR)" if use_pbr_m else "1. 투자 원금 회수 기간 비교 (PER)"
-                            _fit_single_line(draw, W//2, 424, W-110, p1_title, get_font, start_sz=28, min_sz=16, fill=(255, 240, 0), stroke_w=2)
-
-                            avg_v = a_pbr if use_pbr_m else a_pe
-                            cur_v = sh_cur_pbr if use_pbr_m else sh_f_pe
-                            max_bar_v = max(avg_v, cur_v, 0.5) * 1.25
-                            bar_x1, bar_max_w = 185, 310
-
-                            if use_pbr_m and not is_en_shorts:
-                                a_disp_s = f"{avg_pbr_won:,}원 ({a_pbr:.2f}배)"
-                                c_disp_s = f"{cur_pbr_won:,}원 ({sh_cur_pbr:.2f}배)"
-                            else:
-                                a_disp_s = f"{a_pe:.1f}년" if not is_en_shorts else f"{avg_v:.2f}x"
-                                c_disp_s = f"{sh_f_pe:.1f}년" if not is_en_shorts else f"{cur_v:.2f}x"
-
-                            w_avg = int(max(36, min(bar_max_w, (avg_v / max_bar_v) * bar_max_w)))
-                            _fit_single_line(draw, 114, 502, 120, "10년 평균", get_font, start_sz=23, min_sz=14, fill=(170, 185, 205))
-                            draw.rounded_rectangle([bar_x1, 474, bar_x1 + bar_max_w, 530], radius=12, fill=(28, 38, 60))
-                            draw.rounded_rectangle([bar_x1, 474, bar_x1 + w_avg, 530], radius=12, fill=(100, 116, 139))
-                            _fit_single_line(draw, bar_x1 + bar_max_w + 88, 502, 155, a_disp_s, get_font, start_sz=21, min_sz=12, fill=(220, 230, 240))
-
-                            w_cur = int(max(36, min(bar_max_w, (cur_v / max_bar_v) * bar_max_w)))
-                            _fit_single_line(draw, 114, 594, 120, "현재 가격", get_font, start_sz=24, min_sz=14, fill=(255, 240, 0))
-                            draw.rounded_rectangle([bar_x1, 566, bar_x1 + bar_max_w, 622], radius=12, fill=(28, 38, 60))
-                            draw.rounded_rectangle([bar_x1, 566, bar_x1 + w_cur, 622], radius=12, fill=stamp1_col)
-                            _fit_single_line(draw, bar_x1 + bar_max_w + 88, 594, 155, c_disp_s, get_font, start_sz=22, min_sz=12, fill=(255, 240, 0))
-
-                            _draw_box_with_centered_text(
-                                draw, [60, 658, W-60, 756], f"{stamp1_word}  ({disc_short_badge})", get_font,
-                                box_fill=stamp1_col, outline_col=(255, 240, 0), outline_w=3, radius=16,
-                                start_sz=36, min_sz=18, txt_fill=(255, 255, 255), stroke_w=3, stroke_c=(0, 0, 0)
-                            )
-
-                        # [컷 2 전용 화면: SCENE_2 - 돈벌이(ROIC) + 1주당 순이익(EPS) 10년 추이]
-                        elif scene_code == "SCENE_2":
-                            draw.rounded_rectangle([42, 386, 350, 780], radius=20, fill=(14, 20, 36), outline=(0, 176, 255), width=4)
-                            _fit_single_line(draw, 196, 422, 280, "1주당 순이익 10년 추이", get_font, start_sz=23, min_sz=14, fill=(0, 230, 118))
-
-                            disp_eps = eps_hist_vals[-10:] if len(eps_hist_vals) >= 2 else [max(0.1, t_eps * 0.8), max(0.1, t_eps)]
-                            disp_yrs = eps_hist_years[-len(disp_eps):] if len(eps_hist_years) >= len(disp_eps) else [str(curr_y_int - len(disp_eps) + i) for i in range(len(disp_eps))]
-                            max_ev = max([abs(x) for x in disp_eps] + [1.0]) * 1.18
-                            base_ey = 668
-                            n_ebars = len(disp_eps)
-                            eb_w = max(14, min(26, int(220 / max(1, n_ebars))))
-                            eb_gap = max(2, int((272 - eb_w * n_ebars) / max(1, n_ebars + 1)))
-
-                            for idx_eb, (ev_item, ey_lbl) in enumerate(zip(disp_eps, disp_yrs)):
-                                bx_e = 58 + eb_gap + idx_eb * (eb_w + eb_gap)
-                                bh_e = int(max(16, min(168, (max(0.05, abs(ev_item)) / max_ev) * 168)))
-                                b_col_e = (255, 23, 68) if ev_item < 0 else ((255, 240, 0) if idx_eb == n_ebars - 1 else (0, 176, 255))
-                                draw.rounded_rectangle([bx_e, base_ey - bh_e, bx_e + eb_w, base_ey], radius=4, fill=b_col_e)
-                                if idx_eb in [0, n_ebars // 2, n_ebars - 1]:
-                                    _fit_single_line(draw, bx_e + eb_w//2, base_ey + 18, 44, str(ey_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(203, 213, 225))
-
-                            _draw_box_with_centered_text(
-                                draw, [54, 706, 338, 764], eps_badge_short, get_font,
-                                box_fill=(0, 176, 255), radius=12, start_sz=22, min_sz=13,
-                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                            )
-
-                            draw.rounded_rectangle([370, 386, W-42, 780], radius=20, fill=(14, 20, 36), outline=(0, 230, 118), width=4)
-                            _fit_single_line(draw, 524, 422, 280, f"2. {stamp2_word}", get_font, start_sz=25, min_sz=15, fill=(255, 240, 0))
+                        # [컷 2: SCENE_MOAT - 현재 ROIC vs S&P 500 평균 12% 비교 바 차트]
+                        if scene_code == "SCENE_MOAT":
+                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=(0, 230, 118), width=5)
+                            _fit_single_line(draw, W//2, 424, W-100, f"1. 비즈니스 해자 : 현재 장사수익률 (ROIC)", get_font, start_sz=26, min_sz=15, fill=(255, 240, 0), stroke_w=2)
+                            
                             base_y = 668
-                            max_r = max(15.0, abs(cap_ret_val), 20.0) * 1.2
-                            h_sp500_r = int(max(26, min(168, (3.5 / max_r) * 168)))
-                            h_cur_r = int(max(26, min(168, (max(0.5, cap_ret_val) / max_r) * 168)))
-                            draw.rounded_rectangle([416, base_y - h_sp500_r, 494, base_y], radius=8, fill=(100, 116, 139))
-                            _fit_single_line(draw, 455, base_y - h_sp500_r - 22, 95, "3.5%", get_font, start_sz=22, min_sz=13, fill=(180, 190, 205))
-                            _fit_single_line(draw, 455, base_y + 18, 100, "은행예금", get_font, start_sz=15, min_sz=11, fill=(180, 190, 205))
+                            max_r = max(24.0, abs(cap_ret_val) * 1.25)
+                            h_spy = int(max(26, min(170, (12.0 / max_r) * 170)))
+                            h_cur = int(max(26, min(170, (max(0.5, cap_ret_val) / max_r) * 170)))
 
-                            draw.rounded_rectangle([534, base_y - h_cur_r, 618, base_y], radius=8, fill=(0, 230, 118))
-                            _fit_single_line(draw, 576, base_y - h_cur_r - 24, 110, f"{cap_ret_val:.1f}%", get_font, start_sz=26, min_sz=14, fill=(255, 240, 0))
-                            _fit_single_line(draw, 576, base_y + 18, 100, comp_name[:5], get_font, start_sz=15, min_sz=11, fill=(255, 255, 255))
+                            draw.rounded_rectangle([150, base_y - h_spy, 260, base_y], radius=10, fill=(100, 116, 139))
+                            _fit_single_line(draw, 205, base_y - h_spy - 24, 110, "12.0%", get_font, start_sz=26, min_sz=14, fill=(200, 210, 225))
+                            _fit_single_line(draw, 205, base_y + 20, 120, "S&P 500 평균", get_font, start_sz=16, min_sz=11, fill=(200, 210, 225))
 
-                            _draw_box_with_centered_text(
-                                draw, [382, 706, 666, 764], f"예금의 {bank_multiple:.1f}배 속도!", get_font,
-                                box_fill=(0, 230, 118), radius=12, start_sz=22, min_sz=13,
-                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
-                            )
-
-                        # [컷 3 전용 화면: SCENE_3 - 배당 성장률(CAGR) 및 10년 배당금 추이]
-                        elif scene_code == "SCENE_3":
-                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=stamp3_col, width=4)
-                            _fit_single_line(draw, W//2, 428, W-110, f"3. {stamp3_word} (1주당 배당금 성장 추이)", get_font, start_sz=27, min_sz=15, fill=(255, 240, 0))
-
-                            base_y3 = 665
-                            if sum(div_4y_vals) <= 0 and div <= 0:
-                                _fit_single_line(draw, W//2, 555, W-140, "배당 0원! 100% 미래 성장에 몰빵!", get_font, start_sz=32, min_sz=18, fill=(0, 230, 118))
-                            else:
-                                # 10년 치 배당 데이터가 있으면 최대 8~10개 막대로 성장 궤적을 한눈에 보여줌!
-                                disp_d_vals = sorted_div_vals[-8:] if len(sorted_div_vals) >= 4 else div_4y_vals
-                                disp_d_yrs = [str(y) for y in sorted_div_years[-len(disp_d_vals):]] if len(sorted_div_years) >= 4 else div_4y_years
-                                max_d_v = max(max(disp_d_vals), 0.01) * 1.18
-                                nd_bars = len(disp_d_vals)
-                                db_w = max(36, min(85, int(440 / max(1, nd_bars))))
-                                db_gap = max(8, int((560 - db_w * nd_bars) / max(1, nd_bars + 1)))
-                                for idx_d4, (dv_item, dy_lbl) in enumerate(zip(disp_d_vals, disp_d_yrs)):
-                                    bx_d = 76 + db_gap + idx_d4 * (db_w + db_gap)
-                                    bh_d = int(max(20, min(160, (max(0.0, dv_item) / max_d_v) * 160))) if dv_item > 0 else 10
-                                    b_col_d = (255, 240, 0) if idx_d4 == nd_bars - 1 else (213, 0, 249)
-                                    draw.rounded_rectangle([bx_d, base_y3 - bh_d, bx_d + db_w, base_y3], radius=8, fill=b_col_d)
-                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 + 22, db_w + 16, str(dy_lbl)[-2:] + "년", get_font, start_sz=17, min_sz=11, fill=(255, 255, 255))
+                            draw.rounded_rectangle([450, base_y - h_cur, 560, base_y], radius=10, fill=(0, 230, 118))
+                            _fit_single_line(draw, 505, base_y - h_cur - 26, 120, f"{cap_ret_val:.1f}%", get_font, start_sz=32, min_sz=15, fill=(255, 240, 0), stroke_w=3)
+                            _fit_single_line(draw, 505, base_y + 20, 130, f"{comp_name} (현재)", get_font, start_sz=17, min_sz=12, fill=(255, 255, 255))
 
                             _draw_box_with_centered_text(
-                                draw, [56, 706, W-56, 766], div_badge_short, get_font,
-                                box_fill=stamp3_col, radius=14, start_sz=22, min_sz=12,
-                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                                draw, [60, 706, W-60, 764], f"S&P 500 평균 대비 {roic_vs_spy_gap:+.1f}%p 초과 달성!", get_font,
+                                box_fill=(0, 230, 118), radius=12, start_sz=24, min_sz=14, txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0,0,0)
                             )
 
-                        # [컷 4 전용 화면: SCENE_4 - 10년 순수 여윳돈(FCF) 10개년 추이]
-                        elif scene_code == "SCENE_4":
-                            s4_hdr = f"4. {stamp4_word} (10년간 순수 여윳돈 10개년 추이)"
-                            _fit_single_line(draw, W//2, 404, W-80, s4_hdr, get_font, start_sz=25, min_sz=14, fill=(255, 240, 0))
+                        # [컷 3: SCENE_BUFFETT - 버핏 10초 암산 역산 (1/PER + g = 10% vs 실제 FCF)]
+                        elif scene_code == "SCENE_BUFFETT":
+                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=(250, 204, 21), width=5)
+                            _fit_single_line(draw, W//2, 424, W-100, "2. 버핏 10초 암산 역산 (1/PER + 요구성장 = 10%)", get_font, start_sz=24, min_sz=14, fill=(255, 240, 0), stroke_w=2)
 
-                            draw.rounded_rectangle([42, 430, W-42, 646], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
-                            disp_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [base_fcf * 0.7 if base_fcf else 1.0, base_fcf if base_fcf else 1.2]
-                            disp_f_yrs = fcf_yrs_10y[-len(disp_f_vals):] if len(fcf_yrs_10y) >= len(disp_f_vals) else [str(curr_y_int - len(disp_f_vals) + idx) for idx in range(len(disp_f_vals))]
+                            # 요구 성장률 vs 실제 성장률 바 비교
+                            b_y = 660
+                            max_g = max(abs(req_g_val), abs(actual_fcf_g_val), 15.0) * 1.25
+                            h_req = int(max(20, min(160, (max(0.5, abs(req_g_val)) / max_g) * 160)))
+                            h_act = int(max(20, min(160, (max(0.5, abs(actual_fcf_g_val)) / max_g) * 160)))
 
-                            has_neg_f = any(v < 0 for v in disp_f_vals)
-                            zero_y = 562 if has_neg_f else 608
-                            draw.line([(64, zero_y), (W-64, zero_y)], fill=(148, 163, 184), width=2)
+                            draw.rounded_rectangle([150, b_y - h_req, 260, b_y], radius=10, fill=(255, 193, 7))
+                            _fit_single_line(draw, 205, b_y - h_req - 24, 110, f"{req_g_val:+.1f}%", get_font, start_sz=26, min_sz=14, fill=(255, 240, 0))
+                            _fit_single_line(draw, 205, b_y + 20, 120, "암산 요구성장률", get_font, start_sz=16, min_sz=11, fill=(220, 230, 240))
 
-                            mx_fv = max([abs(v) for v in disp_f_vals] + [1.0]) * 1.15
-                            nf_bars = len(disp_f_vals)
-                            fb_w = max(24, min(42, int(460 / max(1, nf_bars))))
-                            fb_gap = max(4, int((590 - fb_w * nf_bars) / max(1, nf_bars + 1)))
-
-                            for idx_f, (fv_item, fy_lbl) in enumerate(zip(disp_f_vals, disp_f_yrs)):
-                                bx_f = 64 + fb_gap + idx_f * (fb_w + fb_gap)
-                                if fv_item >= 0:
-                                    max_up_h = zero_y - 446
-                                    bh_f = int(max(14, min(max_up_h, (fv_item / mx_fv) * max_up_h)))
-                                    b_col_f = (255, 240, 0) if idx_f == nf_bars - 1 else (0, 230, 118)
-                                    draw.rounded_rectangle([bx_f, zero_y - bh_f, bx_f + fb_w, zero_y], radius=5, fill=b_col_f)
-                                else:
-                                    max_dn_h = 614 - zero_y
-                                    bh_f = int(max(14, min(max_dn_h, (abs(fv_item) / mx_fv) * max_dn_h)))
-                                    draw.rounded_rectangle([bx_f, zero_y, bx_f + fb_w, zero_y + bh_f], radius=5, fill=(255, 23, 68))
-                                _fit_single_line(draw, bx_f + fb_w//2, 626, fb_w + 12, str(fy_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(220, 230, 240))
+                            draw.rounded_rectangle([450, b_y - h_act, 560, b_y], radius=10, fill=(0, 230, 118) if g_margin_val >= 0 else (255, 23, 68))
+                            _fit_single_line(draw, 505, b_y - h_act - 26, 120, f"{actual_fcf_g_val:+.1f}%", get_font, start_sz=32, min_sz=15, fill=(255, 255, 255), stroke_w=3)
+                            _fit_single_line(draw, 505, b_y + 20, 130, "실제 FCF 성장률", get_font, start_sz=17, min_sz=12, fill=(255, 255, 255))
 
                             _draw_box_with_centered_text(
-                                draw, [42, 658, W-42, 718], fcf_badge_txt, get_font,
-                                box_fill=stamp4_col, radius=14, start_sz=23, min_sz=13,
-                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                                draw, [60, 706, W-60, 764], f"실제 성장률이 요구치보다 {g_margin_val:+.1f}%p 우위! (안전마진)", get_font,
+                                box_fill=(0, 230, 118) if g_margin_val >= 0 else (255, 23, 68), radius=12, start_sz=23, min_sz=13, txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0,0,0)
                             )
+
+                        # [컷 4: SCENE_MACRO - 거시 기회비용 (이익수익률 vs 10년물 미국채 금리)]
+                        elif scene_code == "SCENE_MACRO":
+                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=(56, 189, 248), width=5)
+                            _fit_single_line(draw, W//2, 424, W-100, f"3. 거시 기회비용 : 주식 이익수익률 vs 10년물 미국채", get_font, start_sz=24, min_sz=14, fill=(255, 240, 0), stroke_w=2)
+
+                            base_my = 660
+                            max_ey = max(cur_ey_val, ty, 8.0) * 1.3
+                            h_ty = int(max(20, min(160, (ty / max_ey) * 160)))
+                            h_ey = int(max(20, min(160, (cur_ey_val / max_ey) * 160)))
+
+                            draw.rounded_rectangle([150, base_my - h_ty, 260, base_my], radius=10, fill=(100, 116, 139))
+                            _fit_single_line(draw, 205, base_my - h_ty - 24, 110, f"{ty:.2f}%", get_font, start_sz=26, min_sz=14, fill=(200, 210, 225))
+                            _fit_single_line(draw, 205, base_my + 20, 120, "10년물 미국채", get_font, start_sz=16, min_sz=11, fill=(200, 210, 225))
+
+                            draw.rounded_rectangle([450, base_my - h_ey, 560, base_my], radius=10, fill=(56, 189, 248))
+                            _fit_single_line(draw, 505, base_my - h_ey - 26, 120, f"{cur_ey_val:.2f}%", get_font, start_sz=32, min_sz=15, fill=(255, 240, 0), stroke_w=3)
+                            _fit_single_line(draw, 505, base_my + 20, 130, f"{comp_name} 이익수익률", get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
 
                             _draw_box_with_centered_text(
-                                draw, [42, 728, W-42, 786], f"{comp_name} : 1.{stamp1_word} · 2.{stamp2_word} · 3.{stamp3_word} · 4.{stamp4_word}", get_font,
-                                box_fill=(220, 38, 38), outline_col=(255, 240, 0), outline_w=3, radius=14,
-                                start_sz=19, min_sz=11, txt_fill=(255, 255, 255), stroke_w=1, stroke_c=(0, 0, 0)
+                                draw, [60, 706, W-60, 764], f"미국채보다 연 {erp_val:+.2f}%p 높은 초과 수익률 제공!", get_font,
+                                box_fill=(56, 189, 248), radius=12, start_sz=23, min_sz=13, txt_fill=(15, 23, 42), stroke_w=1, stroke_c=(255,255,255)
                             )
 
-                        # [컷 5 전용 화면: SCENE_HOOK - 4분할 총정리 보드 (무한루프 브릿지)]
+                        # [컷 1, 5: SCENE_HOOK / SCENE_SUMMARY - 4분할 종합 성적표 대형 화면]
                         else:
                             _draw_visual_dashboard_board(draw, W, get_font)
 
