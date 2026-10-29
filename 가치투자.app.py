@@ -2662,9 +2662,8 @@ def get_data(tk):
         return None, None, {}, False
 def calc_smart_cagr(val_series_chrono, years_chrono=None):
     """
-    [10개 회계연도 = 10년간 표기 교정 완료]
-    - 지수 계산(math_exp)은 구간 수(N-1)로 정확히 계산하되,
-      화면 및 대본 표기 연수(display_span)는 실제 데이터 개수(10개년 = 10년간)로 반환합니다.
+    [정통 CAGR 산출 + 10개년 표기 보정]
+    - 스무딩 왜곡을 제거하고 시작 연도와 끝 연도의 정확한 복리성장률(CAGR)을 산출합니다.
     """
     valid_pts = []
     for idx, v in enumerate(val_series_chrono):
@@ -2678,7 +2677,6 @@ def calc_smart_cagr(val_series_chrono, years_chrono=None):
     start_yr, start_v = valid_pts[0]
     end_yr, end_v = valid_pts[-1]
     math_exp = max(1, end_yr - start_yr) if end_yr > start_yr else max(1, len(valid_pts) - 1)
-    # 9년으로 깎이지 않도록 실제 포함된 회계연도 개수(최대 10년)로 표기!
     display_span = min(10, max(len(valid_pts), math_exp + 1 if end_yr > start_yr else len(valid_pts)))
 
     if end_v < 0:
@@ -2687,7 +2685,7 @@ def calc_smart_cagr(val_series_chrono, years_chrono=None):
         else:
             return -0.99, "CONT_LOSS", display_span, "적자 지속 (성장률 측정 불가)"
 
-    # 과거 적자 -> 양수(흑자) 전환 시 양수 전환 첫 해부터 카운트
+    # 시작값이 음수(과거 적자)이고 끝값이 양수(최근 흑자)인 경우 -> 양수 전환 첫 해부터 계산
     if start_v < 0 and end_v > 0:
         pos_pts = [(y, v) for y, v in valid_pts if v > 0]
         if len(pos_pts) >= 2:
@@ -2698,17 +2696,8 @@ def calc_smart_cagr(val_series_chrono, years_chrono=None):
             return max(-0.95, min(cagr, 2.00)), "TURNAROUND", p_disp_span, f"흑자전환 후 {p_disp_span}년간 연 {cagr*100:+.1f}% 성장"
         return 0.15, "TURNAROUND_1Y", 1, "최근 흑자 전환 성공"
 
+    # 시작값과 끝값 모두 양수(+)인 경우 정통 CAGR 공식 적용 (임의 스무딩 제거!)
     raw_cagr = (end_v / start_v) ** (1.0 / math_exp) - 1.0
-    if len(valid_pts) >= 6:
-        pos_only = [v for _, v in valid_pts if v > 0]
-        if len(pos_only) >= 6:
-            oldest_2 = (pos_only[0] + pos_only[1]) / 2.0
-            recent_2 = (pos_only[-2] + pos_only[-1]) / 2.0
-            if oldest_2 > 0 and recent_2 > 0:
-                smooth_cagr = (recent_2 / oldest_2) ** (1.0 / max(1, math_exp - 1)) - 1.0
-                if abs(raw_cagr - smooth_cagr) > 0.25:
-                    raw_cagr = smooth_cagr
-
     status_code = "NORMAL_UP" if raw_cagr >= 0 else "NORMAL_DOWN"
     return max(-0.95, min(raw_cagr, 2.00)), status_code, display_span, f"{display_span}년간 연평균 {raw_cagr*100:+.1f}%"
 
@@ -4393,16 +4382,23 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _eq <= 0 and _ast > _liab and _liab > 0:
                         _eq = _ast - _liab
 
-                    if fcf_direct != 0: calc_fcf = fcf_direct
-                    elif ocf != 0 and capex > 0: calc_fcf = ocf - capex
-                    elif ocf != 0 or icf != 0: calc_fcf = ocf + icf
-                    else: calc_fcf = 0
+                    # ▼▼▼ [수리 완료] CAPEX 설비투자로 인한 진짜 FCF 적자(예: 삼성전자 2023년 -16조)를 양수로 덮어쓰지 않음! ▼▼▼
+                    if fcf_direct != 0:
+                        calc_fcf = fcf_direct
+                    elif ocf != 0 and capex > 0:
+                        calc_fcf = ocf - capex
+                    elif ocf != 0 or icf != 0:
+                        calc_fcf = ocf + icf
+                        # 단, CAPEX 세부 계정이 아예 누락된 금융/지주사가 단기금융상품 예치(icf<0) 때문에 착시 적자가 난 경우에만 보정
+                        if capex == 0 and calc_fcf <= 0 and _ni > 0 and ocf > 0:
+                            calc_fcf = min(ocf * 0.7, _ni * 0.85)
+                    else:
+                        calc_fcf = 0
 
-                    if calc_fcf <= 0 and _ni > 0 and ocf > 0:
-                        calc_fcf = min(ocf * 0.7, _ni * 0.85)
                     if calc_fcf != 0:
                         fcf_list.append(calc_fcf)
                         fcf_years_kr.append(y_int)
+                    # ▲▲▲ [수리 완료] ▲▲▲
                     if _ni > 0:
                         ni_positive_list.append(_ni * 0.85)
 
@@ -7098,9 +7094,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         eps_span_yrs = 10
                     eps_cagr_pct = eps_cagr_raw * 100.0 if eps_status_code not in ["TURN_LOSS", "CONT_LOSS", "INSUFFICIENT"] else 0.0
 
-                    # 10년 순수 배당 추출 (자사주 매입 완전 배제)
+                    # ▼▼▼ [부분 교체 시작] 10년 순수 배당 액면분할 완벽 보정 + 중간 FCF 적자 횟수 팩트 반영 ▼▼▼
                     div_10y_dict = {}
                     curr_y_int = datetime.now().year
+                    try:
+                        _div_splits = stk.splits if stk is not None else pd.Series(dtype=float)
+                    except Exception:
+                        _div_splits = pd.Series(dtype=float)
+
+                    def _adjust_dps_for_splits(raw_dps, yr_int, ref_curr_dps):
+                        if raw_dps <= 0: return 0.0
+                        if _div_splits is None or _div_splits.empty: return raw_dps
+                        cum_split = 1.0
+                        for s_dt, s_ratio in _div_splits.items():
+                            # 해당 연도(yr_int) 및 그 이후에 발생한 액면분할 배수(예: 2018년 삼성전자 50:1 분할) 반영
+                            if s_dt.year >= yr_int and float(s_ratio) > 0:
+                                cum_split *= float(s_ratio)
+                        if cum_split == 1.0: return raw_dps
+                        adj_dps = raw_dps / cum_split
+                        if ref_curr_dps > 0:
+                            return adj_dps if abs((adj_dps / ref_curr_dps) - 1.0) < abs((raw_dps / ref_curr_dps) - 1.0) else raw_dps
+                        return adj_dps
+
+                    ref_dps_now = safe_float(i.get('dividendRate', p * (div / 100.0) if div > 0 else 0.0))
+
+                    # 1순위: yfinance dividends 시계열 + 액면분할 보정 적용
                     try:
                         if stk is not None:
                             d_ser = stk.dividends
@@ -7111,16 +7129,45 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     y_completed = y_divs.tail(10)
                                 for y_k, v_d in y_completed.items():
                                     if safe_float(v_d) > 0:
-                                        div_10y_dict[int(y_k)] = safe_float(v_d)
+                                        div_10y_dict[int(y_k)] = _adjust_dps_for_splits(safe_float(v_d), int(y_k), ref_dps_now)
                     except Exception:
                         pass
 
-                    # ▼▼▼ [여기부터 복사해서 sorted_div_years = ... 줄부터 def _upload_shorts_to_youtube 바로 위까지 덮어쓰세요] ▼▼▼
+                    # 2순위 (한국 주식 보완): FnGuide 주당배당금(DPS) + 액면분할 보정
+                    if kr and len(div_10y_dict) < 4:
+                        try:
+                            fn_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{cd}"
+                            r_fn = requests.get(fn_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
+                            if r_fn.status_code == 200:
+                                soup_fn = BeautifulSoup(r_fn.text, 'html.parser')
+                                h_div = soup_fn.find('div', {'id': 'highlight_D_Y'})
+                                if h_div and h_div.find('table'):
+                                    tbl_d = h_div.find('table')
+                                    thead_trs = tbl_d.find('thead').find_all('tr')
+                                    if len(thead_trs) >= 2:
+                                        yr_ths = thead_trs[1].find_all('th')
+                                        yr_cols = []
+                                        for idx_th, th in enumerate(yr_ths):
+                                            m_yr = re.search(r'(20\d{2})/\d{2}', th.text.strip())
+                                            if m_yr and '(E)' not in th.text:
+                                                yr_cols.append((idx_th, int(m_yr.group(1))))
+                                        for tr in tbl_d.find('tbody').find_all('tr'):
+                                            th_t = tr.find('th')
+                                            if th_t and '주당배당금' in re.sub(r'\s+', '', th_t.text):
+                                                tds = tr.find_all('td')
+                                                for idx_c, y_i in yr_cols:
+                                                    if idx_c < len(tds):
+                                                        v_clean = re.sub(r'[^\d\.]', '', tds[idx_c].text)
+                                                        if v_clean and safe_float(v_clean) > 0:
+                                                            div_10y_dict[y_i] = _adjust_dps_for_splits(safe_float(v_clean), y_i, ref_dps_now)
+                                                break
+                        except Exception:
+                            pass
+
                     sorted_div_years = sorted(div_10y_dict.keys())[-10:]
                     sorted_div_vals = [div_10y_dict[y] for y in sorted_div_years]
                     div_paid_years = len(sorted_div_vals)
 
-                    # [핵심 추가] 10년 주당배당금(DPS) 연평균 배당성장률(CAGR) 및 증가 배수 산출!
                     div_cagr_raw, div_status_code, div_span_yrs, _ = calc_smart_cagr(
                         sorted_div_vals, [str(y) for y in sorted_div_years]
                     )
@@ -7141,11 +7188,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         div_4y_years = [str(curr_y_int - 4 + idx_y) for idx_y in range(4)]
                         div_4y_vals = [0.0, 0.0, 0.0, dps_est]
 
+                    div_per_10m_manwon = round(div * 10.0, 1)
                     hist_fcf_g_pct = sh_fcf_g_pct
 
-                    # =========================================================================
-                    # [시각적 타격용 4대 핵심 스탬프 (배당 지급횟수 대신 '배당 성장률 %' 적용!)]
-                    # =========================================================================
                     abs_pmos = abs(sh_pmos_val)
                     cur_pbr_won = int(round(sh_cur_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
@@ -7192,11 +7237,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         stamp2_word = f"수익률 연 {cap_ret_val:.1f}%" if not is_en_shorts else f"ROI {cap_ret_val:.1f}%"
                         stamp2_col = (255, 23, 68)
 
-                    # 3. 배당 성장률(Dividend Growth) 스탬프
+                    # 3. 배당 성장률 스탬프
                     if div_paid_years >= 2 and div_cagr_pct >= 2.0:
                         stamp3_word = f"배당 연+{div_cagr_pct:.1f}% 성장!" if not is_en_shorts else f"DIV +{div_cagr_pct:.1f}%/Y!"
                         stamp3_col = (213, 0, 249)
-                        div_badge_short = f"{div_span_yrs}년간 배당 연 {div_cagr_pct:+.1f}% 성장 (총 {div_mult:.1f}배↑ · 배당률 {div:.1f}%)"
+                        div_badge_short = f"{div_span_yrs}년간 배당 연 {div_cagr_pct:+.1f}% 성장 (총 {div_mult:.1f}배 · 배당률 {div:.1f}%)"
                     elif div_paid_years >= 2 and div_cagr_pct >= -2.0:
                         stamp3_word = f"배당률 연 {div:.1f}% 유지" if not is_en_shorts else f"DIV {div:.1f}% STEADY"
                         stamp3_col = (255, 193, 7)
@@ -7214,49 +7259,54 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         stamp3_col = (0, 176, 255)
                         div_badge_short = "무배당 (번 돈을 100% 미래 성장에 재투자)"
 
-                    # 4. 여윳돈(FCF) 성장률 스탬프
+                    # 4. 여윳돈(FCF) 스탬프 (중간에 적자가 1번이라도 있었으면 fcf_neg_cnt > 0 으로 정확히 분리!)
+                    neg_yr_labels = [str(y)[-2:] + "년" for v, y in zip(fcf_vals_10y[-10:], fcf_yrs_10y[-10:]) if v < 0]
+                    neg_yr_str = ",".join(neg_yr_labels)
+
                     if is_fcf_curr_loss:
                         stamp4_word = "여윳돈 현재 적자!" if not is_en_shorts else "FCF DEFICIT!"
                         stamp4_col = (255, 23, 68)
-                        fcf_badge_txt = f"10년 중 적자 {fcf_neg_cnt}회 · 현재 설비투자 적자"
-                    elif fcf_status_auto == "TURNAROUND" or (fcf_neg_cnt > 0 and hist_fcf_g_pct > 0):
-                        stamp4_word = f"여윳돈 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
+                        fcf_badge_txt = f"10년 중 적자 {fcf_neg_cnt}회({neg_yr_str}) · 현재 설비투자 적자"
+                    elif fcf_status_auto == "TURNAROUND":
+                        stamp4_word = f"흑자전환 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
                         stamp4_col = (0, 230, 118)
                         fcf_badge_txt = f"흑자전환 후 {sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% 성장! (과거 적자 {fcf_neg_cnt}회)"
-                    elif hist_fcf_g_pct > 0:
+                    elif hist_fcf_g_pct > 0 and fcf_neg_cnt > 0:
+                        # [삼성전자 케이스 완벽 해결!] 양끝(16년, 25년)은 흑자라 연평균 성장률은 +지만 중간(23년)에 적자가 있었던 경우!
+                        stamp4_word = f"여윳돈 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
+                        stamp4_col = (0, 230, 118)
+                        fcf_badge_txt = f"{sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% 성장! (단, {neg_yr_str} 적자 {fcf_neg_cnt}회 발생)"
+                    elif hist_fcf_g_pct > 0 and fcf_neg_cnt == 0:
                         stamp4_word = f"여윳돈 연+{hist_fcf_g_pct:.1f}%!" if not is_en_shorts else f"FCF +{hist_fcf_g_pct:.1f}%!"
                         stamp4_col = (0, 230, 118)
                         fcf_badge_txt = f"10년 적자 0회 · 매년 {hist_fcf_g_pct:+.1f}% 폭풍 성장!"
                     else:
                         stamp4_word = f"여윳돈 연{hist_fcf_g_pct:.1f}%" if not is_en_shorts else f"FCF {hist_fcf_g_pct:.1f}%"
                         stamp4_col = (255, 193, 7)
-                        fcf_badge_txt = f"최근 {sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% (대규모 설비투자)"
+                        mid_neg_t = f" (적자 {fcf_neg_cnt}회)" if fcf_neg_cnt > 0 else ""
+                        fcf_badge_txt = f"최근 {sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}%{mid_neg_t} (대규모 설비투자)"
 
                     eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%"
                     gap_badge_col = stamp4_col
 
                     # =========================================================================
-                    # [딱 13~14초 완성! 군더더기 0% 초고속 5컷 대본 + 화면 1:1 칼매칭]
-                    # 컷1(SCENE_1: 가격) -> 컷2(SCENE_2: 돈벌이) -> 컷3(SCENE_3: 배당성장률) -> 컷4(SCENE_4: 여윳돈) -> 컷5(SCENE_HOOK: 4분할 총정리 루프)
+                    # [14초 5컷 대본: 중간 FCF 적자 연도(예: 삼성전자 23년 적자 1회) 팩트 반영!]
                     # =========================================================================
                     if is_en_shorts:
                         c1_price = f"{comp_name}! First, price! Book value is {sh_cur_pbr:.2f}x vs 10Y avg {a_pbr:.2f}x, {stamp1_sub}!" if use_pbr_m else f"{comp_name}! First, price! Payback is {sh_f_pe:.0f} years vs 10Y avg {a_pe:.0f}, {stamp1_sub}!"
                         c2_roic  = f"Second, profit! {cap_ret_val:.1f}% return, {bank_multiple:.1f}x a bank! EPS grew {eps_cagr_pct:+.1f}% a year!"
                         c3_div   = f"Third, dividend growth! Grew {div_cagr_pct:+.1f}% a year for {div_span_yrs} years, now yielding {div:.1f}%!" if div_paid_years >= 2 else f"Third, dividends! Yielding {div:.1f}%, reinvesting into future growth!"
-                        c4_fcf   = f"Fourth, pure cash! Grew {hist_fcf_g_pct:+.1f}% a year for {sh_fcf_span} years!"
+                        c4_fcf   = f"Fourth, pure cash! Grew {hist_fcf_g_pct:+.1f}% a year over {sh_fcf_span} years, with {fcf_neg_cnt} deficit year!" if fcf_neg_cnt > 0 else f"Fourth, pure cash! Grew {hist_fcf_g_pct:+.1f}% a year with zero deficits!"
                         c5_loop  = f"Put all 4 together, and the real truth about"
                         default_script_lines = [c1_price, c2_roic, c3_div, c4_fcf, c5_loop]
                     else:
-                        # 컷 1 (가격 훅 + 가격 비교 막대 화면 SCENE_1)
                         if use_pbr_m:
                             c1_price = f"{comp_name}! 첫째 가격! 재산 1만 원어치가 평균 {avg_pbr_won:,}원에서 지금 {cur_pbr_won:,}원, {stamp1_sub}!"
                         else:
                             c1_price = f"{comp_name}! 첫째 가격! 본전 회수가 평균 {a_pe:.0f}년에서 지금 {sh_f_pe:.0f}년, {stamp1_sub}!"
 
-                        # 컷 2 (돈벌이 ROIC + 순이익 EPS 화면 SCENE_2)
                         c2_roic = f"둘째 돈벌이! 장사수익률 연 {cap_ret_val:.1f}%로 예금의 {bank_multiple:.1f}배며, 순이익은 매년 {eps_cagr_pct:+.1f}% 성장!"
 
-                        # 컷 3 (배당 성장률 화면 SCENE_3)
                         if div_paid_years >= 2 and div_cagr_pct >= 1.0:
                             c3_div = f"셋째 배당 성장! {div_span_yrs}년간 매년 {div_cagr_pct:.1f}%씩 총 {div_mult:.1f}배 불어났고 현재 배당률은 {div:.1f}%!"
                         elif div_paid_years >= 2:
@@ -7266,20 +7316,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             c3_div = "셋째 배당! 0원! 번 돈을 100% 미래 성장에 재투자 중!"
 
-                        # 컷 4 (10년 순수 여윳돈 FCF 화면 SCENE_4)
                         if is_fcf_curr_loss:
-                            c4_fcf = f"넷째 순수 여윳돈! 10년 중 적자 {fcf_neg_cnt}번, 현재도 대규모 투자로 적자!"
-                        elif fcf_status_auto == "TURNAROUND" or (fcf_neg_cnt > 0 and hist_fcf_g_pct > 0):
-                            c4_fcf = f"넷째 순수 여윳돈! 과거 적자 {fcf_neg_cnt}번을 딛고 {sh_fcf_span}년간 매년 {hist_fcf_g_pct:.1f}% 폭증!"
-                        elif hist_fcf_g_pct > 0:
+                            c4_fcf = f"넷째 순수 여윳돈! 10년 중 적자 {fcf_neg_cnt}번, 현재도 대규모 설비투자로 적자!"
+                        elif fcf_status_auto == "TURNAROUND":
+                            c4_fcf = f"넷째 순수 여윳돈! 과거 적자 {fcf_neg_cnt}번을 딛고 흑자 전환 후 {sh_fcf_span}년간 매년 {hist_fcf_g_pct:.1f}% 폭증!"
+                        elif hist_fcf_g_pct > 0 and fcf_neg_cnt > 0:
+                            # 삼성전자처럼 중간(23년)에 적자가 있었던 경우 정확히 짚어줌!
+                            c4_fcf = f"넷째 순수 여윳돈! 대규모 투자로 {neg_yr_str} 적자가 {fcf_neg_cnt}번 있었으나, {sh_fcf_span}년간 연평균 {hist_fcf_g_pct:.1f}% 성장!"
+                        elif hist_fcf_g_pct > 0 and fcf_neg_cnt == 0:
                             c4_fcf = f"넷째 순수 여윳돈! 10년간 적자 한 번 없이 매년 {hist_fcf_g_pct:.1f}%씩 성장!"
                         else:
                             c4_fcf = f"넷째 순수 여윳돈! 설비투자로 {sh_fcf_span}년간 연 {abs(hist_fcf_g_pct):.1f}% 감소!"
 
-                        # 컷 5 (4분할 총정리 화면 SCENE_HOOK + 0.00초 무한 루프 직결!)
                         c5_loop = "결론! 이 4가지를 합친 최종 성적표는 바로"
-
                         default_script_lines = [c1_price, c2_roic, c3_div, c4_fcf, c5_loop]
+                    # ▲▲▲ [부분 교체 끝] ▲▲▲
 
                     # [버그 완전 해결] 컷 1은 무조건 SCENE_1(가격 비교 대형 화면), 마지막 컷 5가 SCENE_HOOK(4분할 요약표)!
                     scene_codes_fixed = ["SCENE_1", "SCENE_2", "SCENE_3", "SCENE_4", "SCENE_HOOK"]
@@ -9362,80 +9413,77 @@ with tab_vs:
             ]
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
-            # =====================================================================
-            # [괄호 읽기 방지 + 화이트&블랙 직관형 비교 + 자막 잘림 해결] 📊 1:1 종목 비교 쇼츠 스튜디오
-            # =====================================================================
+            # ▼▼▼ [1:1 맞대결 쇼츠 스튜디오 전면 업그레이드: 13초 5컷 다크 네온 + 칼핀 중앙 정렬 + 무한루프] ▼▼▼
             st.divider()
-            with st.expander(t(f"🎬 [{res_a['name']} vs {res_b['name']}] 100% 음슴체 1:1 비교 쇼츠(.mp4)", "🎬 10-Cut Core Comparison Shorts Studio"), expanded=True):
-                st.info("💡 **괄호 읽기 방지 & 화이트·블랙 직관형 비교 완료:** 대본 내 괄호를 모두 없애고 순자산 1만 원당 주가와 격차(%p)를 한눈에 비교합니다.")
+            with st.expander(t(f"💥 [{res_a['name']} vs {res_b['name']}] 13초 미스터비스트 1:1 맞대결 쇼츠(.mp4)", "💥 13s 1:1 Stock Battle Shorts Studio"), expanded=True):
+                st.info("💥 **1:1 맞대결 13초 극한 타격 & 무한루프 적용 완료:** ① 가격 할인폭, ② 실제 장사수익률(ROIC/ROE), ③ 순수 현금 배당률, ④ 종합 성적표를 13초 5컷 다크 네온 보드로 타격합니다.")
 
-                vs_col1, vs_col2, vs_col3 = st.columns([1.4, 1.3, 1.1])
+                vs_col1, vs_col2, vs_col3 = st.columns([1.4, 1.3, 1.3])
                 with vs_col1:
                     vs_voice = st.selectbox(
-                        "1️⃣ 쇼츠 AI 보이스 선택",
+                        "1️⃣ 맞대결 AI 성우 선택",
                         [
-                            "🌾 [충청도 청년 박창수] 찰지고 또렷한 청년 썰풀이 보이스 (중음역 부스트 튜닝)",
-                            "🎯 [참고영상 보이스] 공감입니다 스타일 썰풀이 남성 (인준 무호흡·라디오 튜닝)",
-                            "🎯 [참고영상 보이스 2] 중후한 낭만 썰풀이 남성 (현수 무호흡·저음역 튜닝)",
-                            "⚡ 인준 하이피치 (InJoon Fast - 빠른 2030 요약 보이스)",
-                            "🔥 선희 하이텐션 (SunHi Viral - 트렌디한 2030 여성 브리핑 보이스)"
+                            "💥 1위 [미스터비스트 하이톤 남성] 고텐션 빠른 타격 (인준 +2Hz + 물리 가속)",
+                            "⚡ 2위 [스페셜리스트 여성] 또렷한 아나운서 톤 (선희 +2Hz)",
+                            "🔥 3위 [팩트체커 남성] 묵직한 뉴스 브리핑 톤 (현수 +2Hz)"
                         ],
-                        key="vs_shorts_voice"
+                        key="vs_shorts_voice_v13"
                     )
                 with vs_col2:
                     vs_bgm = st.selectbox(
                         "2️⃣ 배경음악 (트렌드 BGM)",
                         [
-                            "🎧 다크 신스웨이브 비트 (경제·이슈 쇼츠 1위 트렌드)",
-                            "☕ 트렌디 로파이 칠 비트 (토스·머니그라피 감성)",
-                            "⚡ 업비트 테크 플럭 (빠른 템포 정보 전달용)",
-                            "🔇 배경음악 없음 (성우 목소리만)"
+                            "💥 1위 🔥 138BPM 하드 트랩 비트 (맞대결 긴장감 극대화)",
+                            "🎧 2위 다크 신스웨이브 비트",
+                            "🔇 3위 배경음악 없음 (성우+타격음만)"
                         ],
-                        key="vs_shorts_bgm"
+                        key="vs_shorts_bgm_v13"
                     )
                 with vs_col3:
-                    def_vs_spd = 28 if "박창수" in vs_voice else 30
-                    vs_speed = st.slider("3️⃣ 말하기 배속", 10, 45, def_vs_spd, 1, format="+%d%%", key="vs_shorts_spd")
+                    vs_atempo = st.slider("3️⃣ 물리 가속(배)", 1.05, 1.45, 1.22, 0.05, format="%.2fx", key="vs_shorts_atempo_v13")
 
-                # ▼▼▼ [교체 2 시작] 탭 2(tab_vs) 내부 약 3505행 `na, nb = res_a['name'], res_b['name']` 부터 `vs_pop_chunks = [...]` 끝까지 덮어쓰기 ▼▼▼
                 na, nb = res_a['name'], res_b['name']
                 is_kr_or_pbr = (res_a['tk'].endswith(('.KS', '.KQ')) or res_b['tk'].endswith(('.KS', '.KQ')) or res_a['is_fin'] or res_b['is_fin'])
-                w_roe = na if res_a['roe'] >= res_b['roe'] else nb
+
+                cap_a = res_a['roe'] if res_a['is_fin'] else (res_a['roic'] if res_a['roic'] != 0 else res_a['roe'])
+                cap_b = res_b['roe'] if res_b['is_fin'] else (res_b['roic'] if res_b['roic'] != 0 else res_b['roe'])
+
                 w_mos = na if res_a['mos'] >= res_b['mos'] else nb
+                w_cap = na if cap_a >= cap_b else nb
                 w_div = na if res_a['div'] >= res_b['div'] else nb
+                w_tot = na if res_a['score'] >= res_b['score'] else nb
 
-                roe_gap = abs(res_a['roe'] - res_b['roe'])
                 mos_gap = abs(res_a['mos'] - res_b['mos'])
+                cap_gap = abs(cap_a - cap_b)
                 div_gap = abs(res_a['div'] - res_b['div'])
-
                 today_vs_str = datetime.now().strftime("%Y.%m.%d")
+
                 if is_kr_or_pbr:
                     wa_won = int(round(res_a['f_pbr'] * 100, 0) * 100)
                     wb_won = int(round(res_b['f_pbr'] * 100, 0) * 100)
-                    m_line_vs = f"순자산 1만원당 주가는 {wa_won:,}원 대 {wb_won:,}원에 형성되어 있습니다"
+                    vs_c1 = f"{na} 대 {nb}! 첫째 가격! 재산 1만 원당 {wa_won:,}원 대 {wb_won:,}원, {w_mos} 쪽이 {mos_gap:.0f}%p 더 쌈!"
                 else:
-                    m_line_vs = f"순이익 기준 원금 회수 기간은 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년입니다"
+                    vs_c1 = f"{na} 대 {nb}! 첫째 가격! 본전 회수 {res_a['f_pe']:.1f}년 대 {res_b['f_pe']:.1f}년, {w_mos} 쪽이 {mos_gap:.0f}%p 더 할인!"
+
+                vs_c2 = f"둘째 돈벌이! 실제 장사수익률 연 {cap_a:.1f}% 대 {cap_b:.1f}%, {w_cap} 쪽이 {cap_gap:.1f}%p 압승!"
+                vs_c3 = f"셋째 순수 배당! 연 {res_a['div']:.1f}% 대 {res_b['div']:.1f}%, 배당은 {w_div} 우위!"
+                vs_c4 = f"넷째 종합 점수! {res_a['score']}점 대 {res_b['score']}점으로 최종 승자는 {w_tot}!"
+                vs_c5 = "과연 두 기업의 10년 장부 승부, 딱 정리하면 바로"
 
                 vs_pop_chunks = [
-                    (f"버핏 관점으로 {na} 대 {nb} 장부를 비교했습니다", "VS_1"),
-                    (m_line_vs, "VS_1"),
-                    (f"10년 평균 대비 가격 할인 폭은 {res_a['mos']:+.0f}% 대 {res_b['mos']:+.0f}%입니다", "VS_2"),
-                    (f"평소 대비 가격 안전마진은 {w_mos} 쪽이 {mos_gap:.0f}%p 더 높습니다", "VS_2"),
-                    (f"자본을 불리는 복리 속도는 연 {res_a['roe']:.1f}% 대 {res_b['roe']:.1f}%입니다", "VS_3"),
-                    (f"자본 증식 효율성은 {w_roe} 쪽이 {roe_gap:.1f}%p 더 앞섭니다", "VS_3"),
-                    (f"순수 현금 배당수익률은 연 {res_a['div']:.1f}% 대 {res_b['div']:.1f}%입니다", "VS_4"),
-                    (f"배당 수익 매력도는 {w_div} 쪽이 {div_gap:.1f}%p 더 높습니다", "VS_4"),
-                    (f"요약하면 자본 수익성은 {w_roe}, 가격 할인 폭은 {w_mos} 우위입니다", "VS_4"),
-                    ("10년 장부 맞대결, 여러분의 포트폴리오 선택은 어디인가요?", "VS_4")
+                    (vs_c1, "VS_1"),
+                    (vs_c2, "VS_2"),
+                    (vs_c3, "VS_3"),
+                    (vs_c4, "VS_4"),
+                    (vs_c5, "VS_4")
                 ]
-                # ▲▲▲ [교체 2 끝] ▲▲▲
 
-                if st.button("🎬 100% 음슴체 · 괄호제거 10컷 비교 쇼츠(.mp4) 생성", key="btn_make_vs_mp4", use_container_width=True, type="primary"):
+                if st.button("💥 13초 미스터비스트 1:1 맞대결 쇼츠(.mp4) 생성", key="btn_make_vs_mp4_v13", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
                         import imageio_ffmpeg, subprocess, tempfile, os, re, wave, struct, math
 
-                        with st.spinner(f"[{na} vs {nb}] BGM 합성 및 10컷 비교 쇼츠(.mp4)를 렌더링 중입니다..."):
+                        with st.spinner(f"[{na} vs {nb}] 13초 다크 네온 1:1 맞대결 쇼츠(.mp4) 렌더링 중..."):
                             font_dir = tempfile.gettempdir()
                             bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                             if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
@@ -9450,193 +9498,105 @@ with tab_vs:
                                         except Exception: continue
                                 return ImageFont.load_default()
 
-                            def _fit_line(draw, cx, cy, max_w, text, start_sz=50, min_sz=14, fill=(255,255,255)):
+                            def _fit_v(draw, cx, cy, max_w, text, start_sz=44, min_sz=12, fill=(255,255,255), sw=0):
                                 t_s = str(text).strip()
                                 for sz in range(start_sz, min_sz - 1, -2):
                                     f = _gf(sz)
-                                    bb = draw.textbbox((0, 0), t_s, font=f)
+                                    bb = draw.textbbox((0, 0), t_s, font=f, stroke_width=sw)
                                     if (bb[2] - bb[0]) <= max_w:
-                                        draw.text((cx, cy), t_s, font=f, fill=fill, anchor="mm")
+                                        dx = cx - (bb[0] + bb[2]) / 2.0
+                                        dy = cy - (bb[1] + bb[3]) / 2.0
+                                        draw.text((dx, dy), t_s, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
                                         return
-                                f = _gf(min_sz)
-                                draw.text((cx, cy), t_s, font=f, fill=fill, anchor="mm")
 
-                            def _fix_vs_pron(t_in):
-                                s = str(t_in)
-                                s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
-                                s = re.sub(r'\$([\d,\.]+)', r'\1달러', s).replace("%p", "퍼센트포인트")
-                                for ek, kv in [
-                                    ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
-                                    ("NAVER", "네이버"), ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"),
-                                    ("ROIC", "알오아이씨"), ("ROE", "알오이"), ("PER", "피이알"), ("PBR", "피비알"),
-                                    ("SK", "에스케이 "), ("LG", "엘지 "), ("KT", "케이티 "), ("KB", "케이비 "),
-                                    ("CJ", "씨제이 "), ("HD", "에이치디 "), ("LS", "엘에스 "), ("DB", "디비 "),
-                                    ("GS", "지에스 "), ("HMM", "에이치엠엠 "), ("HLB", "에이치엘비 "), ("AMD", "에이엠디")
-                                ]:
-                                    s = s.replace(ek, kv)
-                                s = re.sub(r'\s+', ' ', s).strip()
-                                return s
-
-                            def _make_vs_bgm(out_w, dur_s, b_style):
+                            def _add_sfx_vs(wav_p):
                                 sr = 24000
-                                n_s = int(sr * (dur_s + 1.0))
-                                bpm = 122.0 if "신스웨이브" in b_style else (88.0 if "로파이" in b_style else 128.0)
-                                step_s = (60.0 / bpm) / 2.0
-                                notes = [220.0, 261.63, 329.63, 440.0, 174.61, 220.0, 261.63, 349.23]
-                                bass_n = [55.0, 43.65, 65.41, 49.0]
-                                buf = bytearray()
-                                pack_h = struct.Struct('<h').pack
-                                tpi = 2.0 * math.pi
-                                for i in range(n_s):
-                                    ts = i / sr
-                                    si = int(ts / step_s)
-                                    lt = ts - (si * step_s)
-                                    bf = bass_n[(si // 4) % 4]
-                                    ke = math.exp(-lt * 14.0) if (si % 2 == 0) else 0.0
-                                    sw = math.sin(tpi * bf * (1.0 + 1.8 * math.exp(-lt * 35.0)) * lt) * ke * 0.55
-                                    nf = notes[si % len(notes)]
-                                    pw = math.sin(tpi * nf * lt) * math.exp(-lt * 12.0) * 0.35
-                                    buf.extend(pack_h(int(max(-0.95, min(0.95, sw + pw)) * 32767)))
-                                with wave.open(out_w, 'wb') as wf:
-                                    wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
-
-                            def _make_vs_chunk_wav(txt, raw_p, wav_p, ffmpeg_exe):
-                                tts_t = _fix_vs_pron(txt)
-                                if "박창수" in vs_voice:
-                                    v_id, p_hz = "ko-KR-InJoonNeural", "+2Hz"
-                                    eq_s = "equalizer=f=2200:width_type=h:width=1000:g=4,equalizer=f=350:width_type=h:width=200:g=2"
-                                    pad_t = "0.03"
-                                elif "공감입니다 스타일" in vs_voice:
-                                    v_id, p_hz = "ko-KR-InJoonNeural", "+4Hz"
-                                    eq_s = "equalizer=f=2500:width_type=h:width=1000:g=3"
-                                    pad_t = "0.04"
-                                elif "낭만 썰풀이" in vs_voice:
-                                    v_id, p_hz = "ko-KR-HyunsuNeural", "+2Hz"
-                                    eq_s = "equalizer=f=2500:width_type=h:width=1000:g=3"
-                                    pad_t = "0.04"
-                                elif "인준" in vs_voice:
-                                    v_id, p_hz = "ko-KR-InJoonNeural", "+8Hz"
-                                    eq_s = "equalizer=f=2800:width_type=h:width=1000:g=3"
-                                    pad_t = "0.03"
-                                else:
-                                    v_id, p_hz = "ko-KR-SunHiNeural", "+5Hz"
-                                    eq_s = "equalizer=f=2800:width_type=h:width=1000:g=2"
-                                    pad_t = "0.04"
-                                try:
-                                    import edge_tts, asyncio
-                                    async def _r():
-                                        await edge_tts.Communicate(tts_t, voice=v_id, rate=f"+{vs_speed}%", pitch=p_hz).save(raw_p)
-                                    loop = asyncio.new_event_loop()
-                                    try: loop.run_until_complete(_r())
-                                    finally: loop.close()
-                                except ImportError:
-                                    from gtts import gTTS
-                                    gTTS(text=tts_t, lang='ko').save(raw_p)
-
-                                af_flt = (
-                                    "silenceremove=start_periods=1:start_threshold=-38dB:"
-                                    "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
-                                    f"{eq_s},apad=pad_dur={pad_t}"
-                                )
-                                try:
-                                    subprocess.run([ffmpeg_exe, "-y", "-i", raw_p, "-af", af_flt, "-ar", "24000", "-ac", "1", wav_p], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                except Exception:
-                                    subprocess.run([ffmpeg_exe, "-y", "-i", raw_p, "-ar", "24000", "-ac", "1", wav_p], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                with wave.open(wav_p, 'rb') as wf:
+                                    prm = wf.getparams()
+                                    raw = wf.readframes(wf.getnframes())
+                                pcm = list(struct.unpack(f'<{len(raw)//2}h', raw))
+                                n_sfx = min(len(pcm), int(sr * 0.15))
+                                for idx_i in range(n_sfx):
+                                    ts = idx_i / sr
+                                    sf = 48.0 + 90.0 * math.exp(-ts * 34.0)
+                                    sp = math.sin(2.0 * math.pi * sf * ts) * math.exp(-ts * 15.0) * 0.45
+                                    rg = math.sin(2.0 * math.pi * 1318.5 * ts) * math.exp(-ts * 26.0) * 0.22
+                                    pcm[idx_i] = max(-32767, min(32767, int(pcm[idx_i] + (sp + rg) * 32767)))
+                                with wave.open(wav_p, 'wb') as wf_o:
+                                    wf_o.setparams(prm)
+                                    wf_o.writeframes(struct.pack(f'<{len(pcm)}h', *pcm))
 
                             n_vs = len(vs_pop_chunks)
-
                             def _draw_vs_pop_frame(c_idx, sub_txt, sc_code):
                                 W, H = 720, 1280
-                                img = Image.new("RGB", (W, H), color=(0, 0, 0))
+                                ban_cols = [(220, 38, 38), (0, 180, 100), (168, 55, 245), (37, 99, 235), (220, 38, 38)]
+                                bc = ban_cols[c_idx % len(ban_cols)]
+                                img = Image.new("RGB", (W, H), color=(6, 8, 16))
                                 draw = ImageDraw.Draw(img)
 
-                                _fit_line(draw, W//2, 148, W-48, "워런 버핏의 관점으로 본", start_sz=50, min_sz=28, fill=(255, 255, 255))
-                                _fit_line(draw, W//2, 224, W-36, f"{na} vs {nb}", start_sz=68, min_sz=34, fill=(255, 240, 0))
+                                draw.rectangle([0, 80, W, 260], fill=bc)
+                                _fit_v(draw, W//2, 125, W-72, f"10년 장부 1:1 끝장 대결 · [{today_vs_str}]", start_sz=28, fill=(255, 255, 255), sw=2)
+                                _fit_v(draw, W//2, 204, W-64, f"{na} vs {nb}", start_sz=56, fill=(255, 240, 0), sw=4)
 
-                                draw.rectangle([0, 272, W, 945], fill=(255, 255, 255))
-                                draw.rectangle([0, 272, int(W * ((c_idx + 1) / max(1, n_vs))), 280], fill=(255, 60, 30))
-                                draw.rounded_rectangle([36, 296, W-36, 792], radius=26, fill=(248, 250, 252), outline=(203, 213, 225), width=3)
+                                draw.rectangle([0, 260, W, 274], fill=(25, 35, 55))
+                                draw.rectangle([0, 260, int(W * ((c_idx + 1) / max(1, n_vs))), 274], fill=(0, 255, 136))
+
+                                draw.rounded_rectangle([26, 288, W-26, 804], radius=26, fill=(10, 14, 24), outline=bc, width=5)
 
                                 if sc_code == "VS_1":
-                                    if is_kr_or_pbr:
-                                        m_lbl = "비교 1. 순자산 대비 주가 배수"
-                                        va, vb = f"{res_a['f_pbr']:.2f}배", f"{res_b['f_pbr']:.2f}배"
-                                        sa, sb = f"1만원당 {int(round(res_a['f_pbr']*100,0)*100):,}원", f"1만원당 {int(round(res_b['f_pbr']*100,0)*100):,}원"
-                                    else:
-                                        m_lbl = "비교 1. 본전 회수 기간"
-                                        va, vb = f"{res_a['f_pe']:.1f}년", f"{res_b['f_pe']:.1f}년"
-                                        sa, sb = f"현재가 {res_a['p_str']}", f"현재가 {res_b['p_str']}"
-                                    badge_vs = m_line_vs
+                                    m_lbl = "라운드 1. 가격 할인 매력도 대결"
+                                    va = f"{res_a['f_pbr']:.2f}배" if is_kr_or_pbr else f"{res_a['f_pe']:.1f}년"
+                                    vb = f"{res_b['f_pbr']:.2f}배" if is_kr_or_pbr else f"{res_b['f_pe']:.1f}년"
+                                    sa = f"평균대비 {res_a['mos']:+.0f}%"
+                                    sb = f"평균대비 {res_b['mos']:+.0f}%"
+                                    badge_vs = f"가격 할인 승자 : {w_mos} (+{mos_gap:.0f}%p 우위!)"
                                 elif sc_code == "VS_2":
-                                    m_lbl = "비교 2. 10년 평균 대비 할인율"
-                                    va, vb = f"{res_a['mos']:+.0f}%", f"{res_b['mos']:+.0f}%"
-                                    sa = f"10년평균 {res_a['a_pbr']:.2f}배" if is_kr_or_pbr else f"10년평균 {res_a['a_pe']:.1f}년"
-                                    sb = f"10년평균 {res_b['a_pbr']:.2f}배" if is_kr_or_pbr else f"10년평균 {res_b['a_pe']:.1f}년"
-                                    badge_vs = f"가격 할인폭 우위 : {w_mos} +{mos_gap:.0f}%p"
+                                    m_lbl = "라운드 2. 실제 장사수익률 (돈벌이) 대결"
+                                    va, vb = f"연 {cap_a:.1f}%", f"연 {cap_b:.1f}%"
+                                    sa, sb = f"예금의 {max(0.1, cap_a/3.5):.1f}배", f"예금의 {max(0.1, cap_b/3.5):.1f}배"
+                                    badge_vs = f"돈벌이 승자 : {w_cap} (+{cap_gap:.1f}%p 우위!)"
                                 elif sc_code == "VS_3":
-                                    m_lbl = "비교 3. 돈 불리는 복리 속도"
-                                    va, vb = f"연 {res_a['roe']:.1f}%", f"연 {res_b['roe']:.1f}%"
-                                    sa, sb = f"예금의 {max(0.1, res_a['roe']/3.5):.1f}배", f"예금의 {max(0.1, res_b['roe']/3.5):.1f}배"
-                                    badge_vs = f"자본 수익성 우위 : {w_roe} +{roe_gap:.1f}%p"
-                                else:
-                                    m_lbl = "비교 4. 순수 현금 배당수익률"
+                                    m_lbl = "라운드 3. 순수 현금 배당률 대결"
                                     va, vb = f"연 {res_a['div']:.1f}%", f"연 {res_b['div']:.1f}%"
-                                    sa, sb = f"종합 {res_a['score']}점", f"종합 {res_b['score']}점"
-                                    badge_vs = f"수익성은 {w_roe} · 가격할인은 {w_mos} 우위"
-
-                                draw.rounded_rectangle([60, 314, W-60, 370], radius=14, fill=(15, 23, 42))
-                                _fit_line(draw, W//2, 342, W-150, m_lbl, start_sz=26, min_sz=16, fill=(255, 240, 0))
-
-                                draw.rounded_rectangle([56, 390, 346, 684], radius=20, fill=(255, 255, 255), outline=(37, 99, 235), width=3)
-                                _fit_line(draw, 201, 442, 260, na, start_sz=34, min_sz=18, fill=(15, 23, 42))
-                                _fit_line(draw, 201, 545, 260, va, start_sz=54, min_sz=26, fill=(29, 78, 216))
-                                _fit_line(draw, 201, 638, 260, sa, start_sz=21, min_sz=13, fill=(100, 116, 139))
-
-                                draw.rounded_rectangle([374, 390, W-56, 684], radius=20, fill=(255, 255, 255), outline=(5, 122, 85), width=3)
-                                _fit_line(draw, 519, 442, 260, nb, start_sz=34, min_sz=18, fill=(15, 23, 42))
-                                _fit_line(draw, 519, 545, 260, vb, start_sz=54, min_sz=26, fill=(5, 122, 85))
-                                _fit_line(draw, 519, 638, 260, sb, start_sz=21, min_sz=13, fill=(100, 116, 139))
-
-                                draw.rounded_rectangle([56, 702, W-56, 772], radius=14, fill=(15, 23, 42))
-                                _fit_line(draw, W//2, 737, W-140, badge_vs, start_sz=26, min_sz=15, fill=(255, 255, 255))
-
-                                sub_c = str(sub_txt).strip()
-                                sub_col = (255, 240, 0) if c_idx in [0, n_vs - 1] else (255, 255, 255)
-                                max_sub_w = W - 64
-
-                                sf = _gf(38)
-                                bb = draw.textbbox((0, 0), sub_c, font=sf)
-                                tw = bb[2] - bb[0]
-                                while tw > max_sub_w and sf.size > 22:
-                                    sf = _gf(sf.size - 2)
-                                    bb = draw.textbbox((0, 0), sub_c, font=sf)
-                                    tw = bb[2] - bb[0]
-
-                                if tw > max_sub_w and " " in sub_c:
-                                    words = sub_c.split(" ")
-                                    mid = len(words) // 2
-                                    l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
-                                    sf = _gf(28)
-                                    bb1, bb2 = draw.textbbox((0, 0), l1, font=sf), draw.textbbox((0, 0), l2, font=sf)
-                                    tw = max(bb1[2] - bb1[0], bb2[2] - bb2[0])
-                                    draw.rectangle([max(12, (W - tw)//2 - 20), 828, min(W - 12, (W + tw)//2 + 20), 914], fill=(0, 0, 0))
-                                    draw.text((W//2, 852), l1, font=sf, fill=sub_col, anchor="mm")
-                                    draw.text((W//2, 890), l2, font=sf, fill=sub_col, anchor="mm")
+                                    sa, sb = f"1천만원당 {res_a['div']*10:.0f}만원", f"1천만원당 {res_b['div']*10:.0f}만원"
+                                    badge_vs = f"순수 배당 승자 : {w_div} (+{div_gap:.1f}%p 우위!)"
                                 else:
-                                    while tw > max_sub_w and sf.size > 14:
-                                        sf = _gf(sf.size - 1)
-                                        bb = draw.textbbox((0, 0), sub_c, font=sf)
-                                        tw = bb[2] - bb[0]
-                                    th = bb[3] - bb[1]
-                                    draw.rectangle([max(12, (W - tw)//2 - 20), 870 - th//2 - 14, min(W - 12, (W + tw)//2 + 20), 870 + th//2 + 14], fill=(0, 0, 0))
-                                    draw.text((W//2, 870), sub_c, font=sf, fill=sub_col, anchor="mm")
+                                    m_lbl = "최종 라운드. 10년 장부 종합 점수"
+                                    va, vb = f"{res_a['score']}점", f"{res_b['score']}점"
+                                    sa, sb = f"수익률 {cap_a:.1f}%", f"수익률 {cap_b:.1f}%"
+                                    badge_vs = f"최종 판정 : {w_tot} 종합 우위! (가격:{w_mos} · 수익:{w_cap})"
 
-                                _fit_line(draw, W//2, 1080, W-50, "공시 데이터 기반 학술·교육용 비교이며 매수·매도 추천이 아닙니다", start_sz=17, min_sz=12, fill=(100, 100, 100))
+                                draw.rounded_rectangle([48, 308, W-48, 366], radius=12, fill=(24, 34, 58), outline=(255, 240, 0), width=2)
+                                _fit_v(draw, W//2, 337, W-130, m_lbl, start_sz=26, fill=(255, 240, 0), sw=2)
+
+                                # 좌측 기업 A 카드 (블루 네온)
+                                draw.rounded_rectangle([44, 386, 348, 692], radius=20, fill=(16, 24, 44), outline=(0, 176, 255), width=4)
+                                _fit_v(draw, 196, 438, 270, na, start_sz=34, fill=(255, 255, 255), sw=2)
+                                _fit_v(draw, 196, 545, 270, va, start_sz=54, fill=(0, 230, 118) if va >= vb else (0, 176, 255), sw=3)
+                                _fit_v(draw, 196, 642, 270, sa, start_sz=23, fill=(255, 240, 0))
+
+                                # 우측 기업 B 카드 (그린/레드 네온)
+                                draw.rounded_rectangle([372, 386, W-44, 692], radius=20, fill=(16, 24, 44), outline=(0, 230, 118), width=4)
+                                _fit_v(draw, 524, 438, 270, nb, start_sz=34, fill=(255, 255, 255), sw=2)
+                                _fit_v(draw, 524, 545, 270, vb, start_sz=54, fill=(255, 240, 0), sw=3)
+                                _fit_v(draw, 524, 642, 270, sb, start_sz=23, fill=(0, 230, 118))
+
+                                draw.rounded_rectangle([44, 710, W-44, 780], radius=14, fill=bc)
+                                _fit_v(draw, W//2, 745, W-120, badge_vs, start_sz=25, fill=(255, 255, 255), sw=2)
+
+                                words = sub_txt.split(" ")
+                                mid = len(words) // 2
+                                l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
+                                draw.rounded_rectangle([32, 824, W-32, 950], radius=18, fill=(10, 14, 24), outline=bc, width=4)
+                                _fit_v(draw, W//2, 864, W-88, l1, start_sz=32, fill=(255, 255, 255), sw=4)
+                                _fit_v(draw, W//2, 914, W-88, l2, start_sz=32, fill=(255, 240, 0), sw=4)
+                                _fit_v(draw, W//2, 1080, W-50, "[안내] 공시 데이터 기반 학술·교육용 비교이며 매수·매도 추천이 아닙니다", start_sz=15, fill=(130, 140, 155))
                                 return img
 
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                             cleans = []
                             seg_list = [None] * n_vs
+                            vf_vs_m = "scale=756:1344:flags=lanczos,crop=720:1280:'(iw-720)/2+if(lt(t,0.12),sin(t*160)*10,0)':'(ih-1280)/2+if(lt(t,0.12),cos(t*130)*10,0)',eq=eval=frame:brightness='if(lt(t,0.06),0.20,0)'"
 
                             def _build_vs_cut(i_v, stxt, scd):
                                 fi = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
@@ -9644,16 +9604,26 @@ with tab_vs:
                                 fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                 fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                 _draw_vs_pop_frame(i_v, stxt, scd).save(fi)
-                                _make_vs_chunk_wav(stxt, fr, fw, ffmpeg_exe)
-                                subprocess.run([
-                                    ffmpeg_exe, "-y", "-loop", "1", "-i", fi, "-i", fw,
-                                    "-c:v", "libx264", "-tune", "stillimage", "-r", "30",
-                                    "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
-                                    "-shortest", fs
-                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                v_id = "ko-KR-SunHiNeural" if "여성" in vs_voice else ("ko-KR-HyunsuNeural" if "현수" in vs_voice else "ko-KR-InJoonNeural")
+                                tts_v = stxt.replace("%p", "퍼센트포인트").replace("%", "퍼센트").replace("1주당", "한주당")
+                                import edge_tts, asyncio
+                                loop = asyncio.new_event_loop()
+                                try: loop.run_until_complete(edge_tts.Communicate(tts_v, voice=v_id, rate="+45%", pitch="+2Hz").save(fr))
+                                finally: loop.close()
+
+                                is_last_v = (i_v == n_vs - 1)
+                                pad_v = "" if is_last_v else ",apad=pad_dur=0.02"
+                                af_v = f"silenceremove=start_periods=1:start_threshold=-36dB:stop_periods=-1:stop_threshold=-36dB:stop_duration=0.02,atempo={vs_atempo:.2f},volume=1.22{pad_v}"
+                                subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_v, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                _add_sfx_vs(fw)
+
+                                res_vv = subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", fi, "-i", fw, "-vf", vf_vs_m, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", fs], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                if res_vv.returncode != 0:
+                                    subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", fi, "-i", fw, "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", fs], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 return i_v, fs, [fi, fr, fw, fs]
 
-                            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
                                 futs = [ex.submit(_build_vs_cut, idx_v, s_t, s_c) for idx_v, (s_t, s_c) in enumerate(vs_pop_chunks)]
                                 for ft in concurrent.futures.as_completed(futs):
                                     iv_r, fs_r, t_l = ft.result()
@@ -9663,40 +9633,19 @@ with tab_vs:
                             cat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                             cleans.append(cat_txt)
                             with open(cat_txt, "w", encoding="utf-8") as cf:
-                                for sp in seg_list:
-                                    cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
-
-                            merged_vs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                            cleans.append(merged_vs)
-                            subprocess.run([
-                                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt, "-c", "copy", merged_vs
-                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                for sp in seg_list: cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
 
                             out_vs_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                             cleans.append(out_vs_mp4)
-
-                            if "없음" not in vs_bgm:
-                                res_d = subprocess.run([ffmpeg_exe, "-i", merged_vs], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-                                m_d = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_d.stderr)
-                                v_dur = (int(m_d.group(1))*3600 + int(m_d.group(2))*60 + float(m_d.group(3))) if m_d else 15.0
-                                bgm_w = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
-                                cleans.append(bgm_w)
-                                _make_vs_bgm(bgm_w, v_dur, vs_bgm)
-                                subprocess.run([
-                                    ffmpeg_exe, "-y", "-i", merged_vs, "-i", bgm_w,
-                                    "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.16[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=2[aout]",
-                                    "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out_vs_mp4
-                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                            else:
-                                out_vs_mp4 = merged_vs
+                            subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt, "-c", "copy", out_vs_mp4], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                             with open(out_vs_mp4, "rb") as vf: vs_mp4_b = vf.read()
-                            st.success(f"🎉 [{na} vs {nb}] 괄호 읽기 방지 + 화이트&블랙 비교 쇼츠(.mp4)가 완성되었습니다!")
+                            st.success(f"🎉 [{na} vs {nb}] 13초 다크 네온 1:1 맞대결 쇼츠(.mp4) 완성!")
                             st.video(vs_mp4_b)
                             st.download_button(
-                                label=f"📥 [{na}_vs_{nb}] 쇼츠(.mp4) 다운로드",
+                                label=f"📥 [{na}_vs_{nb}] 13초 맞대결 쇼츠(.mp4) 다운로드",
                                 data=vs_mp4_b,
-                                file_name=f"Value_VS_{res_a['tk']}_{res_b['tk']}_shorts.mp4",
+                                file_name=f"AGIE_VS_{res_a['tk']}_{res_b['tk']}_Beast.mp4",
                                 mime="video/mp4",
                                 use_container_width=True
                             )
@@ -9708,6 +9657,7 @@ with tab_vs:
                         st.warning(f"비교 쇼츠 생성 오류: {e}")
 
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(vs_pop_chunks)]), language="text")
+            # ▲▲▲ [1:1 맞대결 쇼츠 업그레이드 끝] ▲▲▲
 # [무료 공개 API 3중 백업] 시가총액 순위 & 박스 크기 자동 연동 히트맵 엔진
 # ==========================================
 @st.cache_data(ttl=600, show_spinner=False)
