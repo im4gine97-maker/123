@@ -3697,41 +3697,27 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
     score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
 
-    # 2. 총주주환원율 (배당수익률 + 자사주 순매입수익률 합산)
-    tsy_pct = div_yield_pct + buyback_yield_pct
+    # 2. 순수 배당 매력도 (자사주 매입 합산 완전 제거 · 순수 현금배당만 평가)
     div_score = 0
-    if tsy_pct >= 5.0: div_score = 20
-    elif tsy_pct >= 4.8: div_score = 19
-    elif tsy_pct >= 4.6: div_score = 18
-    elif tsy_pct >= 4.4: div_score = 17
-    elif tsy_pct >= 4.2: div_score = 16
-    elif tsy_pct >= 4.0: div_score = 15
-    elif tsy_pct >= 3.8: div_score = 14
-    elif tsy_pct >= 3.6: div_score = 13
-    elif tsy_pct >= 3.4: div_score = 12
-    elif tsy_pct >= 3.2: div_score = 11
-    elif tsy_pct >= 3.0: div_score = 10
-    elif tsy_pct >= 2.7: div_score = 9
-    elif tsy_pct >= 2.4: div_score = 8
-    elif tsy_pct >= 2.1: div_score = 7
-    elif tsy_pct >= 1.8: div_score = 6
-    elif tsy_pct >= 1.5: div_score = 5
-    elif tsy_pct >= 1.2: div_score = 4
-    elif tsy_pct >= 0.9: div_score = 3
-    elif tsy_pct >= 0.5: div_score = 2
-    elif tsy_pct > 0.0: div_score = 1
-    elif tsy_pct < -2.0: div_score = -5  # 유상증자 등으로 주주가치를 심각하게 희석할 경우 감점
+    if div_yield_pct >= 5.0: div_score = 20
+    elif div_yield_pct >= 4.5: div_score = 18
+    elif div_yield_pct >= 4.0: div_score = 16
+    elif div_yield_pct >= 3.5: div_score = 14
+    elif div_yield_pct >= 3.0: div_score = 12
+    elif div_yield_pct >= 2.5: div_score = 10
+    elif div_yield_pct >= 2.0: div_score = 8
+    elif div_yield_pct >= 1.5: div_score = 6
+    elif div_yield_pct >= 1.0: div_score = 4
+    elif div_yield_pct >= 0.5: div_score = 2
+    elif div_yield_pct > 0.0: div_score = 1
     else: div_score = 0
 
-    if tsy_pct > 0:
-        div_reason = t(f"총주주환원율 {tsy_pct:.2f}% (배당 {div_yield_pct:.2f}% + 자사주순매입 {buyback_yield_pct:+.2f}%)", f"Total Shareholder Yield {tsy_pct:.2f}% (Div {div_yield_pct:.2f}% + Buyback {buyback_yield_pct:+.2f}%)")
-    elif tsy_pct < -2.0:
-        div_reason = t(f"주식 순발행(희석) 경고: 총주주환원율 {tsy_pct:.2f}% (배당 {div_yield_pct:.2f}% / 증자 {buyback_yield_pct:+.2f}%)", f"Share Dilution Warning: TSY {tsy_pct:.2f}%")
+    if div_yield_pct > 0:
+        div_reason = t(f"순수 배당수익률 {div_yield_pct:.2f}% 반영", f"Pure Dividend Yield {div_yield_pct:.2f}%")
     else:
-        div_reason = t("배당 및 자사주 매입 없음 (성장 재투자 혹은 중립)", "No dividend or buyback (Neutral)")
+        div_reason = t("현금 배당 없음 (성장 재투자 혹은 중립)", "No cash dividend (Neutral)")
         
-    score_details[t("총주주환원 매력도 (배당+자사주)", "Total Shareholder Yield (Div+Buyback)")] = (div_score, div_reason)
-
+    score_details[t("배당 매력도 (순수 배당률)", "Dividend Yield")] = (div_score, div_reason)
     # [필수 복구] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
     def calc_dynamic_score(margin_pct):
         base_m = 2.0 if is_financial else 1.5
@@ -5033,7 +5019,7 @@ with st.sidebar:
     st.caption("항목별 점수 비중(배수)을 내 취향대로 조절하세요. (1.0배 = 기본값, 0배 = 점수 반영 안함)")
     
     w_mgmt = st.slider(" 경영진/거버넌스 비중", 0.0, 3.0, 1.0, 0.1)
-    w_div = st.slider(" 총주주환원 (배당+자사주) 비중", 0.0, 3.0, 1.0, 0.1)
+    w_div = st.slider(" 배당 매력도 비중", 0.0, 3.0, 1.0, 0.1)
     w_val = st.slider(" 가격 매력도 (PER/DCF) 비중", 0.0, 3.0, 1.0, 0.1)
     w_biz = st.slider(" 비즈니스 해자 (ROE/ROIC) 비중", 0.0, 3.0, 1.0, 0.1)
     w_macro = st.slider(" 거시경제 및 성장성 비중", 0.0, 3.0, 1.0, 0.1)
@@ -5976,10 +5962,10 @@ with tab1:
                         if "경영진" in k_sb or "Management" in k_sb:
                             mgmt_sc = v_sb[0] if isinstance(v_sb, tuple) else v_sb
                             break
-                    if mgmt_sc >= 0 and (tsy_total >= 1.5 or mgmt_sc >= 7.0): c2_st = "pass"
-                    elif mgmt_sc >= -5.0 and tsy_total >= 0.0: c2_st = "warn"
+                    if mgmt_sc >= 0 and (div >= 1.5 or mgmt_sc >= 7.0): c2_st = "pass"
+                    elif mgmt_sc >= -5.0: c2_st = "warn"
                     else: c2_st = "fail"
-                    c2_sub = f"총환원 {tsy_total:.1f}% · 거버넌스 {mgmt_sc:+.0f}점"
+                    c2_sub = f"배당 {div:.1f}% · 거버넌스 {mgmt_sc:+.0f}점"
 
                     # ③ 가격 안전마진 (과거 평균 멀티플 할인율 & DCF 안전마진)
                     use_5y_chk = st.session_state.get("use_5y_avg", False)
@@ -6223,9 +6209,9 @@ with tab1:
 
                 ext_str_clean = ext_str
                 
-                # [교체] 배당률 표기를 총주주환원율(배당+자사주)로 업그레이드
-                div_color = "#2ecc71" if tsy_total >= 3.0 else ("#fdcb6e" if tsy_total > 0 else "var(--text-color)")
-                div_str = f"<span style='color:{div_color}; font-weight:600;'>총주주환원: {tsy_total:.1f}% <span style='font-size:0.85em; opacity:0.85;'>(배당 {div:.1f}% / 자사주 {bb_yield:+.1f}%)</span></span>"
+                # [수정 완료] 자사주 매입 표기 완전 삭제 -> 순수 배당수익률만 단독 표기
+                div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
+                div_str = f"<span style='color:{div_color}; font-weight:600;'>배당수익률: {div:.2f}% ({div_trend})</span>"
 
                 gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
                 opm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 탁월한 비즈니스', 'Excellent')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 평균 수익', 'Average')}</span>" if op_m >= 8 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 수익성 경고', 'Poor')}</span>")
@@ -6385,7 +6371,7 @@ with tab1:
                     f"<div style='grid-column: 1 / -1; font-weight: 800; font-size: 1.2rem; color: #fff; background: {op_color}; padding: 15px 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>"
                     f"{easy_summary_msg}</div>"
 
-                    f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 총주주환원율</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 배당수익률</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
@@ -6801,8 +6787,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     st.code(t(share_ko, share_en), language="text")
                 with st.expander(t("🎬 6. 쇼츠·릴스·틱톡 올인원 스튜디오 (13초 극한 압축 · 다이나믹 줌인/플래시 모션 · 70/90 무한루프)", "🎬 6. All-in-One Shorts Studio"), expanded=False):
                     st.info(t(
-                        "💥 **[70/90 강제 돌파 · 극한 시각폭격 패치]** ① 정지화면 폐기! 컷마다 **화면이 실제로 줌인·진동하며 네온 플래시가 터지는 모션 비디오 엔진** 탑재, ② **FFmpeg 물리 가속(`atempo`) + 초압축 타격 대본**으로 전체 영상 길이를 **12~14초**로 강제 단축, ③ **3중 레이어 헤비 임팩트 효과음(서브베이스 드랍+브람+캐시 타격음)**, ④ **0.00초 칼컷 무한루프 브릿지**가 적용되었습니다.",
-                        "💥 13s Extreme Visual Strike Mode: Dynamic Zoom/Shake Motion, FFmpeg atempo Turbo, Heavy Bass Impact SFX, and Seamless Infinite Loop."
+                        "💥 **[에러 수리 & 순수 배당 전용 패치 완료]** ① `thumb_compare_bar` 변수 에러 완벽 해결, ② 자사주 매입 완전 배제 및 **순수 현금 배당**만 단독 표기, ③ 컷마다 **화면이 실제로 줌인·진동하며 네온 플래시가 터지는 모션 비디오 엔진** 탑재, ④ **FFmpeg 물리 가속(`atempo`) + 초압축 타격 대본**으로 전체 영상 길이를 **12~14초**로 단축했습니다.",
+                        "💥 13s Extreme Visual Strike Mode: Dynamic Zoom/Shake Motion, FFmpeg atempo Turbo, Pure Dividend Only, and Seamless Infinite Loop."
                     ))
 
                     # 10년 FCF 메타데이터 로드 및 10개년 완전체 보정
@@ -6915,7 +6901,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "📊 [모드 2 · 스탠다드] 25초 워런 버핏 10년 장부 브리핑"
                             ],
                             horizontal=False,
-                            key=f"sh_mode_v11_{tk}"
+                            key=f"sh_mode_v12_{tk}"
                         )
                     with mode_col2:
                         shorts_lang_mode = st.radio(
@@ -6925,7 +6911,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "🇺🇸 영어 버전 (MrBeast Extreme · English)"
                             ],
                             horizontal=False,
-                            key=f"sh_lang_v11_{tk}"
+                            key=f"sh_lang_v12_{tk}"
                         )
 
                     is_en_shorts = ("🇺🇸" in shorts_lang_mode)
@@ -6941,7 +6927,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "⚡ 2위 [Ava Extreme High-Tone] 귀에 꽂히는 하이톤 여성 (+10Hz)",
                                     "🎙️ 3위 [Custom GPT-SoVITS] 코랩(Colab) 외부 TTS API 연동"
                                 ],
-                                key=f"shorts_voice_en_v11_{tk}"
+                                key=f"shorts_voice_en_v12_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
@@ -6952,7 +6938,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     "🔥 3위 [하이톤 속사포 남성] 숨 쉴 틈 없는 팩트 폭격 (현수 +11Hz 튜닝)",
                                     "🎙️ 4위 [코랩 GPT-SoVITS 연동] 내 커스텀 AI 보이스 (API URL 연동)"
                                 ],
-                                key=f"shorts_voice_ko_v11_{tk}"
+                                key=f"shorts_voice_ko_v12_{tk}"
                             )
                     with col_sh2:
                         bgm_choice = st.selectbox(
@@ -6963,7 +6949,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "🎧 3위 모던 금융 다큐멘터리 칠 비트",
                                 "🔇 4위 배경음악 없음 (성우+타격 효과음만)"
                             ],
-                            key=f"shorts_bgm_v11_{tk}"
+                            key=f"shorts_bgm_v12_{tk}"
                         )
 
                     sovits_api_url = ""
@@ -6971,7 +6957,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         sovits_api_url = st.text_input(
                             "🔗 코랩(Colab) GPT-SoVITS API 주소 입력 (비워두면 내장 극한 하이톤 보이스로 작동)",
                             placeholder="예: https://xxxx-xx-xx.ngrok-free.app/tts",
-                            key=f"sovits_url_v11_{tk}"
+                            key=f"sovits_url_v12_{tk}"
                         )
 
                     col_sh3, col_sh4 = st.columns([1.4, 1.6])
@@ -6983,7 +6969,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "⚡ 2위 🪙 하이퍼 스우시 + 골드 코인 잭팟 타격음",
                                 "🔇 3위 화면 전환 효과음 없음"
                             ],
-                            key=f"shorts_sfx_v11_{tk}"
+                            key=f"shorts_sfx_v12_{tk}"
                         )
                     with col_sh4:
                         spd_c1, spd_c2, spd_c3 = st.columns(3)
@@ -6992,7 +6978,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "4️⃣ 1차 성우 배속",
                                 min_value=10, max_value=100, value=50, step=5,
                                 format="+%d%%",
-                                key=f"shorts_spd_v11_{tk}"
+                                key=f"shorts_spd_v12_{tk}"
                             )
                         with spd_c2:
                             atempo_mult = st.slider(
@@ -7000,14 +6986,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 min_value=1.00, max_value=1.60, value=1.25, step=0.05,
                                 format="%.2fx",
                                 help="23초 벽을 깨고 12~14초로 압축하는 핵심 엔진입니다! (1.25배~1.35배 강력 추천)",
-                                key=f"shorts_atempo_v11_{tk}"
+                                key=f"shorts_atempo_v12_{tk}"
                             )
                         with spd_c3:
                             motion_intensity = st.selectbox(
                                 "📳 화면 타격 모션",
                                 ["🔥 극한(줌인+플래시+진동)", "⚡ 보통(줌인만)", "정지화면"],
                                 index=0,
-                                key=f"shorts_motion_v11_{tk}"
+                                key=f"shorts_motion_v12_{tk}"
                             )
 
                     extra_kor_names = {
@@ -7112,7 +7098,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         eps_span_yrs = 10
                     eps_cagr_pct = eps_cagr_raw * 100.0 if eps_status_code not in ["TURN_LOSS", "CONT_LOSS", "INSUFFICIENT"] else 0.0
 
-                    # 10년 배당 추출
+                    # 10년 순수 배당 추출 (자사주 매입 완전 배제)
                     div_10y_dict = {}
                     curr_y_int = datetime.now().year
                     try:
@@ -7150,25 +7136,42 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     hist_fcf_g_pct = sh_fcf_g_pct
 
                     # =========================================================================
-                    # [시각적 폭력용 4대 초대형 스탬프 & 컬러]
+                    # [시각적 폭력용 4대 초대형 스탬프 & 누락 변수 완벽 선언]
                     # =========================================================================
                     abs_pmos = abs(sh_pmos_val)
                     cur_pbr_won = int(round(sh_cur_pbr * 100, 0) * 100)
                     avg_pbr_won = int(round(a_pbr * 100, 0) * 100)
 
-                    # ① 가격 스탬프
+                    # ① 가격 스탬프 + disc_short_badge + thumb_compare_bar 선언
                     if sh_pmos_val >= 8.0:
                         stamp1_word = "가격 쌈!" if not is_en_shorts else "CHEAP!"
                         stamp1_sub = f"-{abs_pmos:.0f}% 세일" if not is_en_shorts else f"-{abs_pmos:.0f}% OFF"
+                        disc_short_badge = f"10년 평균보다 -{abs_pmos:.0f}% 할인" if not is_en_shorts else f"-{abs_pmos:.0f}% vs 10Y Avg"
                         stamp1_col = (0, 230, 118)
                     elif sh_pmos_val >= -5.0:
                         stamp1_word = "가격 적정" if not is_en_shorts else "FAIR"
                         stamp1_sub = "10년평균 수준" if not is_en_shorts else "Near 10Y Avg"
+                        disc_short_badge = "10년 평균과 유사 수준" if not is_en_shorts else "Near 10Y Avg"
                         stamp1_col = (255, 193, 7)
                     else:
                         stamp1_word = "가격 비쌈!" if not is_en_shorts else "PRICY!"
                         stamp1_sub = f"+{abs_pmos:.0f}% 할증" if not is_en_shorts else f"+{abs_pmos:.0f}% PREM"
+                        disc_short_badge = f"10년 평균보다 +{abs_pmos:.0f}% 할증" if not is_en_shorts else f"+{abs_pmos:.0f}% vs 10Y Avg"
                         stamp1_col = (255, 23, 68)
+
+                    thumb_compare_bar = (
+                        f"현재 PBR {sh_cur_pbr:.2f}배 (10년 평균 {a_pbr:.2f}배)"
+                        if use_pbr_m else
+                        f"회수기간 {sh_f_pe:.1f}년 (10년 평균 {a_pe:.1f}년)"
+                    )
+
+                    guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
+                    has_guru_sh = len(guru_holders_sh) > 0
+                    if has_guru_sh:
+                        g_main = guru_holders_sh[0]
+                        top_header_line = f"🏆 {g_main['name']} {g_main['weight']:.1f}% 보유" if not is_en_shorts else f"🏆 Guru Pick ({g_main['weight']:.1f}%)"
+                    else:
+                        top_header_line = "⚡ 10년 장부 초고속 팩트체크" if not is_en_shorts else "⚡ 10-Year Visual Strike"
 
                     # ② 돈벌이 스탬프
                     if cap_ret_val >= 15.0:
@@ -7181,7 +7184,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         stamp2_word = "돈벌이 둔화" if not is_en_shorts else "LOW ROI"
                         stamp2_col = (255, 23, 68)
 
-                    # ③ 배당 스탬프
+                    # ③ 순수 배당 스탬프
                     if div_paid_years >= 7 and not is_recent_spike_only:
                         stamp3_word = "배당 꾸준!" if not is_en_shorts else "STEADY DIV!"
                         stamp3_col = (213, 0, 249)
@@ -7214,22 +7217,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         fcf_badge_txt = f"{sh_fcf_span}년간 연 {hist_fcf_g_pct:+.1f}% (투자확대)"
 
                     eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%"
+                    gap_badge_col = stamp4_col
 
                     # =========================================================================
                     # [12~14초 완성 초압축 전보체(Telegraph) 6컷 대본 + 완벽한 무한루프 연결]
-                    # 컷당 20~26자 이내로 끊어 2초 만에 타격하고 다음 컷으로 즉시 넘어갑니다!
                     # =========================================================================
                     if is_en_shorts:
                         c1_hook = f"{comp_name}! Remember 4 things! First: {stamp1_word} {stamp1_sub}!"
                         c2_roic = f"Second: {stamp2_word} {cap_ret_val:.1f}% return, {bank_multiple:.1f}x a bank!"
                         c3_eps  = f"Profit per share shifted {eps_cagr_pct:+.1f}% a year for {eps_span_yrs} years!"
-                        c4_div  = f"Third: Dividends! {div:.1f}% yield, paid {div_paid_years} times in 10 years!"
+                        c4_div  = f"Third: Pure dividends! {div:.1f}% yield, paid {div_paid_years} times in 10 years!"
                         c5_fcf  = f"Fourth: Pure cash! Grew {hist_fcf_g_pct:+.1f}% a year for {sh_fcf_span} years!"
                         c6_loop = f"Want the final truth? Look closely at this company:"
                         default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
                     else:
                         if is_fast_beast_mode:
-                            # 💥 12~14초 극한 압축 타격 대본 (조사·접속사 전면 제거)
                             if use_pbr_m:
                                 c1_hook = f"{comp_name}! 첫째 {stamp1_word} 1만 원 금고가 지금 {cur_pbr_won:,}원, {stamp1_sub}!"
                             else:
@@ -7243,7 +7245,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 c3_eps = f"단, 1주당 순이익은 {eps_span_yrs}년간 연 {abs(eps_cagr_pct):.1f}% 감소!"
 
                             if div_paid_years > 0 or div > 0:
-                                c4_div = f"셋째 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
+                                c4_div = f"셋째 순수 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
                             else:
                                 c4_div = "셋째 배당! 0원! 번 돈을 100% 미래 성장에 몰빵!"
 
@@ -7256,29 +7258,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             else:
                                 c5_fcf = f"넷째 순수 여윳돈! 설비투자로 {sh_fcf_span}년간 연 {abs(hist_fcf_g_pct):.1f}% 감소!"
 
-                            # 🔁 무한루프 브릿지 (끝나자마자 0.0초 만에 1컷 '구글! 첫째 가격 쌈!'으로 직결!)
                             c6_loop = "그래서 결론! 딱 이 4가지만 기억하세요, 바로"
-
                             default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
                         else:
                             c1_hook = f"{comp_name}! 이 4가지만 기억하세요! 첫째 {stamp1_word}"
                             c2_roic = f"둘째 {stamp2_word} 장사수익률 연 {cap_ret_val:.1f}%, 예금의 {bank_multiple:.1f}배!"
                             c3_eps  = f"1주당 순이익은 {eps_span_yrs}년간 연평균 {eps_cagr_pct:+.1f}% 변화!"
-                            c4_div  = f"셋째 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
+                            c4_div  = f"셋째 순수 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
                             c5_fcf  = f"넷째 순수 여윳돈! {sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}% 성장!"
                             c6_loop = "그래서 결론! 딱 이 4가지만 기억하세요, 바로"
                             default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
 
                     scene_codes_fixed = ["SCENE_HOOK", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_4", "SCENE_HOOK"]
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{a_pe:.1f}_{sh_cur_pbr:.2f}_{a_pbr:.2f}_{is_fast_beast_mode}"
-                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}_V11"
+                    mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}_V12"
 
                     st.markdown("##### ✏️ 5️⃣ 13초 초압축 타격 대본 편집창 (마지막 6번 컷이 1번 컷과 0.00초로 맞물려 무한 재생됩니다)")
                     editable_script_text = st.text_area(
                         "대본 편집창 (한 줄이 1컷입니다)",
                         value="\n".join(default_script_lines),
                         height=165,
-                        key=f"custom_script_v11_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v12_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
@@ -7323,10 +7323,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             s = s.replace(eng_k, kor_v)
                         return re.sub(r'\s+', ' ', s).strip()
 
-                    # =========================================================================
-                    # [고막 타격용 3중 레이어 헤비 임팩트 효과음 생성기]
-                    # 1층: 85Hz 서브베이스 드랍 펀치 + 2층: 시네마틱 브람(BRAAAM) 크런치 + 3층: 고음 캐시 링(Cha-Ching)
-                    # =========================================================================
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_final_cut=False, sr=24000):
                         import math, random
                         if "없음" in sfx_style_str:
@@ -7339,24 +7335,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         n_s = int(sr * dur)
                         for idx_i in range(n_s):
                             t_s = idx_i / sr
-                            # 1층: 120Hz -> 42Hz 서브베이스 슬램 (가슴을 때리는 묵직한 타격음)
                             sub_freq = 42.0 + 95.0 * math.exp(-t_s * 32.0)
                             sub_env = math.exp(-t_s * 14.0) * min(1.0, t_s / 0.002)
                             sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.52
 
-                            # 2층: 브람(BRAAAM) 톱니파/오버드라이브 어택
                             braam_f = 110.0 if cut_idx % 2 == 0 else 130.81
                             braam_raw = math.sin(two_pi * braam_f * t_s) + 0.5 * math.sin(two_pi * braam_f * 1.5 * t_s)
                             braam_clip = max(-0.7, min(0.7, braam_raw * 1.6)) * math.exp(-t_s * 18.0) * 0.28
 
-                            # 3층: 메탈릭 코인/스탬프 링 (귀에 꽂히는 고음 타격)
                             ring_f1, ring_f2 = (1318.5, 1975.5) if cut_idx == 0 else (1046.5, 1568.0)
                             ring_env = math.exp(-t_s * 26.0)
                             ring_wave = (0.6 * math.sin(two_pi * ring_f1 * t_s) + 0.4 * math.sin(two_pi * ring_f2 * t_s)) * ring_env * 0.25
 
-                            # 화이트 노이즈 어택 (첫 0.03초 스냅 타격감)
                             snap_n = (random.random() * 2.0 - 1.0) * math.exp(-t_s * 75.0) * 0.22
-
                             total_v = max(-0.95, min(0.95, sub_punch + braam_clip + ring_wave + snap_n))
                             samples.append(total_v)
                         return samples
@@ -7452,8 +7443,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 gTTS(text=tts_ready_text, lang='en' if is_en_shorts else 'ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
-                        # [핵심] 23초 벽을 깨는 FFmpeg atempo 물리 가속 + 무호흡(-35dB) 칼컷 필터!
-                        # 마지막 루프 컷은 무음 패딩 0.00초로 첫 컷과 완전히 직결!
                         pad_str = "" if is_final_cut else ",apad=pad_dur=0.02"
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-35dB:"
@@ -7557,10 +7546,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W//2, 1072, W-36, "[안내] 공시 데이터 기반 학술·교육용 통계 자료이며 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(120, 125, 135))
                         _fit_single_line(draw, W//2, 1100, W-36, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(95, 100, 110))
 
-                    # =========================================================================
-                    # [시각적 폭력 1페이지 보드]
-                    # 4개의 초대형 네온 카드가 화면을 꽉 채우며 스탬프+차트를 동시에 폭격!
-                    # =========================================================================
                     def _draw_visual_dashboard_board(draw, W, get_font):
                         # Q1 좌상단: 1. 가격 쌈!
                         draw.rounded_rectangle([38, 382, 354, 580], radius=20, fill=(10, 14, 24), outline=stamp1_col, width=5)
@@ -7608,7 +7593,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         _fit_single_line(draw, 524, 556, 290, f"예금의 {bank_multiple:.1f}배 속도! (연 {cap_ret_val:.1f}%)", get_font, start_sz=20, min_sz=12, fill=(255, 240, 0))
 
-                        # Q3 좌하단: 3. 배당 꾸준!
+                        # Q3 좌하단: 3. 순수 배당 꾸준!
                         draw.rounded_rectangle([38, 592, 354, 790], radius=20, fill=(10, 14, 24), outline=stamp3_col, width=5)
                         draw.rounded_rectangle([48, 602, 344, 658], radius=12, fill=stamp3_col)
                         _fit_single_line(draw, 196, 630, 280, f"③ {stamp3_word}", get_font, start_sz=34, min_sz=18, fill=(255, 255, 255))
@@ -7651,7 +7636,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        # 컷마다 상단 헤더 배너 색상이 강렬하게 바뀌어 정지화면 느낌을 완전히 파괴!
                         banner_colors = [(220, 38, 38), (0, 150, 105), (37, 99, 235), (147, 51, 234), (217, 119, 6), (220, 38, 38)]
                         cur_ban_c = banner_colors[chunk_idx % len(banner_colors)]
 
@@ -7667,7 +7651,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         draw.rounded_rectangle([24, 290, W-24, 802], radius=28, fill=(8, 12, 22), outline=cur_ban_c, width=6)
 
-                        # 상단 4대 스탬프 요약 바 (모든 컷 상단에 4대 키워드 불빛이 켜짐)
                         s_pills = [
                             (f"①{stamp1_word}", stamp1_col, chunk_idx in [0, 5]),
                             (f"②{stamp2_word}", stamp2_col, chunk_idx in [1, 2]),
@@ -7725,7 +7708,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         elif scene_code == "SCENE_3":
                             draw.rounded_rectangle([44, 386, W-44, 780], radius=22, fill=(16, 24, 42), outline=stamp3_col, width=5)
-                            _fit_single_line(draw, W//2, 428, W-120, f"③ {stamp3_word}  (최근 4년 배당금 추이)", get_font, start_sz=32, min_sz=18, fill=(255, 240, 0))
+                            _fit_single_line(draw, W//2, 428, W-120, f"③ {stamp3_word}  (최근 4년 순수 배당금 추이)", get_font, start_sz=32, min_sz=18, fill=(255, 240, 0))
 
                             base_y3 = 668
                             if sum(div_4y_vals) <= 0 and div <= 0:
@@ -7745,7 +7728,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W//2, 736, W-140, f"1,000만원당 연 {div_per_10m_manwon:g}만원  |  {div_badge_short}", get_font, start_sz=24, min_sz=13, fill=(255, 255, 255))
 
                         else:
-                            # [SCENE_4: 10년 순수 여윳돈(FCF) 10개 막대 완전체!]
                             s4_hdr = f"④ {stamp4_word}  (10년간 순수 여윳돈 10개년 추이)"
                             _fit_single_line(draw, W//2, 404, W-80, s4_hdr, get_font, start_sz=26, min_sz=14, fill=(255, 240, 0))
 
@@ -7827,7 +7809,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         resp = req.execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("💥 1단계: 13초 시각적 폭력(줌인·플래시·진동) & 70/90 무한루프 쇼츠(.mp4) 생성", key=f"btn_mp4_v11_{tk}", use_container_width=True, type="primary"):
+                    if st.button("💥 1단계: 13초 시각적 폭력(줌인·플래시·진동) & 70/90 무한루프 쇼츠(.mp4) 생성", key=f"btn_mp4_v12_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
                             with st.spinner("13초 초고속 타격 · 다이나믹 줌인/플래시/진동 모션 · 무한루프 쇼츠(.mp4)를 렌더링 중입니다..."):
@@ -7837,7 +7819,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
 
-                                # [핵심] 정지화면이 아니라, 컷 시작 시 1.18배 펀치 줌인 + 네온 플래시 + 화면 진동이 일어나는 FFmpeg 비디오 필터!
                                 if "극한" in motion_intensity:
                                     vf_motion = (
                                         "scale=836:1486,"
@@ -7894,7 +7875,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 res_dur = subprocess.run([ffmpeg_exe, "-i", merged_no_bgm], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
                                 m_dur = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_dur.stderr)
                                 vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 13.5
-                                st.session_state[f"shorts_dur_v11_{clean_tk}"] = vid_dur
+                                st.session_state[f"shorts_dur_v12_{clean_tk}"] = vid_dur
 
                                 if "없음" not in bgm_choice:
                                     bgm_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
@@ -7920,7 +7901,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 with open(out_mp4, "rb") as vf:
-                                    st.session_state[f"saved_shorts_mp4_v11_{clean_tk}"] = vf.read()
+                                    st.session_state[f"saved_shorts_mp4_v12_{clean_tk}"] = vf.read()
 
                                 for p_rm in cleanup_files:
                                     if os.path.exists(p_rm):
@@ -7940,14 +7921,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"💥 [{today_short}] {comp_name} ({clean_tk}) 10년 장부 4대 초고속 타격 요약\n"
                         f"1️⃣ 가격: {stamp1_word} ({thumb_compare_bar} · {disc_short_badge})\n"
                         f"2️⃣ 돈벌이: {stamp2_word} ({cap_ret_name_ko} 연 {cap_ret_val:.1f}% · 은행 예금의 {bank_multiple:.1f}배 속도 | 1주당 순이익 {eps_badge_short})\n"
-                        f"3️⃣ 배당: {stamp3_word} ({div_badge_short})\n"
+                        f"3️⃣ 순수 배당: {stamp3_word} ({div_badge_short})\n"
                         f"4️⃣ 여윳돈(FCF): {stamp4_word} ({fcf_badge_txt})\n\n"
                         f"⚖️ [안내] 본 영상은 DART 및 SEC EDGAR 10-K 공시 데이터를 바탕으로 작성된 순수 학술·교육용 통계 시각화 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
                         f"#shorts #{clean_tag_name} #가치투자 #주식공부 #배당주"
                     )
 
-                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v11_{clean_tk}_{mode_tag_k}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=180, key=f"yt_d_v11_{clean_tk}_{mode_tag_k}")
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v12_{clean_tk}_{mode_tag_k}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=180, key=f"yt_d_v12_{clean_tk}_{mode_tag_k}")
 
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
@@ -7963,23 +7944,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
                             ],
-                            key=f"yt_p_v11_{clean_tk}"
+                            key=f"yt_p_v12_{clean_tk}"
                         )
                     is_scheduled_mode = yt_up_priv.startswith("scheduled")
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v11_{clean_tk}")
+                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v12_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v11_{clean_tk}")
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v12_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
-                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v11_{clean_tk}")
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v12_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v11_{clean_tk}")
+                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v12_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
@@ -7993,10 +7974,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         publish_at_iso_str = combined_kst.strftime("%Y-%m-%dT%H:%M:%S+09:00")
                         st.caption(f"✅ **최종 예약 공개 시각 (KST):** `{combined_kst.strftime('%Y년 %m월 %d일 %H시 %M분 %S초')}`")
 
-                    has_video_ready = (f"saved_shorts_mp4_v11_{clean_tk}" in st.session_state)
+                    has_video_ready = (f"saved_shorts_mp4_v12_{clean_tk}" in st.session_state)
                     if has_video_ready:
-                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v11_{clean_tk}"]
-                        actual_dur = st.session_state.get(f"shorts_dur_v11_{clean_tk}", 13.5)
+                        saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v12_{clean_tk}"]
+                        actual_dur = st.session_state.get(f"shorts_dur_v12_{clean_tk}", 13.5)
                         st.success(f"🎉 총 재생시간 **{actual_dur:.1f}초**! 다이나믹 줌인·진동 모션 & 무한루프 쇼츠 준비 완료!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
@@ -8005,13 +7986,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             file_name=f"AGIE_{clean_tk}_{mode_tag_k}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
                             use_container_width=True,
-                            key=f"dl_btn_v11_{clean_tk}"
+                            key=f"dl_btn_v12_{clean_tk}"
                         )
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
-                        if st.button(btn_yt_label, key=f"btn_yt_up_v11_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v12_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
                             tags_arr = ["shorts", comp_name, clean_tk, "stocks" if is_en_shorts else "가치투자"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
@@ -8027,7 +8008,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v11_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v12_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -8055,7 +8036,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v11_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v12_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
@@ -9214,7 +9195,7 @@ with tab_vs:
                 {"지표": "현재 PBR (10년 평균)", res_a['name']: f"{res_a['f_pbr']:.2f}배 ({res_a['a_pbr']:.2f}배)", res_b['name']: f"{res_b['f_pbr']:.2f}배 ({res_b['a_pbr']:.2f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pbr'] < res_b['f_pbr']) else f"🟥 {res_b['name']}"},
                 {"지표": "자본수익률 (ROE)", res_a['name']: f"{res_a['roe']:.1f}%", res_b['name']: f"{res_b['roe']:.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['roe'] > res_b['roe'] else f"🟥 {res_b['name']}"},
                 {"지표": "투하자본수익률 (ROIC)", res_a['name']: ("금융주 제외" if res_a['is_fin'] else f"{res_a['roic']:.1f}%"), res_b['name']: ("금융주 제외" if res_b['is_fin'] else f"{res_b['roic']:.1f}%"), "우위 판정": f"🟦 {res_a['name']}" if res_a['roic'] > res_b['roic'] else f"🟥 {res_b['name']}"},
-                {"지표": "총주주환원율 (배당+자사주)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"}
+                {"지표": "배당수익률 (순수 배당)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"}
             ]
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
