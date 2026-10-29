@@ -7174,15 +7174,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     default_script_lines = [c1_hook, c2_moat, c3_buffett, c4_macro, c5_loop]
                     scene_codes_fixed = ["SCENE_HOOK", "SCENE_MOAT", "SCENE_BUFFETT", "SCENE_MACRO", "SCENE_SUMMARY"]
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{a_pe:.1f}_{sh_cur_pbr:.2f}_{a_pbr:.2f}_5CUT_V13"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{sh_cur_pbr:.2f}_BUFFETT_V14"
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}"
 
-                    st.markdown("##### ✏️ 5️⃣ 14초 완성 5컷 초압축 대본 (컷 1: 가격 ➔ 컷 2: 돈벌이 ➔ 컷 3: 배당성장률 ➔ 컷 4: 여윳돈 ➔ 컷 5: 4분할 총정리 루프)")
+                    st.markdown("##### ✏️ 5️⃣ 이탈률 방어 5컷 초압축 대본 (컷 1: 버핏 훅 ➔ 컷 2: 해자 ➔ 컷 3: 버핏 10초 암산 ➔ 컷 4: vs 미국채 ➔ 컷 5: 무한루프 결론)")
                     editable_script_text = st.text_area(
                         "대본 편집창 (한 줄이 1컷이며 각 줄마다 전용 차트 화면이 1:1로 정확히 바뀝니다)",
                         value="\n".join(default_script_lines),
                         height=150,
-                        key=f"custom_script_v13_{tk}_{mode_tag_k}"
+                        key=f"custom_script_v14_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
@@ -7190,7 +7190,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     pop_chunks = []
                     for idx_l, u_line in enumerate(user_lines[:10]):
-                        sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_HOOK"
+                        sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "SCENE_SUMMARY"
                         pop_chunks.append((u_line, sc_map))
 
                     def _fix_tts_pronunciation(text_s):
