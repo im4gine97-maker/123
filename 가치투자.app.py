@@ -7598,45 +7598,62 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W//2, 1072, W-48, "[안내] 공시 데이터 기반 학술·교육용 통계 자료이며 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(135, 145, 160))
                         _fit_single_line(draw, W//2, 1098, W-48, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(105, 115, 130))
 
+                    # ▼▼▼ [부분 교체 1 시작] PBR 초직관 비유 + 정중앙 칼핀 정렬 + 미스터비스트 다크 네온 보드 ▼▼▼
+                    # PBR 대본을 '회사 재산 1만원어치 가격'으로 직관화 (c1_hook 자동 갱신)
+                    if not is_en_shorts and use_pbr_m:
+                        if sh_cur_pbr < 1.0:
+                            c1_hook = f"{comp_name}! 첫째 {stamp1_word} 회사 재산 1만 원어치가 지금 {cur_pbr_won:,}원! 평소 {avg_pbr_won:,}원보다 {stamp1_sub}!"
+                        else:
+                            c1_hook = f"{comp_name}! 첫째 {stamp1_word} 재산 1만 원당 평균 {avg_pbr_won:,}원에서 지금 {cur_pbr_won:,}원, {stamp1_sub}!"
+                        if len(pop_chunks) >= 1 and pop_chunks[0][0] == default_script_lines[0]:
+                            pop_chunks[0] = (c1_hook, pop_chunks[0][1])
+
                     def _draw_visual_dashboard_board(draw, W, get_font):
-                        """[1페이지 4분할 시각 폭격 보드] 모든 글자가 네모칸 정중앙에 칼같이 정렬됨"""
-                        # Q1 좌상단: 1. 가격 쌈! (x: 42~352, y: 382~578)
-                        draw.rounded_rectangle([42, 382, 352, 578], radius=18, fill=(14, 20, 36), outline=stamp1_col, width=4)
+                        """[미스터비스트 다크 네온 4분할 폭격 보드] 1픽셀 오차 없는 정중앙 배치"""
+                        # Q1 좌상단: 1. 가격 쌈! (x: 38~352, y: 382~580)
+                        draw.rounded_rectangle([38, 382, 352, 580], radius=18, fill=(14, 18, 32), outline=stamp1_col, width=5)
                         _draw_box_with_centered_text(
-                            draw, [54, 394, 340, 444], f"1. {stamp1_word}", get_font,
-                            box_fill=stamp1_col, radius=10, start_sz=28, min_sz=16,
+                            draw, [50, 394, 340, 444], f"1. {stamp1_word}", get_font,
+                            box_fill=stamp1_col, radius=10, start_sz=30, min_sz=16,
                             txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                         )
 
                         avg_v = a_pbr if use_pbr_m else a_pe
                         cur_v = sh_cur_pbr if use_pbr_m else sh_f_pe
-                        max_mv = max(avg_v, cur_v, 0.5) * 1.2
-                        w_a = int(max(24, min(130, (avg_v / max_mv) * 130)))
-                        w_c = int(max(24, min(130, (cur_v / max_mv) * 130)))
-                        a_txt = f"{avg_v:.1f}배" if use_pbr_m else f"{avg_v:.0f}년"
-                        c_txt = f"{cur_v:.1f}배" if use_pbr_m else f"{cur_v:.0f}년"
+                        max_mv = max(avg_v, cur_v, 0.2) * 1.22
+                        w_a = int(max(22, min(112, (avg_v / max_mv) * 112)))
+                        w_c = int(max(22, min(112, (cur_v / max_mv) * 112)))
 
-                        _fit_single_line(draw, 90, 470, 66, "10년평균", get_font, start_sz=15, min_sz=10, fill=(170, 185, 205))
-                        draw.rounded_rectangle([130, 458, 266, 482], radius=6, fill=(28, 38, 60))
-                        draw.rounded_rectangle([130, 458, 130 + w_a, 482], radius=6, fill=(100, 116, 139))
-                        _fit_single_line(draw, 306, 470, 64, a_txt, get_font, start_sz=16, min_sz=11, fill=(220, 230, 240))
+                        # 소수점 첫째 자리 반올림 착시(0.4배 vs 0.4배) 방지: 금액과 소수 둘째 자리를 명확히 표기!
+                        if use_pbr_m and not is_en_shorts:
+                            a_txt = f"{avg_pbr_won:,}원({avg_v:.2f}배)"
+                            c_txt = f"{cur_pbr_won:,}원({cur_v:.2f}배)"
+                        else:
+                            a_txt = f"{avg_v:.1f}년" if not is_en_shorts else f"{avg_v:.2f}x"
+                            c_txt = f"{cur_v:.1f}년" if not is_en_shorts else f"{cur_v:.2f}x"
 
-                        _fit_single_line(draw, 90, 506, 66, "현재가격", get_font, start_sz=15, min_sz=10, fill=(255, 240, 0))
-                        draw.rounded_rectangle([130, 494, 266, 518], radius=6, fill=(28, 38, 60))
-                        draw.rounded_rectangle([130, 494, 130 + w_c, 518], radius=6, fill=stamp1_col)
-                        _fit_single_line(draw, 306, 506, 64, c_txt, get_font, start_sz=17, min_sz=11, fill=(255, 240, 0))
+                        _fit_single_line(draw, 82, 470, 64, "10년평균", get_font, start_sz=14, min_sz=10, fill=(170, 185, 205))
+                        draw.rounded_rectangle([120, 458, 236, 482], radius=6, fill=(28, 38, 60))
+                        draw.rounded_rectangle([120, 458, 120 + w_a, 482], radius=6, fill=(100, 116, 139))
+                        _fit_single_line(draw, 292, 470, 102, a_txt, get_font, start_sz=14, min_sz=9, fill=(220, 230, 240))
 
+                        _fit_single_line(draw, 82, 506, 64, "현재가격", get_font, start_sz=14, min_sz=10, fill=(255, 240, 0))
+                        draw.rounded_rectangle([120, 494, 236, 518], radius=6, fill=(28, 38, 60))
+                        draw.rounded_rectangle([120, 494, 120 + w_c, 518], radius=6, fill=stamp1_col)
+                        _fit_single_line(draw, 292, 506, 102, c_txt, get_font, start_sz=14, min_sz=9, fill=(255, 240, 0))
+
+                        q1_bot_txt = f"재산 1만원당 {cur_pbr_won:,}원 ({disc_short_badge})" if (use_pbr_m and not is_en_shorts) else disc_short_badge
                         _draw_box_with_centered_text(
-                            draw, [54, 530, 340, 566], disc_short_badge, get_font,
-                            box_fill=(24, 34, 56), radius=8, start_sz=19, min_sz=12,
-                            txt_fill=(255, 240, 0), pad_x=10
+                            draw, [50, 530, 340, 568], q1_bot_txt, get_font,
+                            box_fill=(24, 34, 58), radius=8, start_sz=18, min_sz=10,
+                            txt_fill=(255, 240, 0), pad_x=8
                         )
 
-                        # Q2 우상단: 2. 돈 쓸어담음! (x: 368~678, y: 382~578)
-                        draw.rounded_rectangle([368, 382, 678, 578], radius=18, fill=(14, 20, 36), outline=stamp2_col, width=4)
+                        # Q2 우상단: 2. 돈 쓸어담음! (x: 368~682, y: 382~580)
+                        draw.rounded_rectangle([368, 382, 682, 580], radius=18, fill=(14, 18, 32), outline=stamp2_col, width=5)
                         _draw_box_with_centered_text(
-                            draw, [380, 394, 666, 444], f"2. {stamp2_word}", get_font,
-                            box_fill=stamp2_col, radius=10, start_sz=28, min_sz=16,
+                            draw, [380, 394, 670, 444], f"2. {stamp2_word}", get_font,
+                            box_fill=stamp2_col, radius=10, start_sz=30, min_sz=16,
                             txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                         )
 
@@ -7651,50 +7668,50 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             bx_2 = 398 + idx_q2 * 88
                             bh_2 = int(max(12, min(46, (max(0.5, abs(val_2)) / mx_q2) * 46)))
                             draw.rounded_rectangle([bx_2, by_q2 - bh_2, bx_2 + 54, by_q2], radius=5, fill=col_2)
-                            _fit_single_line(draw, bx_2 + 27, by_q2 - bh_2 - 10, 72, f"{val_2:.0f}%", get_font, start_sz=14, min_sz=10, fill=col_2)
+                            _fit_single_line(draw, bx_2 + 27, by_q2 - bh_2 - 10, 72, f"{val_2:.1f}%", get_font, start_sz=14, min_sz=10, fill=col_2)
                             _fit_single_line(draw, bx_2 + 27, by_q2 + 11, 76, lbl_2, get_font, start_sz=12, min_sz=9, fill=(220, 230, 240))
 
                         _draw_box_with_centered_text(
-                            draw, [380, 530, 666, 566], f"예금의 {bank_multiple:.1f}배 속도 (연 {cap_ret_val:.1f}%)", get_font,
-                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
-                            txt_fill=(255, 240, 0), pad_x=10
+                            draw, [380, 530, 670, 568], f"예금의 {bank_multiple:.1f}배 속도 (연 {cap_ret_val:.1f}%)", get_font,
+                            box_fill=(24, 34, 58), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=8
                         )
 
-                        # Q3 좌하단: 3. 순수 배당! (x: 42~352, y: 592~788)
-                        draw.rounded_rectangle([42, 592, 352, 788], radius=18, fill=(14, 20, 36), outline=stamp3_col, width=4)
+                        # Q3 좌하단: 3. 순수 배당! (x: 38~352, y: 592~790)
+                        draw.rounded_rectangle([38, 592, 352, 790], radius=18, fill=(14, 18, 32), outline=stamp3_col, width=5)
                         _draw_box_with_centered_text(
-                            draw, [54, 604, 340, 654], f"3. {stamp3_word}", get_font,
-                            box_fill=stamp3_col, radius=10, start_sz=28, min_sz=16,
+                            draw, [50, 604, 340, 654], f"3. {stamp3_word}", get_font,
+                            box_fill=stamp3_col, radius=10, start_sz=30, min_sz=16,
                             txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                         )
 
                         by_q3 = 720
                         if sum(div_4y_vals) <= 0 and div <= 0:
                             _draw_box_with_centered_text(
-                                draw, [64, 666, 330, 726], "100% 미래 성장에 재투자!", get_font,
+                                draw, [60, 666, 330, 726], "100% 미래 성장에 재투자!", get_font,
                                 box_fill=(20, 28, 48), outline_col=(0, 176, 255), outline_w=2, radius=10,
                                 start_sz=18, min_sz=12, txt_fill=(0, 230, 118)
                             )
                         else:
                             mx_q3 = max(max(div_4y_vals), 0.01) * 1.15
                             for idx_q3, (dv_3, dy_3) in enumerate(zip(div_4y_vals, div_4y_years)):
-                                bx_3 = 72 + idx_q3 * 64
+                                bx_3 = 70 + idx_q3 * 64
                                 bh_3 = int(max(10, min(48, (max(0.0, dv_3) / mx_q3) * 48))) if dv_3 > 0 else 6
                                 bc_3 = (255, 240, 0) if idx_q3 == 3 else (213, 0, 249)
                                 draw.rounded_rectangle([bx_3, by_q3 - bh_3, bx_3 + 44, by_q3], radius=5, fill=bc_3)
                                 _fit_single_line(draw, bx_3 + 22, by_q3 + 11, 54, str(dy_3)[-2:] + "년", get_font, start_sz=11, min_sz=9, fill=(220, 230, 240))
 
                         _draw_box_with_centered_text(
-                            draw, [54, 740, 340, 776], div_badge_short, get_font,
-                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
-                            txt_fill=(255, 240, 0), pad_x=10
+                            draw, [50, 740, 340, 778], div_badge_short, get_font,
+                            box_fill=(24, 34, 58), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=8
                         )
 
-                        # Q4 우하단: 4. 매년 폭풍성장! (x: 368~678, y: 592~788)
-                        draw.rounded_rectangle([368, 592, 678, 788], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
+                        # Q4 우하단: 4. 매년 폭풍성장! (x: 368~682, y: 592~790)
+                        draw.rounded_rectangle([368, 592, 682, 790], radius=18, fill=(14, 18, 32), outline=stamp4_col, width=5)
                         _draw_box_with_centered_text(
-                            draw, [380, 604, 666, 654], f"4. {stamp4_word}", get_font,
-                            box_fill=stamp4_col, radius=10, start_sz=28, min_sz=16,
+                            draw, [380, 604, 670, 654], f"4. {stamp4_word}", get_font,
+                            box_fill=stamp4_col, radius=10, start_sz=30, min_sz=16,
                             txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                         )
 
@@ -7712,31 +7729,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         q4_sub = f"{sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}% 성장!" if not is_fcf_curr_loss else f"10년중 적자 {fcf_neg_cnt}회 주의!"
                         _draw_box_with_centered_text(
-                            draw, [380, 740, 666, 776], q4_sub, get_font,
-                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
-                            txt_fill=(255, 240, 0), pad_x=10
+                            draw, [380, 740, 670, 778], q4_sub, get_font,
+                            box_fill=(24, 34, 58), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=8
                         )
 
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        banner_colors = [(220, 38, 38), (0, 150, 105), (37, 99, 235), (147, 51, 234), (217, 119, 6), (220, 38, 38)]
+                        banner_colors = [(220, 38, 38), (0, 180, 100), (37, 99, 235), (168, 55, 245), (230, 120, 0), (220, 38, 38)]
                         cur_ban_c = banner_colors[chunk_idx % len(banner_colors)]
 
-                        img = Image.new("RGB", (W, H), color=(7, 10, 18))
+                        # 하얀색 여백을 완전히 없앤 올-다크 네온 아케이드 배경 (미스터비스트식 고대비)
+                        img = Image.new("RGB", (W, H), color=(6, 8, 16))
                         draw = ImageDraw.Draw(img)
 
-                        # 상단 배너 (좌우 64px 안전 여백 확보로 절대 안 잘림!)
-                        draw.rectangle([0, 85, W, 268], fill=cur_ban_c)
-                        _fit_single_line(draw, W//2, 130, W-80, f"{top_header_line} · [{today_short}]", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255), stroke_w=2, stroke_c=(0,0,0))
-                        _fit_single_line(draw, W//2, 208, W-72, f"{comp_name}! 4가지만 기억하세요!", get_font, start_sz=50, min_sz=26, fill=(255, 240, 0), stroke_w=4, stroke_c=(0,0,0))
+                        draw.rectangle([0, 80, W, 266], fill=cur_ban_c)
+                        _fit_single_line(draw, W//2, 126, W-80, f"{top_header_line} · [{today_short}]", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255), stroke_w=3, stroke_c=(0,0,0))
+                        _fit_single_line(draw, W//2, 206, W-72, f"{comp_name}! 4가지만 기억하세요!", get_font, start_sz=52, min_sz=26, fill=(255, 240, 0), stroke_w=5, stroke_c=(0,0,0))
 
-                        draw.rectangle([0, 268, W, 955], fill=(242, 245, 250))
-                        draw.rectangle([0, 268, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 282], fill=(0, 230, 118))
+                        # 초고속 진행 게이지 바
+                        draw.rectangle([0, 266, W, 280], fill=(25, 35, 55))
+                        draw.rectangle([0, 266, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 280], fill=(0, 255, 136))
 
-                        draw.rounded_rectangle([26, 290, W-26, 802], radius=26, fill=(8, 12, 22), outline=cur_ban_c, width=5)
+                        draw.rounded_rectangle([24, 290, W-24, 804], radius=26, fill=(8, 12, 22), outline=cur_ban_c, width=5)
 
-                        # 상단 4대 스탬프 요약 탭 (원형숫자 대신 1~4 표기 + 네모칸 정중앙 완벽 정렬)
                         s_pills = [
                             (f"1. {stamp1_word}", stamp1_col, chunk_idx in [0, 5]),
                             (f"2. {stamp2_word}", stamp2_col, chunk_idx in [1, 2]),
@@ -7744,23 +7761,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             (f"4. {stamp4_word}", stamp4_col, chunk_idx == 4)
                         ]
                         for idx_p, (p_txt, p_col, is_on) in enumerate(s_pills):
-                            px1 = 42 + idx_p * 160
+                            px1 = 40 + idx_p * 161
                             _draw_box_with_centered_text(
-                                draw, [px1, 306, px1 + 152, 366], p_txt, get_font,
-                                box_fill=p_col if is_on else (22, 32, 52),
+                                draw, [px1, 306, px1 + 154, 366], p_txt, get_font,
+                                box_fill=p_col if is_on else (20, 28, 46),
                                 outline_col=(255, 240, 0) if is_on else p_col,
                                 outline_w=4 if is_on else 2, radius=12,
                                 start_sz=21, min_sz=11,
                                 txt_fill=(255, 255, 255),
-                                stroke_w=2 if is_on else 0, stroke_c=(0, 0, 0), pad_x=8
+                                stroke_w=2 if is_on else 0, stroke_c=(0, 0, 0), pad_x=6
                             )
 
                         if scene_code == "SCENE_HOOK":
                             _draw_visual_dashboard_board(draw, W, get_font)
 
                         elif scene_code == "SCENE_2":
-                            draw.rounded_rectangle([44, 386, 350, 780], radius=20, fill=(14, 20, 36), outline=(0, 176, 255), width=4)
-                            _fit_single_line(draw, 197, 422, 280, "1주당 순이익 10년 추이", get_font, start_sz=23, min_sz=14, fill=(0, 230, 118))
+                            draw.rounded_rectangle([42, 386, 350, 780], radius=20, fill=(14, 20, 36), outline=(0, 176, 255), width=4)
+                            _fit_single_line(draw, 196, 422, 280, "1주당 순이익 10년 추이", get_font, start_sz=23, min_sz=14, fill=(0, 230, 118))
 
                             disp_eps = eps_hist_vals[-10:] if len(eps_hist_vals) >= 2 else [max(0.1, t_eps * 0.8), max(0.1, t_eps)]
                             disp_yrs = eps_hist_years[-len(disp_eps):] if len(eps_hist_years) >= len(disp_eps) else [str(curr_y_int - len(disp_eps) + i) for i in range(len(disp_eps))]
@@ -7771,7 +7788,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             eb_gap = max(2, int((272 - eb_w * n_ebars) / max(1, n_ebars + 1)))
 
                             for idx_eb, (ev_item, ey_lbl) in enumerate(zip(disp_eps, disp_yrs)):
-                                bx_e = 60 + eb_gap + idx_eb * (eb_w + eb_gap)
+                                bx_e = 58 + eb_gap + idx_eb * (eb_w + eb_gap)
                                 bh_e = int(max(16, min(168, (max(0.05, abs(ev_item)) / max_ev) * 168)))
                                 b_col_e = (255, 23, 68) if ev_item < 0 else ((255, 240, 0) if idx_eb == n_ebars - 1 else (0, 176, 255))
                                 draw.rounded_rectangle([bx_e, base_ey - bh_e, bx_e + eb_w, base_ey], radius=4, fill=b_col_e)
@@ -7779,13 +7796,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     _fit_single_line(draw, bx_e + eb_w//2, base_ey + 18, 44, str(ey_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(203, 213, 225))
 
                             _draw_box_with_centered_text(
-                                draw, [56, 706, 338, 764], eps_badge_short, get_font,
+                                draw, [54, 706, 338, 764], eps_badge_short, get_font,
                                 box_fill=(0, 176, 255), radius=12, start_sz=22, min_sz=13,
                                 txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                             )
 
-                            draw.rounded_rectangle([370, 386, W-44, 780], radius=20, fill=(14, 20, 36), outline=(0, 230, 118), width=4)
-                            _fit_single_line(draw, 523, 422, 280, f"2. {stamp2_word}", get_font, start_sz=26, min_sz=16, fill=(255, 240, 0))
+                            draw.rounded_rectangle([370, 386, W-42, 780], radius=20, fill=(14, 20, 36), outline=(0, 230, 118), width=4)
+                            _fit_single_line(draw, 524, 422, 280, f"2. {stamp2_word}", get_font, start_sz=26, min_sz=16, fill=(255, 240, 0))
                             base_y = 668
                             max_r = max(15.0, abs(cap_ret_val), 20.0) * 1.2
                             h_sp500_r = int(max(26, min(168, (3.5 / max_r) * 168)))
@@ -7799,13 +7816,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, 576, base_y + 18, 100, comp_name[:5], get_font, start_sz=15, min_sz=11, fill=(255, 255, 255))
 
                             _draw_box_with_centered_text(
-                                draw, [382, 706, 664, 764], f"예금의 {bank_multiple:.1f}배 속도!", get_font,
+                                draw, [382, 706, 666, 764], f"예금의 {bank_multiple:.1f}배 속도!", get_font,
                                 box_fill=(0, 230, 118), radius=12, start_sz=22, min_sz=13,
                                 txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                             )
 
                         elif scene_code == "SCENE_3":
-                            draw.rounded_rectangle([44, 386, W-44, 780], radius=22, fill=(14, 20, 36), outline=stamp3_col, width=4)
+                            draw.rounded_rectangle([42, 386, W-42, 780], radius=22, fill=(14, 20, 36), outline=stamp3_col, width=4)
                             _fit_single_line(draw, W//2, 428, W-120, f"3. {stamp3_word} (최근 4년 순수 배당금 추이)", get_font, start_sz=28, min_sz=16, fill=(255, 240, 0))
 
                             base_y3 = 665
@@ -7832,7 +7849,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             s4_hdr = f"4. {stamp4_word} (10년간 순수 여윳돈 10개년 추이)"
                             _fit_single_line(draw, W//2, 404, W-80, s4_hdr, get_font, start_sz=25, min_sz=14, fill=(255, 240, 0))
 
-                            draw.rounded_rectangle([44, 430, W-44, 646], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
+                            draw.rounded_rectangle([42, 430, W-42, 646], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
                             disp_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [base_fcf * 0.7 if base_fcf else 1.0, base_fcf if base_fcf else 1.2]
                             disp_f_yrs = fcf_yrs_10y[-len(disp_f_vals):] if len(fcf_yrs_10y) >= len(disp_f_vals) else [str(curr_y_int - len(disp_f_vals) + idx) for idx in range(len(disp_f_vals))]
 
@@ -7859,22 +7876,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, bx_f + fb_w//2, 626, fb_w + 12, str(fy_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(220, 230, 240))
 
                             _draw_box_with_centered_text(
-                                draw, [44, 658, W-44, 718], fcf_badge_txt, get_font,
+                                draw, [42, 658, W-42, 718], fcf_badge_txt, get_font,
                                 box_fill=stamp4_col, radius=14, start_sz=23, min_sz=13,
                                 txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
                             )
 
                             _draw_box_with_centered_text(
-                                draw, [44, 728, W-44, 786], f"{comp_name} : 1.{stamp1_word} · 2.{stamp2_word} · 3.{stamp3_word} · 4.{stamp4_word}", get_font,
+                                draw, [42, 728, W-42, 786], f"{comp_name} : 1.{stamp1_word} · 2.{stamp2_word} · 3.{stamp3_word} · 4.{stamp4_word}", get_font,
                                 box_fill=(220, 38, 38), outline_col=(255, 240, 0), outline_w=3, radius=14,
                                 start_sz=19, min_sz=11, txt_fill=(255, 255, 255), stroke_w=1, stroke_c=(0, 0, 0)
                             )
 
                         txt_col = (255, 240, 0) if chunk_idx in [0, total_chunks - 1] else (255, 255, 255)
-                        _draw_safe_subtitle_box(draw, W, 875, sub_text, get_font, txt_col=txt_col, border_c=cur_ban_c)
+                        _draw_safe_subtitle_box(draw, W, 882, sub_text, get_font, txt_col=txt_col, border_c=cur_ban_c)
                         _draw_legal_basis_footer(draw, W, get_font)
                         return img
-                    # ▲▲▲ [부분 교체 1 끝] ▲▲▲
 
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
                         from google.oauth2.credentials import Credentials
@@ -7917,26 +7933,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         resp = req.execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("💥 1단계: 13초 시각적 폭력(줌인·플래시·진동) & 70/90 무한루프 쇼츠(.mp4) 생성", key=f"btn_mp4_v12_{tk}", use_container_width=True, type="primary"):
+                    if st.button("💥 1단계: 13초 정중앙 칼핀 타격 모션 & 70/90 무한루프 쇼츠(.mp4) 생성", key=f"btn_mp4_v12_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("13초 초고속 타격 · 다이나믹 줌인/플래시/진동 모션 · 무한루프 쇼츠(.mp4)를 렌더링 중입니다..."):
+                            with st.spinner("정중앙 칼핀 펀치 모션 · 13초 초고속 타격 · 무한루프 쇼츠(.mp4)를 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
 
-                                # ▼▼▼ [부분 교체 2 시작] FFmpeg 7.0.2 완벽 호환 & 화질 열화 0% 미스터비스트 모션 필터 ▼▼▼
+                                # [핵심 수리] 크롭 중심을 (iw-720)/2, (ih-1280)/2 정중앙에 100% 고정! (오른쪽 아래로 쏠리던 버그 완벽 해결)
                                 if "극한" in motion_intensity:
-                                    # 첫 0.08초 동안만 1.05배 타격 줌인 + 카메라 진동 + 네온 플래시 후 원본 720x1280 1:1 칼핀 고정!
                                     vf_motion = (
-                                        "scale=760:1352:flags=lanczos,"
-                                        "crop=720:1280:'if(lt(t,0.08),(iw-720)/2+sin(t*140)*8,0)':'if(lt(t,0.08),(ih-1280)/2+cos(t*110)*8,0)',"
-                                        "eq=eval=frame:brightness='if(lt(t,0.05),0.15,0)':contrast='if(lt(t,0.08),1.15,1.0)':saturation=1.10"
+                                        "scale=756:1344:flags=lanczos,"
+                                        "crop=720:1280:'(iw-720)/2+if(lt(t,0.12),sin(t*160)*10,0)':'(ih-1280)/2+if(lt(t,0.12),cos(t*130)*10,0)',"
+                                        "eq=eval=frame:brightness='if(lt(t,0.06),0.20,0)':contrast='if(lt(t,0.10),1.22,1.04)':saturation=1.15"
                                     )
                                 elif "보통" in motion_intensity:
-                                    vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.04),0.08,0)'"
+                                    vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.05),0.10,0)'"
                                 else:
                                     vf_motion = "scale=720:1280:flags=lanczos"
 
@@ -7949,7 +7964,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     _draw_core_frame(idx_c, n_chunks, sub_t, sc_code, get_font).save(f_img)
                                     _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_final_cut=(idx_c == n_chunks - 1))
 
-                                    # 만약 특수 기기에서 동적 필터가 실패하더라도 100% 렌더링되도록 2중 안전망 적용
                                     cmd_primary = [
                                         ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
                                         "-vf", vf_motion,
@@ -7966,9 +7980,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                             "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
                                             "-shortest", f_seg
                                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-
                                     return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
-                                # ▲▲▲ [부분 교체 2 끝] ▲▲▲
+
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = [ex.submit(_build_single_cut, i_c, st_c, sc_c) for i_c, (st_c, sc_c) in enumerate(pop_chunks)]
                                     for ft in concurrent.futures.as_completed(futs):
@@ -8030,6 +8043,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         except Exception: pass
                         except Exception as e:
                             st.warning(f"MP4 렌더링 오류: {e}")
+                    # ▲▲▲ [부분 교체 1 끝] ▲▲▲
 
                     st.markdown("---")
                     st.markdown("#### 🚀 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
@@ -10332,11 +10346,9 @@ with tab_sector:
             st.markdown(cards_sec_html, unsafe_allow_html=True)
 # ▼▼▼ with tab_sector: 의 맨 마지막 줄(st.markdown(cards_sec_html, unsafe_allow_html=True)) 바로 아래에 붙여넣으세요 ▼▼▼
 
-        # =====================================================================
-        # [신규 추가] 🎬 S&P 500 업종 성과 10컷 쇼츠 스튜디오 (with tab_sector 내부)
-        # =====================================================================
+        # ▼▼▼ [부분 교체 2 시작] S&P500 업종 성과 & 마켓 히트맵 13초 미스터비스트 폭격 쇼츠 통합본 ▼▼▼
         st.divider()
-        with st.expander("🎬 S&P 500 업종 성과 브리핑 쇼츠(.mp4) 원클릭 제작", expanded=False):
+        with st.expander("💥 S&P 500 업종 성과 13초 시각폭격 & 무한루프 쇼츠(.mp4) 원클릭 제작", expanded=False):
             if not df_sec.empty:
                 sec_only = df_sec[~df_sec["ETF"].isin(["SPY", "QQQ", "IWM", "RSP"])].copy()
                 top_1w = sec_only.sort_values("1W", ascending=False).iloc[0]
@@ -10344,26 +10356,21 @@ with tab_sector:
                 top_ytd = sec_only.sort_values("YTD", ascending=False).iloc[0]
                 bot_ytd = sec_only.sort_values("YTD", ascending=True).iloc[0]
                 spy_row = df_sec[df_sec["ETF"] == "SPY"].iloc[0]
-                qqq_row = df_sec[df_sec["ETF"] == "QQQ"].iloc[0]
 
+                # 13초 5컷 미스터비스트 초압축 타격 대본 + 무한 루프!
                 sec_shorts_chunks = [
-                    (f"월스트리트 자금은 지금 어디로 몰릴까? S&P500 업종 성과를 분석했습니다", "SEC_1"),
-                    (f"S&P500 지수는 최근 1주 {spy_row['1W']:+.1f}%, 연초 대비 {spy_row['YTD']:+.1f}%를 기록했습니다", "SEC_1"),
-                    (f"나스닥 100 지수는 최근 1주 {qqq_row['1W']:+.1f}%, 연초 대비 {qqq_row['YTD']:+.1f}% 흐름입니다", "SEC_1"),
-                    (f"최근 1주일 가장 강한 업종은 {top_1w['업종_한줄']} 섹터로 {top_1w['1W']:+.1f}%를 기록했습니다", "SEC_2"),
-                    (f"반면 최근 1주 가장 부진한 업종은 {bot_1w['업종_한줄']} 섹터로 {bot_1w['1W']:+.1f}%에 머물렀습니다", "SEC_2"),
-                    (f"올해 연초 대비 1위 주도 업종은 {top_ytd['업종_한줄']} 섹터로 {top_ytd['YTD']:+.1f}% 상승했습니다", "SEC_3"),
-                    (f"연초 대비 가장 소외된 업종은 {bot_ytd['업종_한줄']} 섹터로 {bot_ytd['YTD']:+.1f}%를 기록 중입니다", "SEC_3"),
-                    (f"단기 모멘텀은 {top_1w['업종_한줄']}, 연간 추세는 {top_ytd['업종_한줄']} 업종이 주도하고 있습니다", "SEC_4"),
-                    (f"소외된 업종에서 역발상 안전마진을 찾을지 주도주에 올라탈지 점검할 시점입니다", "SEC_4"),
-                    (f"지금 여러분이 가장 주목하는 미국 주식 섹터는 어디인가요?", "SEC_4")
+                    (f"미국 주식 돈 몰리는 곳! 딱 4가지만 기억하세요! S&P500 이번주 {spy_row['1W']:+.1f}%!", "SEC_1"),
+                    (f"첫째 이번주 1등! {top_1w['업종_한줄']} 업종 {top_1w['1W']:+.1f}% 폭등! 반면 꼴찌 {bot_1w['업종_한줄']} {bot_1w['1W']:+.1f}%!", "SEC_2"),
+                    (f"둘째 올해 연초대비 1등! {top_ytd['업종_한줄']} 업종 무려 {top_ytd['YTD']:+.1f}% 상승!", "SEC_3"),
+                    (f"셋째 올해 가장 소외된 꼴찌! {bot_ytd['업종_한줄']} 업종 {bot_ytd['YTD']:+.1f}% 기록!", "SEC_4"),
+                    ("그래서 결론! 지금 월가 돈이 쓸려가는 진짜 주도 업종은 바로", "SEC_1")
                 ]
 
-                if st.button("🎬 S&P 500 업종별 성과 쇼츠(.mp4) 렌더링 시작", key="btn_sec_shorts", use_container_width=True, type="primary"):
+                if st.button("💥 S&P 500 업종별 성과 13초 시각폭격 쇼츠(.mp4) 렌더링 시작", key="btn_sec_shorts", use_container_width=True, type="primary"):
                     try:
                         from PIL import Image, ImageDraw, ImageFont
-                        import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts
-                        with st.spinner("업종 성과 차트와 AI 성우 음성을 합성하여 쇼츠(.mp4)를 제작 중입니다..."):
+                        import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts, wave, struct, math, random
+                        with st.spinner("13초 미스터비스트 하이톤 · 정중앙 칼핀 펀치 모션 · 무한루프 업종 쇼츠(.mp4) 제작 중..."):
                             font_dir = tempfile.gettempdir()
                             bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                             def _gf_s(sz):
@@ -10373,52 +10380,108 @@ with tab_sector:
                                         except Exception: continue
                                 return ImageFont.load_default()
 
+                            def _fit_c(dr, cx, cy, mw, txt, s_sz=36, m_sz=12, fill=(255,255,255), sw=0):
+                                t_c = str(txt).strip()
+                                for sz in range(s_sz, m_sz - 1, -2):
+                                    f = _gf_s(sz)
+                                    bb = dr.textbbox((0, 0), t_c, font=f, stroke_width=sw)
+                                    if (bb[2] - bb[0]) <= mw:
+                                        dx = cx - (bb[0] + bb[2]) / 2.0
+                                        dy = cy - (bb[1] + bb[3]) / 2.0
+                                        dr.text((dx, dy), t_c, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
+                                        return
+
+                            def _add_heavy_sfx_and_bgm_sec(wav_p, is_last=False):
+                                sr = 24000
+                                with wave.open(wav_p, 'rb') as wf:
+                                    prm = wf.getparams()
+                                    raw = wf.readframes(wf.getnframes())
+                                pcm = list(struct.unpack(f'<{len(raw)//2}h', raw))
+                                n_sfx = min(len(pcm), int(sr * 0.16))
+                                for idx_i in range(n_sfx):
+                                    ts = idx_i / sr
+                                    sf = 45.0 + 90.0 * math.exp(-ts * 32.0)
+                                    sp = math.sin(2.0 * math.pi * sf * ts) * math.exp(-ts * 14.0) * 0.50
+                                    rg = math.sin(2.0 * math.pi * 1318.5 * ts) * math.exp(-ts * 25.0) * 0.25
+                                    pcm[idx_i] = max(-32767, min(32767, int(pcm[idx_i] + (sp + rg) * 32767)))
+                                with wave.open(wav_p, 'wb') as wf_o:
+                                    wf_o.setparams(prm)
+                                    wf_o.writeframes(struct.pack(f'<{len(pcm)}h', *pcm))
+
                             def _draw_sec_frame(c_idx, sub_txt):
                                 W, H = 720, 1280
-                                im = Image.new("RGB", (W, H), (11, 15, 25))
+                                ban_cols = [(220, 38, 38), (0, 180, 100), (37, 99, 235), (168, 55, 245), (220, 38, 38)]
+                                bc = ban_cols[c_idx % len(ban_cols)]
+                                im = Image.new("RGB", (W, H), (6, 8, 16))
                                 dr = ImageDraw.Draw(im)
-                                dr.text((W//2, 120), "월스트리트 섹터 자금 흐름", font=_gf_s(44), fill=(255, 255, 255), anchor="mm")
-                                dr.text((W//2, 190), f"S&P 500 업종별 성과 ({today_fmt_str})", font=_gf_s(48), fill=(250, 204, 21), anchor="mm")
-                                dr.rounded_rectangle([36, 250, W-36, 820], radius=24, fill=(20, 28, 46), outline=(56, 189, 248), width=3)
 
-                                y_cursor = 300
-                                dr.text((80, y_cursor), "업종명", font=_gf_s(24), fill=(148, 163, 184), anchor="lm")
-                                dr.text((390, y_cursor), "1주(1W)", font=_gf_s(24), fill=(255, 120, 117), anchor="mm")
-                                dr.text((580, y_cursor), "연초대비(YTD)", font=_gf_s(24), fill=(56, 189, 248), anchor="mm")
-                                dr.line([(60, y_cursor+25), (W-60, y_cursor+25)], fill=(51, 65, 85), width=2)
+                                dr.rectangle([0, 80, W, 260], fill=bc)
+                                _fit_c(dr, W//2, 125, W-72, f"월가 자금 초고속 스캔 · [{today_fmt_str}]", s_sz=28, fill=(255,255,255), sw=2)
+                                _fit_c(dr, W//2, 204, W-64, "S&P500 업종! 4가지만 기억!", s_sz=52, fill=(255,240,0), sw=4)
 
-                                top8_df = df_sec.sort_values("YTD", ascending=False).head(8)
-                                for idx_r, (_, r_v) in enumerate(top8_df.iterrows()):
-                                    ry = 360 + idx_r * 54
-                                    dr.text((80, ry), f"{r_v['업종_한줄']} ({r_v['ETF']})", font=_gf_s(25), fill=(255, 255, 255), anchor="lm")
-                                    c1 = (74, 222, 128) if r_v["1W"] >= 0 else (255, 77, 79)
-                                    c2 = (250, 204, 21) if r_v["YTD"] >= 0 else (255, 77, 79)
-                                    dr.text((390, ry), f"{r_v['1W']:+.1f}%", font=_gf_s(26), fill=c1, anchor="mm")
-                                    dr.text((580, ry), f"{r_v['YTD']:+.1f}%", font=_gf_s(27), fill=c2, anchor="mm")
+                                dr.rectangle([0, 260, W, 274], fill=(25, 35, 55))
+                                dr.rectangle([0, 260, int(W * ((c_idx + 1) / 5.0)), 274], fill=(0, 255, 136))
 
-                                # 하단 2줄 자동 줄바꿈 자막
+                                dr.rounded_rectangle([28, 288, W-28, 804], radius=24, fill=(10, 14, 26), outline=bc, width=5)
+
+                                # 상단 4대 요약 카드 (1주 1위 / 1주 꼴찌 / 올해 1위 / 올해 꼴찌)
+                                q_boxes = [
+                                    ([44, 304, 350, 444], "1. 이번주 1등 폭등!", f"{top_1w['업종_한줄']} {top_1w['1W']:+.1f}%", (0, 230, 118)),
+                                    ([370, 304, 676, 444], "2. 이번주 꼴찌!", f"{bot_1w['업종_한줄']} {bot_1w['1W']:+.1f}%", (255, 23, 68)),
+                                    ([44, 458, 350, 598], "3. 올해 YTD 1등!", f"{top_ytd['업종_한줄']} {top_ytd['YTD']:+.1f}%", (0, 176, 255)),
+                                    ([370, 458, 676, 598], "4. 올해 YTD 꼴찌!", f"{bot_ytd['업종_한줄']} {bot_ytd['YTD']:+.1f}%", (255, 193, 7))
+                                ]
+                                for b_crd, b_t1, b_t2, b_c in q_boxes:
+                                    x1, y1, x2, y2 = b_crd
+                                    dr.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=(16, 24, 42), outline=b_c, width=4)
+                                    dr.rounded_rectangle([x1+10, y1+10, x2-10, y1+54], radius=8, fill=b_c)
+                                    _fit_c(dr, (x1+x2)/2, y1+32, (x2-x1)-28, b_t1, s_sz=23, fill=(255,255,255), sw=2)
+                                    _fit_c(dr, (x1+x2)/2, y1+102, (x2-x1)-24, b_t2, s_sz=32, fill=(255,240,0), sw=2)
+
+                                # 하단 TOP 4 업종 미니 바 리스트
+                                top4_df = df_sec.sort_values("YTD", ascending=False).head(4)
+                                for idx_r, (_, r_v) in enumerate(top4_df.iterrows()):
+                                    ry = 626 + idx_r * 42
+                                    _fit_c(dr, 150, ry, 190, f"{r_v['업종_한줄']}({r_v['ETF']})", s_sz=21, fill=(255,255,255))
+                                    c1 = (0, 230, 118) if r_v["1W"] >= 0 else (255, 23, 68)
+                                    c2 = (255, 240, 0) if r_v["YTD"] >= 0 else (255, 23, 68)
+                                    _fit_c(dr, 390, ry, 140, f"1주 {r_v['1W']:+.1f}%", s_sz=21, fill=c1)
+                                    _fit_c(dr, 575, ry, 160, f"올해 {r_v['YTD']:+.1f}%", s_sz=22, fill=c2)
+
                                 words = sub_txt.split(" ")
                                 mid = len(words) // 2
                                 l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
-                                dr.rounded_rectangle([36, 860, W-36, 975], radius=16, fill=(0, 0, 0), outline=(250, 204, 21), width=2)
-                                dr.text((W//2, 895), l1, font=_gf_s(27), fill=(255, 255, 255), anchor="mm")
-                                dr.text((W//2, 940), l2, font=_gf_s(27), fill=(250, 204, 21), anchor="mm")
-                                dr.text((W//2, 1080), "공시·지수 데이터 기반 학술 분석이며 투자 권유가 아닙니다", font=_gf_s(17), fill=(120, 120, 120), anchor="mm")
+                                dr.rounded_rectangle([32, 824, W-32, 950], radius=18, fill=(10, 14, 24), outline=bc, width=4)
+                                _fit_c(dr, W//2, 864, W-90, l1, s_sz=32, fill=(255, 255, 255), sw=4)
+                                _fit_c(dr, W//2, 914, W-90, l2, s_sz=32, fill=(255, 240, 0), sw=4)
+                                _fit_c(dr, W//2, 1080, W-50, "[안내] 지수 데이터 기반 학술·교육용 통계 자료이며 투자 추천이 아닙니다", s_sz=15, fill=(130, 140, 155))
                                 return im
 
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                             seg_files, tmp_all = [], []
+                            vf_sec_m = "scale=756:1344:flags=lanczos,crop=720:1280:'(iw-720)/2+if(lt(t,0.12),sin(t*160)*10,0)':'(ih-1280)/2+if(lt(t,0.12),cos(t*130)*10,0)',eq=eval=frame:brightness='if(lt(t,0.06),0.20,0)'"
+
                             for idx_s, (stxt, _) in enumerate(sec_shorts_chunks):
                                 f_im = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                 f_mp3 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                 f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                                tmp_all.extend([f_im, f_mp3, f_seg])
+                                tmp_all.extend([f_im, f_mp3, f_wav, f_seg])
                                 _draw_sec_frame(idx_s, stxt).save(f_im)
-                                tts_s = stxt.replace("S&P500", "에스앤피 오백").replace("%", "퍼센트")
+                                tts_s = stxt.replace("S&P500", "에스앤피 오백").replace("%", "퍼센트").replace("4가지", "네가지")
                                 loop = asyncio.new_event_loop()
-                                try: loop.run_until_complete(edge_tts.Communicate(tts_s, voice="ko-KR-InJoonNeural", rate="+28%", pitch="-2Hz").save(f_mp3))
+                                try: loop.run_until_complete(edge_tts.Communicate(tts_s, voice="ko-KR-InJoonNeural", rate="+50%", pitch="+12Hz").save(f_mp3))
                                 finally: loop.close()
-                                subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_mp3, "-c:v", "libx264", "-tune", "stillimage", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                is_last_c = (idx_s == len(sec_shorts_chunks) - 1)
+                                pad_s = "" if is_last_c else ",apad=pad_dur=0.02"
+                                af_s = f"silenceremove=start_periods=1:start_threshold=-35dB:stop_periods=-1:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_s}"
+                                subprocess.run([ffmpeg_exe, "-y", "-i", f_mp3, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                _add_heavy_sfx_and_bgm_sec(f_wav, is_last=is_last_c)
+
+                                res_v = subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_wav, "-vf", vf_sec_m, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                if res_v.returncode != 0:
+                                    subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_wav, "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 seg_files.append(f_seg)
 
                             cat_f = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
@@ -10430,7 +10493,7 @@ with tab_sector:
                             subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_f, "-c", "copy", out_sec_mp4], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                             with open(out_sec_mp4, "rb") as vf: sec_mp4_bytes = vf.read()
                             st.video(sec_mp4_bytes)
-                            st.download_button("📥 S&P 500 업종 성과 쇼츠(.mp4) 다운로드", data=sec_mp4_bytes, file_name=f"SP500_Sector_Shorts_{today_fmt_str.replace('.','')}.mp4", mime="video/mp4", use_container_width=True)
+                            st.download_button("📥 S&P 500 업종 성과 13초 폭격 쇼츠(.mp4) 다운로드", data=sec_mp4_bytes, file_name=f"SP500_Sector_Beast_{today_fmt_str.replace('.','')}.mp4", mime="video/mp4", use_container_width=True)
                             for rm_p in tmp_all:
                                 if os.path.exists(rm_p):
                                     try: os.remove(rm_p)
@@ -10438,35 +10501,31 @@ with tab_sector:
                     except Exception as e:
                         st.warning(f"업종 성과 쇼츠 생성 오류: {e}")
 
-# ==========================================
-# [신규 추가] 히트맵 탭(tab_heatmap) 하단에 히트맵 브리핑 쇼츠 생성기 주입
-# ==========================================
 with tab_heatmap:
     st.divider()
-    with st.expander("🎬 마켓 히트맵 시황 브리핑 쇼츠(.mp4) 원클릭 제작", expanded=False):
+    with st.expander("💥 마켓 히트맵 13초 시각폭격 & 무한루프 쇼츠(.mp4) 원클릭 제작", expanded=False):
         if 'df_hm' in locals() and not df_hm.empty:
             hm_top = df_hm.sort_values("chg", ascending=False).iloc[0]
             hm_bot = df_hm.sort_values("chg", ascending=True).iloc[0]
             hm_mcap1 = df_hm.sort_values("mcap", ascending=False).iloc[0]
             up_cnt = int((df_hm["chg"] > 0).sum())
             dn_cnt = int((df_hm["chg"] < 0).sum())
-            mkt_kor_title = "미국 S&P 500" if mkt_code == "US" else "한국 대표 시총 상위"
+            mkt_kor_title = "미국 S&P500" if mkt_code == "US" else "한국 시총 상위"
 
+            # 13초 5컷 미스터비스트 초압축 타격 대본 + 무한 루프!
             hm_chunks = [
-                (f"오늘 {mkt_kor_title} 마켓 히트맵 자금 흐름을 40초 만에 브리핑합니다", "HM_1"),
-                (f"주요 상위 종목 중 상승은 {up_cnt}개, 하락은 {dn_cnt}개로 집계되었습니다", "HM_1"),
-                (f"시가총액 1위 대장주 {hm_mcap1['kor_name']} 등락률은 {hm_mcap1['chg']:+.2f}%를 기록했습니다", "HM_2"),
-                (f"오늘 가장 뜨겁게 상승한 종목은 {hm_top['kor_name']}로 {hm_top['chg']:+.2f}% 급등했습니다", "HM_2"),
-                (f"반면 오늘 가장 낙폭이 큰 종목은 {hm_bot['kor_name']}로 {hm_bot['chg']:+.2f}% 하락했습니다", "HM_3"),
-                (f"주가가 빠질 때 내재가치 대비 안전마진이 열리는 우량주를 점검해 보세요", "HM_3"),
-                (f"오늘 히트맵에서 여러분의 시선을 끈 종목은 무엇인가요?", "HM_4")
+                (f"오늘 {mkt_kor_title} 히트맵! 딱 4가지만 기억하세요! 상승 {up_cnt}개 대 하락 {dn_cnt}개!", "HM_1"),
+                (f"첫째 시총 1위 대장주! {hm_mcap1['kor_name']} 오늘 {hm_mcap1['chg']:+.2f}% 기록!", "HM_2"),
+                (f"둘째 오늘 최고 폭등주! {hm_top['kor_name']} 무려 {hm_top['chg']:+.2f}% 급등!", "HM_3"),
+                (f"셋째 오늘 최대 낙폭주! {hm_bot['kor_name']} {hm_bot['chg']:+.2f}% 하락!", "HM_4"),
+                ("그래서 결론! 오늘 시장 돈이 쏠린 핵심 판도는 바로", "HM_1")
             ]
 
-            if st.button("🎬 마켓 히트맵 브리핑 쇼츠(.mp4) 렌더링 시작", key="btn_hm_shorts", use_container_width=True, type="primary"):
+            if st.button("💥 마켓 히트맵 13초 시각폭격 쇼츠(.mp4) 렌더링 시작", key="btn_hm_shorts", use_container_width=True, type="primary"):
                 try:
                     from PIL import Image, ImageDraw, ImageFont
-                    import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts
-                    with st.spinner("히트맵 상위/하위 스코어보드 쇼츠(.mp4)를 제작 중입니다..."):
+                    import imageio_ffmpeg, subprocess, tempfile, os, asyncio, edge_tts, wave, struct, math
+                    with st.spinner("13초 미스터비스트 하이톤 · 정중앙 칼핀 펀치 모션 · 무한루프 히트맵 쇼츠(.mp4) 제작 중..."):
                         font_dir = tempfile.gettempdir()
                         bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                         def _gf_h(sz):
@@ -10476,49 +10535,98 @@ with tab_heatmap:
                                     except Exception: continue
                             return ImageFont.load_default()
 
-                        def _draw_hm_frame(sub_txt):
-                            W, H = 720, 1280
-                            im = Image.new("RGB", (W, H), (11, 14, 20))
-                            dr = ImageDraw.Draw(im)
-                            dr.text((W//2, 120), f"{mkt_kor_title} 마켓 히트맵", font=_gf_h(46), fill=(255, 255, 255), anchor="mm")
-                            dr.text((W//2, 185), f"상승 {up_cnt}종목  vs  하락 {dn_cnt}종목 ({prd_code})", font=_gf_h(36), fill=(250, 204, 21), anchor="mm")
+                        def _fit_h(dr, cx, cy, mw, txt, s_sz=36, m_sz=12, fill=(255,255,255), sw=0):
+                            t_c = str(txt).strip()
+                            for sz in range(s_sz, m_sz - 1, -2):
+                                f = _gf_h(sz)
+                                bb = dr.textbbox((0, 0), t_c, font=f, stroke_width=sw)
+                                if (bb[2] - bb[0]) <= mw:
+                                    dx = cx - (bb[0] + bb[2]) / 2.0
+                                    dy = cy - (bb[1] + bb[3]) / 2.0
+                                    dr.text((dx, dy), t_c, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
+                                    return
 
-                            # 좌측 상승 TOP 5 타일 / 우측 하락 TOP 5 타일
+                        def _add_heavy_sfx_hm(wav_p):
+                            sr = 24000
+                            with wave.open(wav_p, 'rb') as wf:
+                                prm = wf.getparams()
+                                raw = wf.readframes(wf.getnframes())
+                            pcm = list(struct.unpack(f'<{len(raw)//2}h', raw))
+                            n_sfx = min(len(pcm), int(sr * 0.16))
+                            for idx_i in range(n_sfx):
+                                ts = idx_i / sr
+                                sf = 45.0 + 90.0 * math.exp(-ts * 32.0)
+                                sp = math.sin(2.0 * math.pi * sf * ts) * math.exp(-ts * 14.0) * 0.50
+                                rg = math.sin(2.0 * math.pi * 1318.5 * ts) * math.exp(-ts * 25.0) * 0.25
+                                pcm[idx_i] = max(-32767, min(32767, int(pcm[idx_i] + (sp + rg) * 32767)))
+                            with wave.open(wav_p, 'wb') as wf_o:
+                                wf_o.setparams(prm)
+                                wf_o.writeframes(struct.pack(f'<{len(pcm)}h', *pcm))
+
+                        def _draw_hm_frame(c_idx, sub_txt):
+                            W, H = 720, 1280
+                            ban_cols = [(220, 38, 38), (0, 180, 100), (37, 99, 235), (168, 55, 245), (220, 38, 38)]
+                            bc = ban_cols[c_idx % len(ban_cols)]
+                            im = Image.new("RGB", (W, H), (6, 8, 16))
+                            dr = ImageDraw.Draw(im)
+
+                            dr.rectangle([0, 80, W, 260], fill=bc)
+                            _fit_h(dr, W//2, 125, W-72, f"{mkt_kor_title} 마켓 히트맵 ({prd_code})", s_sz=30, fill=(255,255,255), sw=2)
+                            _fit_h(dr, W//2, 204, W-64, f"상승 {up_cnt}개 vs 하락 {dn_cnt}개!", s_sz=52, fill=(255,240,0), sw=4)
+
+                            dr.rectangle([0, 260, W, 274], fill=(25, 35, 55))
+                            dr.rectangle([0, 260, int(W * ((c_idx + 1) / 5.0)), 274], fill=(0, 255, 136))
+
+                            dr.rounded_rectangle([28, 288, W-28, 804], radius=24, fill=(10, 14, 26), outline=bc, width=5)
+
                             top5 = df_hm.sort_values("chg", ascending=False).head(5)
                             bot5 = df_hm.sort_values("chg", ascending=True).head(5)
                             for i_r, (_, r_u) in enumerate(top5.iterrows()):
-                                y1 = 250 + i_r * 108
-                                dr.rounded_rectangle([40, y1, 350, y1+96], radius=14, fill=(20, 83, 45), outline=(34, 197, 94), width=2)
-                                dr.text((195, y1+34), f"{r_u['kor_name'][:8]}", font=_gf_h(26), fill=(255, 255, 255), anchor="mm")
-                                dr.text((195, y1+70), f"{r_u['chg']:+.2f}%", font=_gf_h(28), fill=(134, 239, 172), anchor="mm")
+                                y1 = 304 + i_r * 96
+                                dr.rounded_rectangle([42, y1, 350, y1+86], radius=14, fill=(16, 78, 42), outline=(0, 230, 118), width=3)
+                                _fit_h(dr, 196, y1+28, 285, f"▲ {r_u['kor_name'][:8]}", s_sz=25, fill=(255, 255, 255), sw=2)
+                                _fit_h(dr, 196, y1+64, 285, f"{r_u['chg']:+.2f}%", s_sz=28, fill=(255, 240, 0), sw=2)
 
                             for i_r, (_, r_d) in enumerate(bot5.iterrows()):
-                                y1 = 250 + i_r * 108
-                                dr.rounded_rectangle([370, y1, W-40, y1+96], radius=14, fill=(127, 29, 29), outline=(239, 68, 68), width=2)
-                                dr.text((525, y1+34), f"{r_d['kor_name'][:8]}", font=_gf_h(26), fill=(255, 255, 255), anchor="mm")
-                                dr.text((525, y1+70), f"{r_d['chg']:+.2f}%", font=_gf_h(28), fill=(254, 202, 202), anchor="mm")
+                                y1 = 304 + i_r * 96
+                                dr.rounded_rectangle([370, y1, W-42, y1+86], radius=14, fill=(115, 22, 28), outline=(255, 23, 68), width=3)
+                                _fit_h(dr, 524, y1+28, 285, f"▼ {r_d['kor_name'][:8]}", s_sz=25, fill=(255, 255, 255), sw=2)
+                                _fit_h(dr, 524, y1+64, 285, f"{r_d['chg']:+.2f}%", s_sz=28, fill=(254, 202, 202), sw=2)
 
                             words = sub_txt.split(" ")
                             mid = len(words) // 2
                             l1, l2 = " ".join(words[:mid]), " ".join(words[mid:])
-                            dr.rounded_rectangle([36, 835, W-36, 955], radius=16, fill=(0, 0, 0), outline=(250, 204, 21), width=2)
-                            dr.text((W//2, 872), l1, font=_gf_h(27), fill=(255, 255, 255), anchor="mm")
-                            dr.text((W//2, 918), l2, font=_gf_h(27), fill=(250, 204, 21), anchor="mm")
+                            dr.rounded_rectangle([32, 824, W-32, 950], radius=18, fill=(10, 14, 24), outline=bc, width=4)
+                            _fit_h(dr, W//2, 864, W-90, l1, s_sz=32, fill=(255, 255, 255), sw=4)
+                            _fit_h(dr, W//2, 914, W-90, l2, s_sz=32, fill=(255, 240, 0), sw=4)
+                            _fit_h(dr, W//2, 1080, W-50, "[안내] 시세 데이터 기반 학술·교육용 통계 자료이며 투자 추천이 아닙니다", s_sz=15, fill=(130, 140, 155))
                             return im
 
                         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                         seg_f, tmp_f = [], []
-                        for stxt, _ in hm_chunks:
+                        vf_hm_m = "scale=756:1344:flags=lanczos,crop=720:1280:'(iw-720)/2+if(lt(t,0.12),sin(t*160)*10,0)':'(ih-1280)/2+if(lt(t,0.12),cos(t*130)*10,0)',eq=eval=frame:brightness='if(lt(t,0.06),0.20,0)'"
+
+                        for idx_h, (stxt, _) in enumerate(hm_chunks):
                             f_im = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                             f_mp3 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                            f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                             f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                            tmp_f.extend([f_im, f_mp3, f_seg])
-                            _draw_hm_frame(stxt).save(f_im)
-                            tts_h = stxt.replace("S&P 500", "에스앤피 오백").replace("%", "퍼센트")
+                            tmp_f.extend([f_im, f_mp3, f_wav, f_seg])
+                            _draw_hm_frame(idx_h, stxt).save(f_im)
+                            tts_h = stxt.replace("S&P500", "에스앤피 오백").replace("%", "퍼센트").replace("4가지", "네가지")
                             loop = asyncio.new_event_loop()
-                            try: loop.run_until_complete(edge_tts.Communicate(tts_h, voice="ko-KR-InJoonNeural", rate="+28%", pitch="-2Hz").save(f_mp3))
+                            try: loop.run_until_complete(edge_tts.Communicate(tts_h, voice="ko-KR-InJoonNeural", rate="+50%", pitch="+12Hz").save(f_mp3))
                             finally: loop.close()
-                            subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_mp3, "-c:v", "libx264", "-tune", "stillimage", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                            is_last_h = (idx_h == len(hm_chunks) - 1)
+                            pad_h = "" if is_last_h else ",apad=pad_dur=0.02"
+                            af_h = f"silenceremove=start_periods=1:start_threshold=-35dB:stop_periods=-1:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_h}"
+                            subprocess.run([ffmpeg_exe, "-y", "-i", f_mp3, "-af", af_h, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                            _add_heavy_sfx_hm(f_wav)
+
+                            res_vh = subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_wav, "-vf", vf_hm_m, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            if res_vh.returncode != 0:
+                                subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_wav, "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                             seg_f.append(f_seg)
 
                         cat_p = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
@@ -10530,13 +10638,14 @@ with tab_heatmap:
                         subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_p, "-c", "copy", out_hm], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                         with open(out_hm, "rb") as vf: hm_bytes = vf.read()
                         st.video(hm_bytes)
-                        st.download_button("📥 마켓 히트맵 쇼츠(.mp4) 다운로드", data=hm_bytes, file_name=f"Heatmap_Shorts_{mkt_code}_{prd_code}.mp4", mime="video/mp4", use_container_width=True)
+                        st.download_button("📥 마켓 히트맵 13초 폭격 쇼츠(.mp4) 다운로드", data=hm_bytes, file_name=f"Heatmap_Beast_{mkt_code}_{prd_code}.mp4", mime="video/mp4", use_container_width=True)
                         for rm_p in tmp_f:
                             if os.path.exists(rm_p):
                                 try: os.remove(rm_p)
                                 except Exception: pass
                 except Exception as e:
                     st.warning(f"히트맵 쇼츠 생성 오류: {e}")
+        # ▲▲▲ [부분 교체 2 끝] ▲▲▲
 
 # ==========================================
 # [신규 탭] 🏦 연준 유동성 & QE 빅프린트 분석 (첨부 이미지 FRED 차트 완벽 구현)
