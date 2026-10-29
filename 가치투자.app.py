@@ -6286,17 +6286,33 @@ with tab1:
                     st.markdown(reverse_dcf_html, unsafe_allow_html=True)
 
                     # =========================================================================
-                    # ▼▼▼ [수정 완료] 버핏의 10초 암산 역산 밸류에이션 (들여쓰기 제거 버전) ▼▼▼
+                    # ▼▼▼ [수정 완료 & FCF 성장률 비교 추가] 들여쓰기 0칸 버전 (HTML 노출 방지) ▼▼▼
                     # =========================================================================
                     if f_pe > 0:
-                        cur_ey = (1.0 / f_pe) * 100.0  # 주식 이익수익률 (Earnings Yield)
-                        req_yield = ty + 5.0           # 버핏 최소 요구수익률 (10년물 미국채 금리 + 위험마진 5.0%p)
+                        cur_ey = (1.0 / f_pe) * 100.0
+                        req_yield = ty + 5.0
                         buffett_max_pe = 100.0 / req_yield if req_yield > 0 else 10.0
                         
                         eff_eps_calc = (reg_p / f_pe) if f_pe > 0 else (t_eps if t_eps > 0 else 0)
                         buffett_fair_price = eff_eps_calc * buffett_max_pe if eff_eps_calc > 0 else 0
                         buffett_mos_pct = ((buffett_fair_price - p) / buffett_fair_price) * 100.0 if buffett_fair_price > 0 else 0.0
                         ey_spread = cur_ey - req_yield
+
+                        # 1. 기업 실제 FCF 연평균 성장률(%) vs 시장 역산 기대 성장률(%) 비교
+                        actual_fcf_g = final_g * 100.0
+                        implied_g_val = (implied_g * 100.0) if implied_g is not None else 0.0
+                        g_spread = actual_fcf_g - implied_g_val
+
+                        if implied_g is not None:
+                            if g_spread >= 0:
+                                g_cmp_txt = f"✅ [성장성 우위] 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 시장 역산 기대치({implied_g_val:+.1f}%)를 상회합니다!"
+                                g_cmp_col = "#2ecc71"
+                            else:
+                                g_cmp_txt = f"⚠️ [성장성 부담] 실제 FCF 성장률({actual_fcf_g:+.1f}%)이 시장 역산 기대치({implied_g_val:+.1f}%)보다 낮습니다."
+                                g_cmp_col = "#ff7675"
+                        else:
+                            g_cmp_txt = f"📊 기업 실제 FCF 연평균 성장률: {actual_fcf_g:+.1f}%"
+                            g_cmp_col = "#A0C4FF"
 
                         if cur_ey >= req_yield:
                             b_color = "#2ecc71"
@@ -6305,47 +6321,50 @@ with tab1:
                         elif cur_ey >= (ty + 2.0):
                             b_color = "#fdcb6e"
                             b_verdict = "⚠️ [조건부 통과] 완만한 이익 성장(연 5~10%) 전제 시 합리적"
-                            b_desc = f"현재 이익수익률({cur_ey:.1f}%)은 국채 금리({ty:.1f}%)를 상회하지만, +5%p 마진을 온전히 채우려면 경제적 해자 기반의 지속적인 이익 성장이 뒷받침되어야 합니다."
+                            b_desc = f"현재 이익수익률({cur_ey:.1f}%)은 국채 금리({ty:.1f}%)를 상회하지만, +5%p 마진을 채우려면 지속적인 이익 성장이 뒷받침되어야 합니다."
                         else:
                             b_color = "#ff7675"
                             b_verdict = "🚨 [10초 탈락] 성장 프리미엄 과다 (채권 대비 기회비용 열위)"
-                            b_desc = f"이익수익률({cur_ey:.1f}%)이 미국채 금리+5%p({req_yield:.1f}%)에 크게 미달합니다. 향후 연 15~20% 이상의 폭발적 성장이 장기간 지속되지 못하면 멀티플 축소에 따른 자본 손실 위험이 큽니다."
+                            b_desc = f"이익수익률({cur_ey:.1f}%)이 미국채 금리+5%p({req_yield:.1f}%)에 크게 미달합니다. 향후 폭발적 성장이 장기간 지속되지 못하면 자본 손실 위험이 큽니다."
 
                         p_bft_str = (f"{int(buffett_fair_price):,}원" if kr else f"${buffett_fair_price:,.2f}") if buffett_fair_price > 0 else "산출 불가"
 
-                        # 💡 HTML 문자열을 맨 왼쪽(들여쓰기 0칸)에 바짝 붙여야 Markdown이 코드 블록으로 오인하지 않습니다.
                         buffett_mental_dcf_html = f"""<div style='background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(245, 158, 11, 0.05)); border: 1.5px solid #A0C4FF; padding: 20px; border-radius: 14px; margin-bottom: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
     <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>
         <span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 (Earnings Yield vs 10Y Treasury + 5%)</span>
         <span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>
     </div>
     
-    <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:14px;'>
+    <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-bottom:14px;'>
         <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
             <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>주식 이익수익률 (1/PER)</div>
-            <div style='font-size:1.4rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
+            <div style='font-size:1.35rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
             <div style='font-size:0.8rem; color:#8892b0;'>선행 PER: {f_pe:.1f}배</div>
         </div>
         <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
             <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 요구수익률 (국채+5%p)</div>
-            <div style='font-size:1.4rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
+            <div style='font-size:1.35rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
             <div style='font-size:0.8rem; color:#8892b0;'>국채 {ty:.2f}% + 마진 5.0%p</div>
         </div>
         <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>스프레드 (이익률 - 요구수익률)</div>
-            <div style='font-size:1.4rem; font-weight:900; color:{b_color};'>{ey_spread:+.2f}%p</div>
-            <div style='font-size:0.8rem; color:#8892b0;'>버핏 상한 PER: <b>{buffett_max_pe:.1f}배</b></div>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>실제 FCF 성장률 vs 역산기대</div>
+            <div style='font-size:1.35rem; font-weight:900; color:{g_cmp_col};'>{actual_fcf_g:+.1f}%</div>
+            <div style='font-size:0.8rem; color:#8892b0;'>시장 역산 기대: {implied_g_val:+.1f}%</div>
         </div>
         <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가 (국채+5%)</div>
-            <div style='font-size:1.4rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가</div>
+            <div style='font-size:1.35rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
             <div style='font-size:0.8rem; color:{b_color}; font-weight:bold;'>안전마진: {buffett_mos_pct:+.1f}%</div>
         </div>
     </div>
 
-    <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px;'>
+    <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px; margin-bottom:10px;'>
         <div style='font-size:0.95rem; font-weight:800; color:{b_color}; margin-bottom:4px;'>{b_verdict}</div>
         <div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_desc}</div>
+    </div>
+    
+    <div style='background:{g_cmp_col}18; border-left:4px solid {g_cmp_col}; padding:10px 14px; border-radius:8px;'>
+        <div style='font-size:0.88rem; font-weight:700; color:{g_cmp_col};'>{g_cmp_txt}</div>
     </div>
 </div>"""
 
@@ -6354,7 +6373,6 @@ with tab1:
 
                     str_g = t("성장률", "Growth")
                     str_mos = t("안전마진", "MoS")
-                    
                     val_w = f"{int(iv_worst):,}원" if kr else f"${iv_worst:,.2f}"
                     val_b = f"{int(iv):,}원" if kr else f"${iv:,.2f}"
                     val_e = f"{int(iv_best):,}원" if kr else f"${iv_best:,.2f}"
