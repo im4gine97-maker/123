@@ -6312,7 +6312,6 @@ with tab1:
                         v_col = "#ff7675"
                         v_desc = f"현재 주가를 정당화하려면 매년 무려 {imp_g_pct:.1f}%씩 현금이 폭증해야 합니다. 작은 실적 미달에도 멀티플이 붕괴할 수 있습니다."
 
-                    # 4대 직관적 인버트 지표 카드 그리드
                     panel_html = f"""
                     <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;'>
                         <div style='{item_style}'>
@@ -6339,7 +6338,6 @@ with tab1:
                     """
                     st.markdown(panel_html, unsafe_allow_html=True)
 
-                # 하단 투자의견 호출 시 implied_g_val 주입
                 op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
                     mos=0.0,
                     pmos=pmos_val,
@@ -6364,6 +6362,13 @@ with tab1:
                     implied_g=implied_g_val
                 )
 
+                st.divider()
+                st.subheader(t("3. 장기 재무 시각화 (최근 연속 지표)", "3. Long-term Financial Visualizations"))
+                try:
+                    api_success = False
+                    years = []
+                    rev, ni, fcf_chart, fcf_years = [], [], [], []
+                    cd = tk.split('.')[0] if kr else tk
 
                     # --- 1. 한국 주식: DART API 연동 ---
                     if kr and DART_API_KEY:
@@ -6387,7 +6392,6 @@ with tab1:
                             sec_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) InvestmentApp/2.0 (admin@value.com)'}
                             tickers_res = requests.get("https://www.sec.gov/files/company_tickers.json", headers=sec_headers, timeout=5).json()
                             cik = next((str(v['cik_str']).zfill(10) for k, v in tickers_res.items() if v['ticker'].upper() == cd.upper()), None)
-                            
                             if cik:
                                 facts = requests.get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json", headers=sec_headers, timeout=5).json()
                                 us_gaap = facts.get('facts', {}).get('us-gaap', {})
