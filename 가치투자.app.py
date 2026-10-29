@@ -6287,13 +6287,8 @@ with tab1:
                 elif iv:
                     with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
                         st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
-                    
-                    elif iv:
-                    with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
-                        st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
 
                     st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt}</div>", unsafe_allow_html=True)
-
                     # =========================================================================
                     # [에러 100% 수리 완료] 역산 DCF를 대체하는 '워런 버핏의 10초 암산 역산 밸류에이션'
                     # - 공식 1 (버핏 10% 허들 역산): 1/현재PER + (요구 성장률) = 10%  ==> 요구 성장률 vs 실제 FCF 성장률 비교
