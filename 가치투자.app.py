@@ -3629,447 +3629,293 @@ def analyze_share_dilution(stk, cd, kr):
         pass
     return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # ▲▲▲ [교체 2 끝] ▲▲▲
+# =========================================================================
+# [바이블 헌장 반영] 워런 버핏 · 찰리 멍거 · 리루 정통 가치투자 종합 판정 엔진 v4
+# =========================================================================
 def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, erp, final_g, ceo_text, is_financial=False, pbr=0.0, kr=False, tk="", base_fcf=0.0, div_yield_pct=0.0, is_zigzag=False, f_pe=0.0, spy_pe=22.0, is_cyclical=False, hist_roe_10y=None, hist_roic_10y=None, buyback_yield_pct=0.0):
     score_details = {}
-    score = 0  
+    tk_upper = str(tk).upper()
 
-    # 1. 경영진 및 거버넌스
-    ceo_final = 0
-    ceo_reason = ""
-    if "위키 및 공공 기록 스크리닝 결과" in ceo_text:
-        ceo_final = 0
-        ceo_reason = t("위키/공공 데이터 스크리닝 (특이사항 없음)", "Wiki/Public screening (No major issues)")
-    else:
-        # [수정] 자본 배분, 주주환원, 도덕성 중심의 가치투자 6원칙 키워드 세팅
-        kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
-        kw_high_pos = ["자사주 매입", "주주 환원", "주주친화", "상생", "압도적인", "독보적", "독점적", "시장 장악", "완결형", "적극적인 주주환원", "잉여현금 극대화", "배당 확대", "주당가치 제고", "자본 효율적", "주주환원율 로드맵"]
-        kw_pos = ["검증된", "수익성 개선", "안정적", "선점", "실행력", "투명한", "신뢰도", "프리미엄", "우위", "현금 창출력", "흑자 달성", "1위", "장악력", "본업에 집중", "강력한"]
-        
-        # ▼▼▼ get_comprehensive_investment_opinion 함수 내부의 kw_fatal 부분과 '# 11. 최종 결과 매핑' 아래를 교체하세요 ▼▼▼
+    # -------------------------------------------------------------
+    # 1. 최고 경영진의 진실성(Integrity) & 거버넌스 (버핏 3대 자질, 피셔 15번)
+    # "정직함이 없으면 지능과 열정이 주주를 파멸시킨다. 의심 시 즉각 배제"
+    # -------------------------------------------------------------
+    kw_fatal_current = [
+        "구속", "횡령", "배임", "분식회계", "사기", "은폐 조작", "부품 바꿔치기", 
+        "먹튀", "미공개 정보", "내부자 거래", "기습 유상증자", "합병 비율 조작"
+    ]
+    kw_severe_neg = [
+        "물적분할", "주주가치 훼손", "뇌물", "탈세", "유죄", "불법", "정경유착", 
+        "불완전판매", "내부통제 부실", "압수수색"
+    ]
+    kw_super_pos = [
+        "교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", 
+        "전량 소각", "압도적인 마진", "탁월한 자본수익률", "철저한 ROE", "버핏이 극찬", "멍거가 극찬", "리루가 극찬"
+    ]
+    kw_pos = ["자사주 매입", "주주친화", "상생", "독보적", "시장 장악", "잉여현금 극대화", "배당 확대", "투명한 소통"]
 
-        # get_comprehensive_investment_opinion 및 tab6 내부 공통 적용
-        kw_fatal = [
-            "구속", "횡령", "배임", "분식회계", "회계 감리 및 재무 공시 제재", "사기", "은폐", "조작", 
-            "부품 바꿔치기", "거버넌스 붕괴", "거버넌스 리스크 부각", "파탄", "훼손 논란", 
-            "먹튀", "대량 지분 매도", "사망 참사", "부당대출", "비리", "규제 위반 논란", 
-            "미공개 정보", "내부통제 부실", "내부통제 미흡 관련 조사", "압수수색"
-        ]
-        kw_high_neg = [
-            "사법", "물적분할", "유상증자", "합병 비율", "주주 이해상충 논란", "주주가치 훼손", 
-            "주주가치 희석", "뇌물", "탈세", "유죄", "불법", "강제노동", "배당 중단", 
-            "무단", "독성", "파산", "정경유착", "비자금", "불투명한", "기밀 유출", "불완전판매"
-        ]
-        kw_neg = ["과징금", "집단소송", "배상금", "결함", "환경 파괴", "키맨 리스크", "노동 환경", "노무", "반독점", "독점 규제", "무리한", "출혈", "낙하산", "가동률 하락", "소송", "제재", "적자 방치", "부채 부담", "레버리지", "규제 마찰", "지배구조 불안", "오버행", "통제 리스크", "이탈", "보안 침해", "먹통", "개인정보 유출"]
-        kw_minor_neg = ["사이클", "변동성", "침체", "둔화", "관세", "마진 희석", "경쟁 격화", "잠식", "포화", "지정학적", "정체", "우려"]
-        
-        # [핵심] 억울한 연좌제를 끊어낼 '과거/전임' 면죄부 키워드
-        past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
+    past_modifiers = ["과거", "전임", "수십 년간", "이전", "2008년", "금융위기 당시"]
 
-        raw_score = 0
-        is_current_fatal = False
-        has_past_fatal = False
+    is_fatal_compromised = False
+    raw_ceo_score = 0
+    sentences = [s.strip() for s in ceo_text.replace('\n', '. ').split('.') if s.strip()]
 
-        # 문장 단위로 분리하여 각 문맥이 과거인지 현재인지 정확히 파악합니다.
-        sentences = [s.strip() for s in ceo_text.replace('\n', '. ').split('.') if s.strip()]
-        
-        for sentence in sentences:
-            is_past_context = any(pm in sentence for pm in past_modifiers)
-            
-            # 치명적 결함 스캔 (과거의 일이면 페널티 대폭 감경)
-            for k in kw_fatal:
-                if k in sentence:
-                    if is_past_context: 
-                        raw_score -= 15  # 원스트라이크 아웃 면제 및 감경
-                        has_past_fatal = True
-                    else: 
-                        is_current_fatal = True # 현재 진행형이면 즉각 아웃
-                    sentence = sentence.replace(k, "")
-            
-            for k in kw_high_neg:
-                if k in sentence:
-                    raw_score -= 10 if is_past_context else 30
-                    sentence = sentence.replace(k, "")
-            for k in kw_neg:
-                if k in sentence:
-                    raw_score -= 5 if is_past_context else 20
-                    sentence = sentence.replace(k, "")
-            for k in kw_minor_neg:
-                if k in sentence:
-                    raw_score -= 5
-                    sentence = sentence.replace(k, "")
-                    
-            # 긍정적 자본 배분 성과 스캔 (현재 경영진이 훌륭하면 과거의 오점을 수학적으로 덮어버림)
-            for k in kw_super_pos:
-                if k in sentence: raw_score += 40; sentence = sentence.replace(k, "")
-            for k in kw_high_pos:
-                if k in sentence: raw_score += 30; sentence = sentence.replace(k, "")
-            for k in kw_pos:
-                if k in sentence: raw_score += 15; sentence = sentence.replace(k, "")
-
-        if is_current_fatal:
-            ceo_final = -30
-            ceo_reason = t("치명적 결함(사기/배임 등) 현재 진행 중", "Fatal flaws currently detected (fraud/embezzlement)")
-        else:
-            ratio = max(-1.0, min(1.0, raw_score / 120.0))
-            ceo_final = int(round(ratio * 30.0))
-            
-            if ceo_final >= 15:
-                if has_past_fatal:
-                    ceo_reason = t("과거 오점이 있으나, 현재 훌륭한 자본배분으로 턴어라운드 증명", "Turnaround proven with excellent allocation despite past flaws")
+    for sentence in sentences:
+        is_past = any(pm in sentence for pm in past_modifiers)
+        for k in kw_fatal_current:
+            if k in sentence:
+                if not is_past:
+                    is_fatal_compromised = True # 원스트라이크 아웃 플래그
+                    raw_ceo_score -= 40
                 else:
-                    ceo_reason = t("거장의 극찬 혹은 훌륭한 자본배분 등 긍정 요소 우세", "Highly shareholder-friendly & excellent allocation")
-            elif ceo_final > 0:
-                ceo_reason = t("우수한 경영진 팩터 감지", "Good management factors dominate")
-            elif ceo_final == 0:
-                ceo_reason = t("특이사항 없음 (중립)", "Neutral / No major issues")
-            else:
-                ceo_reason = t("거버넌스 리스크 및 부정적 팩터 우세", "Governance risks & negative factors dominate")
-    score_details[t("경영진 및 거버넌스", "Management & Governance")] = (ceo_final, ceo_reason)
+                    raw_ceo_score -= 10
+                sentence = sentence.replace(k, "")
+        for k in kw_severe_neg:
+            if k in sentence:
+                raw_ceo_score -= 10 if is_past else 20
+                sentence = sentence.replace(k, "")
+        for k in kw_super_pos:
+            if k in sentence:
+                raw_ceo_score += 25
+                sentence = sentence.replace(k, "")
+        for k in kw_pos:
+            if k in sentence:
+                raw_ceo_score += 10
+                sentence = sentence.replace(k, "")
 
-    # 2. 순수 배당 매력도 (자사주 매입 합산 완전 제거 · 순수 현금배당만 평가)
-    div_score = 0
-    if div_yield_pct >= 5.0: div_score = 20
-    elif div_yield_pct >= 4.5: div_score = 18
-    elif div_yield_pct >= 4.0: div_score = 16
-    elif div_yield_pct >= 3.5: div_score = 14
-    elif div_yield_pct >= 3.0: div_score = 12
-    elif div_yield_pct >= 2.5: div_score = 10
-    elif div_yield_pct >= 2.0: div_score = 8
-    elif div_yield_pct >= 1.5: div_score = 6
-    elif div_yield_pct >= 1.0: div_score = 4
-    elif div_yield_pct >= 0.5: div_score = 2
-    elif div_yield_pct > 0.0: div_score = 1
-    else: div_score = 0
-
-    if div_yield_pct > 0:
-        div_reason = t(f"순수 배당수익률 {div_yield_pct:.2f}% 반영", f"Pure Dividend Yield {div_yield_pct:.2f}%")
+    if is_fatal_compromised:
+        ceo_score = -30
+        ceo_reason = t("최고경영진 진실성 결여(분식·배임 등 원스트라이크 탈락 사유)", "Integrity compromised (Fatal governance issue)")
     else:
-        div_reason = t("현금 배당 없음 (성장 재투자 혹은 중립)", "No cash dividend (Neutral)")
-        
-    score_details[t("배당 매력도 (순수 배당률)", "Dividend Yield")] = (div_score, div_reason)
-    # [필수 복구] 1.5배를 기본으로 시작하는 다이내믹 누진제 방식 (금융주 한정 배율 2.0배로 상향)
-    def calc_dynamic_score(margin_pct):
-        base_m = 2.0 if is_financial else 1.5
-        
-        if margin_pct >= 0:
-            # 할인 (저평가) 구간: 10% 단위로 가중치가 0.1씩 부드럽게 감소 (누진 적용)
-            if margin_pct <= 10:
-                return margin_pct * base_m
-            elif margin_pct <= 20:
-                return (10 * base_m) + ((margin_pct - 10) * (base_m - 0.1))
-            elif margin_pct <= 30:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + ((margin_pct - 20) * (base_m - 0.2))
-            elif margin_pct <= 40:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + ((margin_pct - 30) * (base_m - 0.3))
-            else:
-                return (10 * base_m) + (10 * (base_m - 0.1)) + (10 * (base_m - 0.2)) + (10 * (base_m - 0.3)) + ((margin_pct - 40) * (base_m - 0.4))
+        ceo_score = max(-25, min(25, int(raw_ceo_score * 0.5)))
+        if ceo_score >= 12:
+            ceo_reason = t("검증된 도덕성과 탁월한 자본배분 이력 입증", "Proven integrity & superior capital allocation")
+        elif ceo_score >= 0:
+            ceo_reason = t("특이 결격 사유 없음 (중립적 거버넌스)", "Standard governance / No red flags")
         else:
-            # 할증 (고평가) 구간: 마이너스 폭이 커질수록 0.5씩 더 강력하게 감점
-            abs_m = abs(margin_pct)
-            if abs_m <= 10:
-                return margin_pct * base_m
-            elif abs_m <= 20:
-                return -( (10 * base_m) + ((abs_m - 10) * (base_m + 0.5)) )
-            else:
-                return -( (10 * base_m) + (10 * (base_m + 0.5)) + ((abs_m - 20) * (base_m + 1.0)) )
+            ceo_reason = t("주주가치 훼손 및 지배구조 리스크 주의", "Governance & shareholder alignment concerns")
 
-    # 3. 가격 매력도 (PER/PBR 안전마진)
-    p_score = 0
-    if is_financial or kr or is_cyclical:
-        p_score = calc_dynamic_score(pmos)
-        p_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PBR")
-        score_details[t("가격 매력도 (PBR 안전마진)", "Price Attractiveness (PBR MoS)")] = (p_score, p_reason)
-    else:
-        if f_pe <= 0:
-            p_score = 0
-            p_reason = t("Forward PER 컨센서스 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
-        else:
-            p_score = calc_dynamic_score(pmos)
-            p_reason = t(f"과거 평균 PER 대비 {pmos:.1f}% 할인(할증)", f"{pmos:.1f}% discount(premium) vs historical PE")
-        score_details[t("가격 매력도 (PER 안전마진)", "Price Attractiveness (PE MoS)")] = (p_score, p_reason)
-    # ▼▼▼ "# 4. CAP_SCORE" 부터 "actual_len = len(hist_roe)" 바로 윗줄까지 아래 코드로 교체하세요 ▼▼▼
-    # ==============================================================================
-    # 4. CAP_SCORE [10년 가중평균 + 금융주/한국주 4년 강제 초기화 버그 완벽 수정]
-    # ==============================================================================
+    score_details[t("경영진 진실성 및 거버넌스", "Management Integrity & Governance")] = (ceo_score, ceo_reason)
+
+    # -------------------------------------------------------------
+    # 2. 경제적 해자 & 10년 자본수익률(ROIC/ROE) 복리 머신 검증 (지침서 Part 3-수학)
+    # "ROIC > 자본비용이며 잉여현금을 높은 ROIC로 재투자하는 복리의 바퀴"
+    # -------------------------------------------------------------
     hist_roe = [v for v in (hist_roe_10y if hist_roe_10y else []) if v != 0]
     hist_roic = [v for v in (hist_roic_10y if hist_roic_10y else []) if v != 0]
-
-    # [핵심 수리] ROE와 ROIC를 독립적으로 체크! (ROIC가 없다고 해서 멀쩡한 10년치 ROE를 날리지 않음)
-    need_roe_fallback = (len(hist_roe) < 2)
-    need_roic_fallback = (not is_financial) and (len(hist_roic) < 2)
-
-    if need_roe_fallback or need_roic_fallback:
-        try:
-            stk_temp = yf.Ticker(tk)
-            inc = stk_temp.income_stmt
-            bs = stk_temp.balance_sheet
-            if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                cols = inc.columns
-                if need_roe_fallback:
-                    for c in cols:
-                        try:
-                            ni = safe_float(inc[c].loc['Net Income']) if 'Net Income' in inc.index else 0
-                            eq = 0
-                            for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                                if eq_k in bs.index:
-                                    eq = safe_float(bs[c].loc[eq_k]); break
-                            if eq > 0 and ni != 0: hist_roe.append((ni / eq) * 100)
-                        except: pass
-                if need_roic_fallback:
-                    for c in cols:
-                        try:
-                            ebit = safe_float(inc[c].loc['EBIT']) if 'EBIT' in inc.index else (safe_float(inc[c].loc['Operating Income']) if 'Operating Income' in inc.index else 0)
-                            pretax = safe_float(inc[c].loc['Pretax Income']) if 'Pretax Income' in inc.index else 0
-                            if ebit == 0 and pretax != 0: ebit = pretax
-                            tax = safe_float(inc[c].loc['Tax Provision']) if 'Tax Provision' in inc.index else 0
-                            tax_rate = tax / pretax if pretax > 0 else 0.25
-                            nopat = ebit * (1 - tax_rate)
-                            total_debt = safe_float(bs[c].loc['Total Debt']) if 'Total Debt' in bs.index else 0
-                            total_eq = safe_float(bs[c].loc['Stockholders Equity']) if 'Stockholders Equity' in bs.index else 0
-                            cash = safe_float(bs[c].loc['Cash And Cash Equivalents']) if 'Cash And Cash Equivalents' in bs.index else 0
-                            inv_cap = total_debt + total_eq - cash
-                            if inv_cap <= 0: inv_cap = total_eq
-                            if inv_cap > 0 and nopat != 0: hist_roic.append((nopat / inv_cap) * 100)
-                        except: pass
-        except: pass
-
-    # 만약 일반 기업인데도 ROIC만 누락되고 10년치 ROE는 존재하는 경우, 10년 타임라인 유지를 위해 ROE 기반으로 보완
-    if not is_financial and len(hist_roic) < len(hist_roe) and len(hist_roe) >= 5:
-        hist_roic = [r * 0.85 for r in hist_roe]
-
     if not hist_roe: hist_roe = [roe_current]
     if not hist_roic: hist_roic = [roic_current if not is_financial else roe_current]
-    hist_roe = hist_roe[:10]
-    hist_roic = hist_roic[:10]
-    actual_len = len(hist_roe) if is_financial else max(len(hist_roe), len(hist_roic))
-    # ▲▲▲ 여기까지 교체 (바로 아래 valid_weights = base_weights[:actual_len] 코드로 이어집니다) ▲▲▲
 
-    # 확보된 연도만큼만 가중치 슬라이싱 후, 합이 1(100%)이 되도록 비율 정규화(보정)
-    base_weights = [0.20, 0.15, 0.12, 0.10, 0.09, 0.08, 0.07, 0.07, 0.06, 0.06]
-    valid_weights = base_weights[:actual_len]
-    weight_sum = sum(valid_weights)
-    norm_weights = [w / weight_sum for w in valid_weights]
+    span_len = min(10, len(hist_roe))
+    w_weights = [0.22, 0.18, 0.14, 0.11, 0.09, 0.07, 0.06, 0.05, 0.04, 0.04][:span_len]
+    w_sum = sum(w_weights)
+    norm_w = [w / w_sum for w in w_weights]
 
-    # 정규화된 가중치로 동적 평균 계산
-    w_roe = sum(val * w for val, w in zip(hist_roe, norm_weights))
-    w_roic = sum(val * w for val, w in zip(hist_roic, norm_weights))
+    weighted_roe = sum(v * w for v, w in zip(hist_roe[:span_len], norm_w))
+    weighted_roic = sum(v * w for v, w in zip(hist_roic[:span_len], norm_w))
 
-    trend_bonus = 0
-    t_msgs = []
+    hurdle = 10.0 if is_financial else 12.0
+    target_metric = weighted_roe if is_financial else weighted_roic
 
-    if is_financial:
-        target_hist = hist_roe
-        hurdle = 12.0
-        metric_name = "ROE"
-        base_score = (w_roe - hurdle) * 3.0
-    else:
-        target_hist = hist_roic
-        hurdle = 15.0
-        metric_name = "ROIC"
-        moat_power = (w_roic * 2 + w_roe) / 3
-        base_score = (moat_power - hurdle) * 3.0
-        
-    # [일관성 모델] 실제 확보된 기간(최대 10년) 내내 방어 시 보너스, 한 번이라도 적자면 감점
-    if all(v >= hurdle for v in target_hist):
-        trend_bonus += 15
-        t_msgs.append(t(f"{actual_len}년 연속 해자 방어(+)", f"{actual_len}y Perfect Moat(+)"))
-    elif any(v < 0 for v in target_hist):
-        trend_bonus -= 15
-        t_msgs.append(t(f"과거 {actual_len}년 내 적자 이력(-)", f"Past Deficit in {actual_len}y(-)"))
-        
-    # [모멘텀 모델] 데이터가 3년 이상일 때만 최근 3년 연속 상승/하락 추세 체크
-    if actual_len >= 3:
-        if target_hist[0] > target_hist[1] and target_hist[1] > target_hist[2]:
-            trend_bonus += 15
-            t_msgs.append(t("수익성 턴어라운드/모멘텀(+)", "Profitability Momentum(+)"))
-        elif target_hist[0] < target_hist[1] and target_hist[1] < target_hist[2]:
-            trend_bonus -= 15
-            t_msgs.append(t("해자 훼손 및 경쟁력 하락(-)", "Deteriorating Moat(-)"))
+    # 복리 머신 점수 산정
+    base_moat = (target_metric - hurdle) * 1.5
+    moat_bonus = 0
 
-    cap_score = int(round(max(-30.0, min(30.0, base_score + trend_bonus))))
-    
-    # UI에 보여줄 히스토리 텍스트 포맷팅 (오래된 연도 -> 최근 연도)
-    hist_str = " → ".join([f"{v:.1f}%" for v in reversed(target_hist)])
-    msg_combined = " / ".join(t_msgs) if t_msgs else t("평이한 변동성", "Average Volatility")
-    
-    cap_reason = f"{metric_name} {actual_len}년 가중치 {w_roe if is_financial else w_roic:.1f}% 반영<br><span style='font-size:0.85em; opacity:0.8;'>* 과거 {actual_len}년 추이: {hist_str} [{msg_combined}]</span>"
-    score_details[t(f"비즈니스 해자 및 {actual_len}년 수익 트렌드", f"Moat & {actual_len}y Profitability Trend")] = (cap_score, cap_reason)
-    # ==============================================================================
-    # 5. 레버리지 왜곡 방어 (단일 연도가 아닌 가중평균된 w_roe, w_roic를 기준으로 변경)
+    # 10년 연속 방어력 보너스 / 적자 이력 감점
+    eval_hist = hist_roe if is_financial else hist_roic
+    if all(v >= hurdle for v in eval_hist):
+        moat_bonus += 10
+    elif any(v < 0 for v in eval_hist):
+        moat_bonus -= 15
+
+    moat_score = max(-25, min(25, int(round(base_moat + moat_bonus))))
+    m_name = "ROE" if is_financial else "ROIC"
+    moat_reason = t(
+        f"{span_len}년 가중 {m_name} {target_metric:.1f}% (허들 {hurdle}% 대비 복리창출력 검증)", 
+        f"{span_len}Y Weighted {m_name} {target_metric:.1f}% vs Hurdle {hurdle}%"
+    )
+    score_details[t("비즈니스 해자 및 복리수익률", "Economic Moat & ROIC Compounding")] = (moat_score, moat_reason)
+
+    # -------------------------------------------------------------
+    # 3. 자본 경량성(Asset-light) & 레버리지 왜곡 방어 (지침서 Part 1-B, Part 3-공학)
+    # 무리한 빚으로 뻥튀기된 ROE 필터링 (단, 자사주 소각 우량주는 정상 참작)
+    # -------------------------------------------------------------
     lev_score = 0
-    if not is_financial and w_roic > 0 and w_roe > 0:
-        gap = w_roe - w_roic
-        # [핵심 보정] ROIC 자체가 22% 이상인 초우량 컴파운더(MA, V, MCO, AAPL 등)가 자사주 소각으로 자본이 줄어 ROE가 극대화된 경우 부채 왜곡 감점 면제!
-        if w_roic >= 22.0 and gap > 10 and (buyback_yield_pct > 0 or w_roic >= 28.0):
-            lev_score = 10
-            lev_reason = t(f"자사주 소각형 고효율 구조: ROIC({w_roic:.1f}%) 자체가 탁월하며 자사주 매입으로 ROE({w_roe:.1f}%) 극대화", "High ROIC with buyback-driven ROE expansion")
+    if not is_financial and weighted_roic > 0 and weighted_roe > 0:
+        gap = weighted_roe - weighted_roic
+        # 자사주 매입으로 자본이 줄어든 초고ROIC 기업(비자, 애플 등)은 레버리지 감점 면제
+        if weighted_roic >= 20.0 and (buyback_yield_pct > 0 or weighted_roic >= 25.0):
+            lev_score = 8
+            lev_reason = t("자본경량형 고효율 구조 (자사주 소각에 의한 건전한 ROE 확장)", "Asset-light high ROIC with buyback-driven ROE expansion")
         else:
-            if gap <= -5: lev_score = 15
-            elif gap >= 20: lev_score = -20
+            if gap <= 0:
+                lev_score = 8
+                lev_reason = t("무차입에 가까운 무결점 자본 건전성 (단일 실패지점 없음)", "Zero/low debt pristine capital structure")
+            elif gap <= 6:
+                lev_score = 3
+                lev_reason = t(f"적정 수준의 레버리지 활용 (ROE-ROIC 격차 {gap:.1f}%p)", f"Moderate healthy leverage ({gap:.1f}%p gap)")
+            elif gap <= 15:
+                lev_score = -5
+                lev_reason = t(f"부채 의존도 주의 (ROE가 ROIC를 {gap:.1f}%p 초과)", f"Debt leverage warning ({gap:.1f}%p gap)")
             else:
-                if gap > 4: lev_score = int(round(0 - (gap - 4) * 1.25))  
-                else: lev_score = int(round(15 - (gap + 5) * 1.66))        
-
-            if lev_score <= -15: lev_reason = t(f"과도한 레버리지: ROE({w_roe:.1f}%)가 ROIC({w_roic:.1f}%)보다 비정상적으로 높음", f"Excessive Leverage")
-            elif lev_score < 0: lev_reason = t(f"레버리지 주의: ROE가 ROIC보다 {gap:.1f}%p 높음", f"Leverage Warning")
-            elif lev_score == 0: lev_reason = t(f"일반적 자본 구조: ROE와 ROIC 격차 {gap:.1f}%p", f"Normal Leverage")
-            else: lev_reason = t(f"우량한 자본 구조: ROIC({w_roic:.1f}%)가 방어됨 (부채 적음)", f"Healthy Capital (Low debt)")
-            
-        score_details[t("레버리지 왜곡 방어 (ROE vs ROIC)", "Leverage Distortion Defense")] = (lev_score, lev_reason)
-    # --- [가상자산 테마주 공통 판독기] ---
-    tk_upper = str(tk).upper()
-    crypto_proxies = ["MSTR", "COIN", "MARA", "RIOT", "IBIT", "MSTY"]
-    is_crypto = tk_upper in crypto_proxies or any(k in ceo_text for k in ["비트코인", "가상자산", "암호화폐"])
-
-    # 7. DCF (내재가치) 
-    dcf_score = 0
-    if not is_financial:
-        if base_fcf is None or base_fcf <= 0:
-            dcf_score = -20  
-            dcf_reason = t("FCF(현금흐름) 적자로 가치평가 불가 (최하점)", "Negative FCF, valuation impossible")
-        elif is_zigzag:
-            dcf_score = -20  
-            dcf_reason = t("과거 10년 현금흐름 변동성 극심(지그재그)으로 평가 무의미", "Extreme 10Y FCF volatility (Zigzag)")
-        else:
-            raw_dcf = calc_dynamic_score(mos)
-            dcf_score = max(-20.0, min(20.0, raw_dcf))
-            limit_txt = " (상한선 도달)" if raw_dcf > 20.0 else (" (하한선 도달)" if raw_dcf < -20.0 else "")
-            dcf_reason = t(f"DCF 적정가 대비 {mos:.1f}% 할인(할증){limit_txt}", f"{mos:.1f}% discount(premium) vs DCF Fair Value")
-        score_details[t("내재가치 안전마진 (DCF MoS)", "Intrinsic Value Margin of Safety (DCF)")] = (dcf_score, dcf_reason)
-    # 8. 거시 매력도 (ERP)
-    erp_score = 0
-    if f_pe <= 0:
-        erp_score = 0
-        erp_reason = t("Forward PER 부재/적자: 0점 (평가 제외 중립)", "Forward PER N/A or Deficit: 0 pts")
-    elif is_crypto:
-        erp_score = -30
-        erp_reason = t("장부상 이익만 존재하는 밸류에이션 착시 상태입니다 (가치평가 불가)", "Valuation illusion: Paper profits without actual cash flow")
+                lev_score = -15
+                lev_reason = t(f"과도한 차입에 의한 ROE 왜곡 (사업수익률 대비 부채위험 과다)", "Excessive debt distortion")
     else:
-        erp_score = int(round(max(-30.0, min(20.0, (erp * 4.0) + 4.0))))
-        erp_reason = t(f"10년물 국채 대비 기대수익률 격차 {erp:+.2f}%p 반영", f"ERP vs 10Y Treasury: {erp:+.2f}%p")
-    score_details[t('거시 매력도 (ERP)', 'Macro Yield (ERP)')] = (erp_score, erp_reason)
+        lev_score = 0
+        lev_reason = t("금융업 규제자본 기준 충족 여부 점검", "Financial capital adequacy check")
 
-    # 9. 복리 성장률 (CAGR)
-    g_score = 0
-    if not is_financial:
-        g_score = int(round(max(-30.0, min(15.0, (final_g - 0.05) * 100.0))))
-        g_reason = t(f"장기 현금흐름(FCF) 연평균 성장률 {final_g*100:.1f}% 반영", f"{final_g*100:.1f}% FCF CAGR over 4-10Y")
-        score_details[t("장기 복리 성장성 (CAGR)", "Long-term Compounding (CAGR)")] = (g_score, g_reason)
+    score_details[t("자본 구조 및 재무 안전판", "Capital Structure & Redundancy")] = (lev_score, lev_reason)
 
-    # 10. 시장 페널티 (지정학 등)
-    pen_score = 0
+    # -------------------------------------------------------------
+    # 4. 자본 배분 효율성: 배당 vs 사내 재투자의 조화 (지침서 Part 4-6)
+    # "배당은 재투자 기회 고갈 시 환원 수단. ROIC 높은 기업의 재투자는 정당함"
+    # -------------------------------------------------------------
+    alloc_score = 0
+    if target_metric >= 18.0:
+        # 초고수익 기업: 배당이 적거나 없어도 자본을 잘 불리면 최고점
+        if div_yield_pct >= 2.0:
+            alloc_score = 15
+            alloc_reason = t(f"경이로운 재투자 수익률({target_metric:.1f}%)과 안정적 주주환원 병행", "Superior ROIC with solid dividend distribution")
+        else:
+            alloc_score = 12
+            alloc_reason = t(f"높은 사업수익률({target_metric:.1f}%) 기반의 내부 재투자가 주주에게 유리", "High ROIC internal compounding preferred over dividend")
+    elif target_metric >= 10.0:
+        # 중수익 기업: 적정 배당 환원이 필수
+        if div_yield_pct >= 3.5:
+            alloc_score = 12
+            alloc_reason = t(f"안정적 잉여현금의 충실한 배당 환원 (배당률 {div_yield_pct:.2f}%)", f"Disciplined cash return (Yield {div_yield_pct:.2f}%)")
+        elif div_yield_pct >= 1.5:
+            alloc_score = 6
+            alloc_reason = t(f"적정 배당 지급 및 사업 유지 (배당률 {div_yield_pct:.2f}%)", f"Moderate dividend yield {div_yield_pct:.2f}%")
+        else:
+            alloc_score = -3
+            alloc_reason = t("보통의 사업수익률 대비 사내 현금 유보 과다/환원 미흡", "Suboptimal capital return for moderate ROIC")
+    else:
+        # 저수익/적자 기업: 고배당은 제 살 깎아 먹기, 무배당은 무능력
+        if div_yield_pct >= 5.0:
+            alloc_score = -10
+            alloc_reason = t("낮은 수익성 대비 무리한 고배당 (자본잠식/배당 삭감 위험)", "Unsustainable dividend with poor ROIC (Yield Trap)")
+        else:
+            alloc_score = -8
+            alloc_reason = t("자본비용을 밑도는 저수익 상태 (자본배분 비효율)", "Sub-cost of capital returns (Value Destroyer)")
+
+    score_details[t("자본 배분 및 주주환원 일관성", "Capital Allocation & Shareholder Return")] = (alloc_score, alloc_reason)
+
+    # -------------------------------------------------------------
+    # 5. 가격 안전마진: 거짓 정밀성 탈피 & 가치 함정 방어 (지침서 Part 1-3, Part 4-7)
+    # "해자 없는 저PBR은 가치함정. 암산으로도 명백히 쌀 때만 매수"
+    # -------------------------------------------------------------
+    val_score = 0
+    # A. PBR 가치 함정 필터링 (지침서 Part 1-3)
+    if is_financial or kr or is_cyclical:
+        if pbr <= 0.8 and target_metric < 7.0:
+            val_score = -10
+            val_reason = t("가치 함정(Value Trap) 경고: PBR은 낮으나 자본잠식/해자 훼손", "Value Trap: Cheap PBR but no moat/declining capital")
+        else:
+            # 정상적인 안전마진 평가
+            if pmos >= 25.0:
+                val_score = 20; val_reason = t(f"과거 10년 평균 PBR 대비 {pmos:.1f}% 명백한 할인 구간", f"{pmos:.1f}% deep discount vs 10Y avg PBR")
+            elif pmos >= 8.0:
+                val_score = 10; val_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 적정 할인", f"{pmos:.1f}% discount vs 10Y avg PBR")
+            elif pmos >= -10.0:
+                val_score = 0; val_reason = t(f"과거 평균 PBR에 부합하는 적정 수준", "In line with 10Y avg PBR")
+            else:
+                val_score = -18; val_reason = t(f"과거 평균 PBR 대비 {abs(pmos):.1f}% 과도한 할증", f"{abs(pmos):.1f}% premium vs 10Y avg PBR")
+    else:
+        # B. 일반 기업의 PER 및 역산 안전마진 (지침서 Part 4-7)
+        if f_pe <= 0:
+            val_score = -15
+            val_reason = t("선행 이익 적자 또는 추정 불가 (안전마진 결여)", "Negative or missing forward earnings")
+        else:
+            if pmos >= 25.0:
+                val_score = 20; val_reason = t(f"10년 평균 멀티플 대비 {pmos:.1f}% 명백한 염가 구간", f"{pmos:.1f}% deep discount vs 10Y avg PE")
+            elif pmos >= 8.0:
+                val_score = 10; val_reason = t(f"과거 평균 대비 {pmos:.1f}% 유의미한 할인", f"{pmos:.1f}% discount vs 10Y avg PE")
+            elif pmos >= -8.0:
+                val_score = 0; val_reason = t(f"역사적 평균에 부합하는 공정 가치", "Fair value vs 10Y avg PE")
+            elif pmos >= -25.0:
+                val_score = -10; val_reason = t(f"이익 대비 {abs(pmos):.1f}% 고평가 구간", f"{abs(pmos):.1f}% valuation premium")
+            else:
+                val_score = -20; val_reason = t(f"역사적 상단 초과 ({abs(pmos):.1f}% 과열)", f"{abs(pmos):.1f}% severe overvaluation")
+
+    # DCF 상식 검증 (거짓 정밀성 배제, 거친 암산 안전마진만 보조 반영)
+    if not is_financial and base_fcf and base_fcf > 0 and not is_zigzag:
+        if mos >= 30.0: val_score = min(22, val_score + 4)
+        elif mos <= -30.0: val_score = max(-22, val_score - 4)
+
+    score_details[t("가격 안전마진 (해자 대비 염가)", "Moat-driven Margin of Safety")] = (val_score, val_reason)
+
+    # -------------------------------------------------------------
+    # 6. 거시 기회비용 (10년물 미국채 금리 vs 이익수익률) (지침서 Part 4-7)
+    # -------------------------------------------------------------
+    macro_score = 0
+    if f_pe > 0:
+        if erp >= 2.0:
+            macro_score = 10
+            macro_reason = t(f"국채 대비 높은 주식 프리미엄 (이익수익률 {100/f_pe:.1f}% vs 국채 {erp:+.1f}%p)", "Generous equity risk premium over Treasury")
+        elif erp >= 0.0:
+            macro_score = 4
+            macro_reason = t(f"국채 금리와 대등한 기대수익률 (스프레드 {erp:+.1f}%p)", "Competitive yield against 10Y Treasury")
+        elif erp >= -2.0:
+            macro_score = -6
+            macro_reason = t(f"국채 대비 매력도 열위 (스프레드 {erp:.1f}%p)", "Unfavorable risk-reward vs risk-free bond")
+        else:
+            macro_score = -14
+            macro_reason = t(f"극단적 고평가 (국채를 사는 것이 훨씬 유리한 구간)", "Severe negative yield spread vs Treasury")
+    else:
+        macro_score = -10
+        macro_reason = t("이익 적자로 인한 채권 대비 기회비용 열위", "Negative earnings yield")
+
+    score_details[t("거시 기회비용 (vs 10년물 미국채)", "Macro Opportunity Cost vs Treasury")] = (macro_score, macro_reason)
+
+    # -------------------------------------------------------------
+    # 7. 시장 디스카운트 (지정학, 회계 신뢰도)
+    # -------------------------------------------------------------
     chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
-    is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or ("중국 정부" in ceo_text) or ("중국 데이터센터" in ceo_text)
-    taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
-    is_taiwan = any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW") or ("대만" in ceo_text) or ("양안 갈등" in ceo_text)
+    is_china_hk = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK")
+    if is_china_hk:
+        score_details[t("지정학 및 거버넌스 디스카운트", "Geopolitical Discount")] = (-15, t("차이나/홍콩 거버넌스 및 국가 규제 리스크", "China/HK discount"))
+    elif kr:
+        score_details[t("시장 구조적 디스카운트", "Structural Market Discount")] = (-8, t("코리아 디스카운트 (낮은 주주환원율/거버넌스 한계)", "Korea discount"))
 
-    pen_reasons = []
-    if is_crypto:
-        pen_score -= 40
-        pen_reasons.append(t("가상자산 연동 (내재가치 평가 불가 및 극도의 변동성)", "Crypto Proxy (Unpredictable Intrinsic Value & Volatility)"))
-    elif kr: 
-        pen_score -= 15
-        pen_reasons.append(t("코리아 디스카운트", "Korea Discount"))
-    elif is_china_hk: 
-        pen_score -= 20
-        pen_reasons.append(t("차이나/홍콩 디스카운트", "China/HK Discount"))
-    elif is_taiwan: 
-        pen_score -= 10
-        pen_reasons.append(t("대만 지정학적 리스크", "Taiwan Risk"))
-        
-    if len(pen_reasons) > 0:
-        pen_reason = t(" 및 ".join(pen_reasons) + " 반영", " & ".join(pen_reasons) + " Noted")
-        score_details[t("시장 및 국가별 페널티", "Market & Country Penalty")] = (pen_score, pen_reason)
-        
-    # --- [나만의 투자 성향 가중치 적용 로직] ---
-    weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
-    weighted_details = {}
-    for k, v in score_details.items():
-        s_val = v[0] if isinstance(v, tuple) else v
-        s_reason = v[1] if isinstance(v, tuple) else ""
-        
-        w = 1.0
-        if "경영진" in k or "Management" in k: w = weights['mgmt']
-        elif "배당" in k or "총주주환원" in k or "Dividend" in k or "Shareholder" in k: w = weights['div']
-        elif "가격" in k or "내재가치" in k or "Valuation" in k or "DCF" in k: w = weights['val']
-        elif "자본" in k or "해자" in k or "레버리지" in k or "Moat" in k or "Trend" in k: w = weights['biz']
-        elif "거시" in k or "성장성" in k or "시장 지수" in k or "S&P" in k or "Macro" in k or "Growth" in k: w = weights['macro']
-        elif "페널티" in k or "Penalty" in k: w = 1.0 
-        
-        if "페널티" in k or "Penalty" in k:
-            w_score = s_val * w
-        else:
-            w_score = (s_val / 2.0) * w
+    # -------------------------------------------------------------
+    # 최종 스코어 집계 및 "바이블 지침서 원칙" 하드 캡(Hard Cap) 적용
+    # -------------------------------------------------------------
+    total_raw = sum(v[0] for v in score_details.values())
 
-        w_reason = s_reason + f" <span style='color:#a29bfe; font-size:0.85em;'>(x{w}배 가중치 적용됨)</span>" if w != 1.0 else s_reason
-        weighted_details[k] = (w_score, w_reason)
-
-    score_details = weighted_details
-    raw_total = sum(val[0] for val in score_details.values())
-    
-    avg_w = sum(weights.values()) / 5.0
-    score = raw_total / avg_w if avg_w > 0 else 0
-    score = round(score)
-    
-    # ▼▼▼ 기존 '# 11. 최종 결과 매핑 (10점 단위 세분화)' 아래의 if/elif/else 전체를 이걸로 교체하세요 ▼▼▼
-    # [법적 준수 패치] 매수/매도/보유/진입/익절 등 일체의 투자 행위 지시어를 배제하고 정량적 밸류에이션 상태만 기술
-    if score >= 80:
-        title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
-        reason = t("역사적 멀티플 및 현금흐름 할인(DCF) 모델 대비 현저한 할인 구간에 위치해 있습니다.", "Positioned at a deep discount relative to historical multiples and DCF models.")
-    elif score >= 70:
-        title, color = t(f"심층 저평가 구간 ({score}점)", f"Deeply Discounted Zone ({score} pts)"), "#0984e3"
-        reason = t("주요 정량적 가치평가 지표가 모두 우호적이며, 추정 내재가치 대비 높은 할인율을 보입니다.", "Quantitative valuation metrics are highly favorable with a large discount to estimated intrinsic value.")
-    elif score >= 60:
-        title, color = t(f"높은 안전마진 구간 ({score}점)", f"High Margin of Safety ({score} pts)"), "#0097e6"
-        reason = t("펀더멘털 지표가 견고하며 정량적 밸류에이션 프레임워크상 안전마진이 충분한 구간입니다.", "Solid fundamentals with a wide margin of safety under the quantitative framework.")
-    elif score >= 50:
-        title, color = t(f"유의미한 저평가 구간 ({score}점)", f"Significantly Discounted ({score} pts)"), "#00b894"
-        reason = t("양호한 자본수익률(ROE/ROIC)과 내재가치 대비 뚜렷한 안전마진 지표를 동시에 충족합니다.", "Meets both solid capital returns and clear margin of safety criteria.")
-    elif score >= 40:
-        title, color = t(f"가치 대비 충분한 할인 ({score}점)", f"Well Discounted ({score} pts)"), "#10ac84"
-        reason = t("비즈니스 수익성 대비 현재 시장 가격이 과거 평균 멀티플 하단에 형성되어 있습니다.", "Current market price is below historical average multiples relative to business profitability.")
-    elif score >= 30:
-        title, color = t(f"양호한 밸류에이션 할인 ({score}점)", f"Favorable Valuation Discount ({score} pts)"), "#2ecc71"
-        reason = t("비즈니스 해자 지표가 유지되는 가운데 모델상 추정 적정가치 아래에 위치해 있습니다.", "Moat metrics remain intact while trading below model-estimated fair value.")
-    elif score >= 20:
-        title, color = t(f"합리적 밸류에이션 구간 ({score}점)", f"Reasonable Valuation ({score} pts)"), "#55efc4"
-        reason = t("기업의 자본 효율성이 우수하며 가격 또한 내재가치 산출 범위에 부합하는 합리적 수준입니다.", "High capital efficiency with price aligned with the intrinsic value range.")
-    elif score >= 10:
-        title, color = t(f"적정 가치 부합 구간 ({score}점)", f"Aligned with Fair Value ({score} pts)"), "#f1c40f"
-        reason = t("시장의 기대치와 정량 모델의 내재가치 추정치가 대체로 일치하는 균형 구간입니다.", "Market expectations and quantitative intrinsic value estimates are largely in balance.")
-    elif score >= 0:
-        title, color = t(f"모델상 중립 적정가치 ({score}점)", f"Neutral Fair Value ({score} pts)"), "#f39c12"
-        reason = t("할인도 할증도 없는 중립 구간입니다. 향후 주가 흐름은 기업의 실질 이익 성장률에 연동될 가능성이 높습니다.", "Neutral zone without discount or premium. Future value depends directly on earnings growth.")
-    elif score >= -10:
-        title, color = t(f"가치 대비 소폭 할증 ({score}점)", f"Slight Valuation Premium ({score} pts)"), "#fdcb6e"
-        reason = t("과거 평균 멀티플 및 현금흐름 모델 대비 소폭의 프리미엄이 가격에 반영된 상태입니다.", "Trading at a slight premium relative to historical multiples and cash flow models.")
-    elif score >= -20:
-        title, color = t(f"미래 성장 기대 선반영 ({score}점)", f"Future Growth Priced In ({score} pts)"), "#fab1a0"
-        reason = t("향후 1~2년 치의 이익 성장 컨센서스가 이미 현재 가격에 반영되어 모델상 안전마진이 낮습니다.", "1-2 years of consensus earnings growth are already reflected in the current price.")
-    elif score >= -30:
-        title, color = t(f"밸류에이션 할증 진입 ({score}점)", f"Entering Valuation Premium ({score} pts)"), "#fa8231"
-        reason = t("실제 이익 창출 속도보다 멀티플 확장 속도가 빨라 정량적 밸류에이션 부담이 존재하는 구간입니다.", "Multiple expansion has outpaced actual earnings growth, creating valuation burden.")
-    elif score >= -40:
-        title, color = t(f"밸류에이션 부담 가중 ({score}점)", f"Heavy Valuation Burden ({score} pts)"), "#e15f41"
-        reason = t("역사적 평균 대비 높은 프리미엄이 적용되어 있어 성장률 둔화 시 멀티플 수축 리스크가 있습니다.", "High premium vs historical average; vulnerable to multiple contraction if growth slows.")
-    elif score >= -50:
-        title, color = t(f"현저한 고평가 구간 ({score}점)", f"Significantly Overvalued ({score} pts)"), "#ff4757"
-        reason = t("향후 수년간의 낙관적인 성장 가정이 가격에 선반영되어 있어 정량 모델상 안전마진이 부재합니다.", "Years of optimistic growth assumptions are priced in, leaving no quantitative margin of safety.")
-    elif score >= -60:
-        title, color = t(f"심각한 밸류에이션 과열 ({score}점)", f"Severe Valuation Overheating ({score} pts)"), "#eb2f06"
-        reason = t("대다수의 정량적 가치평가 지표가 역사적 상단 및 심각한 할증 구간을 가리키고 있습니다.", "Most quantitative valuation metrics indicate historical upper bounds and severe premium.")
-    elif score >= -70:
-        title, color = t(f"밸류에이션 모델 한계 초과 ({score}점)", f"Valuation Model Limit Exceeded ({score} pts)"), "#c23616"
-        reason = t("현재 가격이 정량적 내재가치 산출 프레임워크의 설명 범위를 크게 초과하여 괴리된 상태입니다.", "Current price significantly exceeds the explanatory range of the quantitative valuation framework.")
+    # [바이블 핵심 원칙 1] 경영진의 정직성에 치명적 결함(분식, 횡령, 배임)이 있으면 절대 '안전마진' 구간 불가!
+    if is_fatal_compromised:
+        final_score = min(-25, total_raw)
+    # [바이블 핵심 원칙 2] 사업수익률(ROIC)이 자본비용(10%) 미만인 해자 없는 기업은 '심층 저평가' 불가!
+    elif target_metric < 7.0 and not is_financial:
+        final_score = min(20, total_raw)
     else:
-        title, color = t(f"극단적 할증 / 펀더멘털 훼손 ({score}점)", f"Extreme Premium / Fundamental Impairment ({score} pts)"), "#8c14fc"
-        reason = t("정량 지표상 극단적인 멀티플 할증 상태이거나, 현금흐름 및 거버넌스 지표가 크게 훼손된 상태입니다.", "Extreme multiple premium or severe impairment in cash flow and governance metrics.")
+        final_score = max(-100, min(100, total_raw))
 
-    if kr: reason += t(" (코리아 디스카운트 -15점 적용)", " (Korea Discount -15 Applied)")
-    elif is_china_hk: reason += t(" (차이나/홍콩 디스카운트 -20점 적용)", " (China/HK Discount -20 Applied)")
-    elif is_taiwan: reason += t(" (대만 지정학적 디스카운트 -10점 적용)", " (Taiwan Discount -10 Applied)")
-        
-    if is_financial: reason += t(" (금융/보험주 PBR 방어 로직 적용됨)", " (Financial Mode Active)")
+    score = round(final_score)
+
+    # 10점 단위 명확한 밸류에이션 판정
+    if score >= 65:
+        title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
+        reason = t("강력한 경제적 해자와 정직한 경영진을 갖춘 위대한 기업이 미스터 마켓의 패닉으로 명백히 염가에 거래되는 구간입니다.", "A great moat business trading at an obvious bargain due to Mr. Market's panic.")
+    elif score >= 45:
+        title, color = t(f"높은 안전마진 구간 ({score}점)", f"High Margin of Safety ({score} pts)"), "#0097e6"
+        reason = t("복리 모형(ROIC)이 견고하게 작동 중이며, 추정 내재가치 및 과거 멀티플 대비 충분한 안전마진이 확보되었습니다.", "Solid compounding engine (ROIC) with a proven margin of safety against intrinsic value.")
+    elif score >= 25:
+        title, color = t(f"합리적 가치 매수 구간 ({score}점)", f"Fair Value Buy Zone ({score} pts)"), "#2ecc71"
+        reason = t("버핏의 원칙('적당한 기업을 헐값에 사는 것보다 위대한 기업을 적당한 가격에 사는 것이 낫다')에 완전히 부합하는 합리적 구간입니다.", "Aligned with Buffett's principle: 'A wonderful company at a fair price.'")
+    elif score >= 5:
+        title, color = t(f"내재가치 부합 (보유/관망) ({score}점)", f"Fair Value Hold ({score} pts)"), "#f1c40f"
+        reason = t("기업의 본질 가치와 시장 가격이 균형을 이루고 있습니다. 비상식적인 할인은 없으므로 추가 안전마진을 기다리며 관망하십시오.", "Fairly priced. Moat is intact but lacks an obvious discount cushion.")
+    elif score >= -15:
+        title, color = t(f"미래 성장 선반영 (할증 주의) ({score}점)", f"Growth Priced In ({score} pts)"), "#fa8231"
+        reason = t("향후 수년간의 낙관적 성장이 가격에 이미 선반영되어 있어, 실적 미달 시 영구적 자본 손실 위험이 커지는 구간입니다.", "Future growth is already priced in. Vulnerable to multiple contraction if earnings miss.")
+    elif score >= -35:
+        title, color = t(f"밸류에이션 과열 경고 ({score}점)", f"Valuation Warning ({score} pts)"), "#ff4757"
+        reason = t("거시 기회비용(국채 금리) 대비 기대수익률이 현저히 떨어지며, 역사적 상단을 초과한 고평가 상태입니다.", "Unfavorable risk-reward compared to Treasury yield with stretched historical multiples.")
+    else:
+        title, color = t(f"자본파괴 / 심각한 거버넌스 훼손 ({score}점)", f"Capital Destroyer / Severe Risk ({score} pts)"), "#8c14fc"
+        reason = t("최고경영진의 진실성이 결여되었거나, 자본비용을 지속 훼손하는 가치 함정(Value Trap) 상태입니다. 즉각 검토를 중단하십시오.", "Integrity compromised or structural value trap destroying shareholder capital.")
 
     return title, color, reason, score_details
     # ▲▲▲ 여기까지 교체 ▲▲▲
@@ -4953,16 +4799,14 @@ def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cy
     fill_color = f"rgba({r}, {g}, {b}, 0.2)"
     line_color = f"rgb({r}, {g}, {b})"
 
-    radar_p_label = t("가격 매력도(PBR)", "Value(PBR)") if (is_financial or kr or is_cyclical) else t("가격 매력도(PER)", "Value(PER)")
+    # 지침서 5대 헌장 카테고리
     categories = [
-        t('경영진/거버넌스', 'Management'), 
-        t('해자(10년 수익성)', 'Moat & Trend'), 
-        radar_p_label, 
-        t('미래 성장성(CAGR)', 'Growth (CAGR)'), 
-        t('안전마진(DCF)', 'Margin of Safety (DCF)')
+        t('1. 경영진 진실성', '1. Integrity'), 
+        t('2. 해자(ROIC 복리)', '2. Moat & ROIC'), 
+        t('3. 자본안전판(재무)', '3. Capital Health'), 
+        t('4. 가격 안전마진', '4. Margin of Safety'), 
+        t('5. 국채대비 기회비용', '5. vs Treasury')
     ]
-    if is_financial:
-        categories[4] = t('거시 매력도(ERP)', 'Macro Yield (ERP)')
 
     def get_score(substrings):
         for k, v in score_breakdown.items():
@@ -4970,79 +4814,38 @@ def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cy
                 return v[0] if isinstance(v, tuple) else v
         return 0
 
-    # [핵심 수정 1] 사용자 가중치(Weights) 동기화 
-    # 오각형의 만점 기준을 현재 사이드바의 가중치 배수에 비례하게 조정하여 왜곡 방지
-    import streamlit as st
-    weights = st.session_state.get('weights', {'mgmt': 1.0, 'div': 1.0, 'val': 1.0, 'biz': 1.0, 'macro': 1.0})
-    w_mgmt = weights.get('mgmt', 1.0)
-    w_biz = weights.get('biz', 1.0)
-    w_val = weights.get('val', 1.0)
-    w_macro = weights.get('macro', 1.0)
-
     def normalize(val, min_raw, max_raw):
         if max_raw <= min_raw: return 0
         norm = (val - min_raw) / (max_raw - min_raw) * 100
         return max(0, min(100, norm))
 
-    # [핵심 수정 2] 세부 내역에서 적용된 '절반( / 2.0 ) * 가중치' 로직에 맞춰 
-    # 각 항목의 실제 수학적 상한선/하한선을 정확하게 매핑하여 만점 시 100점에 도달하도록 수정
-    
-    mgmt_raw = get_score(["경영진 및 거버넌스", "Management"])
-    mgmt_norm = normalize(mgmt_raw, -15.0 * w_mgmt, 15.0 * w_mgmt)
+    v1 = normalize(get_score(["진실성", "Integrity"]), -25, 25)
+    v2 = normalize(get_score(["해자", "Moat", "ROIC"]), -25, 25)
+    v3 = normalize(get_score(["자본 구조", "Capital Structure"]), -15, 8)
+    v4 = normalize(get_score(["가격 안전마진", "Margin of Safety"]), -20, 20)
+    v5 = normalize(get_score(["기회비용", "Treasury"]), -14, 10)
 
-    eff_raw = get_score(["비즈니스 해자", "Business Moat", "자본 효율성", "Efficiency", "Profitability"])
-    eff_norm = normalize(eff_raw, -15.0 * w_biz, 15.0 * w_biz)
-
-    price_raw = get_score(["가격 매력도", "Price Attractiveness"])
-    # 가격 매력도는 동적(Dynamic) 점수이나, 보통 40점 만점으로 스케일링됨 (절반 시 20점)
-    price_norm = normalize(price_raw, -20.0 * w_val, 20.0 * w_val)
-
-    growth_raw = get_score(["장기 복리 성장성", "Compounding"])
-    # 성장성은 원본 기준 최고 15점 (절반 시 7.5점), 최하 -30점 (절반 시 -15점)
-    growth_norm = normalize(growth_raw, -15.0 * w_macro, 7.5 * w_macro)
-
-    if is_financial:
-        safety_raw = get_score(["거시 매력도", "Macro"])
-        # 매크로(ERP)는 최고 20점 (절반 시 10점), 최하 -30점 (절반 시 -15점)
-        safety_norm = normalize(safety_raw, -15.0 * w_macro, 10.0 * w_macro)
-    else:
-        safety_raw = get_score(["내재가치", "DCF MoS"])
-        # DCF는 최고 20점 (절반 시 10점), 최하 -30점 (절반 시 -15점)
-        safety_norm = normalize(safety_raw, -15.0 * w_val, 10.0 * w_val)
-
-    values = [mgmt_norm, eff_norm, price_norm, growth_norm, safety_norm]
+    values = [v1, v2, v3, v4, v5]
     values.append(values[0])
     categories_loop = categories + [categories[0]]
-    
-    # 차트 꼭짓점에 100점 만점 비율에 맞춘 직관적인 환산 점수 표출
     text_labels = [f"{val:.0f}점" for val in values]
 
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=categories_loop,
-        fill='toself',
-        fillcolor=fill_color,
-        line=dict(color=line_color, width=2.5),
-        marker=dict(size=10, color=line_color),
-        mode='lines+markers+text',
-        text=text_labels,
-        textposition='top center',
-        textfont=dict(size=13, color=line_color, weight='bold'),
-        hoverinfo='text'
+        r=values, theta=categories_loop, fill='toself',
+        fillcolor=fill_color, line=dict(color=line_color, width=2.5),
+        marker=dict(size=10, color=line_color), mode='lines+markers+text',
+        text=text_labels, textposition='top center',
+        textfont=dict(size=13, color=line_color, weight='bold'), hoverinfo='text'
     ))
-
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, 115], showticklabels=False, gridcolor='rgba(128,128,128,0.2)'),
-            angularaxis=dict(tickfont=dict(size=13, color='#8892b0', family='Pretendard, Noto Sans KR, sans-serif'), gridcolor='rgba(128,128,128,0.2)'),
+            angularaxis=dict(tickfont=dict(size=12, color='#8892b0'), gridcolor='rgba(128,128,128,0.2)'),
             bgcolor='rgba(0,0,0,0)'
         ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        showlegend=False,
-        margin=dict(l=100, r=100, t=50, b=50),
-        height=360
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        showlegend=False, margin=dict(l=80, r=80, t=50, b=50), height=360
     )
     return fig
 # ==========================================
