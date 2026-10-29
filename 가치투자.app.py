@@ -7219,57 +7219,28 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     eps_badge_short = f"{eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%"
                     gap_badge_col = stamp4_col
 
-                    # =========================================================================
-                    # [12~14초 완성 초압축 전보체(Telegraph) 6컷 대본 + 완벽한 무한루프 연결]
-                    # =========================================================================
-                    if is_en_shorts:
-                        c1_hook = f"{comp_name}! Remember 4 things! First: {stamp1_word} {stamp1_sub}!"
-                        c2_roic = f"Second: {stamp2_word} {cap_ret_val:.1f}% return, {bank_multiple:.1f}x a bank!"
-                        c3_eps  = f"Profit per share shifted {eps_cagr_pct:+.1f}% a year for {eps_span_yrs} years!"
-                        c4_div  = f"Third: Pure dividends! {div:.1f}% yield, paid {div_paid_years} times in 10 years!"
-                        c5_fcf  = f"Fourth: Pure cash! Grew {hist_fcf_g_pct:+.1f}% a year for {sh_fcf_span} years!"
-                        c6_loop = f"Want the final truth? Look closely at this company:"
-                        default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
+                    # ▼▼▼ [긴급 패치 1] 초반 1.5초 '단 하나의 충격 숫자' 미스터리 훅 대본 + 마지막 4분할 루프 ▼▼▼
+                    if use_pbr_m:
+                        shock_big_num = f"{cur_pbr_won:,}원?!" if not is_en_shorts else f"{sh_cur_pbr:.2f}x Book?!"
+                        shock_sub_line = f"회사 재산 1만원어치가 지금 {cur_pbr_won:,}원?" if not is_en_shorts else f"$10k Book Value trading at {sh_cur_pbr:.2f}x?"
+                        c1_hook = f"{comp_name} 10년 장부에서 발견된 충격적인 숫자! 재산 1만 원어치가 지금 {cur_pbr_won:,}원입니다!"
+                        c2_price = f"10년 평균 {avg_pbr_won:,}원과 비교하면 무려 {stamp1_sub} 상태인데, 과연 사도 될까요?"
                     else:
-                        if is_fast_beast_mode:
-                            if use_pbr_m:
-                                c1_hook = f"{comp_name}! 첫째 {stamp1_word} 1만 원 금고가 지금 {cur_pbr_won:,}원, {stamp1_sub}!"
-                            else:
-                                c1_hook = f"{comp_name}! 첫째 {stamp1_word} 본전 회수 {a_pe:.0f}년에서 {sh_f_pe:.0f}년으로, {stamp1_sub}!"
+                        shock_big_num = f"{sh_f_pe:.1f}년?!" if sh_pmos_val < 10 else f"-{abs_pmos:.0f}% 급락?!"
+                        shock_sub_line = f"10년 평균({a_pe:.0f}년) 대비 원금 회수 {sh_f_pe:.1f}년!"
+                        c1_hook = f"{comp_name} 10년 장부에서 발견된 놀라운 숫자! 본전 회수 기간이 {a_pe:.0f}년에서 {sh_f_pe:.0f}년으로 {stamp1_sub}됐습니다!"
+                        c2_price = f"주가는 싸졌는데 실제 돈 버는 실력도 그대로일까요? 장부를 바로 깠습니다!"
 
-                            c2_roic = f"둘째 {stamp2_word} 장사수익률 연 {cap_ret_val:.0f}%, 은행 예금의 {bank_multiple:.1f}배 속도!"
+                    c3_roic = f"실제 장사수익률은 연 {cap_ret_val:.1f}%로 은행 예금의 {bank_multiple:.1f}배며, 1주당 순이익은 {eps_span_yrs}년간 연 {eps_cagr_pct:+.1f}%를 기록했습니다!"
+                    c4_div = f"순수 현금 배당은 연 {div:.1f}%로 최근 10년 중 {div_paid_years}번 지급됐고," if (div > 0 or div_paid_years > 0) else "현금 배당은 0원! 벌어들인 돈을 100% 미래 성장에 재투자 중이고,"
+                    c5_fcf = f"통장에 남는 순수 여윳돈은 {sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}%씩 움직였습니다!" if not is_fcf_curr_loss else f"통장에 남는 순수 여윳돈은 대규모 투자로 10년 중 {fcf_neg_cnt}번 적자를 기록했습니다!"
+                    c6_loop = f"이 모든 걸 합친 {comp_name}의 최종 4대 성적표는 놀랍게도"
 
-                            if eps_cagr_pct >= 0:
-                                c3_eps = f"1주당 순이익도 {eps_span_yrs}년간 매년 {eps_cagr_pct:.1f}%씩 증가!"
-                            else:
-                                c3_eps = f"단, 1주당 순이익은 {eps_span_yrs}년간 연 {abs(eps_cagr_pct):.1f}% 감소!"
+                    default_script_lines = [c1_hook, c2_price, c3_roic, c4_div, c5_fcf, c6_loop]
 
-                            if div_paid_years > 0 or div > 0:
-                                c4_div = f"셋째 순수 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
-                            else:
-                                c4_div = "셋째 배당! 0원! 번 돈을 100% 미래 성장에 몰빵!"
-
-                            if is_fcf_curr_loss:
-                                c5_fcf = f"넷째 순수 여윳돈! 10년 중 적자 {fcf_neg_cnt}번, 현재 투자 적자!"
-                            elif fcf_status_auto == "TURNAROUND" or (fcf_neg_cnt > 0 and hist_fcf_g_pct > 0):
-                                c5_fcf = f"넷째 순수 여윳돈! 적자 딛고 {sh_fcf_span}년간 매년 {hist_fcf_g_pct:.1f}% 폭증!"
-                            elif hist_fcf_g_pct > 0:
-                                c5_fcf = f"넷째 순수 여윳돈! 10년간 적자 없이 매년 {hist_fcf_g_pct:.1f}% 폭풍 성장!"
-                            else:
-                                c5_fcf = f"넷째 순수 여윳돈! 설비투자로 {sh_fcf_span}년간 연 {abs(hist_fcf_g_pct):.1f}% 감소!"
-
-                            c6_loop = "그래서 결론! 딱 이 4가지만 기억하세요, 바로"
-                            default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
-                        else:
-                            c1_hook = f"{comp_name}! 이 4가지만 기억하세요! 첫째 {stamp1_word}"
-                            c2_roic = f"둘째 {stamp2_word} 장사수익률 연 {cap_ret_val:.1f}%, 예금의 {bank_multiple:.1f}배!"
-                            c3_eps  = f"1주당 순이익은 {eps_span_yrs}년간 연평균 {eps_cagr_pct:+.1f}% 변화!"
-                            c4_div  = f"셋째 순수 배당! 연 {div:.1f}%, 10년 중 {div_paid_years}번 지급!"
-                            c5_fcf  = f"넷째 순수 여윳돈! {sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}% 성장!"
-                            c6_loop = "그래서 결론! 딱 이 4가지만 기억하세요, 바로"
-                            default_script_lines = [c1_hook, c2_roic, c3_eps, c4_div, c5_fcf, c6_loop]
-
-                    scene_codes_fixed = ["SCENE_HOOK", "SCENE_2", "SCENE_2", "SCENE_3", "SCENE_4", "SCENE_HOOK"]
+                    # 첫 컷(SCENE_SHOCK)은 복잡한 표 없이 거대 숫자 1개만! / 4분할 표(SCENE_HOOK)는 맨 마지막 6컷에 등장!
+                    scene_codes_fixed = ["SCENE_SHOCK", "SCENE_1", "SCENE_2", "SCENE_3", "SCENE_4", "SCENE_HOOK"]
+                    # ▲▲▲ [긴급 패치 1 끝] ▲▲▲
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{a_pe:.1f}_{sh_cur_pbr:.2f}_{a_pbr:.2f}_{is_fast_beast_mode}"
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}_V12"
 
@@ -7771,7 +7742,34 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 txt_fill=(255, 255, 255),
                                 stroke_w=2 if is_on else 0, stroke_c=(0, 0, 0), pad_x=6
                             )
+                        # ▼▼▼ [긴급 패치 3] 초반 1.5초 복잡한 표를 숨기고 '초대형 미스터리 숫자 1개'로 시선 강탈! ▼▼▼
+                        if scene_code == "SCENE_SHOCK":
+                            # 배경 전체를 압도하는 단일 포커스 카드 (정보 과부하 0% · 시선 집중도 100%)
+                            draw.rounded_rectangle([42, 386, W-42, 784], radius=24, fill=(12, 16, 28), outline=(255, 240, 0), width=5)
 
+                            _draw_box_with_centered_text(
+                                draw, [70, 412, W-70, 474],
+                                f"🚨 {comp_name} 10년 장부 속 충격의 숫자", get_font,
+                                box_fill=(220, 38, 38), radius=14, start_sz=28, min_sz=16,
+                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
+
+                            # 화면 정중앙을 찢는 110pt 초대형 숫자 1개!
+                            _fit_single_line(
+                                draw, W//2, 575, W-110, shock_big_num, get_font,
+                                start_sz=115, min_sz=54, fill=(255, 240, 0), stroke_w=6, stroke_c=(0, 0, 0)
+                            )
+
+                            _draw_box_with_centered_text(
+                                draw, [64, 682, W-64, 756],
+                                f"{shock_sub_line}  ➔  진짜 실력은 어떨까?", get_font,
+                                box_fill=(24, 36, 62), outline_col=(0, 230, 118), outline_w=3, radius=14,
+                                start_sz=24, min_sz=14, txt_fill=(0, 230, 118), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
+
+                        elif scene_code == "SCENE_HOOK":
+                            _draw_visual_dashboard_board(draw, W, get_font)
+                        # ▲▲▲ [긴급 패치 3 끝] ▲▲▲
                         if scene_code == "SCENE_HOOK":
                             _draw_visual_dashboard_board(draw, W, get_font)
 
