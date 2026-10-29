@@ -3700,10 +3700,11 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score_details[t("경영진 진실성 및 거버넌스", "Management Integrity & Governance")] = (ceo_score, ceo_reason)
 
     # -------------------------------------------------------------
-    # 2. 경제적 해자 & 복리수익률 검증: 10년 평균이 아닌 '현재 ROIC' 기준 반영!
+    # 2. 경제적 해자 & 복리수익률 검증: '현재 ROIC' 기준 반영!
     # -------------------------------------------------------------
-    # [수정] 10년 가중평균 대신 사용자가 요청한 '현재 ROIC' (금융주는 현재 ROE) 직접 대입
-    target_metric = roe_current if is_financial else (roic_current if roic_current != 0 else roe_current)
+    eff_roic = roic_current if roic_current != 0 else roe_current
+    eff_roe = roe_current
+    target_metric = eff_roe if is_financial else eff_roic
     hurdle = 10.0 if is_financial else 12.0
 
     # S&P 500 장기 평균 ROIC(12.0%) 대비 초과수익률 산출
@@ -3726,12 +3727,12 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score_details[t("비즈니스 해자 및 복리수익률", "Economic Moat & ROIC Compounding")] = (moat_score, moat_reason)
 
     # -------------------------------------------------------------
-    # 3. 자본 구조 및 재무 안전판 (PDF Part 1-2B 자본경량성, Part 3-공학 Redundancy)
+    # 3. 자본 구조 및 재무 안전판 (현재 ROIC & 현재 ROE 기준으로 동기화 완료!)
     # -------------------------------------------------------------
     lev_score = 0
-    if not is_financial and weighted_roic > 0 and weighted_roe > 0:
-        gap = weighted_roe - weighted_roic
-        if weighted_roic >= 20.0 and (buyback_yield_pct > 0 or weighted_roic >= 25.0):
+    if not is_financial and eff_roic > 0 and eff_roe > 0:
+        gap = eff_roe - eff_roic
+        if eff_roic >= 20.0 and (buyback_yield_pct > 0 or eff_roic >= 25.0):
             lev_score = 10
             lev_reason = t("자본경량형(Asset-light) 고효율 구조 (자사주 소각에 의한 건전한 ROE 확장)", "Asset-light high ROIC with buyback-driven ROE")
         else:
@@ -3748,11 +3749,10 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
                 lev_score = -15
                 lev_reason = t(f"과도한 차입 레버리지에 의한 ROE 왜곡 (불황 시 재무 취약)", "Excessive debt distortion")
     else:
-        lev_score = 4 if roe_current >= 10.0 else (-5 if roe_current < 5.0 else 0)
-        lev_reason = t(f"금융업 자본적정성 및 ROE({roe_current:.1f}%) 방어력 점검", "Financial capital adequacy check")
+        lev_score = 4 if eff_roe >= 10.0 else (-5 if eff_roe < 5.0 else 0)
+        lev_reason = t(f"금융업 자본적정성 및 ROE({eff_roe:.1f}%) 방어력 점검", "Financial capital adequacy check")
 
     score_details[t("자본 구조 및 재무 안전판", "Capital Structure & Redundancy")] = (lev_score, lev_reason)
-
     # -------------------------------------------------------------
     # 4. 자본 배분 및 주주환원 일관성 (PDF Part 2-13번 희석 배제, Part 4-6 자본배분 5경로)
     # -------------------------------------------------------------
