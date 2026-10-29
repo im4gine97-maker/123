@@ -7783,13 +7783,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
 
-                    default_yt_title = f"{comp_name}! 딱 이 4가지만 기억하세요 💥 ({stamp1_word} · {stamp2_word}) #shorts #가치투자"
+                    # [에러 완벽 해결] 신규 4대 축(해자 · 버핏역산 · 미국채비교 · 순수배당) 변수로 유튜브 제목·설명란 동기화!
+                    default_yt_title = f"{comp_name}! 워런 버핏 기준 점수는 {total_score_val}점 💥 ({stamp_moat_word} · {stamp_val_word}) #shorts #가치투자"
                     default_yt_desc = (
-                        f"💥 [{today_short}] {comp_name} ({clean_tk}) 10년 장부 4대 초고속 타격 요약\n"
-                        f"1️⃣ 가격: {stamp1_word} ({thumb_compare_bar} · {disc_short_badge})\n"
-                        f"2️⃣ 돈벌이: {stamp2_word} ({cap_ret_name_ko} 연 {cap_ret_val:.1f}% · 은행 예금의 {bank_multiple:.1f}배 속도 | 1주당 순이익 {eps_badge_short})\n"
-                        f"3️⃣ 순수 배당: {stamp3_word} ({div_badge_short})\n"
-                        f"4️⃣ 여윳돈(FCF): {stamp4_word} ({fcf_badge_txt})\n\n"
+                        f"💥 [{today_short}] {comp_name} ({clean_tk}) 워런 버핏 10년 장부 4대 핵심 팩트체크 (종합 {total_score_val}점)\n"
+                        f"1️⃣ 비즈니스 해자: {stamp_moat_word} (현재 {cap_ret_name_ko} 연 {cap_ret_val:.1f}% vs S&P500 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p)\n"
+                        f"2️⃣ 버핏 10초 암산 가격: {stamp_val_word} (1/현재PER {cur_ey_val:.1f}% + 암산 요구성장률 {req_g_val:+.1f}% = 10% 허들 vs 실제 FCF 성장률 연 {actual_fcf_g_val:+.1f}%)\n"
+                        f"3️⃣ 거시 기회비용: {stamp_macro_word} (주식 이익수익률 {cur_ey_val:.1f}% vs 10년물 미국채 금리 {ty:.2f}% · 스프레드 {erp_val:+.2f}%p)\n"
+                        f"4️⃣ 순수 현금배당: {stamp_div_word} (1천만 원 투자 시 연 {div_per_10m_manwon:.1f}만 원 현금 배당)\n\n"
                         f"⚖️ [안내] 본 영상은 DART 및 SEC EDGAR 10-K 공시 데이터를 바탕으로 작성된 순수 학술·교육용 통계 시각화 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
                         f"#shorts #{clean_tag_name} #가치투자 #주식공부 #배당주"
                     )
