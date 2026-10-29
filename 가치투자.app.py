@@ -6365,6 +6365,22 @@ with tab1:
                 )
 
 
+                    # --- 1. 한국 주식: DART API 연동 ---
+                    if kr and DART_API_KEY:
+                        dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
+                        if not dart_df.empty:
+                            df_sorted = dart_df[sorted(dart_df.columns)]
+                            years = df_sorted.columns.tolist()
+                            if '1. 매출액' in df_sorted.index: rev = (df_sorted.loc['1. 매출액'].fillna(0) * 1e8).tolist()
+                            if '4. 당기순이익' in df_sorted.index: ni = (df_sorted.loc['4. 당기순이익'].fillna(0) * 1e8).tolist()
+                            if '12. 잉여현금흐름 (FCF)' in df_sorted.index:
+                                fcf_s_kr = df_sorted.loc['12. 잉여현금흐름 (FCF)'].fillna(0) * 1e8
+                                if (fcf_s_kr.abs().sum() > 0):
+                                    fcf_chart = fcf_s_kr.tolist()
+                                    fcf_years = years
+                            if len(rev) > 0 and len(ni) > 0:
+                                api_success = True
+
                     # --- 2. 미국 주식: SEC EDGAR API 연동 (ADR 제외) ---
                     elif not kr and not is_adr:
                         try:
