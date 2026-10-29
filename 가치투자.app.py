@@ -6286,7 +6286,7 @@ with tab1:
                     st.markdown(reverse_dcf_html, unsafe_allow_html=True)
 
                     # =========================================================================
-                    # ▼▼▼ [수정 완료] 버핏의 10초 암산 역산 밸류에이션 (HTML 렌더링 오류 방지 적용) ▼▼▼
+                    # ▼▼▼ [수정 완료] 버핏의 10초 암산 역산 밸류에이션 (들여쓰기 제거 버전) ▼▼▼
                     # =========================================================================
                     if f_pe > 0:
                         cur_ey = (1.0 / f_pe) * 100.0  # 주식 이익수익률 (Earnings Yield)
@@ -6313,43 +6313,42 @@ with tab1:
 
                         p_bft_str = (f"{int(buffett_fair_price):,}원" if kr else f"${buffett_fair_price:,.2f}") if buffett_fair_price > 0 else "산출 불가"
 
-                        buffett_mental_dcf_html = f"""
-                        <div style='background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(245, 158, 11, 0.05)); border: 1.5px solid #A0C4FF; padding: 20px; border-radius: 14px; margin-bottom: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
-                            <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>
-                                <span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 (Earnings Yield vs 10Y Treasury + 5%)</span>
-                                <span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>
-                            </div>
-                            
-                            <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:14px;'>
-                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>주식 이익수익률 (1/PER)</div>
-                                    <div style='font-size:1.4rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
-                                    <div style='font-size:0.8rem; color:#8892b0;'>선행 PER: {f_pe:.1f}배</div>
-                                </div>
-                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 요구수익률 (국채+5%p)</div>
-                                    <div style='font-size:1.4rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
-                                    <div style='font-size:0.8rem; color:#8892b0;'>국채 {ty:.2f}% + 마진 5.0%p</div>
-                                </div>
-                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>스프레드 (이익률 - 요구수익률)</div>
-                                    <div style='font-size:1.4rem; font-weight:900; color:{b_color};'>{ey_spread:+.2f}%p</div>
-                                    <div style='font-size:0.8rem; color:#8892b0;'>버핏 상한 PER: <b>{buffett_max_pe:.1f}배</b></div>
-                                </div>
-                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
-                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가 (국채+5%)</div>
-                                    <div style='font-size:1.4rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
-                                    <div style='font-size:0.8rem; color:{b_color}; font-weight:bold;'>안전마진: {buffett_mos_pct:+.1f}%</div>
-                                </div>
-                            </div>
+                        # 💡 HTML 문자열을 맨 왼쪽(들여쓰기 0칸)에 바짝 붙여야 Markdown이 코드 블록으로 오인하지 않습니다.
+                        buffett_mental_dcf_html = f"""<div style='background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(245, 158, 11, 0.05)); border: 1.5px solid #A0C4FF; padding: 20px; border-radius: 14px; margin-bottom: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
+    <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>
+        <span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 (Earnings Yield vs 10Y Treasury + 5%)</span>
+        <span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>
+    </div>
+    
+    <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:14px;'>
+        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>주식 이익수익률 (1/PER)</div>
+            <div style='font-size:1.4rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
+            <div style='font-size:0.8rem; color:#8892b0;'>선행 PER: {f_pe:.1f}배</div>
+        </div>
+        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 요구수익률 (국채+5%p)</div>
+            <div style='font-size:1.4rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
+            <div style='font-size:0.8rem; color:#8892b0;'>국채 {ty:.2f}% + 마진 5.0%p</div>
+        </div>
+        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>스프레드 (이익률 - 요구수익률)</div>
+            <div style='font-size:1.4rem; font-weight:900; color:{b_color};'>{ey_spread:+.2f}%p</div>
+            <div style='font-size:0.8rem; color:#8892b0;'>버핏 상한 PER: <b>{buffett_max_pe:.1f}배</b></div>
+        </div>
+        <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+            <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가 (국채+5%)</div>
+            <div style='font-size:1.4rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
+            <div style='font-size:0.8rem; color:{b_color}; font-weight:bold;'>안전마진: {buffett_mos_pct:+.1f}%</div>
+        </div>
+    </div>
 
-                            <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px;'>
-                                <div style='font-size:0.95rem; font-weight:800; color:{b_color}; margin-bottom:4px;'>{b_verdict}</div>
-                                <div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_desc}</div>
-                            </div>
-                        </div>
-                        """
-                        # ★ 핵심 포인트: unsafe_allow_html=True를 반드시 지정해야 HTML이 정상 렌더링됩니다.
+    <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px;'>
+        <div style='font-size:0.95rem; font-weight:800; color:{b_color}; margin-bottom:4px;'>{b_verdict}</div>
+        <div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_desc}</div>
+    </div>
+</div>"""
+
                         st.markdown(buffett_mental_dcf_html, unsafe_allow_html=True)
                     # ▲▲▲ [수정 완료 끝] ▲▲▲
 
