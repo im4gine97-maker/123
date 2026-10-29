@@ -6235,55 +6235,72 @@ with tab1:
                 st.divider()
             
 
-                # =====================================================================
-                # [파트 2] 10년 DCF 내재가치 평가 및 시뮬레이터
-                # =====================================================================
-                st.markdown(f"**{t('2. 10년 내재가치 평가 (DCF 3가지 시나리오)', '2. 10-Year Intrinsic Value (DCF Scenarios)')}**")
-                
-                dcf_guide_ko = (
-                    "<b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
-                    "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
-                    "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4~10년의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
-                )
-                dcf_guide_en = (
-                    "<b>[Must Read] Understanding DCF Valuation Easily</b><br>"
-                    "• <b>What is FCF (Free Cash Flow)?</b> It is the <b>'pure leftover cash'</b> a company can keep after paying all operational expenses, taxes, and capital expenditures.<br>"
-                    "• <b>What do the scenarios mean?</b> The fair values below assume the company will consistently grow its FCF at the given rate (%) every year for the next <b>10 years</b>.<br>"
-                    "• <b>Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last available cash flow trends."
-                )
-                
-                if is_financial:
-                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #ff7675; padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
-                elif iv:
-                    with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
-                        st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
-                    
-                    implied_g = get_implied_g(base_fcf, sh, p, ty)
-                    if implied_g is not None:
-                        implied_g_str = f"{implied_g*100:.1f}%"
-                        if implied_g <= final_g:
-                            rev_dcf_color = "#2ecc71"
-                            rev_dcf_eval = t("[저평가] 시장의 기대성장률이 과거 평균보다 낮아 안전마진이 충분합니다.", "[Undervalued] Market expectation is lower than historical avg.")
-                        elif implied_g > 0.25:
-                            rev_dcf_color = "#ff7675"
-                            rev_dcf_eval = t("[고평가] 시장이 비현실적인 고성장을 기대하고 있습니다.", "[Overvalued] Market is expecting unrealistic high growth.")
-                        else:
-                            rev_dcf_color = "#fdcb6e"
-                            rev_dcf_eval = t("[적정] 시장의 기대치가 합리적인 수준에 형성되어 있습니다.", "[Fair] Market expectation is reasonable.")
+                # =========================================================================
+                    # ▼▼▼ [신규 추가] 버핏의 10초 암산 역산 밸류에이션 (1/PER vs 미국채 10년물 + 5%p) ▼▼▼
+                    # =========================================================================
+                    if f_pe > 0:
+                        cur_ey = (1.0 / f_pe) * 100.0  # 주식 이익수익률 (Earnings Yield)
+                        req_yield = ty + 5.0           # 버핏 최소 요구수익률 (10년물 미국채 금리 + 위험마진 5.0%p)
+                        buffett_max_pe = 100.0 / req_yield if req_yield > 0 else 10.0
+                        
+                        eff_eps_calc = (reg_p / f_pe) if f_pe > 0 else (t_eps if t_eps > 0 else 0)
+                        buffett_fair_price = eff_eps_calc * buffett_max_pe if eff_eps_calc > 0 else 0
+                        buffett_mos_pct = ((buffett_fair_price - p) / buffett_fair_price) * 100.0 if buffett_fair_price > 0 else 0.0
+                        ey_spread = cur_ey - req_yield
 
-                        reverse_dcf_html = f"""
-                        <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'> 역산 DCF (Reverse DCF)</div>
-                            <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
-                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 10년 평균 FCF)</span></div>
+                        if cur_ey >= req_yield:
+                            b_color = "#2ecc71"
+                            b_verdict = "✅ [10초 통과] 채권+5% 절대 안전마진 확보 (성장 없이도 염가)"
+                            b_desc = f"성장이 전혀 없더라도 이익수익률({cur_ey:.1f}%)만으로 미국채 10년물({ty:.1f}%) + 5.0%p 초과수익 요구치를 충족하는 명백한 염가 구간입니다."
+                        elif cur_ey >= (ty + 2.0):
+                            b_color = "#fdcb6e"
+                            b_verdict = "⚠️ [조건부 통과] 완만한 이익 성장(연 5~10%) 전제 시 합리적"
+                            b_desc = f"현재 이익수익률({cur_ey:.1f}%)은 국채 금리({ty:.1f}%)를 상회하지만, +5%p 마진을 온전히 채우려면 경제적 해자 기반의 지속적인 이익 성장이 뒷받침되어야 합니다."
+                        else:
+                            b_color = "#ff7675"
+                            b_verdict = "🚨 [10초 탈락] 성장 프리미엄 과다 (채권 대비 기회비용 열위)"
+                            b_desc = f"이익수익률({cur_ey:.1f}%)이 미국채 금리+5%p({req_yield:.1f}%)에 크게 미달합니다. 향후 연 15~20% 이상의 폭발적 성장이 장기간 지속되지 못하면 멀티플 축소에 따른 자본 손실 위험이 큽니다."
+
+                        p_bft_str = (f"{int(buffett_fair_price):,}원" if kr else f"${buffett_fair_price:,.2f}") if buffett_fair_price > 0 else "산출 불가"
+
+                        buffett_mental_dcf_html = f"""
+                        <div style='background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(245, 158, 11, 0.05)); border: 1.5px solid #A0C4FF; padding: 20px; border-radius: 14px; margin-bottom: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
+                            <div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;'>
+                                <span style='font-size:1.1rem; font-weight:800; color:#A0C4FF;'>💡 워런 버핏의 10초 암산 역산 밸류에이션 (Earnings Yield vs 10Y Treasury + 5%)</span>
+                                <span style='font-size:0.85rem; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-color);'>10년물 미국채 금리: <b>{ty:.2f}%</b></span>
+                            </div>
+                            
+                            <div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:14px;'>
+                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>주식 이익수익률 (1/PER)</div>
+                                    <div style='font-size:1.4rem; font-weight:900; color:#ffffff;'>{cur_ey:.2f}%</div>
+                                    <div style='font-size:0.8rem; color:#8892b0;'>선행 PER: {f_pe:.1f}배</div>
+                                </div>
+                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 요구수익률 (국채+5%p)</div>
+                                    <div style='font-size:1.4rem; font-weight:900; color:#facc15;'>{req_yield:.2f}%</div>
+                                    <div style='font-size:0.8rem; color:#8892b0;'>국채 {ty:.2f}% + 마진 5.0%p</div>
+                                </div>
+                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>스프레드 (이익률 - 요구수익률)</div>
+                                    <div style='font-size:1.4rem; font-weight:900; color:{b_color};'>{ey_spread:+.2f}%p</div>
+                                    <div style='font-size:0.8rem; color:#8892b0;'>버핏 상한 PER: <b>{buffett_max_pe:.1f}배</b></div>
+                                </div>
+                                <div style='background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:12px 14px; border-radius:10px; text-align:center;'>
+                                    <div style='font-size:0.8rem; color:#8892b0; margin-bottom:4px;'>버핏 기준 암산 적정가 (국채+5%)</div>
+                                    <div style='font-size:1.4rem; font-weight:900; color:#A0C4FF;'>{p_bft_str}</div>
+                                    <div style='font-size:0.8rem; color:{b_color}; font-weight:bold;'>안전마진: {buffett_mos_pct:+.1f}%</div>
+                                </div>
+                            </div>
+
+                            <div style='background:{b_color}18; border-left:4px solid {b_color}; padding:12px 16px; border-radius:8px;'>
+                                <div style='font-size:0.95rem; font-weight:800; color:{b_color}; margin-bottom:4px;'>{b_verdict}</div>
+                                <div style='font-size:0.88rem; color:var(--text-color); opacity:0.92; line-height:1.55;'>{b_desc}</div>
+                            </div>
                         </div>
                         """
-                    else:
-                        reverse_dcf_html = ""
-
-                    st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 10년 평균 FCF 적용)</div>", unsafe_allow_html=True)
-                    st.markdown(reverse_dcf_html, unsafe_allow_html=True)
+                        st.markdown(buffett_mental_dcf_html, unsafe_allow_html=True)
+                    # ▲▲▲ [신규 추가 끝] ▲▲▲
                     
                     str_g = t("성장률", "Growth")
                     str_mos = t("안전마진", "MoS")
