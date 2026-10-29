@@ -7483,32 +7483,75 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                         return _get_f
 
+                    d# ▼▼▼ [부분 교체 1 시작] def _fit_single_line 부터 def _draw_core_frame 끝까지 덮어쓰기 ▼▼▼
+                    def _clean_font_safe_text(txt):
+                        """나눔고딕에서 네모(□)로 깨지는 원형 숫자(①~④) 및 특수 이모지를 완벽히 제거/치환"""
+                        s = str(txt)
+                        rep_map = {
+                            "①": "1. ", "②": "2. ", "③": "3. ", "④": "4. ",
+                            "1️⃣": "1.", "2️⃣": "2.", "3️⃣": "3.", "4️⃣": "4.",
+                            "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "",
+                            "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "",
+                            "🌱": "", "⏸️": "", "💥": "", "💣": "", "🔁": ""
+                        }
+                        for k_bad, v_good in rep_map.items():
+                            s = s.replace(k_bad, v_good)
+                        return re.sub(r'\s+', ' ', s).strip()
+
                     def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=52, min_sz=11, fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0)):
-                        t_str = str(text).strip()
+                        """폰트 수직 오프셋(top/bottom)까지 보정하여 (cx, cy) 정중앙에 1픽셀 오차 없이 배치"""
+                        t_str = _clean_font_safe_text(text)
+                        if not t_str:
+                            return get_font(min_sz), 0, 0
                         for sz in range(start_sz, min_sz - 1, -2):
                             f = get_font(sz)
-                            bb = draw.textbbox((0, 0), t_str, font=f)
-                            if (bb[2] - bb[0]) <= max_w:
+                            bb = draw.textbbox((0, 0), t_str, font=f, stroke_width=stroke_w)
+                            tw, th = bb[2] - bb[0], bb[3] - bb[1]
+                            if tw <= max_w:
+                                draw_x = cx - (bb[0] + bb[2]) / 2.0
+                                draw_y = cy - (bb[1] + bb[3]) / 2.0
                                 if stroke_w > 0:
-                                    draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm", stroke_width=stroke_w, stroke_fill=stroke_c)
+                                    draw.text((draw_x, draw_y), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
                                 else:
-                                    draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
-                                return f, bb[2] - bb[0], bb[3] - bb[1]
+                                    draw.text((draw_x, draw_y), t_str, font=f, fill=fill)
+                                return f, tw, th
                         f = get_font(min_sz)
-                        bb = draw.textbbox((0, 0), t_str, font=f)
-                        draw.text((cx, cy), t_str, font=f, fill=fill, anchor="mm")
+                        bb = draw.textbbox((0, 0), t_str, font=f, stroke_width=stroke_w)
+                        draw_x = cx - (bb[0] + bb[2]) / 2.0
+                        draw_y = cy - (bb[1] + bb[3]) / 2.0
+                        if stroke_w > 0:
+                            draw.text((draw_x, draw_y), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
+                        else:
+                            draw.text((draw_x, draw_y), t_str, font=f, fill=fill)
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
+                    def _draw_box_with_centered_text(draw, box_coords, text, get_font, box_fill, outline_col=None, outline_w=0, radius=12, start_sz=30, min_sz=12, txt_fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0), pad_x=16):
+                        """네모칸을 그리고 그 네모칸의 정확한 가로·세로 정중앙에 글자를 박아넣는 전용 함수"""
+                        x1, y1, x2, y2 = box_coords
+                        if outline_col and outline_w > 0:
+                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill, outline=outline_col, width=outline_w)
+                        else:
+                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill)
+                        cx = (x1 + x2) / 2.0
+                        cy = (y1 + y2) / 2.0
+                        max_w = max(20, (x2 - x1) - (pad_x * 2))
+                        _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
+
                     def _draw_safe_subtitle_box(draw, W, center_y, text_str, get_font, txt_col=(255, 240, 0), border_c=(255, 23, 68)):
-                        clean_s = re.sub(r'\s+', ' ', str(text_str).replace(" ,", ",")).strip()
-                        max_box_w = W - 56
+                        """
+                        [미스터비스트 스타일 팝업 자막]
+                        글자가 좌우로 절대 잘리지 않도록 안전 폭(W - 88px) 내에 자동 줄바꿈하며,
+                        두꺼운 블랙 외곽선(stroke_width=5) + 하드 그림자로 선명하게 타격!
+                        """
+                        clean_s = _clean_font_safe_text(text_str)
+                        max_box_w = W - 88  # 좌우 44px씩 절대 안전 여백 확보 (잘림 0%)
 
                         def _wrap_words(txt, font_obj):
                             words = txt.split(" ")
                             lines, cur = [], ""
                             for w in words:
                                 test_l = f"{cur} {w}".strip() if cur else w
-                                bb = draw.textbbox((0, 0), test_l, font=font_obj)
+                                bb = draw.textbbox((0, 0), test_l, font=font_obj, stroke_width=5)
                                 if (bb[2] - bb[0]) <= max_box_w:
                                     cur = test_l
                                 else:
@@ -7517,7 +7560,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             if cur: lines.append(cur)
                             return lines
 
-                        chosen_font = get_font(32)
+                        chosen_font = get_font(34)
                         chosen_lines = [clean_s]
                         for sz in range(38, 20, -2):
                             f_try = get_font(sz)
@@ -7527,57 +7570,77 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 chosen_lines = l_try
                                 break
 
-                        line_h = chosen_font.size + 12
+                        line_h = chosen_font.size + 16
                         total_h = len(chosen_lines) * line_h
-                        max_lw = max((draw.textbbox((0, 0), ln, font=chosen_font)[2] - draw.textbbox((0, 0), ln, font=chosen_font)[0]) for ln in chosen_lines)
-                        box_w = min(W - 24, max_lw + 48)
+                        max_lw = max((draw.textbbox((0, 0), ln, font=chosen_font, stroke_width=5)[2] - draw.textbbox((0, 0), ln, font=chosen_font, stroke_width=5)[0]) for ln in chosen_lines)
+                        box_w = min(W - 36, max_lw + 48)
 
                         x1 = (W - box_w) // 2
                         x2 = x1 + box_w
                         y1 = center_y - total_h // 2 - 16
                         y2 = center_y + total_h // 2 + 16
 
-                        draw.rounded_rectangle([x1, y1, x2, y2], radius=18, fill=(0, 0, 0), outline=border_c, width=4)
-                        start_ty = center_y - ((len(chosen_lines) - 1) * line_h) // 2
+                        # 딥 다크 카드 배경 + 골드/레드 포인트 보더
+                        draw.rounded_rectangle([x1 + 4, y1 + 5, x2 + 4, y2 + 5], radius=18, fill=(0, 0, 0))
+                        draw.rounded_rectangle([x1, y1, x2, y2], radius=18, fill=(12, 16, 28), outline=border_c, width=4)
+
+                        start_cy = center_y - ((len(chosen_lines) - 1) * line_h) / 2.0
                         for idx_ln, ln_txt in enumerate(chosen_lines):
-                            draw.text((W // 2, start_ty + idx_ln * line_h), ln_txt, font=chosen_font, fill=txt_col, anchor="mm", stroke_width=2, stroke_fill=(0, 0, 0))
+                            ly = start_cy + idx_ln * line_h
+                            bb = draw.textbbox((0, 0), ln_txt, font=chosen_font, stroke_width=5)
+                            dx = (W / 2.0) - (bb[0] + bb[2]) / 2.0
+                            dy = ly - (bb[1] + bb[3]) / 2.0
+                            # 하드 그림자 + 굵은 블랙 테두리 + 노란/흰색 텍스트 (미스터비스트 자막 공식)
+                            draw.text((dx + 3, dy + 3), ln_txt, font=chosen_font, fill=(0, 0, 0), stroke_width=5, stroke_fill=(0, 0, 0))
+                            draw.text((dx, dy), ln_txt, font=chosen_font, fill=txt_col, stroke_width=4, stroke_fill=(0, 0, 0))
 
                     def _draw_legal_basis_footer(draw, W, get_font):
-                        _fit_single_line(draw, W//2, 1072, W-36, "[안내] 공시 데이터 기반 학술·교육용 통계 자료이며 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(120, 125, 135))
-                        _fit_single_line(draw, W//2, 1100, W-36, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(95, 100, 110))
+                        _fit_single_line(draw, W//2, 1072, W-48, "[안내] 공시 데이터 기반 학술·교육용 통계 자료이며 투자자문이나 매수·매도 추천이 아닙니다", get_font, start_sz=15, min_sz=10, fill=(135, 145, 160))
+                        _fit_single_line(draw, W//2, 1098, W-48, "과거 재무 지표가 미래 수익을 보장하지 않으며 모든 의사결정의 책임은 본인에게 있습니다", get_font, start_sz=14, min_sz=10, fill=(105, 115, 130))
 
                     def _draw_visual_dashboard_board(draw, W, get_font):
-                        # Q1 좌상단: 1. 가격 쌈!
-                        draw.rounded_rectangle([38, 382, 354, 580], radius=20, fill=(10, 14, 24), outline=stamp1_col, width=5)
-                        draw.rounded_rectangle([48, 392, 344, 448], radius=12, fill=stamp1_col)
-                        _fit_single_line(draw, 196, 420, 280, f"① {stamp1_word}", get_font, start_sz=34, min_sz=18, fill=(0, 0, 0) if stamp1_col != (255, 23, 68) else (255, 255, 255), stroke_w=1, stroke_c=(255,255,255) if stamp1_col == (255,23,68) else (0,0,0))
+                        """[1페이지 4분할 시각 폭격 보드] 모든 글자가 네모칸 정중앙에 칼같이 정렬됨"""
+                        # Q1 좌상단: 1. 가격 쌈! (x: 42~352, y: 382~578)
+                        draw.rounded_rectangle([42, 382, 352, 578], radius=18, fill=(14, 20, 36), outline=stamp1_col, width=4)
+                        _draw_box_with_centered_text(
+                            draw, [54, 394, 340, 444], f"1. {stamp1_word}", get_font,
+                            box_fill=stamp1_col, radius=10, start_sz=28, min_sz=16,
+                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                        )
 
                         avg_v = a_pbr if use_pbr_m else a_pe
                         cur_v = sh_cur_pbr if use_pbr_m else sh_f_pe
                         max_mv = max(avg_v, cur_v, 0.5) * 1.2
-                        w_a = int(max(28, min(145, (avg_v / max_mv) * 145)))
-                        w_c = int(max(28, min(145, (cur_v / max_mv) * 145)))
+                        w_a = int(max(24, min(130, (avg_v / max_mv) * 130)))
+                        w_c = int(max(24, min(130, (cur_v / max_mv) * 130)))
                         a_txt = f"{avg_v:.1f}배" if use_pbr_m else f"{avg_v:.0f}년"
                         c_txt = f"{cur_v:.1f}배" if use_pbr_m else f"{cur_v:.0f}년"
 
-                        _fit_single_line(draw, 86, 474, 64, "10년평균", get_font, start_sz=15, min_sz=10, fill=(160, 175, 195))
-                        draw.rounded_rectangle([126, 460, 276, 488], radius=6, fill=(25, 35, 55))
-                        draw.rounded_rectangle([126, 460, 126 + w_a, 488], radius=6, fill=(100, 116, 139))
-                        _fit_single_line(draw, 312, 474, 60, a_txt, get_font, start_sz=16, min_sz=11, fill=(203, 213, 225))
+                        _fit_single_line(draw, 90, 470, 66, "10년평균", get_font, start_sz=15, min_sz=10, fill=(170, 185, 205))
+                        draw.rounded_rectangle([130, 458, 266, 482], radius=6, fill=(28, 38, 60))
+                        draw.rounded_rectangle([130, 458, 130 + w_a, 482], radius=6, fill=(100, 116, 139))
+                        _fit_single_line(draw, 306, 470, 64, a_txt, get_font, start_sz=16, min_sz=11, fill=(220, 230, 240))
 
-                        _fit_single_line(draw, 86, 512, 64, "지금가격", get_font, start_sz=15, min_sz=10, fill=(255, 240, 0))
-                        draw.rounded_rectangle([126, 498, 276, 526], radius=6, fill=(25, 35, 55))
-                        draw.rounded_rectangle([126, 498, 126 + w_c, 526], radius=6, fill=stamp1_col)
-                        _fit_single_line(draw, 312, 512, 60, c_txt, get_font, start_sz=17, min_sz=11, fill=(255, 240, 0))
+                        _fit_single_line(draw, 90, 506, 66, "현재가격", get_font, start_sz=15, min_sz=10, fill=(255, 240, 0))
+                        draw.rounded_rectangle([130, 494, 266, 518], radius=6, fill=(28, 38, 60))
+                        draw.rounded_rectangle([130, 494, 130 + w_c, 518], radius=6, fill=stamp1_col)
+                        _fit_single_line(draw, 306, 506, 64, c_txt, get_font, start_sz=17, min_sz=11, fill=(255, 240, 0))
 
-                        _fit_single_line(draw, 196, 554, 290, disc_short_badge, get_font, start_sz=22, min_sz=13, fill=(255, 240, 0))
+                        _draw_box_with_centered_text(
+                            draw, [54, 530, 340, 566], disc_short_badge, get_font,
+                            box_fill=(24, 34, 56), radius=8, start_sz=19, min_sz=12,
+                            txt_fill=(255, 240, 0), pad_x=10
+                        )
 
-                        # Q2 우상단: 2. 돈 쓸어담음!
-                        draw.rounded_rectangle([366, 382, 682, 580], radius=20, fill=(10, 14, 24), outline=stamp2_col, width=5)
-                        draw.rounded_rectangle([376, 392, 672, 448], radius=12, fill=stamp2_col)
-                        _fit_single_line(draw, 524, 420, 280, f"② {stamp2_word}", get_font, start_sz=34, min_sz=18, fill=(0, 0, 0))
+                        # Q2 우상단: 2. 돈 쓸어담음! (x: 368~678, y: 382~578)
+                        draw.rounded_rectangle([368, 382, 678, 578], radius=18, fill=(14, 20, 36), outline=stamp2_col, width=4)
+                        _draw_box_with_centered_text(
+                            draw, [380, 394, 666, 444], f"2. {stamp2_word}", get_font,
+                            box_fill=stamp2_col, radius=10, start_sz=28, min_sz=16,
+                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                        )
 
-                        by_q2 = 526
+                        by_q2 = 510
                         mx_q2 = max(abs(cap_ret_val), 15.0) * 1.18
                         q2_items = [
                             ("은행예금", 3.5, (100, 116, 139)),
@@ -7585,53 +7648,74 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             (comp_name[:4], cap_ret_val, (255, 240, 0))
                         ]
                         for idx_q2, (lbl_2, val_2, col_2) in enumerate(q2_items):
-                            bx_2 = 396 + idx_q2 * 90
-                            bh_2 = int(max(14, min(58, (max(0.5, abs(val_2)) / mx_q2) * 58)))
-                            draw.rounded_rectangle([bx_2, by_q2 - bh_2, bx_2 + 58, by_q2], radius=6, fill=col_2)
-                            _fit_single_line(draw, bx_2 + 29, by_q2 - bh_2 - 12, 76, f"{val_2:.0f}%", get_font, start_sz=16, min_sz=10, fill=col_2)
-                            _fit_single_line(draw, bx_2 + 29, by_q2 + 13, 80, lbl_2, get_font, start_sz=13, min_sz=9, fill=(220, 230, 240))
+                            bx_2 = 398 + idx_q2 * 88
+                            bh_2 = int(max(12, min(46, (max(0.5, abs(val_2)) / mx_q2) * 46)))
+                            draw.rounded_rectangle([bx_2, by_q2 - bh_2, bx_2 + 54, by_q2], radius=5, fill=col_2)
+                            _fit_single_line(draw, bx_2 + 27, by_q2 - bh_2 - 10, 72, f"{val_2:.0f}%", get_font, start_sz=14, min_sz=10, fill=col_2)
+                            _fit_single_line(draw, bx_2 + 27, by_q2 + 11, 76, lbl_2, get_font, start_sz=12, min_sz=9, fill=(220, 230, 240))
 
-                        _fit_single_line(draw, 524, 556, 290, f"예금의 {bank_multiple:.1f}배 속도! (연 {cap_ret_val:.1f}%)", get_font, start_sz=20, min_sz=12, fill=(255, 240, 0))
+                        _draw_box_with_centered_text(
+                            draw, [380, 530, 666, 566], f"예금의 {bank_multiple:.1f}배 속도 (연 {cap_ret_val:.1f}%)", get_font,
+                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=10
+                        )
 
-                        # Q3 좌하단: 3. 순수 배당 꾸준!
-                        draw.rounded_rectangle([38, 592, 354, 790], radius=20, fill=(10, 14, 24), outline=stamp3_col, width=5)
-                        draw.rounded_rectangle([48, 602, 344, 658], radius=12, fill=stamp3_col)
-                        _fit_single_line(draw, 196, 630, 280, f"③ {stamp3_word}", get_font, start_sz=34, min_sz=18, fill=(255, 255, 255))
+                        # Q3 좌하단: 3. 순수 배당! (x: 42~352, y: 592~788)
+                        draw.rounded_rectangle([42, 592, 352, 788], radius=18, fill=(14, 20, 36), outline=stamp3_col, width=4)
+                        _draw_box_with_centered_text(
+                            draw, [54, 604, 340, 654], f"3. {stamp3_word}", get_font,
+                            box_fill=stamp3_col, radius=10, start_sz=28, min_sz=16,
+                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                        )
 
-                        by_q3 = 736
+                        by_q3 = 720
                         if sum(div_4y_vals) <= 0 and div <= 0:
-                            draw.rounded_rectangle([64, 672, 328, 732], radius=10, fill=(20, 28, 48), outline=(0, 176, 255), width=2)
-                            _fit_single_line(draw, 196, 702, 245, "100% 미래 성장에 재투자!", get_font, start_sz=19, min_sz=12, fill=(0, 230, 118))
+                            _draw_box_with_centered_text(
+                                draw, [64, 666, 330, 726], "100% 미래 성장에 재투자!", get_font,
+                                box_fill=(20, 28, 48), outline_col=(0, 176, 255), outline_w=2, radius=10,
+                                start_sz=18, min_sz=12, txt_fill=(0, 230, 118)
+                            )
                         else:
                             mx_q3 = max(max(div_4y_vals), 0.01) * 1.15
                             for idx_q3, (dv_3, dy_3) in enumerate(zip(div_4y_vals, div_4y_years)):
-                                bx_3 = 68 + idx_q3 * 66
-                                bh_3 = int(max(12, min(58, (max(0.0, dv_3) / mx_q3) * 58))) if dv_3 > 0 else 6
+                                bx_3 = 72 + idx_q3 * 64
+                                bh_3 = int(max(10, min(48, (max(0.0, dv_3) / mx_q3) * 48))) if dv_3 > 0 else 6
                                 bc_3 = (255, 240, 0) if idx_q3 == 3 else (213, 0, 249)
-                                draw.rounded_rectangle([bx_3, by_q3 - bh_3, bx_3 + 46, by_q3], radius=6, fill=bc_3)
-                                _fit_single_line(draw, bx_3 + 23, by_q3 + 12, 56, str(dy_3)[-2:] + "년", get_font, start_sz=12, min_sz=9, fill=(220, 230, 240))
+                                draw.rounded_rectangle([bx_3, by_q3 - bh_3, bx_3 + 44, by_q3], radius=5, fill=bc_3)
+                                _fit_single_line(draw, bx_3 + 22, by_q3 + 11, 54, str(dy_3)[-2:] + "년", get_font, start_sz=11, min_sz=9, fill=(220, 230, 240))
 
-                        _fit_single_line(draw, 196, 766, 290, div_badge_short, get_font, start_sz=20, min_sz=12, fill=(255, 240, 0))
+                        _draw_box_with_centered_text(
+                            draw, [54, 740, 340, 776], div_badge_short, get_font,
+                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=10
+                        )
 
-                        # Q4 우하단: 4. 매년 폭풍성장! (10개 막대 완전체)
-                        draw.rounded_rectangle([366, 592, 682, 790], radius=20, fill=(10, 14, 24), outline=stamp4_col, width=5)
-                        draw.rounded_rectangle([376, 602, 672, 658], radius=12, fill=stamp4_col)
-                        _fit_single_line(draw, 524, 630, 280, f"④ {stamp4_word}", get_font, start_sz=34, min_sz=18, fill=(0, 0, 0) if stamp4_col != (255, 23, 68) else (255, 255, 255))
+                        # Q4 우하단: 4. 매년 폭풍성장! (x: 368~678, y: 592~788)
+                        draw.rounded_rectangle([368, 592, 678, 788], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
+                        _draw_box_with_centered_text(
+                            draw, [380, 604, 666, 654], f"4. {stamp4_word}", get_font,
+                            box_fill=stamp4_col, radius=10, start_sz=28, min_sz=16,
+                            txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                        )
 
                         q4_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [base_fcf * 0.7 if base_fcf else 1.0, base_fcf if base_fcf else 1.2]
                         mx_q4 = max([abs(v) for v in q4_f_vals] + [1.0]) * 1.15
-                        by_q4 = 736
+                        by_q4 = 726
                         nb_q4 = len(q4_f_vals)
-                        bw_q4 = max(15, min(24, int(235 / max(1, nb_q4))))
-                        bg_q4 = max(2, int((272 - bw_q4 * nb_q4) / max(1, nb_q4 + 1)))
+                        bw_q4 = max(14, min(22, int(230 / max(1, nb_q4))))
+                        bg_q4 = max(2, int((268 - bw_q4 * nb_q4) / max(1, nb_q4 + 1)))
                         for idx_q4, fv_q in enumerate(q4_f_vals):
-                            bx_4 = 386 + bg_q4 + idx_q4 * (bw_q4 + bg_q4)
-                            bh_4 = int(max(12, min(62, (abs(fv_q) / mx_q4) * 62)))
+                            bx_4 = 388 + bg_q4 + idx_q4 * (bw_q4 + bg_q4)
+                            bh_4 = int(max(10, min(54, (abs(fv_q) / mx_q4) * 54)))
                             bc_4 = (255, 23, 68) if fv_q < 0 else ((255, 240, 0) if idx_q4 == nb_q4 - 1 else (0, 230, 118))
                             draw.rounded_rectangle([bx_4, by_q4 - bh_4, bx_4 + bw_q4, by_q4], radius=4, fill=bc_4)
 
                         q4_sub = f"{sh_fcf_span}년간 매년 {hist_fcf_g_pct:+.1f}% 성장!" if not is_fcf_curr_loss else f"10년중 적자 {fcf_neg_cnt}회 주의!"
-                        _fit_single_line(draw, 524, 766, 290, q4_sub, get_font, start_sz=20, min_sz=12, fill=(255, 240, 0))
+                        _draw_box_with_centered_text(
+                            draw, [380, 740, 666, 776], q4_sub, get_font,
+                            box_fill=(24, 34, 56), radius=8, start_sz=18, min_sz=11,
+                            txt_fill=(255, 240, 0), pad_x=10
+                        )
 
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
@@ -7639,99 +7723,116 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         banner_colors = [(220, 38, 38), (0, 150, 105), (37, 99, 235), (147, 51, 234), (217, 119, 6), (220, 38, 38)]
                         cur_ban_c = banner_colors[chunk_idx % len(banner_colors)]
 
-                        img = Image.new("RGB", (W, H), color=(5, 7, 14))
+                        img = Image.new("RGB", (W, H), color=(7, 10, 18))
                         draw = ImageDraw.Draw(img)
 
+                        # 상단 배너 (좌우 64px 안전 여백 확보로 절대 안 잘림!)
                         draw.rectangle([0, 85, W, 268], fill=cur_ban_c)
-                        _fit_single_line(draw, W//2, 128, W-36, f"{top_header_line} · [{today_short}]", get_font, start_sz=32, min_sz=18, fill=(255, 255, 255), stroke_w=2, stroke_c=(0,0,0))
-                        _fit_single_line(draw, W//2, 210, W-28, f"{comp_name}! 4가지만 기억하세요!", get_font, start_sz=58, min_sz=30, fill=(255, 240, 0), stroke_w=3, stroke_c=(0,0,0))
+                        _fit_single_line(draw, W//2, 130, W-80, f"{top_header_line} · [{today_short}]", get_font, start_sz=28, min_sz=16, fill=(255, 255, 255), stroke_w=2, stroke_c=(0,0,0))
+                        _fit_single_line(draw, W//2, 208, W-72, f"{comp_name}! 4가지만 기억하세요!", get_font, start_sz=50, min_sz=26, fill=(255, 240, 0), stroke_w=4, stroke_c=(0,0,0))
 
-                        draw.rectangle([0, 268, W, 955], fill=(245, 247, 250))
+                        draw.rectangle([0, 268, W, 955], fill=(242, 245, 250))
                         draw.rectangle([0, 268, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 282], fill=(0, 230, 118))
 
-                        draw.rounded_rectangle([24, 290, W-24, 802], radius=28, fill=(8, 12, 22), outline=cur_ban_c, width=6)
+                        draw.rounded_rectangle([26, 290, W-26, 802], radius=26, fill=(8, 12, 22), outline=cur_ban_c, width=5)
 
+                        # 상단 4대 스탬프 요약 탭 (원형숫자 대신 1~4 표기 + 네모칸 정중앙 완벽 정렬)
                         s_pills = [
-                            (f"①{stamp1_word}", stamp1_col, chunk_idx in [0, 5]),
-                            (f"②{stamp2_word}", stamp2_col, chunk_idx in [1, 2]),
-                            (f"③{stamp3_word}", stamp3_col, chunk_idx == 3),
-                            (f"④{stamp4_word}", stamp4_col, chunk_idx == 4)
+                            (f"1. {stamp1_word}", stamp1_col, chunk_idx in [0, 5]),
+                            (f"2. {stamp2_word}", stamp2_col, chunk_idx in [1, 2]),
+                            (f"3. {stamp3_word}", stamp3_col, chunk_idx == 3),
+                            (f"4. {stamp4_word}", stamp4_col, chunk_idx == 4)
                         ]
                         for idx_p, (p_txt, p_col, is_on) in enumerate(s_pills):
                             px1 = 42 + idx_p * 160
-                            py1, py2 = 306, 366
-                            draw.rounded_rectangle([px1, py1, px1 + 152, py2], radius=14, fill=p_col if is_on else (24, 34, 54), outline=(255, 240, 0) if is_on else p_col, width=4 if is_on else 2)
-                            _fit_single_line(draw, px1 + 76, 336, 142, p_txt, get_font, start_sz=22, min_sz=12, fill=(0, 0, 0) if (is_on and p_col != (255, 23, 68)) else (255, 255, 255))
+                            _draw_box_with_centered_text(
+                                draw, [px1, 306, px1 + 152, 366], p_txt, get_font,
+                                box_fill=p_col if is_on else (22, 32, 52),
+                                outline_col=(255, 240, 0) if is_on else p_col,
+                                outline_w=4 if is_on else 2, radius=12,
+                                start_sz=21, min_sz=11,
+                                txt_fill=(255, 255, 255),
+                                stroke_w=2 if is_on else 0, stroke_c=(0, 0, 0), pad_x=8
+                            )
 
                         if scene_code == "SCENE_HOOK":
                             _draw_visual_dashboard_board(draw, W, get_font)
 
                         elif scene_code == "SCENE_2":
-                            draw.rounded_rectangle([44, 386, 350, 780], radius=20, fill=(16, 24, 42), outline=(0, 176, 255), width=4)
-                            _fit_single_line(draw, 197, 422, 280, "1주당 순이익 10년 추이", get_font, start_sz=24, min_sz=14, fill=(0, 230, 118))
+                            draw.rounded_rectangle([44, 386, 350, 780], radius=20, fill=(14, 20, 36), outline=(0, 176, 255), width=4)
+                            _fit_single_line(draw, 197, 422, 280, "1주당 순이익 10년 추이", get_font, start_sz=23, min_sz=14, fill=(0, 230, 118))
 
                             disp_eps = eps_hist_vals[-10:] if len(eps_hist_vals) >= 2 else [max(0.1, t_eps * 0.8), max(0.1, t_eps)]
                             disp_yrs = eps_hist_years[-len(disp_eps):] if len(eps_hist_years) >= len(disp_eps) else [str(curr_y_int - len(disp_eps) + i) for i in range(len(disp_eps))]
                             max_ev = max([abs(x) for x in disp_eps] + [1.0]) * 1.18
-                            base_ey = 670
+                            base_ey = 668
                             n_ebars = len(disp_eps)
                             eb_w = max(14, min(26, int(220 / max(1, n_ebars))))
                             eb_gap = max(2, int((272 - eb_w * n_ebars) / max(1, n_ebars + 1)))
 
                             for idx_eb, (ev_item, ey_lbl) in enumerate(zip(disp_eps, disp_yrs)):
                                 bx_e = 60 + eb_gap + idx_eb * (eb_w + eb_gap)
-                                bh_e = int(max(16, min(170, (max(0.05, abs(ev_item)) / max_ev) * 170)))
+                                bh_e = int(max(16, min(168, (max(0.05, abs(ev_item)) / max_ev) * 168)))
                                 b_col_e = (255, 23, 68) if ev_item < 0 else ((255, 240, 0) if idx_eb == n_ebars - 1 else (0, 176, 255))
                                 draw.rounded_rectangle([bx_e, base_ey - bh_e, bx_e + eb_w, base_ey], radius=4, fill=b_col_e)
                                 if idx_eb in [0, n_ebars // 2, n_ebars - 1]:
                                     _fit_single_line(draw, bx_e + eb_w//2, base_ey + 18, 44, str(ey_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(203, 213, 225))
 
-                            draw.rounded_rectangle([58, 706, 336, 764], radius=12, fill=(0, 176, 255))
-                            _fit_single_line(draw, 197, 735, 265, eps_badge_short, get_font, start_sz=24, min_sz=13, fill=(0, 0, 0))
+                            _draw_box_with_centered_text(
+                                draw, [56, 706, 338, 764], eps_badge_short, get_font,
+                                box_fill=(0, 176, 255), radius=12, start_sz=22, min_sz=13,
+                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
 
-                            draw.rounded_rectangle([370, 386, W-44, 780], radius=20, fill=(16, 24, 42), outline=(0, 230, 118), width=4)
-                            _fit_single_line(draw, 523, 422, 280, f"② {stamp2_word}", get_font, start_sz=28, min_sz=16, fill=(255, 240, 0))
-                            base_y = 670
+                            draw.rounded_rectangle([370, 386, W-44, 780], radius=20, fill=(14, 20, 36), outline=(0, 230, 118), width=4)
+                            _fit_single_line(draw, 523, 422, 280, f"2. {stamp2_word}", get_font, start_sz=26, min_sz=16, fill=(255, 240, 0))
+                            base_y = 668
                             max_r = max(15.0, abs(cap_ret_val), 20.0) * 1.2
-                            h_sp500_r = int(max(26, min(170, (3.5 / max_r) * 170)))
-                            h_cur_r = int(max(26, min(170, (max(0.5, cap_ret_val) / max_r) * 170)))
+                            h_sp500_r = int(max(26, min(168, (3.5 / max_r) * 168)))
+                            h_cur_r = int(max(26, min(168, (max(0.5, cap_ret_val) / max_r) * 168)))
                             draw.rounded_rectangle([416, base_y - h_sp500_r, 494, base_y], radius=8, fill=(100, 116, 139))
                             _fit_single_line(draw, 455, base_y - h_sp500_r - 22, 95, "3.5%", get_font, start_sz=22, min_sz=13, fill=(180, 190, 205))
-                            _fit_single_line(draw, 455, base_y + 20, 100, "은행예금", get_font, start_sz=16, min_sz=11, fill=(180, 190, 205))
+                            _fit_single_line(draw, 455, base_y + 18, 100, "은행예금", get_font, start_sz=15, min_sz=11, fill=(180, 190, 205))
 
                             draw.rounded_rectangle([534, base_y - h_cur_r, 618, base_y], radius=8, fill=(0, 230, 118))
-                            _fit_single_line(draw, 576, base_y - h_cur_r - 24, 110, f"{cap_ret_val:.1f}%", get_font, start_sz=28, min_sz=14, fill=(255, 240, 0))
-                            _fit_single_line(draw, 576, base_y + 20, 100, comp_name[:5], get_font, start_sz=16, min_sz=11, fill=(255, 255, 255))
+                            _fit_single_line(draw, 576, base_y - h_cur_r - 24, 110, f"{cap_ret_val:.1f}%", get_font, start_sz=26, min_sz=14, fill=(255, 240, 0))
+                            _fit_single_line(draw, 576, base_y + 18, 100, comp_name[:5], get_font, start_sz=15, min_sz=11, fill=(255, 255, 255))
 
-                            draw.rounded_rectangle([384, 706, 662, 764], radius=12, fill=(0, 230, 118))
-                            _fit_single_line(draw, 523, 735, 265, f"예금의 {bank_multiple:.1f}배 속도!", get_font, start_sz=24, min_sz=13, fill=(0, 0, 0))
+                            _draw_box_with_centered_text(
+                                draw, [382, 706, 664, 764], f"예금의 {bank_multiple:.1f}배 속도!", get_font,
+                                box_fill=(0, 230, 118), radius=12, start_sz=22, min_sz=13,
+                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
 
                         elif scene_code == "SCENE_3":
-                            draw.rounded_rectangle([44, 386, W-44, 780], radius=22, fill=(16, 24, 42), outline=stamp3_col, width=5)
-                            _fit_single_line(draw, W//2, 428, W-120, f"③ {stamp3_word}  (최근 4년 순수 배당금 추이)", get_font, start_sz=32, min_sz=18, fill=(255, 240, 0))
+                            draw.rounded_rectangle([44, 386, W-44, 780], radius=22, fill=(14, 20, 36), outline=stamp3_col, width=4)
+                            _fit_single_line(draw, W//2, 428, W-120, f"3. {stamp3_word} (최근 4년 순수 배당금 추이)", get_font, start_sz=28, min_sz=16, fill=(255, 240, 0))
 
-                            base_y3 = 668
+                            base_y3 = 665
                             if sum(div_4y_vals) <= 0 and div <= 0:
-                                _fit_single_line(draw, W//2, 555, W-140, "배당 0원! 100% 미래 성장에 몰빵!", get_font, start_sz=34, min_sz=18, fill=(0, 230, 118))
+                                _fit_single_line(draw, W//2, 555, W-140, "배당 0원! 100% 미래 성장에 몰빵!", get_font, start_sz=32, min_sz=18, fill=(0, 230, 118))
                             else:
                                 max_d4 = max(max(div_4y_vals), 0.01) * 1.18
                                 db_w = 90
                                 db_gap = int((520 - db_w * 4) / 5)
                                 for idx_d4, (dv_item, dy_lbl) in enumerate(zip(div_4y_vals, div_4y_years)):
                                     bx_d = 96 + db_gap + idx_d4 * (db_w + db_gap)
-                                    bh_d = int(max(22, min(165, (max(0.0, dv_item) / max_d4) * 165))) if dv_item > 0 else 10
+                                    bh_d = int(max(22, min(160, (max(0.0, dv_item) / max_d4) * 160))) if dv_item > 0 else 10
                                     b_col_d = (255, 240, 0) if idx_d4 == 3 else (213, 0, 249)
                                     draw.rounded_rectangle([bx_d, base_y3 - bh_d, bx_d + db_w, base_y3], radius=10, fill=b_col_d)
-                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 + 22, db_w + 16, str(dy_lbl) + "년", get_font, start_sz=20, min_sz=12, fill=(255, 255, 255))
+                                    _fit_single_line(draw, bx_d + db_w//2, base_y3 + 22, db_w + 16, str(dy_lbl) + "년", get_font, start_sz=19, min_sz=12, fill=(255, 255, 255))
 
-                            draw.rounded_rectangle([64, 706, W-64, 766], radius=14, fill=stamp3_col)
-                            _fit_single_line(draw, W//2, 736, W-140, f"1,000만원당 연 {div_per_10m_manwon:g}만원  |  {div_badge_short}", get_font, start_sz=24, min_sz=13, fill=(255, 255, 255))
+                            _draw_box_with_centered_text(
+                                draw, [64, 706, W-64, 766], f"1,000만원당 연 {div_per_10m_manwon:g}만원  |  {div_badge_short}", get_font,
+                                box_fill=stamp3_col, radius=14, start_sz=23, min_sz=13,
+                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
 
                         else:
-                            s4_hdr = f"④ {stamp4_word}  (10년간 순수 여윳돈 10개년 추이)"
-                            _fit_single_line(draw, W//2, 404, W-80, s4_hdr, get_font, start_sz=26, min_sz=14, fill=(255, 240, 0))
+                            s4_hdr = f"4. {stamp4_word} (10년간 순수 여윳돈 10개년 추이)"
+                            _fit_single_line(draw, W//2, 404, W-80, s4_hdr, get_font, start_sz=25, min_sz=14, fill=(255, 240, 0))
 
-                            draw.rounded_rectangle([44, 430, W-44, 646], radius=18, fill=(16, 24, 42), outline=stamp4_col, width=4)
+                            draw.rounded_rectangle([44, 430, W-44, 646], radius=18, fill=(14, 20, 36), outline=stamp4_col, width=4)
                             disp_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [base_fcf * 0.7 if base_fcf else 1.0, base_fcf if base_fcf else 1.2]
                             disp_f_yrs = fcf_yrs_10y[-len(disp_f_vals):] if len(fcf_yrs_10y) >= len(disp_f_vals) else [str(curr_y_int - len(disp_f_vals) + idx) for idx in range(len(disp_f_vals))]
 
@@ -7757,16 +7858,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     draw.rounded_rectangle([bx_f, zero_y, bx_f + fb_w, zero_y + bh_f], radius=5, fill=(255, 23, 68))
                                 _fit_single_line(draw, bx_f + fb_w//2, 626, fb_w + 12, str(fy_lbl)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(220, 230, 240))
 
-                            draw.rounded_rectangle([44, 658, W-44, 720], radius=14, fill=stamp4_col)
-                            _fit_single_line(draw, W//2, 689, W-110, fcf_badge_txt, get_font, start_sz=24, min_sz=13, fill=(0, 0, 0) if stamp4_col != (255, 23, 68) else (255, 255, 255))
+                            _draw_box_with_centered_text(
+                                draw, [44, 658, W-44, 718], fcf_badge_txt, get_font,
+                                box_fill=stamp4_col, radius=14, start_sz=23, min_sz=13,
+                                txt_fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0)
+                            )
 
-                            draw.rounded_rectangle([44, 730, W-44, 788], radius=14, fill=(220, 38, 38), outline=(255, 240, 0), width=3)
-                            _fit_single_line(draw, W//2, 759, W-110, f"⚡ {comp_name} : ①{stamp1_word} · ②{stamp2_word} · ③{stamp3_word} · ④{stamp4_word}", get_font, start_sz=20, min_sz=11, fill=(255, 255, 255))
+                            _draw_box_with_centered_text(
+                                draw, [44, 728, W-44, 786], f"{comp_name} : 1.{stamp1_word} · 2.{stamp2_word} · 3.{stamp3_word} · 4.{stamp4_word}", get_font,
+                                box_fill=(220, 38, 38), outline_col=(255, 240, 0), outline_w=3, radius=14,
+                                start_sz=19, min_sz=11, txt_fill=(255, 255, 255), stroke_w=1, stroke_c=(0, 0, 0)
+                            )
 
                         txt_col = (255, 240, 0) if chunk_idx in [0, total_chunks - 1] else (255, 255, 255)
                         _draw_safe_subtitle_box(draw, W, 875, sub_text, get_font, txt_col=txt_col, border_c=cur_ban_c)
                         _draw_legal_basis_footer(draw, W, get_font)
                         return img
+                    # ▲▲▲ [부분 교체 1 끝] ▲▲▲
 
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
                         from google.oauth2.credentials import Credentials
@@ -7819,16 +7927,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
 
+                                # ▼▼▼ [부분 교체 2 시작] 화질 깨짐 & 좌우 잘림 0% 미스터비스트 모션 필터 ▼▼▼
                                 if "극한" in motion_intensity:
+                                    # 첫 0.08초 동안만 살짝 펀치 임팩트(1.04배) + 브라이트니스 플래시를 준 뒤 원본 1:1 칼핀 해상도로 고정!
                                     vf_motion = (
-                                        "scale=836:1486,"
-                                        "crop=720:1280:'(iw-720)/2+if(lt(t,0.12),sin(t*120)*14,0)':'(ih-1280)/2+if(lt(t,0.12),cos(t*95)*14,0)',"
-                                        "eq=brightness='if(lt(t,0.06),0.22,0)':contrast='if(lt(t,0.10),1.25,1.0)':saturation=1.18"
+                                        "scale='if(lt(t,0.08),748,720)':'if(lt(t,0.08),1330,1280)':flags=lanczos,"
+                                        "crop=720:1280,"
+                                        "eq=brightness='if(lt(t,0.05),0.14,0)':contrast='if(lt(t,0.08),1.15,1.0)':saturation=1.10"
                                     )
                                 elif "보통" in motion_intensity:
-                                    vf_motion = "scale=792:1408,crop=720:1280:'(iw-720)/2':'(ih-1280)/2',eq=brightness='if(lt(t,0.05),0.12,0)'"
+                                    vf_motion = "scale=720:1280:flags=lanczos,eq=brightness='if(lt(t,0.04),0.08,0)'"
                                 else:
-                                    vf_motion = "scale=720:1280"
+                                    vf_motion = "scale=720:1280:flags=lanczos"
 
                                 def _build_single_cut(idx_c, sub_t, sc_code):
                                     f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
@@ -7842,12 +7952,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
                                         "-vf", vf_motion,
-                                        "-c:v", "libx264", "-preset", "ultrafast", "-r", "30",
+                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
                                         "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
                                         "-shortest", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                     return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
-
+                                # ▲▲▲ [부분 교체 2 끝] ▲▲▲
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = [ex.submit(_build_single_cut, i_c, st_c, sc_c) for i_c, (st_c, sc_c) in enumerate(pop_chunks)]
                                     for ft in concurrent.futures.as_completed(futs):
