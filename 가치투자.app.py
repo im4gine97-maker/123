@@ -2833,27 +2833,42 @@ def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
         return 0, 0, t("DCF 연산 에러", "DCF Calculation Error")
 # ▲▲▲ [수리 1 끝] ▲▲▲
 def get_implied_g(fcf, sh, p, ty):
-    if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0: return None
-    low, high = -0.5, 1.0 
-    dr = max(ty / 100, 0.09)
-    for _ in range(40):
-        mid = (low + high) / 2
+    """
+    [멍거식 Invert 역발상 모델]
+    현재 주가(p)와 주식수(sh), 주주이익(fcf)을 바탕으로
+    '현재 주가를 정당화하기 위해 시장이 요구하고 있는 연평균 FCF 성장률'을 역산합니다.
+    """
+    if not fcf or fcf <= 0 or not sh or sh <= 0 or not p or p <= 0:
+        return None
+    
+    dr = max(safe_float(ty) / 100.0, 0.09)  # 할인율 (최소 연 9.0%)
+    target_equity_val = p * sh
+    
+    # 이분법(Bisection) 수렴 탐색 (-50% 역성장 ~ +100% 초고성장 범위)
+    low, high = -0.50, 1.00
+    for _ in range(45):
+        mid = (low + high) / 2.0
         cv = fcf
-        fut_sum = 0
+        fut_sum = 0.0
         for y in range(1, 11):
-            cv *= (1 + mid)
-            fut_sum += cv / ((1 + dr) ** y)
+            cv *= (1.0 + mid)
+            fut_sum += cv / ((1.0 + dr) ** y)
             
-        term_g = 0.02 if mid >= 0.05 else 0.0
-        tv = (cv * (1 + term_g)) / (dr - term_g)
-        dtv = tv / ((1 + dr) ** 10)
-        iv = (fut_sum + dtv) / sh
-        if iv > p:
+        term_g = 0.02 if mid >= 0.04 else max(0.0, mid * 0.5)
+        if dr > term_g:
+            tv = (cv * (1.0 + term_g)) / (dr - term_g)
+            dtv = tv / ((1.0 + dr) ** 10)
+        else:
+            dtv = 0.0
+            
+        est_val = fut_sum + dtv
+        if est_val > target_equity_val:
             high = mid
         else:
             low = mid
-    return (low + high) / 2
-
+            
+    implied_rate = (low + high) / 2.0
+    return max(-0.50, min(1.00, implied_rate))
 def get_real_roic(stk, i):
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
@@ -3802,48 +3817,62 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score_details[t("자본 배분 및 주주환원 일관성", "Capital Allocation & Shareholder Return")] = (alloc_score, alloc_reason)
 
     # -------------------------------------------------------------
-    # 5. 가격 안전마진: 거짓 정밀성 탈피 & 가치 함정 방어 (지침서 Part 1-3, Part 4-7)
-    # "해자 없는 저PBR은 가치함정. 암산으로도 명백히 쌀 때만 매수"
+    # 5. 가격 안전마진: 거짓 정밀성 탈피 & 시장 내포 성장률(Implied G) 검증
+    # "현재 주가가 요구하는 성장률이 상식적이거나 과거 실적보다 현저히 낮을 때 매수"
     # -------------------------------------------------------------
     val_score = 0
-    # A. PBR 가치 함정 필터링 (지침서 Part 1-3)
     if is_financial or kr or is_cyclical:
+        # 금융·시클리컬·한국주: PBR 가치 함정 필터링 유지
         if pbr <= 0.8 and target_metric < 7.0:
             val_score = -10
-            val_reason = t("가치 함정(Value Trap) 경고: PBR은 낮으나 자본잠식/해자 훼손", "Value Trap: Cheap PBR but no moat/declining capital")
-        else:
-            # 정상적인 안전마진 평가
-            if pmos >= 25.0:
-                val_score = 20; val_reason = t(f"과거 10년 평균 PBR 대비 {pmos:.1f}% 명백한 할인 구간", f"{pmos:.1f}% deep discount vs 10Y avg PBR")
-            elif pmos >= 8.0:
-                val_score = 10; val_reason = t(f"과거 평균 PBR 대비 {pmos:.1f}% 적정 할인", f"{pmos:.1f}% discount vs 10Y avg PBR")
-            elif pmos >= -10.0:
-                val_score = 0; val_reason = t(f"과거 평균 PBR에 부합하는 적정 수준", "In line with 10Y avg PBR")
-            else:
-                val_score = -18; val_reason = t(f"과거 평균 PBR 대비 {abs(pmos):.1f}% 과도한 할증", f"{abs(pmos):.1f}% premium vs 10Y avg PBR")
-    else:
-        # B. 일반 기업의 PER 및 역산 안전마진 (지침서 Part 4-7)
-        if f_pe <= 0:
-            val_score = -15
-            val_reason = t("선행 이익 적자 또는 추정 불가 (안전마진 결여)", "Negative or missing forward earnings")
+            val_reason = t("가치 함정(Value Trap) 경고: PBR은 낮으나 자본잠식/해자 결여", "Value Trap: Cheap PBR but no moat")
         else:
             if pmos >= 25.0:
-                val_score = 20; val_reason = t(f"10년 평균 멀티플 대비 {pmos:.1f}% 명백한 염가 구간", f"{pmos:.1f}% deep discount vs 10Y avg PE")
+                val_score = 20
+                val_reason = t(f"10년 평균 PBR 대비 {pmos:.1f}% 명백한 할인 (안전마진 확보)", f"{pmos:.1f}% discount vs 10Y avg PBR")
             elif pmos >= 8.0:
-                val_score = 10; val_reason = t(f"과거 평균 대비 {pmos:.1f}% 유의미한 할인", f"{pmos:.1f}% discount vs 10Y avg PE")
+                val_score = 10
+                val_reason = t(f"10년 평균 PBR 대비 {pmos:.1f}% 적정 할인", f"{pmos:.1f}% discount vs 10Y avg PBR")
             elif pmos >= -8.0:
-                val_score = 0; val_reason = t(f"역사적 평균에 부합하는 공정 가치", "Fair value vs 10Y avg PE")
-            elif pmos >= -25.0:
-                val_score = -10; val_reason = t(f"이익 대비 {abs(pmos):.1f}% 고평가 구간", f"{abs(pmos):.1f}% valuation premium")
+                val_score = 0
+                val_reason = t("10년 평균 PBR에 부합하는 적정 수준", "In line with 10Y avg PBR")
             else:
-                val_score = -20; val_reason = t(f"역사적 상단 초과 ({abs(pmos):.1f}% 과열)", f"{abs(pmos):.1f}% severe overvaluation")
+                val_score = -18
+                val_reason = t(f"10년 평균 PBR 대비 {abs(pmos):.1f}% 고평가", f"{abs(pmos):.1f}% premium vs 10Y avg PBR")
+    else:
+        # 일반 기업: Implied Growth Rate (내포 성장률) 기반 정밀 역산 평가
+        if implied_g is None:
+            if base_fcf and base_fcf <= 0:
+                val_score = -15
+                val_reason = t("주주이익(FCF) 적자로 내포 성장률 역산 불가", "Negative FCF, cannot invert valuation")
+            else:
+                val_score = 0
+                val_reason = t("내포 성장률 산출 데이터 부족", "Insufficient data for Implied G")
+        else:
+            imp_pct = implied_g * 100.0
+            hist_pct = final_g * 100.0
+            gap = hist_pct - imp_pct  # 과거 실제 성장률 - 시장 요구 성장률
 
-    # DCF 상식 검증 (거짓 정밀성 배제, 거친 암산 안전마진만 보조 반영)
-    if not is_financial and base_fcf and base_fcf > 0 and not is_zigzag:
-        if mos >= 30.0: val_score = min(22, val_score + 4)
-        elif mos <= -30.0: val_score = max(-22, val_score - 4)
+            if imp_pct <= 0.0:
+                val_score = 22
+                val_reason = t(f"극단적 안전마진: 시장이 역성장({imp_pct:+.1f}%)을 가정함", f"Extreme MoS: Market prices in contraction ({imp_pct:+.1f}%)")
+            elif imp_pct <= 3.5:
+                val_score = 18
+                val_reason = t(f"압도적 안전마진: GDP 성장률 수준({imp_pct:.1f}%)만 요구", f"Deep MoS: Market only demands GDP growth ({imp_pct:.1f}%)")
+            elif gap >= 8.0:
+                val_score = 14
+                val_reason = t(f"충분한 안전마진: 시장 요구치({imp_pct:.1f}%)가 과거 실적({hist_pct:.1f}%)보다 현저히 낮음", f"Favorable: Implied G ({imp_pct:.1f}%) far below past ({hist_pct:.1f}%)")
+            elif gap >= 0.0:
+                val_score = 5
+                val_reason = t(f"합리적 기대: 과거 달성 실적({hist_pct:.1f}%) 범위 내 요구({imp_pct:.1f}%)", f"Fair: Market demands {imp_pct:.1f}% vs past {hist_pct:.1f}%")
+            elif imp_pct <= 18.0:
+                val_score = -8
+                val_reason = t(f"성장 선반영: 시장이 매년 {imp_pct:.1f}%의 높은 FCF 성장을 요구 중", f"Growth Priced In: Requires {imp_pct:.1f}% annual FCF growth")
+            else:
+                val_score = -20
+                val_reason = t(f"비현실적 고성장 가정({imp_pct:.1f}% 요구): 실적 미달 시 주가 급락 위험", f"Unrealistic expectation ({imp_pct:.1f}% required)")
 
-    score_details[t("가격 안전마진 (해자 대비 염가)", "Moat-driven Margin of Safety")] = (val_score, val_reason)
+    score_details[t("시장 내포 성장률 (Implied G 역산)", "Implied Growth Rate (Invert MoS)")] = (val_score, val_reason)
 
     # -------------------------------------------------------------
     # 6. 거시 기회비용 (10년물 미국채 금리 vs 이익수익률) (지침서 Part 4-7)
@@ -6236,51 +6265,104 @@ with tab1:
             
 
                 # =====================================================================
-                # [파트 2] 10년 DCF 내재가치 평가 및 시뮬레이터
+                # [파트 2] 시장 내포 성장률 평가 (Implied Growth Rate · 멍거식 역발상 모델)
                 # =====================================================================
-                st.markdown(f"**{t('2. 10년 내재가치 평가 (DCF 3가지 시나리오)', '2. 10-Year Intrinsic Value (DCF Scenarios)')}**")
-                
-                dcf_guide_ko = (
-                    "<b>[필독] 쉽게 이해하는 DCF 가치평가</b><br>"
-                    "• <b>FCF(잉여현금흐름)란?</b> 회사가 번 돈에서 공장 유지비, 세금 등을 다 빼고 <b>'순수하게 내 주머니에 남길 수 있는 진짜 여윳돈'</b>입니다.<br>"
-                    "• <b>시나리오의 의미:</b> 아래의 적정가는 이 회사가 앞으로 <b>10년 동안</b> 제시된 성장률(%)만큼 매년 꾸준히 FCF를 더 벌어들인다고 가정했을 때의 합리적인 가격입니다.<br>"
-                    "• <b>투자자 점검 포인트:</b> 현재의 기본 성장률은 최근 4~10년의 현금흐름 추세를 바탕으로 기계적으로 산출된 것입니다. 스스로 기업을 분석했을 때, <b>'과연 이 기업의 비즈니스 해자가 강력해서 향후 10년 동안에도 이 성장을 유지할 수 있을 시'</b> 확신이 드는지 반드시 질문해 보세요!"
-                )
-                dcf_guide_en = (
-                    "<b>[Must Read] Understanding DCF Valuation Easily</b><br>"
-                    "• <b>What is FCF (Free Cash Flow)?</b> It is the <b>'pure leftover cash'</b> a company can keep after paying all operational expenses, taxes, and capital expenditures.<br>"
-                    "• <b>What do the scenarios mean?</b> The fair values below assume the company will consistently grow its FCF at the given rate (%) every year for the next <b>10 years</b>.<br>"
-                    "• <b>Investor Checkpoint:</b> The current base growth rate is mechanically derived from the last available cash flow trends."
-                )
-                
-                if is_financial:
-                    st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #ff7675; padding:18px 22px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t('<b>[평가 제외]</b> 금융 및 증권/보험주는 사업 특성상 고객 예치금 및 지급준비금이 영업현금흐름에 대규모 부채로 포함되어 FCF(잉여현금흐름) 분석 시 기형적인 착시 적자가 발생합니다.<br>따라서 본 AI 분석기에서는 무의미한 DCF 연산을 강제 차단하고, <b>PBR(장부가치)과 ROE 기반 시스템으로 완벽 대체</b>하여 적정성을 평가했습니다.', '<b>[N/A]</b> DCF model is disabled for Financials. Intrinsic worth is cross-evaluated using PBR metrics instead, due to cash flow accounting distortions from customer deposits.')}</div>", unsafe_allow_html=True)
-                elif iv:
-                    with st.expander(t("[필독] 쉽게 이해하는 DCF 가치평가 (클릭하여 열기)", "[Must Read] Understanding DCF (Click to expand)")):
-                        st.markdown(f"<div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #A0C4FF; padding:18px 22px; border-radius:12px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>{t(dcf_guide_ko, dcf_guide_en)}</div>", unsafe_allow_html=True)
-                    
-                    implied_g = get_implied_g(base_fcf, sh, p, ty)
-                    if implied_g is not None:
-                        implied_g_str = f"{implied_g*100:.1f}%"
-                        if implied_g <= final_g:
-                            rev_dcf_color = "#2ecc71"
-                            rev_dcf_eval = t("[저평가] 시장의 기대성장률이 과거 평균보다 낮아 안전마진이 충분합니다.", "[Undervalued] Market expectation is lower than historical avg.")
-                        elif implied_g > 0.25:
-                            rev_dcf_color = "#ff7675"
-                            rev_dcf_eval = t("[고평가] 시장이 비현실적인 고성장을 기대하고 있습니다.", "[Overvalued] Market is expecting unrealistic high growth.")
-                        else:
-                            rev_dcf_color = "#fdcb6e"
-                            rev_dcf_eval = t("[적정] 시장의 기대치가 합리적인 수준에 형성되어 있습니다.", "[Fair] Market expectation is reasonable.")
+                st.markdown(f"**{t('2. 시장 내포 성장률 분석 (Implied Growth Rate · 역발상 인버트 모델)', '2. Implied Growth Rate Analysis (Invert Valuation)')}**")
 
-                        reverse_dcf_html = f"""
-                        <div style='background: rgba(128,128,128,0.05); border: 1px solid rgba(128,128,128,0.2); padding: 18px 22px; border-radius: 12px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
-                            <div style='font-size: 0.95rem; color: #74b9ff; font-weight: bold; margin-bottom: 8px;'> 역산 DCF (Reverse DCF)</div>
-                            <div style='font-size: 1.1rem; color: var(--text-color);'>현재 주가({p_str})를 정당화하려면 향후 10년간 매년 <b><span style='color:{rev_dcf_color}; font-size:1.3rem;'>{implied_g_str}</span></b> 씩 현금흐름이 성장해야 합니다.</div>
-                            <div style='font-size: 0.9rem; color: {rev_dcf_color}; margin-top: 5px; font-weight: 600;'>{rev_dcf_eval} <span style='color:var(--text-color); opacity:0.6; font-weight:normal;'>(기준: 최근 10년 평균 FCF)</span></div>
-                        </div>
-                        """
+                implied_g_val = get_implied_g(base_fcf, sh, p, ty)
+
+                if is_financial:
+                    st.markdown(f"""
+                    <div style='background: rgba(128, 128, 128, 0.05); border-left: 4px solid #74b9ff; padding:16px 20px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:var(--text-color); line-height:1.6;'>
+                        <b>[금융·보험주 적용]</b> 금융업종은 고객 예치금 및 유동성 자산 특성상 FCF 산출이 왜곡되므로, 
+                        내포 성장률 대신 <b>PBR(장부가치 배수)과 ROE의 자본 배분 효율성</b>을 기준으로 안전마진을 평가합니다.
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif implied_g_val is None:
+                    st.markdown(f"""
+                    <div style='background: rgba(255, 118, 117, 0.08); border-left: 4px solid #ff7675; padding:16px 20px; border-radius:12px; margin-bottom:15px; font-size:0.95rem; color:#ff7675; line-height:1.6;'>
+                        ⚠️ <b>주주이익(FCF) 적자 또는 데이터 부재:</b> 
+                        현재 회사가 창출하는 잉여현금흐름이 음수(-)이므로, 현재 주가를 정당화할 수 있는 정상적인 내포 성장률을 역산할 수 없습니다. 
+                        회사가 언제 흑자로 전환하는지 영업현금흐름 개선 추이를 먼저 확인하십시오.
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    imp_g_pct = implied_g_val * 100.0
+                    hist_g_pct = final_g * 100.0
+                    exp_gap = hist_g_pct - imp_g_pct
+
+                    if imp_g_pct <= 0.0:
+                        verdict_badge = "[극단적 안전마진] 시장이 역성장을 점치는 헐값 구간"
+                        v_col = "#2ecc71"
+                        v_desc = f"현재 주가({p_str})는 기업이 향후 10년간 매년 {imp_g_pct:+.1f}%씩 역성장해도 본전이 나오는 가격입니다. 현상 유지만 해도 큰 이익입니다."
+                    elif imp_g_pct <= 3.5:
+                        verdict_badge = "[압도적 안전마진] 물가상승률 수준만 요구하는 염가"
+                        v_col = "#2ecc71"
+                        v_desc = f"현재 주가는 연 {imp_g_pct:.1f}%의 미미한 성장만 요구합니다. 회사가 보유한 해자 대비 시장의 기대치가 극도로 낮습니다."
+                    elif exp_gap >= 5.0:
+                        verdict_badge = "[충분한 안전마진] 과거 실적보다 눈높이가 크게 낮음"
+                        v_col = "#74b9ff"
+                        v_desc = f"시장이 요구하는 성장률({imp_g_pct:.1f}%)이 과거 10년 실제 달성치({hist_g_pct:.1f}%)보다 {exp_gap:.1f}%p 낮아 안전판이 두텁습니다."
+                    elif imp_g_pct <= 15.0:
+                        verdict_badge = "[합리적 기대 수준] 본질 가치 부합 구간"
+                        v_col = "#fdcb6e"
+                        v_desc = f"시장이 연 {imp_g_pct:.1f}% 수준의 성장을 요구하고 있습니다. 기업의 경쟁력 유지를 전제로 한 적정 가치 구간입니다."
                     else:
-                        reverse_dcf_html = ""
+                        verdict_badge = "[과도한 기대 선반영] 성장 둔화 시 주가 급락 위험"
+                        v_col = "#ff7675"
+                        v_desc = f"현재 주가를 정당화하려면 매년 무려 {imp_g_pct:.1f}%씩 현금이 폭증해야 합니다. 작은 실적 미달에도 멀티플이 붕괴할 수 있습니다."
+
+                    # 4대 직관적 인버트 지표 카드 그리드
+                    panel_html = f"""
+                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;'>
+                        <div style='{item_style}'>
+                            <div style='{lbl_style}'>시장의 요구 성장률 (Implied G)</div>
+                            <div style='{val_style} color: {v_col}; font-size: 1.6rem;'>{imp_g_pct:+.1f}% / 연</div>
+                            <div style='{desc_style}'>현재 주가를 정당화하기 위한 10년 요구치</div>
+                        </div>
+                        <div style='{item_style}'>
+                            <div style='{lbl_style}'>과거 10년 실제 복리성장률 (CAGR)</div>
+                            <div style='{val_style} font-size: 1.6rem;'>{hist_g_pct:+.1f}% / 연</div>
+                            <div style='{desc_style}'>기업이 실제로 증명해 온 현금창출력</div>
+                        </div>
+                        <div style='{item_style}'>
+                            <div style='{lbl_style}'>기대치 격차 (Expectation Gap)</div>
+                            <div style='{val_style} color: {"#2ecc71" if exp_gap >= 0 else "#ff7675"}; font-size: 1.6rem;'>{exp_gap:+.1f}%p</div>
+                            <div style='{desc_style}'>과거 실적 대비 시장의 할인·할증 폭</div>
+                        </div>
+                        <div style='{item_style}'>
+                            <div style='{lbl_style}'>인버트(Invert) 안전마진 판정</div>
+                            <div style='font-size: 1.05rem; font-weight: 800; color: {v_col}; margin: 8px 0;'>{verdict_badge}</div>
+                            <div style='{desc_style}'>{v_desc}</div>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(panel_html, unsafe_allow_html=True)
+
+                # 하단 투자의견 호출 시 implied_g_val 주입
+                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+                    mos=0.0,
+                    pmos=pmos_val,
+                    roe_current=roe,
+                    roic_current=roic_val,
+                    erp=erp,
+                    final_g=final_g,
+                    ceo_text=criticism_text,
+                    is_financial=is_financial,
+                    pbr=pbr,
+                    kr=kr,
+                    tk=tk,
+                    base_fcf=base_fcf,
+                    div_yield_pct=div,
+                    is_zigzag=False,
+                    f_pe=f_pe,
+                    spy_pe=spy_pe_val,
+                    is_cyclical=is_cyclical,
+                    hist_roe_10y=hist_roe_10y,
+                    hist_roic_10y=hist_roic_10y,
+                    buyback_yield_pct=bb_yield,
+                    implied_g=implied_g_val
+                )
 
                     st.markdown(f"<div style='font-size:0.9rem; color:var(--text-color); margin-bottom:15px; text-align:center;'><b>[{t('DCF 기본 가정', 'DCF Base Assumptions')}]</b> {t('할인율', 'Discount Rate')}: <b>{max(ty, 9.0):.1f}%</b> | {dcf_source_txt} (최근 10년 평균 FCF 적용)</div>", unsafe_allow_html=True)
                     st.markdown(reverse_dcf_html, unsafe_allow_html=True)
@@ -9244,16 +9326,15 @@ with tab_vs:
                 st.plotly_chart(fig_vs, use_container_width=True, config={'staticPlot': True})
 
             st.markdown("#### 📋 핵심 지표 1:1 비교 판정표")
+            # tab_vs 내부의 comp_rows 정의부 교체
             comp_rows = [
                 {"지표": "AI 종합 점수", res_a['name']: f"{res_a['score']}점", res_b['name']: f"{res_b['score']}점", "우위 판정": f"🟦 {res_a['name']}" if res_a['score'] > res_b['score'] else (f"🟥 {res_b['name']}" if res_b['score'] > res_a['score'] else "무승부")},
                 {"지표": "현재 주가", res_a['name']: res_a['p_str'], res_b['name']: res_b['p_str'], "우위 판정": "-"},
-                {"지표": "DCF 적정가", res_a['name']: res_a['iv_str'], res_b['name']: res_b['iv_str'], "우위 판정": "-"},
-                {"지표": "핵심 안전마진 (%)", res_a['name']: f"{res_a['mos']:+.1f}%", res_b['name']: f"{res_b['mos']:+.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['mos'] > res_b['mos'] else f"🟥 {res_b['name']}"},
+                {"지표": "시장 내포 성장률 (Implied G)", res_a['name']: f"{res_a['implied_g']*100:+.1f}%/연" if res_a.get('implied_g') is not None else "N/A", res_b['name']: f"{res_b['implied_g']*100:+.1f}%/연" if res_b.get('implied_g') is not None else "N/A", "우위 판정": f"🟦 {res_a['name']}" if (res_a.get('implied_g') is not None and res_a['implied_g'] < res_b.get('implied_g', 99)) else f"🟥 {res_b['name']}"},
                 {"지표": "선행 PER (10년 평균)", res_a['name']: f"{res_a['f_pe']:.1f}배 ({res_a['a_pe']:.1f}배)", res_b['name']: f"{res_b['f_pe']:.1f}배 ({res_b['a_pe']:.1f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pe'] < res_b['f_pe']) else f"🟥 {res_b['name']}"},
                 {"지표": "현재 PBR (10년 평균)", res_a['name']: f"{res_a['f_pbr']:.2f}배 ({res_a['a_pbr']:.2f}배)", res_b['name']: f"{res_b['f_pbr']:.2f}배 ({res_b['a_pbr']:.2f}배)", "우위 판정": f"🟦 {res_a['name']}" if (0 < res_a['f_pbr'] < res_b['f_pbr']) else f"🟥 {res_b['name']}"},
-                {"지표": "자본수익률 (ROE)", res_a['name']: f"{res_a['roe']:.1f}%", res_b['name']: f"{res_b['roe']:.1f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['roe'] > res_b['roe'] else f"🟥 {res_b['name']}"},
-                {"지표": "투하자본수익률 (ROIC)", res_a['name']: ("금융주 제외" if res_a['is_fin'] else f"{res_a['roic']:.1f}%"), res_b['name']: ("금융주 제외" if res_b['is_fin'] else f"{res_b['roic']:.1f}%"), "우위 판정": f"🟦 {res_a['name']}" if res_a['roic'] > res_b['roic'] else f"🟥 {res_b['name']}"},
-                {"지표": "배당수익률 (순수 배당)", res_a['name']: f"{res_a['tsy']:.2f}% (배당 {res_a['div']:.1f}% / 자사주 {res_a['bb']:+.1f}%)", res_b['name']: f"{res_b['tsy']:.2f}% (배당 {res_b['div']:.1f}% / 자사주 {res_b['bb']:+.1f}%)", "우위 판정": f"🟦 {res_a['name']}" if res_a['tsy'] > res_b['tsy'] else f"🟥 {res_b['name']}"}
+                {"지표": "투하자본이익률 (ROIC)", res_a['name']: ("금융주 제외" if res_a['is_fin'] else f"{res_a['roic']:.1f}%"), res_b['name']: ("금융주 제외" if res_b['is_fin'] else f"{res_b['roic']:.1f}%"), "우위 판정": f"🟦 {res_a['name']}" if res_a['roic'] > res_b['roic'] else f"🟥 {res_b['name']}"},
+                {"지표": "순수 배당수익률", res_a['name']: f"{res_a['div']:.2f}%", res_b['name']: f"{res_b['div']:.2f}%", "우위 판정": f"🟦 {res_a['name']}" if res_a['div'] > res_b['div'] else f"🟥 {res_b['name']}"}
             ]
             st.dataframe(pd.DataFrame(comp_rows), use_container_width=True, hide_index=True)
 
