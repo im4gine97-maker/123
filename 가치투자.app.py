@@ -6286,7 +6286,7 @@ with tab1:
                     st.markdown(reverse_dcf_html, unsafe_allow_html=True)
 
                     # =========================================================================
-                    # ▼▼▼ [신규 추가] 버핏의 10초 암산 역산 밸류에이션 (1/PER vs 미국채 10년물 + 5%p) ▼▼▼
+                    # ▼▼▼ [수정 완료] 버핏의 10초 암산 역산 밸류에이션 (HTML 렌더링 오류 방지 적용) ▼▼▼
                     # =========================================================================
                     if f_pe > 0:
                         cur_ey = (1.0 / f_pe) * 100.0  # 주식 이익수익률 (Earnings Yield)
@@ -6349,8 +6349,9 @@ with tab1:
                             </div>
                         </div>
                         """
+                        # ★ 핵심 포인트: unsafe_allow_html=True를 반드시 지정해야 HTML이 정상 렌더링됩니다.
                         st.markdown(buffett_mental_dcf_html, unsafe_allow_html=True)
-                    # ▲▲▲ [신규 추가 끝] ▲▲▲
+                    # ▲▲▲ [수정 완료 끝] ▲▲▲
 
                     str_g = t("성장률", "Growth")
                     str_mos = t("안전마진", "MoS")
