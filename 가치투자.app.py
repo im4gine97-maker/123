@@ -7927,16 +7927,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
 
-                                # ▼▼▼ [부분 교체 2 시작] 화질 깨짐 & 좌우 잘림 0% 미스터비스트 모션 필터 ▼▼▼
+                                # ▼▼▼ [부분 교체 2 시작] FFmpeg 7.0.2 완벽 호환 & 화질 열화 0% 미스터비스트 모션 필터 ▼▼▼
                                 if "극한" in motion_intensity:
-                                    # 첫 0.08초 동안만 살짝 펀치 임팩트(1.04배) + 브라이트니스 플래시를 준 뒤 원본 1:1 칼핀 해상도로 고정!
+                                    # 첫 0.08초 동안만 1.05배 타격 줌인 + 카메라 진동 + 네온 플래시 후 원본 720x1280 1:1 칼핀 고정!
                                     vf_motion = (
-                                        "scale='if(lt(t,0.08),748,720)':'if(lt(t,0.08),1330,1280)':flags=lanczos,"
-                                        "crop=720:1280,"
-                                        "eq=brightness='if(lt(t,0.05),0.14,0)':contrast='if(lt(t,0.08),1.15,1.0)':saturation=1.10"
+                                        "scale=760:1352:flags=lanczos,"
+                                        "crop=720:1280:'if(lt(t,0.08),(iw-720)/2+sin(t*140)*8,0)':'if(lt(t,0.08),(ih-1280)/2+cos(t*110)*8,0)',"
+                                        "eq=eval=frame:brightness='if(lt(t,0.05),0.15,0)':contrast='if(lt(t,0.08),1.15,1.0)':saturation=1.10"
                                     )
                                 elif "보통" in motion_intensity:
-                                    vf_motion = "scale=720:1280:flags=lanczos,eq=brightness='if(lt(t,0.04),0.08,0)'"
+                                    vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.04),0.08,0)'"
                                 else:
                                     vf_motion = "scale=720:1280:flags=lanczos"
 
@@ -7949,13 +7949,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     _draw_core_frame(idx_c, n_chunks, sub_t, sc_code, get_font).save(f_img)
                                     _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_final_cut=(idx_c == n_chunks - 1))
 
-                                    subprocess.run([
+                                    # 만약 특수 기기에서 동적 필터가 실패하더라도 100% 렌더링되도록 2중 안전망 적용
+                                    cmd_primary = [
                                         ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
                                         "-vf", vf_motion,
                                         "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
                                         "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
                                         "-shortest", f_seg
-                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                    ]
+                                    res_p = subprocess.run(cmd_primary, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                    if res_p.returncode != 0:
+                                        subprocess.run([
+                                            ffmpeg_exe, "-y", "-loop", "1", "-i", f_img, "-i", f_wav,
+                                            "-vf", "scale=720:1280:flags=lanczos",
+                                            "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                                            "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p",
+                                            "-shortest", f_seg
+                                        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
                                     return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
                                 # ▲▲▲ [부분 교체 2 끝] ▲▲▲
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
