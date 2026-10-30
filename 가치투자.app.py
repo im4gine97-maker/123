@@ -8011,28 +8011,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"틱톡 업로드 실패: {tt_e}")
                     st.markdown("#### 📜 최종 적용 13초 극한 타격 대본 미리보기")
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
-               # ▼▼▼ [수리 3 업그레이드] 📊 핵심 장부 요약 및 차트 (연간 10년 / 분기별 / 연환산 TTM 3모드 완벽 지원) ▼▼▼
+               # ▼▼▼ [수리 3 최종 완전체] 📊 10년(40분기) 연간 · 분기별 · 연환산(TTM/×4) 핵심 장부 요약 및 차트 (한국 DART 4대 보고서 & 미국 SEC 10-Q/10-K 10년 연동) ▼▼▼
                 st.divider()
-                st.subheader(t("📊 핵심 장부 요약 및 차트 (연간 · 분기별 · 연환산)", "📊 Financial Statements & Charts (Annual · Quarterly · Annualized)"))
+                st.subheader(t("📊 10년 핵심 장부 요약 및 차트 (연간 10년 · 분기별 40분기 · 연환산 10년)", "📊 10-Year Financial Statements & Charts (Annual · 40 Quarters · Annualized)"))
 
                 cd = tk.split('.')[0] if kr else tk
 
-                with st.expander(t("상세 재무제표 및 차트 보기 - 연간 / 분기별 / 연환산 전환 (클릭하여 열기)", "View Detailed Financials & Charts (Click to expand)"), expanded=False):
+                with st.expander(t("10년치 상세 재무제표 및 차트 보기 - 연간(10년) / 분기별(10년 40분기) / 연환산(10년) 전환 (클릭하여 열기)", "View Detailed 10-Year Financials & Charts (Click to expand)"), expanded=False):
                     fin_view_mode = st.radio(
-                        "📌 재무제표 보기 기준 선택",
+                        "📌 재무제표 보기 기준 선택 (모든 모드 10년치 지원)",
                         [
                             "📅 연간 (최근 10년 결산)",
-                            "📆 분기별 (최근 분기 실적)",
-                            "🔄 연환산 (TTM 최근4분기 합산 & 분기×4 환산)"
+                            "📆 분기별 (최근 10년 · 최대 40개 분기)",
+                            "🔄 연환산 (최근 10년 분기별 ×4 연환산 & TTM)"
                         ],
                         horizontal=True,
-                        key=f"fin_view_mode_radio_{tk}"
+                        key=f"fin_view_mode_10y_radio_{tk}"
                     )
 
                     def draw_financial_chart(df, mode_label=""):
                         if df is None or df.empty:
                             return
-                        # TTM 열이 있으면 맨 오른쪽에 오도록 시간순 정렬
                         non_ttm_cols = sorted([c for c in df.columns if "TTM" not in str(c)])
                         ttm_cols = [c for c in df.columns if "TTM" in str(c)]
                         ordered_cols = non_ttm_cols + ttm_cols
@@ -8048,134 +8047,440 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             elif '순이익' in str(idx_val) or 'Net Income' in str(idx_val):
                                 fig.add_trace(go.Bar(x=x_labels, y=plot_df.loc[idx_val], name=t('순이익', 'Net Income'), marker_color='#2ecc71'))
                             elif '잉여현금흐름' in str(idx_val) or 'FCF' in str(idx_val):
-                                fig.add_trace(go.Scatter(x=x_labels, y=plot_df.loc[idx_val], name=t('잉여현금흐름(FCF)', 'FCF'), mode='lines+markers', line=dict(color='#a29bfe', width=3)))
+                                fig.add_trace(go.Scatter(x=x_labels, y=plot_df.loc[idx_val], name=t('잉여현금흐름(FCF)', 'FCF'), mode='lines+markers', line=dict(color='#a29bfe', width=2.5)))
 
                         fig.update_layout(
                             title=dict(text=f"<b>{mode_label}</b>", font=dict(size=14, color="#A0C4FF"), x=0, y=0.98) if mode_label else None,
-                            barmode='group', height=380, margin=dict(l=0, r=0, t=35, b=0),
+                            barmode='group', height=400, margin=dict(l=0, r=0, t=35, b=0),
                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                             font=dict(color='#8892b0'),
+                            xaxis=dict(tickangle=-45 if len(x_labels) > 12 else 0),
                             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                         )
                         st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
 
+                    # =========================================================================
+                    # [엔진 A] 미국 주식 SEC EDGAR 10-Q & 10-K 기반 10년(40개 분기) 정밀 추출기
+                    # - 3개월 단일 손익 추출 + 누적(YTD) 현금흐름표를 차감하여 순수 분기별 OCF/CAPEX/FCF 산출!
+                    # =========================================================================
+                    def _extract_us_10yr_quarters_from_sec(cd_str):
+                        facts_res = get_sec_company_facts_cached(cd_str)
+                        if not facts_res:
+                            return {}
+                        us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
+                        if not us_gaap:
+                            return {}
+
+                        cutoff_yr = datetime.now().year - 10
+
+                        def _date_to_yq(end_str):
+                            if not end_str or len(end_str) < 7:
+                                return None, None
+                            try:
+                                dt = datetime.strptime(end_str[:10], "%Y-%m-%d")
+                                # 월초(1~5일)에 끝나는 52-53주 회계연도 결산일은 직전 달로 보정
+                                if dt.day <= 5:
+                                    dt = dt - pd.Timedelta(days=7)
+                                q_num = (dt.month - 1) // 3 + 1
+                                return dt.year, q_num
+                            except Exception:
+                                return None, None
+
+                        def _collect_sec_series(tags, is_instant=False):
+                            """
+                            반환값:
+                            - instant(재무상태표): {(yr, q): val}
+                            - duration(손익/현금): q3m={(yr, q): 3개월단일값}, ytd={(yr, q): 누적값}, fy={yr: 연간합계}
+                            """
+                            inst_map, q3m_map, ytd_map, fy_map = {}, {}, {}, {}
+                            for tag in tags:
+                                if tag not in us_gaap:
+                                    continue
+                                for item in us_gaap[tag].get('units', {}).get('USD', []):
+                                    form_t = item.get('form', '')
+                                    if form_t not in ['10-Q', '10-Q/A', '10-K', '10-K/A']:
+                                        continue
+                                    end_s = item.get('end', '')
+                                    yr, q = _date_to_yq(end_s)
+                                    if not yr or yr < cutoff_yr:
+                                        continue
+                                    val = safe_float(item.get('val', 0))
+                                    if val == 0:
+                                        continue
+
+                                    if is_instant:
+                                        if (yr, q) not in inst_map or abs(val) > abs(inst_map[(yr, q)]):
+                                            inst_map[(yr, q)] = val
+                                    else:
+                                        start_s = item.get('start', '')
+                                        if not start_s:
+                                            continue
+                                        try:
+                                            days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
+                                        except Exception:
+                                            continue
+
+                                        if 70 <= days <= 108:
+                                            # 순수 3개월 단일 분기 수치
+                                            if (yr, q) not in q3m_map or abs(val) > abs(q3m_map[(yr, q)]):
+                                                q3m_map[(yr, q)] = val
+                                                if q == 1:
+                                                    ytd_map[(yr, 1)] = val
+                                        elif 165 <= days <= 200:
+                                            # 반기(6개월) 누적 수치
+                                            ytd_map[(yr, 2)] = val
+                                        elif 255 <= days <= 295:
+                                            # 3분기(9개월) 누적 수치
+                                            ytd_map[(yr, 3)] = val
+                                        elif 340 <= days <= 380:
+                                            # 연간(12개월) 누적 수치
+                                            if yr not in fy_map or abs(val) > abs(fy_map[yr]):
+                                                fy_map[yr] = val
+                                                ytd_map[(yr, 4)] = val
+                            return inst_map, q3m_map, ytd_map, fy_map
+
+                        def _resolve_discrete_quarters(q3m_map, ytd_map, fy_map, is_abs=False):
+                            """누적(YTD) 및 연간(FY) 수치를 이용해 누락된 2Q, 3Q, 4Q의 순수 3개월 단일 분기값을 완벽 역산!"""
+                            out = dict(q3m_map)
+                            all_yrs = sorted(set([k[0] for k in q3m_map.keys()] + [k[0] for k in ytd_map.keys()] + list(fy_map.keys())))
+                            for y in all_yrs:
+                                # 1Q 보완
+                                if (y, 1) not in out and (y, 1) in ytd_map:
+                                    out[(y, 1)] = ytd_map[(y, 1)]
+                                # 2Q 단일 = 2Q 누적(6M) - 1Q(3M)
+                                if (y, 2) not in out and (y, 2) in ytd_map and (y, 1) in out:
+                                    out[(y, 2)] = ytd_map[(y, 2)] - out[(y, 1)]
+                                # 3Q 단일 = 3Q 누적(9M) - 2Q 누적(6M)
+                                if (y, 3) not in out and (y, 3) in ytd_map:
+                                    if (y, 2) in ytd_map:
+                                        out[(y, 3)] = ytd_map[(y, 3)] - ytd_map[(y, 2)]
+                                    elif (y, 1) in out and (y, 2) in out:
+                                        out[(y, 3)] = ytd_map[(y, 3)] - (out[(y, 1)] + out[(y, 2)])
+                                # 4Q 단일 = 연간(12M) - 3Q 누적(9M) 또는 연간 - (1Q+2Q+3Q)
+                                if (y, 4) not in out and y in fy_map:
+                                    if (y, 3) in ytd_map:
+                                        out[(y, 4)] = fy_map[y] - ytd_map[(y, 3)]
+                                    elif (y, 1) in out and (y, 2) in out and (y, 3) in out:
+                                        out[(y, 4)] = fy_map[y] - (out[(y, 1)] + out[(y, 2)] + out[(y, 3)])
+                            if is_abs:
+                                out = {k: abs(v) for k, v in out.items()}
+                            return out
+
+                        _, rev_3m, rev_ytd, rev_fy = _collect_sec_series(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                        _, gp_3m, gp_ytd, gp_fy = _collect_sec_series(['GrossProfit'])
+                        _, op_3m, op_ytd, op_fy = _collect_sec_series(['OperatingIncomeLoss'])
+                        _, ni_3m, ni_ytd, ni_fy = _collect_sec_series(['NetIncomeLoss', 'ProfitLoss'])
+                        ast_inst, _, _, _ = _collect_sec_series(['Assets'], is_instant=True)
+                        ca_inst, _, _, _ = _collect_sec_series(['AssetsCurrent'], is_instant=True)
+                        liab_inst, _, _, _ = _collect_sec_series(['Liabilities'], is_instant=True)
+                        eq_inst, _, _, _ = _collect_sec_series(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], is_instant=True)
+                        _, ocf_3m, ocf_ytd, ocf_fy = _collect_sec_series(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'])
+                        _, cap_3m, cap_ytd, cap_fy = _collect_sec_series([
+                            'PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets',
+                            'PaymentsToAcquireOtherPropertyPlantAndEquipment', 'PaymentsForCapitalImprovements',
+                            'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'
+                        ])
+
+                        q_rev = _resolve_discrete_quarters(rev_3m, rev_ytd, rev_fy)
+                        q_gp = _resolve_discrete_quarters(gp_3m, gp_ytd, gp_fy)
+                        q_op = _resolve_discrete_quarters(op_3m, op_ytd, op_fy)
+                        q_ni = _resolve_discrete_quarters(ni_3m, ni_ytd, ni_fy)
+                        q_ocf = _resolve_discrete_quarters(ocf_3m, ocf_ytd, ocf_fy)
+                        q_cap = _resolve_discrete_quarters(cap_3m, cap_ytd, cap_fy, is_abs=True)
+
+                        all_yqs = sorted(set(list(q_rev.keys()) + list(q_ni.keys()) + list(ast_inst.keys())), reverse=True)[:40]
+                        q_result = {}
+                        scale = 1000000.0
+                        for (yr, q) in all_yqs:
+                            ql = f"{yr}.{q}Q"
+                            d_row = {}
+                            if (yr, q) in q_rev: d_row['1. 매출액 (Revenue)'] = q_rev[(yr, q)] / scale
+                            if (yr, q) in q_gp: d_row['2. 매출총이익 (Gross Profit)'] = q_gp[(yr, q)] / scale
+                            if (yr, q) in q_op: d_row['3. 영업이익 (Op. Income)'] = q_op[(yr, q)] / scale
+                            if (yr, q) in q_ni: d_row['4. 당기순이익 (Net Income)'] = q_ni[(yr, q)] / scale
+                            if (yr, q) in ast_inst: d_row['5. 자산총계 (Assets)'] = ast_inst[(yr, q)] / scale
+                            if (yr, q) in ca_inst: d_row['6. 유동자산 (Current Assets)'] = ca_inst[(yr, q)] / scale
+                            if (yr, q) in liab_inst: d_row['7. 부채총계 (Liabilities)'] = liab_inst[(yr, q)] / scale
+                            if (yr, q) in eq_inst: d_row['8. 자본총계 (Equity)'] = eq_inst[(yr, q)] / scale
+                            if (yr, q) in q_ocf: d_row['9. 영업현금흐름 (Op. CF)'] = q_ocf[(yr, q)] / scale
+                            if (yr, q) in q_cap: d_row['10. 설비투자 (CAPEX)'] = q_cap[(yr, q)] / scale
+                            if (yr, q) in q_ocf and (yr, q) in q_cap:
+                                d_row['11. 잉여현금흐름 (FCF)'] = (q_ocf[(yr, q)] - q_cap[(yr, q)]) / scale
+                            if d_row:
+                                q_result[ql] = d_row
+                        return q_result
+
+                    # =========================================================================
+                    # [엔진 B] 한국 주식 DART 4대 보고서(11013·11012·11014·11011) 10년(40분기) 수집기
+                    # - 당기(thstrm)와 전기(frmtrm)를 동시에 추출하여 격년(5개 연도 × 4개 보고서) 병렬 호출로 10년 40분기 완성!
+                    # =========================================================================
+                    @st.cache_data(ttl=86400*7, show_spinner=False)
+                    def _fetch_dart_10yr_quarters_cached(clean_code, api_key):
+                        disk_q_file = os.path.join(DART_DISK_CACHE_DIR, f"{clean_code}_40q_v1.json")
+                        try:
+                            if os.path.exists(disk_q_file):
+                                cached_q_df = pd.read_json(disk_q_file, orient="split")
+                                if not cached_q_df.empty and len(cached_q_df.columns) >= 12:
+                                    return cached_q_df
+                        except Exception:
+                            pass
+
+                        effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
+                        mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
+                        corp_code = mapping.get(clean_code)
+                        if not corp_code:
+                            return pd.DataFrame()
+
+                        curr_y = datetime.now().year
+                        # 당기(y) + 전기(y-1)가 한 번의 호출에 함께 내려오므로 격년 호출로 10년(40개 분기)을 100% 커버!
+                        target_years = sorted(list(set([curr_y, curr_y - 1, curr_y - 3, curr_y - 5, curr_y - 7, curr_y - 9])), reverse=True)
+                        reprt_list = [('11013', 1), ('11012', 2), ('11014', 3), ('11011', 4)]
+
+                        session = requests.Session()
+                        session.headers.update({'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'})
+
+                        def _parse_n(v_s):
+                            if not v_s: return None
+                            cs = re.sub(r'[^\d\-]', '', str(v_s))
+                            return float(cs) if cs not in ['', '-'] else None
+
+                        def _fetch_one_report(yr, r_code, q_num):
+                            records = [] # (yr, q_num, metric_type, acct_std, val)
+                            for fs_div in ['CFS', 'OFS']:
+                                url = f"https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json?crtfc_key={effective_key}&corp_code={corp_code}&bsns_year={yr}&reprt_code={r_code}&fs_div={fs_div}"
+                                try:
+                                    r = session.get(url, timeout=6.0)
+                                    if r.status_code == 200:
+                                        js = r.json()
+                                        if js.get('status') == '000' and js.get('list'):
+                                            capex_cur, capex_prv = 0.0, 0.0
+                                            for it in js.get('list', []):
+                                                sj = it.get('sj_div', '').strip()
+                                                aid = it.get('account_id', '').strip()
+                                                rnm = re.sub(r'[\s\(\)\.\-\_\[\]]', '', it.get('account_nm', ''))
+
+                                                # CAPEX(유·무형자산 취득) 누적치 합산
+                                                if sj == 'CF' and (('PurchaseOfPropertyPlantAndEquipment' in aid or 'PurchaseOfIntangibleAssets' in aid) or (any(k in rnm for k in ['유형자산의취득', '유형자산의증가', '무형자산의취득', '무형자산의증가']) and '처분' not in rnm)):
+                                                    vc = _parse_n(it.get('thstrm_amount'))
+                                                    vp = _parse_n(it.get('frmtrm_amount'))
+                                                    if vc is not None: capex_cur += abs(vc)
+                                                    if vp is not None: capex_prv += abs(vp)
+                                                    continue
+
+                                                std_k = None
+                                                is_flow = False
+                                                is_cf_ytd = False
+                                                if sj in ['IS', 'CIS']:
+                                                    is_flow = True
+                                                    if aid in ['ifrs-full_Revenue', 'ifrs_Revenue'] or any(k in rnm for k in ['매출액', '영업수익', '순영업수익']): std_k = '1. 매출액 (Revenue)'
+                                                    elif aid in ['ifrs-full_GrossProfit', 'ifrs_GrossProfit'] or '매출총이익' in rnm: std_k = '2. 매출총이익 (Gross Profit)'
+                                                    elif aid in ['ifrs-full_OperatingIncome', 'dart_OperatingIncomeLoss'] or rnm in ['영업이익', '영업이익손실']: std_k = '3. 영업이익 (Op. Income)'
+                                                    elif aid in ['ifrs-full_ProfitLoss', 'ifrs_ProfitLoss', 'ifrs-full_ProfitLossAttributableToOwnersOfParent'] or any(k in rnm for k in ['당기순이익', '분기순이익', '반기순이익']): std_k = '4. 당기순이익 (Net Income)'
+                                                elif sj == 'BS':
+                                                    if aid in ['ifrs-full_Assets', 'ifrs_Assets'] or rnm.endswith('자산총계'): std_k = '5. 자산총계 (Assets)'
+                                                    elif aid in ['ifrs-full_CurrentAssets', 'ifrs_CurrentAssets'] or rnm.endswith('유동자산'): std_k = '6. 유동자산 (Current Assets)'
+                                                    elif aid in ['ifrs-full_Liabilities', 'ifrs_Liabilities'] or rnm.endswith('부채총계'): std_k = '7. 부채총계 (Liabilities)'
+                                                    elif aid in ['ifrs-full_Equity', 'ifrs_Equity'] or rnm.endswith('자본총계'): std_k = '8. 자본총계 (Equity)'
+                                                elif sj == 'CF':
+                                                    is_cf_ytd = True
+                                                    if 'CashFlowsFromUsedInOperatingActivities' in aid or ('영업활동' in rnm and '현금흐름' in rnm):
+                                                        std_k = '9. 영업현금흐름 (Op. CF)'
+
+                                                if std_k:
+                                                    # 1Q/2Q/3Q 손익계산서는 thstrm_amount가 당기 3개월, thstrm_add_amount가 누적치!
+                                                    # 사업보고서(q_num==4)는 thstrm_amount가 연간(12개월) 누적치!
+                                                    v_cur = _parse_n(it.get('thstrm_amount'))
+                                                    v_prv = _parse_n(it.get('frmtrm_amount'))
+                                                    v_add_cur = _parse_n(it.get('thstrm_add_amount'))
+                                                    v_add_prv = _parse_n(it.get('frmtrm_add_amount'))
+
+                                                    m_type = 'CF_YTD' if is_cf_ytd else ('FLOW_FY' if (is_flow and q_num == 4) else ('FLOW_3M' if is_flow else 'BS_INST'))
+                                                    if v_cur is not None:
+                                                        records.append((yr, q_num, m_type, std_k, v_cur))
+                                                    if v_prv is not None and (q_num == 4 or not is_Instant_bs(m_type)):
+                                                        records.append((yr - 1, q_num, m_type, std_k, v_prv))
+                                                    if is_flow and q_num in [2, 3]:
+                                                        if v_add_cur is not None: records.append((yr, q_num, 'FLOW_YTD', std_k, v_add_cur))
+                                                        if v_add_prv is not None: records.append((yr - 1, q_num, 'FLOW_YTD', std_k, v_add_prv))
+
+                                            if capex_cur > 0:
+                                                records.append((yr, q_num, 'CF_YTD', '10. 설비투자 (CAPEX)', capex_cur))
+                                            if capex_prv > 0:
+                                                records.append((yr - 1, q_num, 'CF_YTD', '10. 설비투자 (CAPEX)', capex_prv))
+                                            break
+                                except Exception:
+                                    pass
+                            return records
+
+                        def is_Instant_bs(mt):
+                            return mt == 'BS_INST'
+
+                        tasks = [(y, rc, qn) for y in target_years for (rc, qn) in reprt_list if not (y == curr_y and qn * 3 > datetime.now().month + 1)]
+                        raw_recs = []
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                            futs = [ex.submit(_fetch_one_report, y, rc, qn) for (y, rc, qn) in tasks]
+                            for ft in concurrent.futures.as_completed(futs):
+                                try: raw_recs.extend(ft.result())
+                                except Exception: pass
+
+                        if not raw_recs:
+                            return pd.DataFrame()
+
+                        # 데이터 정리 및 4분기 손익 / 분기별 현금흐름 단일 분기 분리
+                        flow_3m, flow_ytd, flow_fy, bs_inst, cf_ytd = {}, {}, {}, {}, {}
+                        for (yr, qn, mt, sk, val) in raw_recs:
+                            if mt == 'FLOW_3M' and (yr, qn, sk) not in flow_3m: flow_3m[(yr, qn, sk)] = val
+                            elif mt == 'FLOW_YTD' and (yr, qn, sk) not in flow_ytd: flow_ytd[(yr, qn, sk)] = val
+                            elif mt == 'FLOW_FY' and (yr, sk) not in flow_fy: flow_fy[(yr, sk)] = val
+                            elif mt == 'BS_INST' and (yr, qn, sk) not in bs_inst: bs_inst[(yr, qn, sk)] = val
+                            elif mt == 'CF_YTD' and (yr, qn, sk) not in cf_ytd: cf_ytd[(yr, qn, sk)] = val
+
+                        all_yrs_kr = sorted(set([r[0] for r in raw_recs]))
+                        flow_keys = ['1. 매출액 (Revenue)', '2. 매출총이익 (Gross Profit)', '3. 영업이익 (Op. Income)', '4. 당기순이익 (Net Income)']
+                        cf_keys = ['9. 영업현금흐름 (Op. CF)', '10. 설비투자 (CAPEX)']
+
+                        # 4분기(4Q) 단일 손익 = 연간(FY) - 3분기 누적(또는 1Q+2Q+3Q)
+                        for y in all_yrs_kr:
+                            for fk in flow_keys:
+                                if (y, fk) in flow_fy:
+                                    if (y, 3, fk) in flow_ytd:
+                                        flow_3m[(y, 4, fk)] = flow_fy[(y, fk)] - flow_ytd[(y, 3, fk)]
+                                    elif all((y, q_i, fk) in flow_3m for q_i in [1, 2, 3]):
+                                        flow_3m[(y, 4, fk)] = flow_fy[(y, fk)] - sum(flow_3m[(y, q_i, fk)] for q_i in [1, 2, 3])
+
+                        # 현금흐름표(OCF, CAPEX) 누적(YTD) -> 순수 단일 분기(3개월) 차감 분리
+                        cf_3m = {}
+                        for y in all_yrs_kr:
+                            for ck in cf_keys:
+                                if (y, 1, ck) in cf_ytd:
+                                    cf_3m[(y, 1, ck)] = cf_ytd[(y, 1, ck)]
+                                if (y, 2, ck) in cf_ytd and (y, 1, ck) in cf_ytd:
+                                    cf_3m[(y, 2, ck)] = cf_ytd[(y, 2, ck)] - cf_ytd[(y, 1, ck)]
+                                if (y, 3, ck) in cf_ytd and (y, 2, ck) in cf_ytd:
+                                    cf_3m[(y, 3, ck)] = cf_ytd[(y, 3, ck)] - cf_ytd[(y, 2, ck)]
+                                if (y, 4, ck) in cf_ytd and (y, 3, ck) in cf_ytd:
+                                    cf_3m[(y, 4, ck)] = cf_ytd[(y, 4, ck)] - cf_ytd[(y, 3, ck)]
+                                if ck == '10. 설비투자 (CAPEX)':
+                                    for q_i in [1, 2, 3, 4]:
+                                        if (y, q_i, ck) in cf_3m:
+                                            cf_3m[(y, q_i, ck)] = abs(cf_3m[(y, q_i, ck)])
+
+                        all_yqs_kr = sorted(set([(r[0], r[1]) for r in raw_recs]), reverse=True)[:40]
+                        q_map_kr = {}
+                        scale_kr = 100000000.0
+                        for (yr, qn) in all_yqs_kr:
+                            ql = f"{yr}.{qn}Q"
+                            d_r = {}
+                            for fk in flow_keys:
+                                if (yr, qn, fk) in flow_3m: d_r[fk] = flow_3m[(yr, qn, fk)] / scale_kr
+                            for bk in ['5. 자산총계 (Assets)', '6. 유동자산 (Current Assets)', '7. 부채총계 (Liabilities)', '8. 자본총계 (Equity)']:
+                                if (yr, qn, bk) in bs_inst: d_r[bk] = bs_inst[(yr, qn, bk)] / scale_kr
+                            for ck in cf_keys:
+                                if (yr, qn, ck) in cf_3m: d_r[ck] = cf_3m[(yr, qn, ck)] / scale_kr
+                            if '9. 영업현금흐름 (Op. CF)' in d_r and '10. 설비투자 (CAPEX)' in d_r:
+                                d_r['11. 잉여현금흐름 (FCF)'] = d_r['9. 영업현금흐름 (Op. CF)'] - d_r['10. 설비투자 (CAPEX)']
+                            if len(d_r) >= 2:
+                                q_map_kr[ql] = d_r
+
+                        if not q_map_kr:
+                            return pd.DataFrame()
+                        res_q_df = pd.DataFrame(q_map_kr)
+                        res_q_df = res_q_df[sorted(res_q_df.columns, reverse=True)]
+                        try:
+                            res_q_df.to_json(disk_q_file, orient="split", force_ascii=False)
+                        except Exception:
+                            pass
+                        return res_q_df
+
                     def _build_quarterly_and_annualized_df(stk_obj, is_kr, cd_str, is_annualized=False):
-                        """분기별(Quarterly) 및 연환산(TTM / 분기×4) 재무제표 생성 엔진"""
+                        """한국(DART 10년 40분기) + 미국(SEC 10년 40분기) + yfinance 최신 분기 보완 통합 빌더"""
                         scale = 100000000.0 if is_kr else 1000000.0
-                        q_inc = stk_obj.quarterly_income_stmt if stk_obj is not None else None
-                        q_bs = stk_obj.quarterly_balance_sheet if stk_obj is not None else None
-                        q_cf = stk_obj.quarterly_cash_flow if stk_obj is not None else None
+                        q_data_map = {}
 
-                        q_data_map = {} # { "2026.2Q": {계정: 값, ...} }
+                        # 1) 10년(40분기) 공공 공시 원천 데이터 로드 (미국 SEC / 한국 DART)
+                        if not is_kr:
+                            try:
+                                q_data_map.update(_extract_us_10yr_quarters_from_sec(cd_str))
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                dart_q_df = _fetch_dart_10yr_quarters_cached(cd_str, DART_API_KEY)
+                                if not dart_q_df.empty:
+                                    for c_col in dart_q_df.columns:
+                                        q_data_map[str(c_col)] = dart_q_df[c_col].dropna().to_dict()
+                            except Exception:
+                                pass
 
+                        # 2) yfinance 최신 분기 데이터로 가장 최근 분기(미반영분) 보완
                         def _col_to_qlabel(col_dt):
                             s = str(col_dt)[:10]
                             if len(s) >= 7 and s[:4].isdigit() and s[5:7].isdigit():
                                 yr = s[:4]
                                 mo = int(s[5:7])
                                 q_n = (mo - 1) // 3 + 1
-                                return f"{yr}.{q_n}Q({mo:02d}월)"
+                                return f"{yr}.{q_n}Q"
                             return s[:7]
 
-                        # 1) yfinance 분기 재무제표 수집
-                        if q_inc is not None and not q_inc.empty:
-                            for col in q_inc.columns[:8]:
-                                ql = _col_to_qlabel(col)
-                                q_data_map.setdefault(ql, {})
-                                for k_src, k_dst in [
-                                    ('Total Revenue', '1. 매출액 (Revenue)'),
-                                    ('Operating Revenue', '1. 매출액 (Revenue)'),
-                                    ('Gross Profit', '2. 매출총이익 (Gross Profit)'),
-                                    ('Operating Income', '3. 영업이익 (Op. Income)'),
-                                    ('Net Income', '4. 당기순이익 (Net Income)')
-                                ]:
-                                    if k_src in q_inc.index and pd.notna(q_inc.loc[k_src, col]) and k_dst not in q_data_map[ql]:
-                                        q_data_map[ql][k_dst] = safe_float(q_inc.loc[k_src, col]) / scale
+                        if stk_obj is not None:
+                            q_inc = stk_obj.quarterly_income_stmt
+                            q_bs = stk_obj.quarterly_balance_sheet
+                            q_cf = stk_obj.quarterly_cash_flow
 
-                        if q_bs is not None and not q_bs.empty:
-                            for col in q_bs.columns[:8]:
-                                ql = _col_to_qlabel(col)
-                                q_data_map.setdefault(ql, {})
-                                for k_src, k_dst in [
-                                    ('Total Assets', '5. 자산총계 (Assets)'),
-                                    ('Current Assets', '6. 유동자산 (Current Assets)'),
-                                    ('Total Liabilities Net Minority Interest', '7. 부채총계 (Liabilities)'),
-                                    ('Stockholders Equity', '8. 자본총계 (Equity)'),
-                                    ('Common Stock Equity', '8. 자본총계 (Equity)')
-                                ]:
-                                    if k_src in q_bs.index and pd.notna(q_bs.loc[k_src, col]) and k_dst not in q_data_map[ql]:
-                                        q_data_map[ql][k_dst] = safe_float(q_bs.loc[k_src, col]) / scale
+                            if q_inc is not None and not q_inc.empty:
+                                for col in q_inc.columns[:6]:
+                                    ql = _col_to_qlabel(col)
+                                    q_data_map.setdefault(ql, {})
+                                    for k_src, k_dst in [
+                                        ('Total Revenue', '1. 매출액 (Revenue)'), ('Operating Revenue', '1. 매출액 (Revenue)'),
+                                        ('Gross Profit', '2. 매출총이익 (Gross Profit)'),
+                                        ('Operating Income', '3. 영업이익 (Op. Income)'),
+                                        ('Net Income', '4. 당기순이익 (Net Income)')
+                                    ]:
+                                        if k_src in q_inc.index and pd.notna(q_inc.loc[k_src, col]) and k_dst not in q_data_map[ql]:
+                                            q_data_map[ql][k_dst] = safe_float(q_inc.loc[k_src, col]) / scale
 
-                        if q_cf is not None and not q_cf.empty:
-                            for col in q_cf.columns[:8]:
-                                ql = _col_to_qlabel(col)
-                                q_data_map.setdefault(ql, {})
-                                ocf_v, capex_v = None, None
-                                for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
-                                    if ok in q_cf.index and pd.notna(q_cf.loc[ok, col]):
-                                        ocf_v = safe_float(q_cf.loc[ok, col]) / scale
-                                        q_data_map[ql]['9. 영업현금흐름 (Op. CF)'] = ocf_v
-                                        break
-                                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
-                                    if ck in q_cf.index and pd.notna(q_cf.loc[ck, col]):
-                                        capex_v = abs(safe_float(q_cf.loc[ck, col])) / scale
-                                        q_data_map[ql]['10. 설비투자 (CAPEX)'] = capex_v
-                                        break
-                                if 'Free Cash Flow' in q_cf.index and pd.notna(q_cf.loc['Free Cash Flow', col]):
-                                    q_data_map[ql]['11. 잉여현금흐름 (FCF)'] = safe_float(q_cf.loc['Free Cash Flow', col]) / scale
-                                elif ocf_v is not None and capex_v is not None:
-                                    q_data_map[ql]['11. 잉여현금흐름 (FCF)'] = ocf_v - capex_v
+                            if q_bs is not None and not q_bs.empty:
+                                for col in q_bs.columns[:6]:
+                                    ql = _col_to_qlabel(col)
+                                    q_data_map.setdefault(ql, {})
+                                    for k_src, k_dst in [
+                                        ('Total Assets', '5. 자산총계 (Assets)'),
+                                        ('Current Assets', '6. 유동자산 (Current Assets)'),
+                                        ('Total Liabilities Net Minority Interest', '7. 부채총계 (Liabilities)'),
+                                        ('Stockholders Equity', '8. 자본총계 (Equity)'), ('Common Stock Equity', '8. 자본총계 (Equity)')
+                                    ]:
+                                        if k_src in q_bs.index and pd.notna(q_bs.loc[k_src, col]) and k_dst not in q_data_map[ql]:
+                                            q_data_map[ql][k_dst] = safe_float(q_bs.loc[k_src, col]) / scale
 
-                        # 2) 한국 주식인데 yfinance 분기 데이터가 비어있을 경우 FnGuide 분기 테이블(highlight_D_Q) 백업 연동
-                        if is_kr and len(q_data_map) < 2:
-                            try:
-                                fn_url = f"http://comp.fnguide.com/SVO2/ASP/SVD_Main.asp?pGB=1&gicode=A{cd_str}"
-                                r_fn = requests.get(fn_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
-                                if r_fn.status_code == 200:
-                                    soup_fn = BeautifulSoup(r_fn.text, 'html.parser')
-                                    q_div = soup_fn.find('div', {'id': 'highlight_D_Q'})
-                                    if q_div and q_div.find('table'):
-                                        tbl_q = q_div.find('table')
-                                        thead_trs = tbl_q.find('thead').find_all('tr')
-                                        if len(thead_trs) >= 2:
-                                            q_ths = thead_trs[1].find_all('th')
-                                            q_cols = []
-                                            for idx_th, th in enumerate(q_ths):
-                                                txt_th = th.text.strip()
-                                                m_q = re.search(r'(20\d{2})/(\d{2})', txt_th)
-                                                if m_q and '(E)' not in txt_th:
-                                                    yr_s, mo_s = m_q.group(1), int(m_q.group(2))
-                                                    qn = (mo_s - 1) // 3 + 1
-                                                    q_cols.append((idx_th, f"{yr_s}.{qn}Q({mo_s:02d}월)"))
-                                            fn_q_map = {
-                                                '매출액': '1. 매출액 (Revenue)', '영업수익': '1. 매출액 (Revenue)',
-                                                '영업이익': '3. 영업이익 (Op. Income)',
-                                                '당기순이익': '4. 당기순이익 (Net Income)',
-                                                '자산총계': '5. 자산총계 (Assets)',
-                                                '부채총계': '7. 부채총계 (Liabilities)',
-                                                '자본총계': '8. 자본총계 (Equity)'
-                                            }
-                                            for tr in tbl_q.find('tbody').find_all('tr'):
-                                                th_t = tr.find('th')
-                                                if not th_t: continue
-                                                ac_nm = re.sub(r'\s+', '', th_t.text.strip())
-                                                std_l = next((v for k, v in fn_q_map.items() if ac_nm.startswith(k)), None)
-                                                if std_l:
-                                                    tds = tr.find_all('td')
-                                                    for idx_c, ql_str in q_cols:
-                                                        if idx_c < len(tds):
-                                                            v_c = re.sub(r'[^\d\.\-]', '', tds[idx_c].text)
-                                                            if v_c not in ['', '-']:
-                                                                q_data_map.setdefault(ql_str, {})[std_l] = safe_float(v_c)
-                            except Exception:
-                                pass
+                            if q_cf is not None and not q_cf.empty:
+                                for col in q_cf.columns[:6]:
+                                    ql = _col_to_qlabel(col)
+                                    q_data_map.setdefault(ql, {})
+                                    ocf_v, capex_v = None, None
+                                    for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
+                                        if ok in q_cf.index and pd.notna(q_cf.loc[ok, col]):
+                                            ocf_v = safe_float(q_cf.loc[ok, col]) / scale
+                                            if '9. 영업현금흐름 (Op. CF)' not in q_data_map[ql]:
+                                                q_data_map[ql]['9. 영업현금흐름 (Op. CF)'] = ocf_v
+                                            break
+                                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                        if ck in q_cf.index and pd.notna(q_cf.loc[ck, col]):
+                                            capex_v = abs(safe_float(q_cf.loc[ck, col])) / scale
+                                            if '10. 설비투자 (CAPEX)' not in q_data_map[ql]:
+                                                q_data_map[ql]['10. 설비투자 (CAPEX)'] = capex_v
+                                            break
+                                    if '11. 잉여현금흐름 (FCF)' not in q_data_map[ql]:
+                                        if 'Free Cash Flow' in q_cf.index and pd.notna(q_cf.loc['Free Cash Flow', col]):
+                                            q_data_map[ql]['11. 잉여현금흐름 (FCF)'] = safe_float(q_cf.loc['Free Cash Flow', col]) / scale
+                                        elif ocf_v is not None and capex_v is not None:
+                                            q_data_map[ql]['11. 잉여현금흐름 (FCF)'] = ocf_v - capex_v
 
                         if not q_data_map:
                             return pd.DataFrame()
 
                         q_df = pd.DataFrame(q_data_map)
-                        # 최신 분기가 왼쪽에 오도록 정렬
-                        sorted_q_cols = sorted(q_df.columns, reverse=True)
+                        sorted_q_cols = sorted(q_df.columns, reverse=True)[:40]
                         q_df = q_df[sorted_q_cols]
 
                         row_order = [
@@ -8188,17 +8493,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if not is_annualized:
                             return q_df
 
-                        # 3) 연환산(Annualized) 변환:
-                        # - 손익(1~4번)과 현금흐름(9~11번) 계정은 분기 수치 × 4로 연환산 체력 계산
-                        # - 재무상태표(5~8번 자산/부채/자본)는 시점 잔액(Stock)이므로 ×4를 하지 않고 그대로 유지!
-                        # - 최근 4개 분기가 존재하면 맨 앞 열에 [TTM (최근4분기 합산)] 열을 자동 생성!
+                        # 3) 10년(40분기) 연환산(Annualized) 변환:
+                        # - 손익(1~4번)과 현금흐름(9~11번)은 각 분기 수치 × 4로 10년 치 모든 분기를 연간 체력으로 환산!
+                        # - 재무상태표(5~8번 자산/부채/자본)는 시점 잔액이므로 그대로 유지!
+                        # - 맨 왼쪽 첫 열에는 가장 최근 4개 분기 합산(TTM) 열을 추가!
                         flow_rows = [
                             '1. 매출액 (Revenue)', '2. 매출총이익 (Gross Profit)', '3. 영업이익 (Op. Income)', '4. 당기순이익 (Net Income)',
                             '9. 영업현금흐름 (Op. CF)', '10. 설비투자 (CAPEX)', '11. 잉여현금흐름 (FCF)'
                         ]
                         ann_df = q_df.copy()
 
-                        # TTM (최근 4개 분기 실제 합산) 계산
                         ttm_series = {}
                         if len(sorted_q_cols) >= 4:
                             recent_4_cols = sorted_q_cols[:4]
@@ -8210,23 +8514,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     elif len(vals_4) > 0:
                                         ttm_series[r_idx] = (sum(vals_4) / len(vals_4)) * 4.0
                                 else:
-                                    # 자산/부채/자본은 가장 최신 분기 기말 잔액 적용
                                     ttm_series[r_idx] = ann_df.loc[r_idx, recent_4_cols[0]]
 
-                        # 각 분기 열을 연환산(×4) 처리
                         for c_col in ann_df.columns:
                             for r_idx in ann_df.index:
                                 if r_idx in flow_rows and pd.notna(ann_df.loc[r_idx, c_col]):
                                     ann_df.loc[r_idx, c_col] = ann_df.loc[r_idx, c_col] * 4.0
 
-                        ann_df.columns = [f"{c} (연환산)" for c in ann_df.columns]
+                        ann_df.columns = [f"{c}(연환산)" for c in ann_df.columns]
                         if ttm_series:
-                            ann_df.insert(0, "🔥 TTM (최근4분기 합산)", pd.Series(ttm_series))
+                            ann_df.insert(0, "🔥 TTM(최근4분기합)", pd.Series(ttm_series))
 
                         return ann_df
 
                     def append_shares_split_adjusted(df, stk_obj, is_kr, cd_str):
-                        """액면분할(Splits)을 100% 보정한 10년 발행주식수 행 추가"""
                         if df is None or df.empty or stk_obj is None: return df
                         scale = 100000000.0 if is_kr else 1000000.0
                         s_dict = {}
@@ -8320,16 +8621,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning("데이터 처리 중 에러가 발생했습니다.")
 
                     # =========================================================================
-                    # [모드별 분기 실행] 1) 분기별 / 2) 연환산(TTM & ×4) / 3) 연간(10년)
+                    # [모드별 실행] 1) 분기별(10년 40분기) / 2) 연환산(10년 40분기 ×4 & TTM) / 3) 연간(10년)
                     # =========================================================================
                     unit_label_str = t("(단위: 억 원)", "(Unit: 100M KRW)") if kr else t("(단위: 백만 달러)", "(Unit: Million USD)")
+                    src_badge_str = "금융감독원 DART 1Q·반기·3Q·사업보고서 10년 연동" if kr else "미국 SEC EDGAR 10-Q·10-K 10년 연동"
 
                     if "분기별" in fin_view_mode:
-                        st.write(f"**📆 분기별(Quarterly) 핵심 장부 추이** {unit_label_str}")
-                        with st.spinner("최근 분기별 실적 데이터를 수집 중입니다..."):
+                        st.write(f"**📆 10년 분기별(Quarterly · 최대 40개 분기) 핵심 장부 추이 ({src_badge_str})** {unit_label_str}")
+                        with st.spinner("최근 10년치(최대 40개 분기) 분기 보고서 및 단일 분기 현금흐름표를 정밀 추출 중입니다..."):
                             q_df_res = _build_quarterly_and_annualized_df(stk, kr, cd, is_annualized=False)
                             if not q_df_res.empty:
-                                draw_financial_chart(q_df_res, "분기별(3개월 단위) 실적 추이")
+                                draw_financial_chart(q_df_res, f"최근 {len(q_df_res.columns)}개 분기(3개월 단일) 실적 및 FCF 추이")
                                 try: fmt_q = q_df_res.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 except: fmt_q = q_df_res.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 st.dataframe(fmt_q, use_container_width=True)
@@ -8338,12 +8640,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 fallback_yfinance()
 
                     elif "연환산" in fin_view_mode:
-                        st.write(f"**🔄 연환산(TTM 최근4분기 합산 & 각 분기×4 연환산) 핵심 장부 추이** {unit_label_str}")
-                        st.caption("💡 **TTM(Trailing 12 Months)**은 최근 4개 분기 실적을 실제로 합산한 1년 치 체력이며, 각 **분기(연환산)** 열은 해당 분기의 매출·이익·현금흐름 속도에 `× 4`를 적용해 연간 규모로 환산한 수치입니다. (단, 자산·부채·자본 총계는 기말 잔액 그대로 표기)")
-                        with st.spinner("최근 분기 실적을 연환산(TTM & ×4)으로 변환 중입니다..."):
+                        st.write(f"**🔄 10년 분기별 연환산(TTM & 최대 40개 분기 ×4 환산) 핵심 장부 추이 ({src_badge_str})** {unit_label_str}")
+                        st.caption("💡 맨 왼쪽 **TTM(최근4분기합)**은 최근 1년 실제 합산 체력이며, 오른쪽 **10년 치 각 분기(연환산)** 열은 해당 분기의 3개월 단일 실적(매출·이익·OCF·CAPEX·FCF)에 `× 4`를 곱해 연 단위 체력으로 환산한 수치입니다.")
+                        with st.spinner("최근 10년치(최대 40개 분기) 실적을 연환산(TTM & ×4)으로 변환 중입니다..."):
                             ann_df_res = _build_quarterly_and_annualized_df(stk, kr, cd, is_annualized=True)
                             if not ann_df_res.empty:
-                                draw_financial_chart(ann_df_res, "연환산(TTM & 분기×4) 실적 추이")
+                                draw_financial_chart(ann_df_res, f"최근 10년 분기별 연환산(×4) 및 TTM 추이")
                                 try: fmt_ann = ann_df_res.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 except: fmt_ann = ann_df_res.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 st.dataframe(fmt_ann, use_container_width=True)
@@ -8352,18 +8654,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 fallback_yfinance()
 
                     else:
-                        # 기존 [연간 10년 장부] 모드
                         if kr:
                             st.write(f"**{t('📅 연간 핵심 장부 추이 (한국 DART 공공데이터 · CAPEX 및 FCF 포함)', 'Financials (DART)')}** {t('(단위: 억 원, 억 주)', '(Unit: 100M KRW)')}")
                             dart_success = False
-                            
                             if DART_API_KEY:
                                 with st.spinner("금융감독원 DART에서 10년 재무제표 및 CAPEX/FCF를 수집 중입니다..."):
                                     dart_df, debug_msg = get_10yr_dart_financials_v2(cd, DART_API_KEY)
                                     if not dart_df.empty:
                                         draw_financial_chart(dart_df, "연간(10년) 실적 추이")
                                         dart_df = append_shares_split_adjusted(dart_df, stk, kr, cd)
-                                        
                                         try: formatted_dart = dart_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         except: formatted_dart = dart_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                         st.dataframe(formatted_dart, use_container_width=True)
@@ -8372,10 +8671,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"DART에서 데이터를 찾을 수 없습니다. ({debug_msg})")
                             else:
                                 st.warning("DART API 키가 설정되지 않았습니다.")
-                                
                             if not dart_success:
                                 fallback_yfinance()
-                                
                         else:
                             st.write(f"**{t('📅 연간 핵심 장부 추이 (미국 SEC 공공데이터 · CAPEX 및 FCF 포함)', 'Financials (SEC)')}** {t('(단위: 백만 달러, 백만 주)', '(Unit: Million USD)')}")
                             sec_success = False
@@ -8384,7 +8681,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     facts_res = get_sec_company_facts_cached(cd)
                                     if facts_res:
                                         us_gaap = facts_res.get('facts', {}).get('us-gaap', {})
-                                        
                                         def extract_annual_data(tags, is_instant=False):
                                             res = {}
                                             for tag in tags:
@@ -8410,26 +8706,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                                 if y_val not in res or abs(val) > abs(res[y_val]):
                                                                     res[y_val] = val
                                             return res
-                                        
+
                                         rev = extract_annual_data(['Revenues', 'SalesRevenueNet', 'SalesRevenueGoodsNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
                                         cogs = extract_annual_data(['CostOfGoodsAndServicesSold', 'CostOfRevenue'])
                                         gp = extract_annual_data(['GrossProfit'])
                                         op = extract_annual_data(['OperatingIncomeLoss'])
                                         ni = extract_annual_data(['NetIncomeLoss', 'ProfitLoss'])
-                                        
                                         assets = extract_annual_data(['Assets'], is_instant=True)
                                         curr_assets = extract_annual_data(['AssetsCurrent'], is_instant=True)
                                         liab = extract_annual_data(['Liabilities'], is_instant=True)
                                         equity = extract_annual_data(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], is_instant=True)
-                                        
                                         ocf = extract_annual_data(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'])
                                         capex = extract_annual_data([
-                                            'PaymentsToAcquirePropertyPlantAndEquipment',
-                                            'PaymentsToAcquireProductiveAssets',
-                                            'PaymentsToAcquireOtherPropertyPlantAndEquipment',
-                                            'PaymentsForCapitalImprovements',
-                                            'AdditionsToNoncurrentAssets',
-                                            'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'
+                                            'PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets',
+                                            'PaymentsToAcquireOtherPropertyPlantAndEquipment', 'PaymentsForCapitalImprovements',
+                                            'AdditionsToNoncurrentAssets', 'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'
                                         ])
                                         icf = extract_annual_data(['NetCashProvidedByUsedInInvestingActivities'])
                                         fcf_f = extract_annual_data(['NetCashProvidedByUsedInFinancingActivities'])
@@ -8450,12 +8741,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                                 capex[y_s] = abs(safe_float(cf_yf.loc[ck, c_dt])); break
                                         except Exception:
                                             pass
-                                        
+
                                         curr_cal_y = datetime.now().year
                                         raw_years = sorted(list(set(list(rev.keys()) + list(op.keys()) + list(ni.keys()) + list(assets.keys()))), reverse=True)
                                         comp_years = [y for y in raw_years if int(y) < curr_cal_y]
                                         all_years = comp_years[:10] if len(comp_years) >= 10 else raw_years[:10]
-                                        
+
                                         if all_years:
                                             sec_data = []
                                             for y in all_years:
@@ -8483,19 +8774,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                                     '13. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0),
                                                     '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_y
                                                 })
-                                            
+
                                             sec_df = pd.DataFrame(sec_data).set_index('연도').T
-                                            sec_df = sec_df / 1000000 
-                                            
+                                            sec_df = sec_df / 1000000
                                             draw_financial_chart(sec_df, "연간(10년) 실적 추이")
                                             sec_df = append_shares_split_adjusted(sec_df, stk, kr, cd)
-                                            
                                             try: formatted_sec = sec_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
                                             except: formatted_sec = sec_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
                                             st.dataframe(formatted_sec, use_container_width=True)
                                             sec_success = True
                                 except Exception: pass
-                            
                             if not sec_success:
                                 fallback_yfinance()
                 # ▲▲▲ [수리 3 끝] ▲▲▲
