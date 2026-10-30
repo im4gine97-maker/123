@@ -7402,7 +7402,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     guru_holders_sh = get_guru_holders_for_ticker(tk) if 'get_guru_holders_for_ticker' in globals() else []
                     if guru_holders_sh:
                         g_main = guru_holders_sh[0]
-                        top_header_line = f"워런 버핏·월가 거장 실제 보유 종목" if not is_en_shorts else f"Wall St. Guru Pick"
+                        top_header_line = f"월가 거장 실제 보유 종목" if not is_en_shorts else f"Wall St. Guru Pick"
                     else:
                         top_header_line = "워런 버핏의 돈복사 장부 판독기" if not is_en_shorts else "Buffett's Money Machine Check"
 
