@@ -3035,7 +3035,36 @@ def get_base_dcf_data(stk, i):
             elif len(vals) >= 3:
                 weighted_fcf = (vals[0] * 0.60) + (vals[1] * 0.25) + (vals[2] * 0.15) if vals[0] > 0 else (sum(vals) / 3.0)
                 
-        fcf = weighted_fcf if weighted_fcf is not None else safe_float(i.get('freeCashflow'))
+        # 최근 4개 분기(Quarterly TTM) FCF를 추출하여 분기 실적 발표를 즉시 반영!
+        ttm_fcf_q = 0.0
+        try:
+            q_cf = stk.quarterly_cash_flow
+            if q_cf is not None and not q_cf.empty and len(q_cf.columns) >= 2:
+                q_c4 = q_cf.columns[:4]
+                ann_f = 4.0 / len(q_c4)
+                if 'Free Cash Flow' in q_cf.index:
+                    ttm_fcf_q = sum(safe_float(q_cf.loc['Free Cash Flow', c]) for c in q_c4) * ann_f
+                elif 'Operating Cash Flow' in q_cf.index:
+                    ocf_q = sum(safe_float(q_cf.loc['Operating Cash Flow', c]) for c in q_c4) * ann_f
+                    cap_q = 0.0
+                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                        if ck in q_cf.index:
+                            cap_q = sum(abs(safe_float(q_cf.loc[ck, c])) for c in q_c4) * ann_f
+                            break
+                    ttm_fcf_q = ocf_q - cap_q
+        except Exception:
+            pass
+
+        if ttm_fcf_q == 0.0:
+            ttm_fcf_q = safe_float(i.get('freeCashflow'))
+
+        # 최신 분기 TTM FCF(60%)와 최근 연간 가중 FCF(40%)를 결합하여 분기 실적 변동을 즉각 반영!
+        if ttm_fcf_q > 0 and weighted_fcf and weighted_fcf > 0:
+            fcf = (ttm_fcf_q * 0.60) + (weighted_fcf * 0.40)
+        elif ttm_fcf_q != 0:
+            fcf = ttm_fcf_q
+        else:
+            fcf = weighted_fcf
         sh = safe_float(i.get('sharesOutstanding'))
             
         g, data_len = 0.0, 0
@@ -3115,26 +3144,76 @@ def get_implied_g(fcf, sh, p, ty):
     return (low + high) / 2
 
 def get_real_roic(stk, i):
+    """
+    [분기 실적 실시간 반영 ROIC 엔진]
+    연간 재무제표에 멈춰 있지 않고, 최근 4개 분기 합산 영업이익(TTM EBIT)과
+    가장 최신 분기 말 투하자본(Invested Capital)을 최우선으로 사용하여 분기 실적 발표를 즉시 반영합니다.
+    """
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
-            return safe_float(i['returnOnCapitalEmployed']) * 100
-        if stk is None: return None
+            val_roce = safe_float(i['returnOnCapitalEmployed']) * 100
+            if 0 < abs(val_roce) < 200:
+                return val_roce
+        if stk is None:
+            return None
+
+        # 1순위: 최근 4개 분기(Quarterly TTM) 손익계산서 + 최신 분기 대차대조표
+        q_inc = stk.quarterly_income_stmt
+        q_bs = stk.quarterly_balance_sheet
+
+        if q_inc is not None and not q_inc.empty and q_bs is not None and not q_bs.empty:
+            q_cols = q_inc.columns[:4]  # 최근 4개 분기 (1년 치 TTM)
+            if len(q_cols) >= 2:
+                # 4개 분기 미만이면 연환산(× 4 / 분기수) 보정
+                ann_factor = 4.0 / len(q_cols)
+
+                ebit_key = 'EBIT' if 'EBIT' in q_inc.index else ('Operating Income' if 'Operating Income' in q_inc.index else None)
+                if ebit_key:
+                    ebit_ttm = sum(safe_float(q_inc.loc[ebit_key, c]) for c in q_cols) * ann_factor
+                    pretax_ttm = sum(safe_float(q_inc.loc['Pretax Income', c]) for c in q_cols) * ann_factor if 'Pretax Income' in q_inc.index else 0.0
+                    tax_ttm = sum(safe_float(q_inc.loc['Tax Provision', c]) for c in q_cols) * ann_factor if 'Tax Provision' in q_inc.index else 0.0
+
+                    tax_rate = (tax_ttm / pretax_ttm) if (pretax_ttm > 0 and 0 <= (tax_ttm / pretax_ttm) <= 0.5) else 0.22
+                    nopat_ttm = ebit_ttm * (1.0 - tax_rate)
+
+                    # 최신 분기 말(iloc[0]) 투하자본 산출
+                    total_debt = safe_float(q_bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in q_bs.index else 0.0
+                    total_equity = 0.0
+                    for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                        if eq_k in q_bs.index and pd.notna(q_bs.loc[eq_k].iloc[0]):
+                            total_equity = safe_float(q_bs.loc[eq_k].iloc[0])
+                            break
+                    cash = 0.0
+                    for ck in ['Cash Cash Equivalents And Short Term Investments', 'Cash And Cash Equivalents']:
+                        if ck in q_bs.index and pd.notna(q_bs.loc[ck].iloc[0]):
+                            cash = safe_float(q_bs.loc[ck].iloc[0])
+                            break
+
+                    invested_capital = total_debt + total_equity - cash
+                    if invested_capital <= 0 and total_equity > 0:
+                        invested_capital = total_equity
+
+                    if invested_capital > 0 and nopat_ttm != 0:
+                        return (nopat_ttm / invested_capital) * 100.0
+
+        # 2순위 폴백: 분기 데이터가 없는 종목만 연간(Annual) 재무제표 사용
         inc = stk.income_stmt
         bs = stk.balance_sheet
         if inc is not None and not inc.empty and bs is not None and not bs.empty:
             ebit = safe_float(inc.loc['EBIT'].iloc[0]) if 'EBIT' in inc.index else (safe_float(inc.loc['Operating Income'].iloc[0]) if 'Operating Income' in inc.index else 0)
             pretax = safe_float(inc.loc['Pretax Income'].iloc[0]) if 'Pretax Income' in inc.index else 0
             tax = safe_float(inc.loc['Tax Provision'].iloc[0]) if 'Tax Provision' in inc.index else 0
-            tax_rate = tax / pretax if pretax > 0 else 0.25
+            tax_rate = tax / pretax if (pretax > 0 and 0 <= (tax / pretax) <= 0.5) else 0.22
             nopat = ebit * (1 - tax_rate)
             total_debt = safe_float(bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in bs.index else 0
             total_equity = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if 'Stockholders Equity' in bs.index else 0
             cash = safe_float(bs.loc['Cash And Cash Equivalents'].iloc[0]) if 'Cash And Cash Equivalents' in bs.index else 0
             invested_capital = total_debt + total_equity - cash
+            if invested_capital <= 0 and total_equity > 0:
+                invested_capital = total_equity
             if invested_capital > 0:
-                roic = (nopat / invested_capital) * 100
-                return roic
-    except:
+                return (nopat / invested_capital) * 100.0
+    except Exception:
         pass
     return None
 
@@ -5620,26 +5699,32 @@ with tab1:
                 t_eps = safe_float(i.get('trailingEps'))
                 f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
 
+                # [분기 실적 실시간 반영 1] EPS 누락 시 최근 4개 분기 합산(TTM) 순이익으로 우선 계산!
                 try:
-                    _inc = stk.income_stmt
-                    if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                        _ni = safe_float(_inc.loc['Net Income'].iloc[0])
-                        _sh = safe_float(i.get('sharesOutstanding'))
-                        if t_eps == 0 and _sh > 0 and _ni != 0:
-                            t_eps = _ni / _sh
-                except: pass
+                    _sh = safe_float(i.get('sharesOutstanding'))
+                    if t_eps == 0 and _sh > 0:
+                        _q_inc = stk.quarterly_income_stmt
+                        if _q_inc is not None and not _q_inc.empty and 'Net Income' in _q_inc.index and len(_q_inc.columns) >= 2:
+                            _q_cols = _q_inc.columns[:4]
+                            _ni_ttm = sum(safe_float(_q_inc.loc['Net Income', c]) for c in _q_cols) * (4.0 / len(_q_cols))
+                            if _ni_ttm != 0:
+                                t_eps = _ni_ttm / _sh
+                        if t_eps == 0:
+                            _inc = stk.income_stmt
+                            if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
+                                _ni = safe_float(_inc.loc['Net Income'].iloc[0])
+                                if _ni != 0:
+                                    t_eps = _ni / _sh
+                except Exception:
+                    pass
 
                 if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
                 if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
-                # 2. 과거 평균 PER(a_pe) 4년 치 자체 계산
                 a_pe = 0.0
-                
-                # 3. 가상 주가(시뮬레이터) 배수 적용 (현재 주가, 현재 PER, f_pe, 배당률만 변경)
                 sim_pct = st.session_state.get('price_adj_pct', 0)
                 multiplier = 1 + (sim_pct / 100.0) if sim_pct != 0 else 1.0
 
-                # [완벽 방어망] 한국 주식 등에서 변수가 유실되었을 경우 강제로 빈칸 생성
                 if 'ext_str' not in locals(): ext_str = ""
                 if 'is_ext_active' not in locals(): is_ext_active = False
 
@@ -5650,15 +5735,11 @@ with tab1:
 
                 p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
 
-                # 4. t_pe 및 f_pe에만 배수 적용 (이익은 그대로인데 주가가 변하므로 PER도 연동됨)
                 t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
                 f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
                 if f_pe <= 0 and t_pe > 0:
                     f_pe = t_pe
 
-                # =====================================================================
-                # [복사 시작] 여기서부터 복사해서 덮어쓰세요.
-                # =====================================================================
                 pbr = safe_float(i.get('priceToBook'))
                 bv = safe_float(i.get('bookValue'))
 
@@ -5666,9 +5747,6 @@ with tab1:
                 currency_fin = str(i.get('financialCurrency', 'USD')).upper()
                 is_adr = (currency_trade != currency_fin) and not kr
 
-                # -------------------------------------------------------------
-                # [ADR 보정 계수] TSM, ASML 등 환율/배수 왜곡 보정용
-                # -------------------------------------------------------------
                 adr_fx_ratio = 1.0
                 if is_adr:
                     try:
@@ -5678,22 +5756,20 @@ with tab1:
                             eps_curr = safe_float(i.get('trailingEps'))
                             if ni_curr != 0 and eps_curr != 0:
                                 adr_fx_ratio = abs(eps_curr / ni_curr)
-                    except: pass
+                    except Exception:
+                        pass
 
-                # 야후 파이낸스 자체 버그(1400배 등) 필터링
                 if pbr > 100.0: pbr = 0.0
 
-                # -------------------------------------------------------------
-                # [핵심 복구] 한국 기업 및 결측치 발생 기업 자산(BV) 강제 추출 로직
-                # (이전 코드에서 ADR만 살리려다 누락된 한국 주식 대차대조표 계산식 복원)
-                # -------------------------------------------------------------
+                # [분기 실적 실시간 반영 2] PBR 계산 시 최신 분기 대차대조표(quarterly_balance_sheet) 최우선 사용!
                 if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
                     try:
-                        bs = stk.balance_sheet
-                        if bs is not None and not bs.empty:
+                        q_bs_pbr = stk.quarterly_balance_sheet
+                        bs_target = q_bs_pbr if (q_bs_pbr is not None and not q_bs_pbr.empty) else stk.balance_sheet
+                        if bs_target is not None and not bs_target.empty:
                             for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                                if eq_key in bs.index:
-                                    eq = safe_float(bs.loc[eq_key].iloc[0])
+                                if eq_key in bs_target.index and pd.notna(bs_target.loc[eq_key].iloc[0]):
+                                    eq = safe_float(bs_target.loc[eq_key].iloc[0])
                                     sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
                                     if tk == "BRK-B": sh_proxy = 2160000000.0
                                     elif tk == "BRK-A": sh_proxy = 1440000.0
@@ -5703,34 +5779,48 @@ with tab1:
                                             bv = eq * adr_fx_ratio
                                         else:
                                             bv = eq / sh_proxy
-                                            
                                         if bv > 0: pbr = reg_p / bv
                                     break
-                    except: pass
+                    except Exception:
+                        pass
 
-                # 2차 방어선 (주가와 BPS만 존재할 경우 PBR 역산)
                 if pbr <= 0.0 and bv > 0 and p > 0:
                     pbr = p / bv
 
-                # 시뮬레이터(가상 주가) 연동 보정
                 if pbr > 0:
                     if 'multiplier' in locals() and multiplier != 1.0:
                         pbr = pbr * multiplier
-                    elif reg_p > 0 and p != reg_p: # 장전/장후 주가 실시간 반영
+                    elif reg_p > 0 and p != reg_p:
                         pbr = pbr * (p / reg_p)
                 
+                # [분기 실적 실시간 반영 3] ROE 계산 시 최근 4분기 합산 순이익(TTM) ÷ 최신 분기 말 자본총계 최우선 사용!
                 roe = safe_float(i.get('returnOnEquity')) * 100
                 if roe <= 0.0 or roe > 300.0:
                     try:
-                        inc = stk.income_stmt
-                        bs = stk.balance_sheet
-                        if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                            if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
-                                ni = safe_float(inc.loc['Net Income'].iloc[0])
-                                eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                                if eq > 0:
-                                    roe = (ni / eq) * 100
-                    except: pass
+                        q_inc_r = stk.quarterly_income_stmt
+                        q_bs_r = stk.quarterly_balance_sheet
+                        if q_inc_r is not None and not q_inc_r.empty and q_bs_r is not None and not q_bs_r.empty and len(q_inc_r.columns) >= 2:
+                            if 'Net Income' in q_inc_r.index:
+                                q_c4 = q_inc_r.columns[:4]
+                                ni_ttm = sum(safe_float(q_inc_r.loc['Net Income', c]) for c in q_c4) * (4.0 / len(q_c4))
+                                eq_latest = 0.0
+                                for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                                    if eq_k in q_bs_r.index and pd.notna(q_bs_r.loc[eq_k].iloc[0]):
+                                        eq_latest = safe_float(q_bs_r.loc[eq_k].iloc[0])
+                                        break
+                                if eq_latest > 0 and ni_ttm != 0:
+                                    roe = (ni_ttm / eq_latest) * 100.0
+                        if roe <= 0.0 or roe > 300.0:
+                            inc = stk.income_stmt
+                            bs = stk.balance_sheet
+                            if inc is not None and not inc.empty and bs is not None and not bs.empty:
+                                if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
+                                    ni = safe_float(inc.loc['Net Income'].iloc[0])
+                                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
+                                    if eq > 0:
+                                        roe = (ni / eq) * 100.0
+                    except Exception:
+                        pass
                 
                 real_roic = get_real_roic(stk, i)
                 
