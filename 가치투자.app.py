@@ -2334,7 +2334,267 @@ def get_sec_company_facts_cached(cd):
     except Exception:
         pass
     return {}
+# =========================================================================
+# [글로벌 10년 재무 엔진] 대만·홍콩·중국·유럽·일본 (20-F / IFRS / FMP / 웹 폴백 통합)
+# =========================================================================
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_global_10yr_financials(cd, fmp_api_key=""):
+    """
+    대만(TSM), 중국/홍콩(BABA, PDD, TCEHY), 유럽(ASML, NVO, LVMUY), 일본(TM, ITOCY) 등
+    비미국 글로벌 기업의 10년 치 연간 재무제표(백만 USD 기준)를 3중 백업으로 수집합니다.
+    """
+    clean_tk = str(cd).upper().strip()
 
+    # -----------------------------------------------------------------
+    # 0. 현지 통화(TWD, CNY, EUR, JPY, DKK, GBP 등) -> USD 환산 비율 자동 산출
+    # -----------------------------------------------------------------
+    def _get_fx_to_usd(curr_code):
+        curr_code = str(curr_code).upper().strip()
+        if curr_code in ["USD", ""]:
+            return 1.0
+        fx_fallback = {
+            "TWD": 0.031, "CNY": 0.138, "RMB": 0.138, "HKD": 0.128,
+            "EUR": 1.08, "JPY": 0.0066, "DKK": 0.145, "GBP": 1.28,
+            "CHF": 1.13, "CAD": 0.73, "AUD": 0.66, "BRL": 0.18, "KRW": 0.00073, "INR": 0.012
+        }
+        try:
+            fx_hist = yf.Ticker(f"{curr_code}USD=X").history(period="5d")
+            if not fx_hist.empty:
+                return float(fx_hist["Close"].dropna().iloc[-1])
+        except Exception:
+            pass
+        return fx_fallback.get(curr_code, 1.0)
+
+    # -----------------------------------------------------------------
+    # 1순위: SEC EDGAR (20-F / 40-F / 10-K + us-gaap & ifrs-full 동시 스캔)
+    # - TSMC(TSM), ASML, 노보노디스크(NVO), 알리바바(BABA), 핀둬둬(PDD), 토요타(TM) 등 완벽 대응!
+    # -----------------------------------------------------------------
+    try:
+        facts_res = get_sec_company_facts_cached(clean_tk)
+        if facts_res and "facts" in facts_res:
+            facts_root = facts_res["facts"]
+            taxonomies = [facts_root.get("us-gaap", {}), facts_root.get("ifrs-full", {})]
+
+            def _extract_sec_global(tag_list, is_instant=False):
+                res = {}
+                detected_curr = "USD"
+                for taxo in taxonomies:
+                    if not taxo:
+                        continue
+                    for tag in tag_list:
+                        if tag not in taxo:
+                            continue
+                        units_dict = taxo[tag].get("units", {})
+                        # USD가 있으면 최우선, 없으면 첫 번째 통화(TWD, EUR, CNY, JPY 등) 선택
+                        curr_keys = ["USD"] + [k for k in units_dict.keys() if k != "USD" and "shares" not in k.lower()]
+                        for ck in curr_keys:
+                            if ck not in units_dict:
+                                continue
+                            for item in units_dict[ck]:
+                                form_t = item.get("form", "")
+                                if form_t not in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]:
+                                    continue
+                                start_s, end_s = item.get("start", ""), item.get("end", "")
+                                if not is_instant and start_s and end_s:
+                                    try:
+                                        days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
+                                        if days < 330 or days > 380:
+                                            continue
+                                    except Exception:
+                                        pass
+                                end_yr = str(end_s)[:4]
+                                fy_yr = str(item.get("fy", ""))
+                                y_val = end_yr if (end_yr.isdigit() and int(end_yr) >= 2012) else fy_yr
+                                val = safe_float(item.get("val", 0))
+                                if y_val.isdigit() and val != 0:
+                                    fx_mult = _get_fx_to_usd(ck)
+                                    val_usd = val * fx_mult
+                                    if y_val not in res or abs(val_usd) > abs(res[y_val]):
+                                        res[y_val] = val_usd
+                                        detected_curr = ck
+                            if len(res) >= 5:
+                                break
+                return res
+
+            rev = _extract_sec_global(["Revenues", "Revenue", "SalesRevenueNet", "SalesRevenueGoodsNet", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractsWithCustomers"])
+            cogs = _extract_sec_global(["CostOfGoodsAndServicesSold", "CostOfRevenue", "CostOfSales"])
+            gp = _extract_sec_global(["GrossProfit"])
+            op = _extract_sec_global(["OperatingIncomeLoss", "ProfitLossFromOperatingActivities"])
+            ni = _extract_sec_global(["NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"])
+            assets = _extract_sec_global(["Assets"], is_instant=True)
+            curr_assets = _extract_sec_global(["AssetsCurrent", "CurrentAssets"], is_instant=True)
+            liab = _extract_sec_global(["Liabilities"], is_instant=True)
+            equity = _extract_sec_global(["StockholdersEquity", "Equity", "EquityAttributableToOwnersOfParent", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"], is_instant=True)
+            ocf = _extract_sec_global(["NetCashProvidedByUsedInOperatingActivities", "CashFlowsFromUsedInOperatingActivities"])
+            capex = _extract_sec_global([
+                "PaymentsToAcquirePropertyPlantAndEquipment", "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+                "PaymentsToAcquireProductiveAssets", "PurchaseOfPropertyPlantAndEquipment",
+                "PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets"
+            ])
+            icf = _extract_sec_global(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
+            fcf_f = _extract_sec_global(["NetCashProvidedByUsedInFinancingActivities", "CashFlowsFromUsedInFinancingActivities"])
+
+            curr_cal_y = datetime.now().year
+            raw_years = sorted(list(set(list(rev.keys()) + list(ni.keys()) + list(assets.keys()))), reverse=True)
+            comp_years = [y for y in raw_years if int(y) < curr_cal_y]
+            all_years = comp_years[:10] if len(comp_years) >= 5 else raw_years[:10]
+
+            if len(all_years) >= 5:
+                sec_data = []
+                for y in all_years:
+                    ocf_y = ocf.get(y, 0)
+                    capex_y = abs(capex.get(y, 0))
+                    fcf_y = (ocf_y - capex_y) if ocf_y != 0 else 0
+                    rev_y = rev.get(y, 0)
+                    cogs_y = cogs.get(y, 0)
+                    gp_y = gp.get(y, (rev_y - cogs_y) if (rev_y > 0 and cogs_y > 0) else 0)
+                    eq_y = equity.get(y, (assets.get(y, 0) - liab.get(y, 0)) if (assets.get(y, 0) > liab.get(y, 0)) else 0)
+
+                    sec_data.append({
+                        '연도': y,
+                        '1. 매출액 (Revenue)': rev_y,
+                        '2. 매출원가 (COGS)': cogs_y,
+                        '3. 매출총이익 (Gross Profit)': gp_y,
+                        '4. 영업이익 (Op. Income)': op.get(y, 0),
+                        '5. 당기순이익 (Net Income)': ni.get(y, 0),
+                        '6. 자산총계 (Assets)': assets.get(y, 0),
+                        '7. 유동자산 (Current Assets)': curr_assets.get(y, 0),
+                        '8. 부채총계 (Liabilities)': liab.get(y, 0),
+                        '9. 자본총계 (Equity)': eq_y,
+                        '10. 영업현금흐름 (Op. CF)': ocf_y,
+                        '11. 설비투자 (CAPEX)': capex_y,
+                        '12. 투자현금흐름 (Inv. CF)': icf.get(y, 0),
+                        '13. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0),
+                        '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_y
+                    })
+                df_sec_g = pd.DataFrame(sec_data).set_index('연도').T / 1000000.0
+                return df_sec_g, "SEC EDGAR (20-F / IFRS 10년 원천 공시)"
+    except Exception:
+        pass
+
+    # -----------------------------------------------------------------
+    # 2순위: Financial Modeling Prep (FMP) API 10년 치 호출 (이미 보유한 API 키 활용)
+    # -----------------------------------------------------------------
+    if fmp_api_key:
+        try:
+            base_fmp = "https://financialmodelingprep.com/api/v3"
+            r_inc = requests.get(f"{base_fmp}/income-statement/{clean_tk}?limit=10&apikey={fmp_api_key}", timeout=5).json()
+            r_bs = requests.get(f"{base_fmp}/balance-sheet-statement/{clean_tk}?limit=10&apikey={fmp_api_key}", timeout=5).json()
+            r_cf = requests.get(f"{base_fmp}/cash-flow-statement/{clean_tk}?limit=10&apikey={fmp_api_key}", timeout=5).json()
+
+            if isinstance(r_inc, list) and len(r_inc) >= 5:
+                bs_map = {str(it.get("calendarYear") or it.get("date", "")[:4]): it for it in (r_bs if isinstance(r_bs, list) else [])}
+                cf_map = {str(it.get("calendarYear") or it.get("date", "")[:4]): it for it in (r_cf if isinstance(r_cf, list) else [])}
+                fmp_rows = []
+                for inc_it in r_inc[:10]:
+                    yr = str(inc_it.get("calendarYear") or inc_it.get("date", "")[:4])
+                    curr_rep = inc_it.get("reportedCurrency", "USD")
+                    fx_m = _get_fx_to_usd(curr_rep) / 1000000.0  # 백만 USD 환산
+
+                    b_it = bs_map.get(yr, {})
+                    c_it = cf_map.get(yr, {})
+                    ocf_v = safe_float(c_it.get("operatingCashFlow")) * fx_m
+                    capex_v = abs(safe_float(c_it.get("capitalExpenditure"))) * fx_m
+                    fcf_v = safe_float(c_it.get("freeCashFlow")) * fx_m if c_it.get("freeCashFlow") is not None else (ocf_v - capex_v)
+
+                    fmp_rows.append({
+                        '연도': yr,
+                        '1. 매출액 (Revenue)': safe_float(inc_it.get("revenue")) * fx_m,
+                        '2. 매출원가 (COGS)': safe_float(inc_it.get("costOfRevenue")) * fx_m,
+                        '3. 매출총이익 (Gross Profit)': safe_float(inc_it.get("grossProfit")) * fx_m,
+                        '4. 영업이익 (Op. Income)': safe_float(inc_it.get("operatingIncome")) * fx_m,
+                        '5. 당기순이익 (Net Income)': safe_float(inc_it.get("netIncome")) * fx_m,
+                        '6. 자산총계 (Assets)': safe_float(b_it.get("totalAssets")) * fx_m,
+                        '7. 유동자산 (Current Assets)': safe_float(b_it.get("totalCurrentAssets")) * fx_m,
+                        '8. 부채총계 (Liabilities)': safe_float(b_it.get("totalLiabilities")) * fx_m,
+                        '9. 자본총계 (Equity)': safe_float(b_it.get("totalStockholdersEquity")) * fx_m,
+                        '10. 영업현금흐름 (Op. CF)': ocf_v,
+                        '11. 설비투자 (CAPEX)': capex_v,
+                        '12. 투자현금흐름 (Inv. CF)': safe_float(c_it.get("netCashUsedForInvestingActivites")) * fx_m,
+                        '13. 재무현금흐름 (Fin. CF)': safe_float(c_it.get("netCashUsedProvidedByFinancingActivities")) * fx_m,
+                        '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_v
+                    })
+                df_fmp = pd.DataFrame(fmp_rows).drop_duplicates(subset=['연도']).set_index('연도').T
+                return df_fmp, "FMP 글로벌 10년 재무 API"
+        except Exception:
+            pass
+
+    # -----------------------------------------------------------------
+    # 3순위: StockAnalysis 공개 웹 테이블 파싱 (OTC ADR: LVMUY, TCEHY, BYDDY 등 10년 지원)
+    # -----------------------------------------------------------------
+    try:
+        sa_tk = clean_tk.lower().replace("-", ".")
+        headers_sa = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        sa_urls = [
+            ("inc", f"https://stockanalysis.com/stocks/{sa_tk}/financials/"),
+            ("bs", f"https://stockanalysis.com/stocks/{sa_tk}/financials/balance-sheet/"),
+            ("cf", f"https://stockanalysis.com/stocks/{sa_tk}/financials/cash-flow-statement/")
+        ]
+        sa_tables = {}
+        for stype, s_url in sa_urls:
+            r_sa = requests.get(s_url, headers=headers_sa, timeout=5)
+            if r_sa.status_code == 200:
+                dfs = pd.read_html(io.StringIO(r_sa.text))
+                if dfs:
+                    df_t = dfs[0].set_index(dfs[0].columns[0])
+                    # 컬럼명에서 연도(2016~2026) 추출
+                    yr_cols = {}
+                    for c in df_t.columns:
+                        m_y = re.search(r'(20\d{2})', str(c))
+                        if m_y and m_y.group(1) not in yr_cols:
+                            yr_cols[m_y.group(1)] = c
+                    sa_tables[stype] = (df_t, yr_cols)
+
+        if "inc" in sa_tables:
+            df_i, ymap_i = sa_tables["inc"]
+            df_b, ymap_b = sa_tables.get("bs", (pd.DataFrame(), {}))
+            df_c, ymap_c = sa_tables.get("cf", (pd.DataFrame(), {}))
+            years_sa = sorted(list(ymap_i.keys()), reverse=True)[:10]
+
+            def _get_sa_val(df_src, ymap, row_names, y_str):
+                if df_src.empty or y_str not in ymap:
+                    return 0.0
+                col_n = ymap[y_str]
+                for rn in row_names:
+                    for idx_s in df_src.index:
+                        if str(idx_s).strip().lower() == rn.lower():
+                            raw_v = str(df_src.loc[idx_s, col_n])
+                            clean_v = re.sub(r'[^\d\.\-]', '', raw_v)
+                            return safe_float(clean_v) if clean_v not in ["", "-"] else 0.0
+                return 0.0
+
+            if len(years_sa) >= 5:
+                sa_rows = []
+                for y in years_sa:
+                    ocf_v = _get_sa_val(df_c, ymap_c, ["Operating Cash Flow", "Cash From Operations"], y)
+                    capex_v = abs(_get_sa_val(df_c, ymap_c, ["Capital Expenditures", "CapEx"], y))
+                    fcf_v = _get_sa_val(df_c, ymap_c, ["Free Cash Flow"], y)
+                    if fcf_v == 0 and ocf_v != 0:
+                        fcf_v = ocf_v - capex_v
+
+                    sa_rows.append({
+                        '연도': y,
+                        '1. 매출액 (Revenue)': _get_sa_val(df_i, ymap_i, ["Revenue", "Total Revenue"], y),
+                        '2. 매출원가 (COGS)': _get_sa_val(df_i, ymap_i, ["Cost of Revenue", "Cost of Goods Sold"], y),
+                        '3. 매출총이익 (Gross Profit)': _get_sa_val(df_i, ymap_i, ["Gross Profit"], y),
+                        '4. 영업이익 (Op. Income)': _get_sa_val(df_i, ymap_i, ["Operating Income", "Operating Profit"], y),
+                        '5. 당기순이익 (Net Income)': _get_sa_val(df_i, ymap_i, ["Net Income", "Net Income to Common"], y),
+                        '6. 자산총계 (Assets)': _get_sa_val(df_b, ymap_b, ["Total Assets"], y),
+                        '7. 유동자산 (Current Assets)': _get_sa_val(df_b, ymap_b, ["Total Current Assets", "Current Assets"], y),
+                        '8. 부채총계 (Liabilities)': _get_sa_val(df_b, ymap_b, ["Total Liabilities"], y),
+                        '9. 자본총계 (Equity)': _get_sa_val(df_b, ymap_b, ["Shareholders' Equity", "Total Equity", "Stockholders' Equity"], y),
+                        '10. 영업현금흐름 (Op. CF)': ocf_v,
+                        '11. 설비투자 (CAPEX)': capex_v,
+                        '12. 투자현금흐름 (Inv. CF)': _get_sa_val(df_c, ymap_c, ["Investing Cash Flow", "Cash From Investing"], y),
+                        '13. 재무현금흐름 (Fin. CF)': _get_sa_val(df_c, ymap_c, ["Financing Cash Flow", "Cash From Financing"], y),
+                        '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_v
+                    })
+                df_sa_out = pd.DataFrame(sa_rows).set_index('연도').T
+                return df_sa_out, "StockAnalysis 글로벌 10년 장부 연동"
+    except Exception:
+        pass
+
+    return pd.DataFrame(), "글로벌 10년 데이터 미발견"
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_naver_adjusted_yearly_prices(cd):
     """한국 주식 액면분할/유무상증자 100% 보정된 네이버 금융 공식 수정주가 연평균 산출기"""
