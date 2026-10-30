@@ -7872,7 +7872,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     def _draw_visual_dashboard_board(draw, W, get_font, highlight_all=True):
                         rows_info = [
-                            ("1. 돈 복사 속도 (장사수익률)", f"1,000만 원당 연 +{roic_per_10m_manwon:,.0f}만 원 (연 {cap_ret_val:.1f}%)", "합격" if cap_ret_val >= 12.0 else "보통", stamp_moat_col),
+                            ("1. 돈 복사 속도 (ROIC)", f"1,000만 원당 연 +{roic_per_10m_manwon:,.0f}만 원 (연 {cap_ret_val:.1f}%)", "합격" if cap_ret_val >= 12.0 else "보통", stamp_moat_col),
                             ("2. 버핏 암산 가격 (성장 마진)", f"실제현금 {actual_fcf_g_val:+.1f}% vs 합격선 {req_g_val:+.1f}%", "합격" if g_margin_val >= 0 else "주의", stamp_val_col),
                             ("3. 안전 이자 대결 (vs 미국채)", f"주식 이자 {cur_ey_val:.1f}% vs 미국채 {ty:.1f}%", "우위" if erp_val >= 0 else "참고", stamp_macro_col)
                         ]
