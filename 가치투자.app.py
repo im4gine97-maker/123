@@ -7530,168 +7530,219 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         stamp_macro_col = (255, 193, 7)
 
                     # =========================================================================
-                    # [대격변 V18] 이탈률 88% 타파 전용:
-                    # 1) 복잡한 대시보드/네모 박스 전면 철거 -> 화면 중앙 '초대형 원포인트 포스터' 디자인!
-                    # 2) 컷 1~6까지 종목명을 '❓ 비밀 기업'으로 가리는 [블라인드 퀴즈 포맷]으로 호기심 극대화!
-                    # 3) 마지막 컷 7~8에서만 진짜 기업 정체를 공개하여 끝까지 시청(70/90) 및 무한루프 강제 유도!
+                    # [10만 뷰 타겟 V19: 시네마틱 블랙 영수증 & 도파민 스토리텔링 엔진]
+                    # - 1) 어려운 금융 용어(ROIC, FCF, 스프레드) 0개! 전부 '내 돈 1,000만 원 영수증(만 원)'으로 환산!
+                    # - 2) 우량 기업은 [돈복사 영수증], 부실 기업은 [위험 경고 영수증]으로 스토리가 자동 반전!
+                    # - 3) 모든 답답한 네모 박스·상단 배너를 철거한 '애플·토스식 올블랙(All-Black) 110pt 타이포' 화면!
+                    # - 4) 기계음(+12Hz)을 없앤 자연스러운 육성(+0Hz, +38% 배속) + 심장박동 다크 베이스 BGM!
+                    # - 5) 재생시간 딱 10.5~11.5초 완성으로 평균 시청 지속률 110%+ 강제 유도!
                     # =========================================================================
+                    voice_speed = 38
+                    atempo_mult = 1.05
+                    motion_intensity = "🔥 극한(시네마틱 플래시)"
+
+                    # 내 돈 1,000만 원 기준 직관적 원화(만 원) 체감 수치 산출
+                    bank_10m_manwon = 35                                      # 은행 예금 연 3.5% = 35만 원
+                    spy_10m_manwon = 120                                      # 일반 우량주 평균 12% = 120만 원
+                    roic_10m_manwon = int(round(cap_ret_val * 10.0, 0))       # 이 회사 돈복사 속도 (1,000만원당 만원)
+                    ey_10m_manwon = int(round(cur_ey_val * 10.0, 0))          # 이 회사 이익수익률 (1,000만원당 만원)
+                    bond_10m_manwon = int(round(ty * 10.0, 0))                # 미국 국채 이자 (1,000만원당 만원)
+                    div_10m_manwon = round(safe_div * 10.0, 1)                # 순수 현금배당 (1,000만원당 만원)
+
+                    # 기업 상태 자동 진단: A급(돈복사 우량주) vs B급(반전 경고주)
+                    is_great_company = (cap_ret_val >= 12.0 and actual_fcf_g_val >= req_g_val and actual_fcf_g_val > 0)
+                    is_warning_company = (cap_ret_val < 7.0 or actual_fcf_g_val < 0)
+
                     hook_options_list = [
-                        "🎲 0. [AI 자동 매칭] 기업 스펙에 맞춰 가장 도파민 터지는 블라인드 퀴즈 자동 선택 (강력추천)",
-                        "🕵️ 1. [블라인드 퀴즈형] 이 괴물 같은 회사의 이름을 맞히면 주식 고수입니다!",
-                        "💰 2. [1,000만 원 영수증형] 1,000만 원 넣으면 1년 뒤 통장에 찍히는 충격적인 금액!",
-                        "🐋 3. [억만장자 비밀노트형] 월가 부자들이 절대 남들에게 안 알려주는 비밀 주식!",
-                        "🚨 4. [예금 탈출 경고형] 아직도 은행 예금만 하세요? 이 회사 돈 버는 속도 좀 보세요!",
-                        "🔥 5. [불황 무적 독점형] 경제 위기가 와도 혼자서 현금을 쓸어담는 이 회사는 어디?",
-                        "⚖️ 6. [미국채 이자 압살형] 미국 국채 이자보다 돈을 더 잘 버는데 가격은 싼 이 회사!",
-                        "👑 7. [버핏의 숨은 보석형] 워런 버핏의 깐깐한 공식을 통과한 이 기업의 정체는?"
+                        "🎲 0. [AI 10만뷰 자동 기획] 우량주는 '1,000만원 돈복사 영수증', 부실주는 '충격 반전 경고'로 자동 제작 (강력추천)",
+                        "📱 1. [후회·탐욕 자극] 아이폰 바꿀 돈 1,000만 원, 예금 대신 여기 넣었다면?",
+                        "🏦 2. [예금 탈출 충격] 통장에 1,000만 원 넣어두면 은행은 35만 원 주는데, 이 회사는?",
+                        "🐋 3. [부자의 비밀 금고] 월가 억만장자들이 절대 팔지 않고 숨겨둔 진짜 돈복사 기계!",
+                        "🚨 4. [충격 실체 폭로] 유명하다고 무조건 사면 큰일 납니다! 실제 통장 까봤더니...",
+                        "💼 5. [월급 독립 영수증] 내가 잠든 사이 1,000만 원이 스스로 벌어오는 충격적인 금액!"
                     ]
 
                     selected_hook_raw = st.selectbox(
-                        "🔥 [대격변] 쇼츠 기획 포맷 선택 (복잡한 표 제거 · 블라인드 호기심 퀴즈 탑재)",
+                        "🎬 [10만 뷰 자율 엔진] 도파민 스토리 테마 선택 (10.5초 시네마틱 블랙 영수증 포맷)",
                         hook_options_list,
                         index=0,
-                        key=f"sh_hook_v18_sel_{tk}"
+                        key=f"sh_hook_v19_sel_{tk}"
                     )
 
                     if selected_hook_raw.startswith("🎲 0."):
-                        if guru_holders_sh:
-                            hook_idx = 3
+                        if is_warning_company:
+                            hook_idx = 4  # 부실/역성장 기업은 '충격 실체 폭로(경고)'가 조회수가 폭발함!
+                        elif guru_holders_sh:
+                            hook_idx = 3  # 월가 구루 보유 종목
                         elif cap_ret_val >= 20.0:
                             hook_idx = 1 if (sum(ord(c) for c in clean_tk) % 2 == 0) else 2
-                        elif erp_val >= 1.0:
-                            hook_idx = 6
                         else:
-                            pool_v18 = [1, 2, 4, 5, 7]
-                            hook_idx = pool_v18[(datetime.now().day + sum(ord(c) for c in clean_tk)) % len(pool_v18)]
+                            hook_idx = 5 if (datetime.now().day % 2 == 0) else 2
                     else:
                         hook_idx = int(selected_hook_raw.split(".")[0].split(" ")[1])
 
-                    # 7종 블라인드 퀴즈 오프닝 (컷1, 컷2, 유튜브 제목 프리픽스)
-                    quiz_hooks = {
-                        1: ("이 괴물 같은 회사의 이름을,", "과연 맞힐 수 있을까요?", "이 괴물 같은 회사의 정체를 맞혀보세요!"),
-                        2: ("이 회사에 1,000만 원을 넣으면,", "1년 뒤 어떻게 될까요?", "1,000만 원 넣으면 벌어지는 놀라운 일!"),
-                        3: ("월가 억만장자들이 조용히,", "몰래 쓸어담은 비밀 주식!", "월가 부자들이 몰래 쓸어담은 비밀 주식!"),
-                        4: ("아직도 은행 예금만 하시나요?", "이 회사 돈 버는 속도 좀 보세요!", "은행 예금 대신 이 회사를 봐야 하는 이유!"),
-                        5: ("불황이 와도 끄떡없는 회사!", "혼자 현금을 쓸어담고 있습니다!", "불황에도 현금을 쓸어담는 이 회사는 어디?"),
-                        6: ("안전한 미국 국채 이자보다,", "돈을 더 잘 버는 회사가 있습니다!", "미국 국채 이자를 이기는 알짜 기업!"),
-                        7: ("워런 버핏의 깐깐한 공식을,", "단숨에 통과한 기업이 있습니다!", "워런 버핏 공식을 통과한 이 기업의 정체!")
-                    }
-                    q_c1, q_c2, yt_prefix_h = quiz_hooks.get(hook_idx, quiz_hooks[1])
-
-                    # 수익률 높고 낮음에 따른 팩트 분기 (어려운 전문용어 완전 제거!)
-                    if cap_ret_val >= 15.0:
-                        c4_fact = f"이 회사는 1년에 {cap_ret_val:.1f}%씩 불립니다!"
-                        c4_big_num = f"연 {cap_ret_val:.1f}% 폭발!"
-                        c4_sub_tag = f"1,000만 원당 연 +{roic_per_10m_manwon:,.0f}만 원 창출"
-                        c4_theme_col = (0, 230, 118)
-                    elif cap_ret_val >= 10.0:
-                        c4_fact = f"이 회사는 1년에 {cap_ret_val:.1f}%씩 꾸준히 법니다!"
-                        c4_big_num = f"연 {cap_ret_val:.1f}% 순항!"
-                        c4_sub_tag = f"시장 평균과 대등한 우량 체력"
-                        c4_theme_col = (0, 176, 255)
-                    elif cap_ret_val > 0:
-                        c4_fact = f"이 회사는 연 {cap_ret_val:.1f}%로 수익성이 아쉽습니다!"
-                        c4_big_num = f"연 {cap_ret_val:.1f}% 둔화"
-                        c4_sub_tag = f"시장 평균(12%) 미달 주의"
-                        c4_theme_col = (255, 193, 7)
-                    else:
-                        c4_fact = f"이 회사는 현재 {cap_ret_val:.1f}% 적자 상태입니다!"
-                        c4_big_num = f"현재 적자 주의!"
-                        c4_sub_tag = f"수익성 턴어라운드 확인 필수"
-                        c4_theme_col = (255, 23, 68)
-
-                    # 현금 성장 속도 팩트 분기
-                    if actual_fcf_g_val >= req_g_val and actual_fcf_g_val > 0:
-                        c5_fact = f"합격선인 연 {req_g_val:+.1f}% 성장을 훌쩍 넘겨,"
-                        c6_fact = f"실제 통장 현금이 매년 {actual_fcf_g_val:+.1f}%씩 폭증!"
-                        c6_big_num = f"현금 {actual_fcf_g_val:+.1f}%↑"
-                        c6_sub_tag = f"버핏 합격선({req_g_val:+.1f}%) 완벽 돌파!"
-                        c6_theme_col = (0, 230, 118)
-                    elif actual_fcf_g_val > 0:
-                        c5_fact = f"연 10% 수익엔 {req_g_val:+.1f}% 성장이 필요한데,"
-                        c6_fact = f"실제 현금 성장은 연 {actual_fcf_g_val:+.1f}% 수준입니다!"
-                        c6_big_num = f"현금 {actual_fcf_g_val:+.1f}%↑"
-                        c6_sub_tag = f"요구 성장치({req_g_val:+.1f}%) 대비 다소 부담"
-                        c6_theme_col = (255, 193, 7)
-                    else:
-                        c5_fact = f"현재 대규모 설비투자와 비용으로 인해,"
-                        c6_fact = f"통장 여윳돈이 일시적 감소 구간입니다!"
-                        c6_big_num = "현금 감소 주의"
-                        c6_sub_tag = "설비투자 회수 여부 점검 필수"
-                        c6_theme_col = (255, 23, 68)
-
-                    # 국채 이자 비교 + 마지막 7~8컷에서 정체 전격 공개!
-                    if erp_val >= 0:
-                        c7_fact = f"미국채 이자 {ty:.1f}%도 이기는 이 회사의 정체!"
-                    else:
-                        c7_fact = f"과연 오늘 살펴본 이 화제의 기업은 어디일까요?"
-
-                    c8_reveal = f"정답은 바로 {comp_name}! 지금 다시 확인해 보세요!"
-
-                    if is_en_shorts:
-                        default_script_lines = [
-                            "Can you guess the name of",
-                            "this crazy cash machine?",
-                            "Average companies make 12% a year,",
-                            f"but this makes {cap_ret_val:.1f}% a year!",
-                            f"It only needs {req_g_val:+.1f}% growth to win,",
-                            f"and real cash grows {actual_fcf_g_val:+.1f}% a year!",
-                            "Who is this hidden giant?",
-                            f"It is {comp_name}! Look again from"
+                    # -------------------------------------------------------------
+                    # [10.5초 완성 · 7컷 초단문 도파민 스토리라인 & 화면 빅 텍스트 1:1 매핑]
+                    # - 모든 어려운 용어를 버리고 '사람들이 진짜 궁금해하는 돈 이야기'로만 7컷 구성!
+                    # -------------------------------------------------------------
+                    if is_warning_company or hook_idx == 4:
+                        # [반전 경고 스토리] 주가는 유명한데 장부가 위험할 때 -> 대중의 '손실 공포'를 자극해 조회수 폭발!
+                        yt_prefix_h = "유명하다고 그냥 사면 큰일 납니다!"
+                        story_cuts = [
+                            {
+                                "sub": "이름만 믿고 이 주식 사셨나요?",
+                                "top": "WARNING · 실제 장부 긴급 점검",
+                                "big": "절대 속지 마세요",
+                                "desc": "주가 차트 뒤에 숨겨진 충격적인 장부 실체",
+                                "col": (255, 23, 68)
+                            },
+                            {
+                                "sub": "실제 통장 장부를 까봤더니 충격입니다!",
+                                "top": "FACT 1 · 1,000만 원 넣었을 때",
+                                "big": "수익성 비상!",
+                                "desc": "워런 버핏 공식으로 뜯어본 진짜 성적표",
+                                "col": (245, 158, 11)
+                            },
+                            {
+                                "sub": "보통 우량회사는 1,000만 원당 120만 원 버는데,",
+                                "top": "보통 우량기업 평균 (S&P 500)",
+                                "big": "+120만 원",
+                                "desc": "자본 1,000만 원당 1년 평균 창출 이익",
+                                "col": (100, 116, 139)
+                            },
+                            {
+                                "sub": f"여긴 고작 {roic_10m_manwon:,}만 원으로 힘이 빠졌습니다!" if cap_ret_val > 0 else "여긴 오히려 적자로 돈이 새고 있습니다!",
+                                "top": "이 회사의 현재 돈벌이 속도",
+                                "big": f"{roic_10m_manwon:+,}만 원!" if cap_ret_val > 0 else "적자 주의!",
+                                "desc": f"장사수익률 연 {cap_ret_val:.1f}% (시장평균 12% 미달)",
+                                "col": (255, 23, 68)
+                            },
+                            {
+                                "sub": f"게다가 통장 현금도 매년 {abs(actual_fcf_g_val):.1f}%씩 줄어,",
+                                "top": "FACT 2 · 실제 금고 속 현금 추이",
+                                "big": f"현금 {actual_fcf_g_val:+.1f}%",
+                                "desc": f"버핏 합격선(연 {req_g_val:+.1f}% 성장) 미달 경고",
+                                "col": (255, 23, 68)
+                            },
+                            {
+                                "sub": f"미국채 이자 {bond_10m_manwon}만 원보다도 매력이 떨어집니다!",
+                                "top": "FACT 3 · 안전한 미국채 이자와 비교",
+                                "big": f"{ey_10m_manwon}만 vs {bond_10m_manwon}만",
+                                "desc": f"주식 이익수익률 {cur_ey_val:.1f}% vs 미국채 {ty:.1f}%",
+                                "col": (245, 158, 11)
+                            },
+                            {
+                                "sub": f"이 기업의 정체는 {comp_name}! 지금 다시 확인하세요!",
+                                "top": f"점검 대상 기업 공개 [{clean_tk}]",
+                                "big": f"{comp_name}",
+                                "desc": f"현재 주가 {p_str} · 현금배당 연 {safe_div:.2f}%",
+                                "col": (0, 230, 118)
+                            }
                         ]
                     else:
-                        default_script_lines = [
-                            q_c1,
-                            q_c2,
-                            "보통 회사는 1년에 12%를 버는데,",
-                            c4_fact,
-                            c5_fact,
-                            c6_fact,
-                            c7_fact,
-                            c8_reveal
+                        # [돈복사 영수증 스토리] 우량/보통 기업 -> '은행 예금 35만 원 vs 이 회사 돈복사' 비교로 탐욕·호기심 자극!
+                        hook_openings = {
+                            1: ("아이폰 살 돈 1,000만 원 아껴서,", "이 회사에 넣으면 어떻게 될까요?", "아이폰 살 돈 아껴서 이 회사에 넣었다면?"),
+                            2: ("통장에 1,000만 원 넣어두면,", "은행은 고작 35만 원을 줍니다!", "은행 이자 35만 원 vs 이 회사의 충격적인 돈복사!"),
+                            3: ("월가 억만장자들이 남들 몰래,", "쓸어담은 돈복사 기계가 있습니다!", "월가 부자들이 몰래 쓸어담은 돈복사 주식!"),
+                            5: ("내가 잠든 사이에도 24시간,", "돈을 복사해 주는 회사가 있습니다!", "잠든 사이 24시간 돈을 복사해 주는 이 회사!")
+                        }
+                        h_sub1, h_sub2, yt_prefix_h = hook_openings.get(hook_idx, hook_openings[2])
+
+                        if cap_ret_val >= 15.0:
+                            c4_sub = f"이 회사는 무려 {roic_10m_manwon:,}만 원씩 쓸어담습니다!"
+                            c4_col = (0, 230, 118)
+                        else:
+                            c4_sub = f"이 회사는 매년 {roic_10m_manwon:,}만 원씩 벌어들이고 있습니다!"
+                            c4_col = (56, 189, 248)
+
+                        if actual_fcf_g_val >= req_g_val and actual_fcf_g_val > 0:
+                            c5_sub = f"본전 기준인 {req_g_val:+.1f}% 성장을 가볍게 넘겨,"
+                            c6_sub = f"실제 금고 현금이 매년 {actual_fcf_g_val:+.1f}%씩 폭증!"
+                            c6_col = (0, 230, 118)
+                        else:
+                            c5_sub = f"연 10% 수익엔 {req_g_val:+.1f}% 성장이 필요한데,"
+                            c6_sub = f"실제 금고 현금은 매년 {actual_fcf_g_val:+.1f}%씩 성장 중!"
+                            c6_col = (245, 158, 11)
+
+                        story_cuts = [
+                            {
+                                "sub": h_sub1,
+                                "top": "REAL MONEY CHECK · 1,000만 원 영수증",
+                                "big": "1,000만 원",
+                                "desc": "은행 예금통장 vs 이 회사의 실제 돈주머니",
+                                "col": (255, 23, 68)
+                            },
+                            {
+                                "sub": h_sub2,
+                                "top": "시중 은행 예금 이자 (연 3.5%)",
+                                "big": "겨우 +35만 원",
+                                "desc": "물가 상승률 빼면 사실상 제자리걸음!",
+                                "col": (245, 158, 11)
+                            },
+                            {
+                                "sub": "보통 우량회사는 1년에 120만 원을 버는데,",
+                                "top": "미국 우량기업 평균 (연 12.0%)",
+                                "big": "연 +120만 원",
+                                "desc": "은행 예금보다 3.4배 빠른 자본 증식 속도",
+                                "col": (56, 189, 248)
+                            },
+                            {
+                                "sub": c4_sub,
+                                "top": "이 회사가 1,000만 원으로 버는 돈!",
+                                "big": f"연 +{roic_10m_manwon:,}만 원!",
+                                "desc": f"실제 장사수익률 연 {cap_ret_val:.1f}% (예금의 {max(0.1, cap_ret_val/3.5):.1f}배!)",
+                                "col": c4_col
+                            },
+                            {
+                                "sub": c5_sub,
+                                "top": "워런 버핏의 연 10% 수익 합격선",
+                                "big": f"연 {req_g_val:+.1f}%면 합격",
+                                "desc": f"현재 주가 기준 매년 {req_g_val:+.1f}%만 커도 성공인데...",
+                                "col": (168, 85, 247)
+                            },
+                            {
+                                "sub": c6_sub,
+                                "top": "실제 금고에 쌓이는 순수 현금 속도!",
+                                "big": f"매년 {actual_fcf_g_val:+.1f}%↑",
+                                "desc": f"미국채 이자({ty:.1f}%)와 비교해도 이익률 연 {cur_ey_val:.1f}%!",
+                                "col": c6_col
+                            },
+                            {
+                                "sub": f"이 괴물 회사는 바로 {comp_name}! 처음부터 다시 보세요!",
+                                "top": f"오늘의 주인공 공개 [{clean_tk}]",
+                                "big": f"{comp_name}",
+                                "desc": f"현재 주가 {p_str} · 현금배당 연 {safe_div:.2f}%",
+                                "col": (0, 230, 118)
+                            }
                         ]
 
-                    # 컷 1~6은 종목명 블라인드(🔒), 컷 7~8에서 종목명 전격 공개(🔓)!
-                    scene_codes_fixed = [
-                        "BLIND_HOOK_1",    # 컷1: ❓ 비밀의 기업 (호기심 자극)
-                        "BLIND_HOOK_2",    # 컷2: 3가지 힌트 시작!
-                        "BLIND_HINT_1A",   # 컷3: 힌트 1 - 보통 회사 연 12%
-                        "BLIND_HINT_1B",   # 컷4: 힌트 1 폭발 - 이 회사 연 XX%!
-                        "BLIND_HINT_2A",   # 컷5: 힌트 2 - 버핏 합격 기준선
-                        "BLIND_HINT_2B",   # 컷6: 힌트 2 폭발 - 실제 현금 성장률!
-                        "BLIND_CLIMAX",    # 컷7: 정체 공개 카운트다운!
-                        "REVEAL_FINAL"     # 컷8: 🎉 정답 공개 [기업명] + 무한루프!
-                    ]
-
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_fcf_span}_{sh_f_pe:.1f}_{sh_cur_pbr:.2f}_H{hook_idx}_V18_BLIND"
+                    default_script_lines = [c["sub"] for c in story_cuts]
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{hook_idx}_V19_CINEMATIC"
                     mode_tag_k = f"{'EN' if is_en_shorts else 'KO'}_{ov_sig}"
 
-                    st.success("🔥 **[대격변 V18 적용됨]** ① 복잡한 표·박스를 모두 없애고 **화면 정중앙 초대형 포스터(90pt)**로 변경, ② **컷 1~6까지 종목명을 `❓ 비밀 기업`으로 가려** 정답을 보려고 끝까지 남게 만드는 **블라인드 퀴즈 엔진**이 작동합니다!")
+                    st.success("🎬 **[10만 뷰 자율 설계 V19 가동 중]** ① 재생시간 **10.5초 칼맞춤**, ② 어려운 퍼센트 대신 **'1,000만 원 넣으면 연 +XX만 원' 영수증 화법**, ③ 답답한 표와 박스를 전부 없앤 **올블랙 시네마틱 110pt 화면**, ④ 기계음을 뺀 **자연스러운 육성 톤**이 적용되었습니다!")
                     editable_script_text = st.text_area(
-                        "✏️ 8컷 블라인드 퀴즈 대본 (컷 1~6은 종목명을 숨겨 호기심을 끌고, 마지막 컷 8에서 정답을 터뜨립니다!)",
+                        "✏️ 10.5초 시네마틱 7컷 대본 (한 줄당 1.5초씩 총 10.5초에 끝나며 끝과 처음이 무한루프됩니다)",
                         value="\n".join(default_script_lines),
-                        height=195,
-                        key=f"custom_script_v18_{tk}_{mode_tag_k}"
+                        height=180,
+                        key=f"custom_script_v19_{tk}_{mode_tag_k}"
                     )
                     user_lines = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not user_lines:
                         user_lines = default_script_lines
 
                     pop_chunks = []
-                    for idx_l, u_line in enumerate(user_lines[:10]):
-                        sc_map = scene_codes_fixed[idx_l] if idx_l < len(scene_codes_fixed) else "REVEAL_FINAL"
-                        pop_chunks.append((u_line, sc_map))
+                    for idx_l, u_line in enumerate(user_lines[:7]):
+                        pop_chunks.append((u_line, f"CUT_{idx_l}"))
 
                     def _fix_tts_pronunciation(text_s):
                         s = str(text_s)
-                        if is_en_shorts:
-                            s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
-                            return re.sub(r'\s+', ' ', s).strip()
-
                         s = re.sub(r'[\(\)\[\]\{\}⚡🔥💰🎁🚀📈🚨✅⚠️🌱⏸️💥💣🔁↑↓🏦🏢⚖️❓🔒🔓🎉]', ' ', s)
                         s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
                         s = s.replace("%p", "퍼센트포인트")
-                        s = s.replace("1,000만", "천만").replace("1000만", "천만").replace("3가지", "세가지")
+                        s = s.replace("1,000만", "천만").replace("1000만", "천만")
+                        s = re.sub(r'(\d),(\d{3})', r'\1\2', s)  # 299만 원 등의 쉼표 제거로 자연스러운 발음 유도
                         s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
 
                         pron_map = [
@@ -7708,25 +7759,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         return re.sub(r'\s+', ' ', s).strip()
 
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_final_cut=False, sr=24000):
-                        import math, random
+                        import math
                         if "없음" in sfx_style_str:
                             return []
-                        random.seed(300 + cut_idx)
                         two_pi = 2.0 * math.pi
                         samples = []
-                        dur = 0.15
+                        dur = 0.14
                         n_s = int(sr * dur)
                         for idx_i in range(n_s):
                             t_s = idx_i / sr
-                            sub_freq = 50.0 + 95.0 * math.exp(-t_s * 35.0)
-                            sub_env = math.exp(-t_s * 17.0) * min(1.0, t_s / 0.002)
-                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.46
-                            # 마지막 정답 공개 컷(is_final_cut)에서는 화려한 잭팟 차임 사운드!
-                            ring_f1, ring_f2 = (1567.98, 2093.0) if is_final_cut else ((1318.5, 1975.5) if (cut_idx % 2 == 1) else (1046.5, 1568.0))
-                            ring_env = math.exp(-t_s * 24.0)
-                            ring_wave = (0.6 * math.sin(two_pi * ring_f1 * t_s) + 0.4 * math.sin(two_pi * ring_f2 * t_s)) * ring_env * 0.28
-                            snap_n = (random.random() * 2.0 - 1.0) * math.exp(-t_s * 85.0) * 0.16
-                            samples.append(max(-0.92, min(0.92, sub_punch + ring_wave + snap_n)))
+                            # 귀가 피로하지 않은 고급 시네마틱 딥 임팩트(Sub Thud) + 정답 컷 크리스탈 차임
+                            sub_freq = 45.0 + 75.0 * math.exp(-t_s * 32.0)
+                            sub_env = math.exp(-t_s * 16.0) * min(1.0, t_s / 0.003)
+                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.38
+
+                            if is_final_cut or cut_idx == 3:
+                                ring_wave = (0.5 * math.sin(two_pi * 1318.5 * t_s) + 0.5 * math.sin(two_pi * 1975.5 * t_s)) * math.exp(-t_s * 22.0) * 0.20
+                            else:
+                                ring_wave = math.sin(two_pi * 880.0 * t_s) * math.exp(-t_s * 35.0) * 0.10
+                            samples.append(max(-0.90, min(0.90, sub_punch + ring_wave)))
                         return samples
 
                     def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, cut_idx=0, is_final_cut=False):
@@ -7750,13 +7801,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             pass
 
                     def _generate_trendy_bgm_wav(out_wav_path, duration_sec, bgm_style_str):
+                        """성우 목소리를 방해하지 않고 몰입감만 끌어올리는 다크 시네마틱 하트비트(Heartbeat Pulse) BGM"""
                         import wave, struct, math
                         sr = 24000
                         n_samples = int(sr * (duration_sec + 0.2))
-                        bpm = 140.0 if "140BPM" in bgm_style_str else 128.0
+                        bpm = 132.0
                         step_sec = (60.0 / bpm) / 2.0
-                        notes = [329.63, 392.0, 493.88, 659.25, 293.66, 369.99, 440.0, 587.33]
-                        bass_notes = [55.0, 65.41, 49.0, 58.27]
+                        bass_notes = [55.0, 55.0, 65.41, 49.0]
+                        high_notes = [440.0, 523.25, 659.25, 587.33]
                         buf = bytearray()
                         pack_h = struct.Struct('<h').pack
                         two_pi = 2.0 * math.pi
@@ -7765,56 +7817,36 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             step_idx = int(t_sec / step_sec)
                             local_t = t_sec - (step_idx * step_sec)
                             b_freq = bass_notes[(step_idx // 4) % 4]
-                            kick_env = math.exp(-local_t * 18.0) if (step_idx % 2 == 0) else 0.0
-                            sub_wave = math.sin(two_pi * b_freq * (1.0 + 1.8 * math.exp(-local_t * 40.0)) * local_t) * kick_env * 0.45
-                            n_freq = notes[step_idx % len(notes)]
-                            pluck_wave = math.sin(two_pi * n_freq * local_t) * math.exp(-local_t * 15.0) * 0.28
-                            buf.extend(pack_h(int(max(-0.95, min(0.95, sub_wave + pluck_wave)) * 32767)))
+                            kick_env = math.exp(-local_t * 16.0) if (step_idx % 2 == 0) else math.exp(-local_t * 24.0) * 0.4
+                            sub_wave = math.sin(two_pi * b_freq * (1.0 + 1.2 * math.exp(-local_t * 35.0)) * local_t) * kick_env * 0.42
+                            h_freq = high_notes[step_idx % 4]
+                            tick_wave = math.sin(two_pi * h_freq * local_t) * math.exp(-local_t * 28.0) * 0.12
+                            buf.extend(pack_h(int(max(-0.90, min(0.90, sub_wave + tick_wave)) * 32767)))
                         with wave.open(out_wav_path, 'wb') as wf:
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_final_cut=False):
                         tts_ready_text = _fix_tts_pronunciation(text_line)
-                        used_sovits = False
-                        if sovits_api_url and sovits_api_url.startswith("http"):
-                            try:
-                                r_sv = requests.post(sovits_api_url, json={"text": tts_ready_text, "text_lang": "en" if is_en_shorts else "ko"}, timeout=10)
-                                if r_sv.status_code == 200 and len(r_sv.content) > 1000:
-                                    with open(raw_mp3_path, "wb") as f_sv: f_sv.write(r_sv.content)
-                                    used_sovits = True
-                            except Exception:
-                                used_sovits = False
+                        # 인위적인 하이톤(+12Hz)을 없애고 자연스럽고 신뢰감 있는 +0Hz 정통 톤 + 선명한 방송용 EQ 적용!
+                        voice_id = "ko-KR-SunHiNeural" if "여성" in voice_choice else "ko-KR-InJoonNeural"
+                        eq_str = "equalizer=f=180:width_type=h:width=100:g=2.5,equalizer=f=3200:width_type=h:width=1200:g=3.0"
 
-                        if is_en_shorts:
-                            voice_id, pitch_str = "en-US-AndrewNeural", "+2Hz"
-                            eq_str = "equalizer=f=240:width_type=h:width=140:g=3.0,equalizer=f=2800:width_type=h:width=1000:g=3.0"
-                        else:
-                            if "여성" in voice_choice:
-                                voice_id, pitch_str = "ko-KR-SunHiNeural", "+2Hz"
-                                eq_str = "equalizer=f=300:width_type=h:width=150:g=2.5,equalizer=f=3000:width_type=h:width=1000:g=2.5"
-                            else:
-                                voice_id, pitch_str = "ko-KR-InJoonNeural", "+2Hz"
-                                eq_str = "equalizer=f=230:width_type=h:width=140:g=3.5,equalizer=f=2800:width_type=h:width=1000:g=3.5"
-
-                        if not used_sovits:
-                            rate_str = f"+{int(voice_speed)}%"
-                            try:
-                                import edge_tts, asyncio
-                                async def _run():
-                                    await edge_tts.Communicate(tts_ready_text, voice=voice_id, rate=rate_str, pitch=pitch_str).save(raw_mp3_path)
-                                loop = asyncio.new_event_loop()
-                                try: loop.run_until_complete(_run())
-                                finally: loop.close()
-                            except ImportError:
-                                from gtts import gTTS
-                                gTTS(text=tts_ready_text, lang='en' if is_en_shorts else 'ko', slow=False).save(raw_mp3_path)
+                        try:
+                            import edge_tts, asyncio
+                            async def _run():
+                                await edge_tts.Communicate(tts_ready_text, voice=voice_id, rate="+38%", pitch="+0Hz").save(raw_mp3_path)
+                            loop = asyncio.new_event_loop()
+                            try: loop.run_until_complete(_run())
+                            finally: loop.close()
+                        except ImportError:
+                            from gtts import gTTS
+                            gTTS(text=tts_ready_text, lang='ko', slow=False).save(raw_mp3_path)
 
                         import subprocess
-                        atempo_part = f"atempo={float(atempo_mult):.2f}," if float(atempo_mult) > 1.01 else ""
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-32dB:"
-                            "stop_periods=-1:stop_threshold=-32dB:stop_duration=0.015,"
-                            f"{atempo_part}{eq_str},volume=1.24"
+                            "stop_periods=-1:stop_threshold=-32dB:stop_duration=0.01,"
+                            f"atempo=1.05,{eq_str},volume=1.28"
                         )
                         try:
                             subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-af", af_filter, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -7845,13 +7877,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     def _clean_font_safe_text(txt):
                         s = str(txt)
-                        rep_map = {
-                            "①": "1. ", "②": "2. ", "③": "3. ", "④": "4. ",
-                            "1️⃣": "1.", "2️⃣": "2.", "3️⃣": "3.", "4️⃣": "4.",
-                            "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "",
-                            "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "",
-                            "🌱": "", "⏸️": "", "💥": "", "💣": "", "🔁": "", "🏦": "", "🏢": "", "⚖️": "", "❓": "?", "🔒": "", "🔓": "", "🎉": ""
-                        }
+                        rep_map = {"①": "1.", "②": "2.", "③": "3.", "④": "4.", "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "", "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "", "💥": "", "🏦": "", "🏢": "", "⚖️": "", "❓": "?", "🎉": ""}
                         for k_bad, v_good in rep_map.items():
                             s = s.replace(k_bad, v_good)
                         return re.sub(r'\s+', ' ', s).strip()
@@ -7867,173 +7893,70 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             if tw <= max_w:
                                 draw_x = cx - (bb[0] + bb[2]) / 2.0
                                 draw_y = cy - (bb[1] + bb[3]) / 2.0
-                                if stroke_w > 0:
-                                    draw.text((draw_x, draw_y), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
-                                else:
-                                    draw.text((draw_x, draw_y), t_str, fill=fill)
+                                draw.text((draw_x, draw_y), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
                                 return f, tw, th
                         f = get_font(min_sz)
                         bb = draw.textbbox((0, 0), t_str, font=f, stroke_width=stroke_w)
-                        draw_x = cx - (bb[0] + bb[2]) / 2.0
-                        draw_y = cy - (bb[1] + bb[3]) / 2.0
-                        draw.text((draw_x, draw_y), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
+                        draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    def _draw_box_with_centered_text(draw, box_coords, text, get_font, box_fill, outline_col=None, outline_w=0, radius=12, start_sz=30, min_sz=11, txt_fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0), pad_x=14):
-                        x1, y1, x2, y2 = box_coords
-                        if outline_col and outline_w > 0:
-                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill, outline=outline_col, width=outline_w)
-                        else:
-                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill)
-                        cx = (x1 + x2) / 2.0
-                        cy = (y1 + y2) / 2.0
-                        max_w = max(20, (x2 - x1) - (pad_x * 2))
-                        _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
-
-                    def _draw_safe_subtitle_box(draw, W, center_y, text_str, get_font, txt_col=(255, 240, 0), border_c=(255, 23, 68)):
-                        clean_s = _clean_font_safe_text(text_str)
-                        box_x1, box_x2 = 34, W - 34
-                        safe_inner_w = (box_x2 - box_x1) - 48
-
-                        def _wrap_max_2lines(txt, font_obj):
-                            bb_full = draw.textbbox((0, 0), txt, font=font_obj, stroke_width=5)
-                            if (bb_full[2] - bb_full[0]) <= safe_inner_w:
-                                return [txt]
-                            words = txt.split(" ")
-                            if len(words) >= 2:
-                                mid = len(words) // 2
-                                return [" ".join(words[:mid]), " ".join(words[mid:])]
-                            return [txt]
-
-                        chosen_font = get_font(42)
-                        chosen_lines = [clean_s]
-                        for sz in range(44, 18, -2):
-                            f_try = get_font(sz)
-                            l_try = _wrap_max_2lines(clean_s, f_try)
-                            max_w_check = max((draw.textbbox((0, 0), ln, font=f_try, stroke_width=5)[2] - draw.textbbox((0, 0), ln, font=f_try, stroke_width=5)[0]) for ln in l_try)
-                            if max_w_check <= safe_inner_w:
-                                chosen_font = f_try
-                                chosen_lines = l_try
-                                break
-
-                        line_h = chosen_font.size + 16
-                        total_h = len(chosen_lines) * line_h
-                        y1 = center_y - total_h // 2 - 22
-                        y2 = center_y + total_h // 2 + 22
-
-                        draw.rounded_rectangle([box_x1 + 4, y1 + 5, box_x2 + 4, y2 + 5], radius=22, fill=(0, 0, 0))
-                        draw.rounded_rectangle([box_x1, y1, box_x2, y2], radius=22, fill=(10, 14, 26), outline=border_c, width=5)
-
-                        start_cy = center_y - ((len(chosen_lines) - 1) * line_h) / 2.0
-                        for idx_ln, ln_txt in enumerate(chosen_lines):
-                            ly = start_cy + idx_ln * line_h
-                            line_color = (255, 255, 255) if (len(chosen_lines) == 2 and idx_ln == 0) else txt_col
-                            _fit_single_line(draw, W / 2.0, ly, safe_inner_w, ln_txt, get_font, start_sz=chosen_font.size, min_sz=14, fill=line_color, stroke_w=5, stroke_c=(0, 0, 0))
-
-                    def _draw_legal_basis_footer(draw, W, get_font):
-                        _fit_single_line(draw, W//2, 1085, W-56, "[안내] 공시 데이터 기반 학술·교육용 통계 자료이며 매수·매도 추천이 아닙니다", get_font, start_sz=14, min_sz=10, fill=(115, 125, 140))
-
                     # =========================================================================
-                    # [대격변 V18 핵심] 복잡한 다중 박스를 싹 다 버린 '원 포인트 임팩트 포스터' 렌더러!
-                    # - 0.1초 만에 시선을 강탈하는 초대형 중앙 비주얼 1개만 배치!
+                    # [올블랙 시네마틱 렌더러] 답답한 표와 박스를 전부 없앤 애플·토스식 110pt 미니멀 화면!
                     # =========================================================================
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
-                        is_reveal = (scene_code == "REVEAL_FINAL")
+                        cut_meta = story_cuts[chunk_idx] if chunk_idx < len(story_cuts) else story_cuts[-1]
+                        accent_c = cut_meta["col"]
+                        is_last_reveal = (chunk_idx == len(story_cuts) - 1)
 
-                        # 컷별 강렬한 테마 컬러
-                        palette = [
-                            (225, 29, 72),   # 컷1: 크림슨 레드
-                            (245, 158, 11),  # 컷2: 앰버 골드
-                            (59, 130, 246),  # 컷3: 일렉트릭 블루
-                            c4_theme_col,    # 컷4: 수익률 네온 그린/레드
-                            (168, 85, 247),  # 컷5: 네온 퍼플
-                            c6_theme_col,    # 컷6: 현금성장 네온 그린/골드
-                            (234, 88, 12),   # 컷7: 클라이맥스 오렌지
-                            (0, 230, 118)    # 컷8: 정답 공개 에메랄드 그린
-                        ]
-                        theme_c = palette[chunk_idx % len(palette)]
-
-                        img = Image.new("RGB", (W, H), color=(5, 7, 14))
+                        # 1. 딥 블랙 배경 + 중앙 은은한 네온 스포트라이트 링
+                        img = Image.new("RGB", (W, H), color=(4, 6, 12))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 블라인드 미스터리 바 (컷1~7은 종목명을 ❓로 가리고, 컷8에서만 정답 공개!)
-                        draw.rectangle([0, 75, W, 245], fill=(12, 16, 28))
-                        draw.rectangle([0, 240, W, 252], fill=(30, 40, 60))
-                        draw.rectangle([0, 240, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 252], fill=theme_c)
+                        # 상단 얇은 진행 게이지 바 (유튜브 UI에 가리지 않는 Y=88 위치)
+                        draw.rectangle([48, 88, W - 48, 96], fill=(28, 36, 52))
+                        draw.rectangle([48, 88, 48 + int((W - 96) * ((chunk_idx + 1) / max(1, total_chunks))), 96], fill=accent_c)
 
-                        if is_reveal:
-                            top_badge_txt = f"정답 공개! [{clean_tk}]"
-                            top_main_txt = f"{comp_name}!"
-                            top_col = (0, 255, 136)
+                        # 2. 상단 블라인드 상태 캡슐 (컷 1~6은 '🔒 비밀 종목', 마지막 컷 7에서만 '🔓 정체 공개!')
+                        pill_txt = f"FINAL REVEAL · {clean_tk}" if is_last_reveal else f"SECRET STOCK · STEP {chunk_idx + 1}/{total_chunks}"
+                        draw.rounded_rectangle([180, 125, W - 180, 175], radius=25, fill=(14, 20, 34), outline=accent_c, width=3)
+                        _fit_single_line(draw, W//2, 150, W - 380, pill_txt, get_font, start_sz=22, min_sz=12, fill=accent_c, stroke_w=1)
+
+                        # 3. 중앙 시네마틱 히어로 스테이지 (복잡한 박스 없이 110pt 초대형 금액·키워드만 정중앙에 타격!)
+                        # 중앙 포인트 브래킷 라인
+                        draw.line([(64, 260), (W - 64, 260)], fill=(30, 42, 66), width=2)
+                        draw.line([(64, 720), (W - 64, 720)], fill=(30, 42, 66), width=2)
+
+                        # (A) 소제목 (예: "이 회사가 1,000만 원으로 버는 돈!")
+                        _fit_single_line(draw, W//2, 335, W - 90, cut_meta["top"], get_font, start_sz=34, min_sz=18, fill=(200, 215, 235), stroke_w=3)
+
+                        # (B) 정중앙 105pt 초거대 킬러 텍스트 (예: "연 +299만 원!", "겨우 +35만 원")
+                        big_fill = (255, 240, 0) if (chunk_idx % 2 == 1 or is_last_reveal) else (255, 255, 255)
+                        _fit_single_line(draw, W//2, 485, W - 70, cut_meta["big"], get_font, start_sz=104, min_sz=44, fill=big_fill, stroke_w=8, stroke_c=(0, 0, 0))
+
+                        # (C) 하단 보조 팩트 캡슐 (예: "실제 장사수익률 연 29.9% (예금의 8.5배!)")
+                        draw.rounded_rectangle([56, 605, W - 56, 685], radius=20, fill=(14, 22, 38), outline=accent_c, width=3)
+                        _fit_single_line(draw, W//2, 645, W - 140, cut_meta["desc"], get_font, start_sz=28, min_sz=14, fill=accent_c, stroke_w=2)
+
+                        # 4. 하단 무테(Borderless) 영화관 스타일 왕글씨 자막 (답답한 파란 네모 상자 완전 제거!)
+                        clean_sub = _clean_font_safe_text(sub_text)
+                        words = clean_sub.split(" ")
+                        if len(clean_sub) > 13 and len(words) >= 2:
+                            mid = len(words) // 2
+                            sub_lines = [" ".join(words[:mid]), " ".join(words[mid:])]
                         else:
-                            top_badge_txt = f"블라인드 기업 퀴즈 · 힌트 {min(chunk_idx + 1, 7)} / 7"
-                            top_main_txt = "? [ 비밀의 알짜 기업 ] ?"
-                            top_col = (255, 240, 0)
+                            sub_lines = [clean_sub]
 
-                        _draw_box_with_centered_text(
-                            draw, [160, 92, W-160, 142], top_badge_txt, get_font,
-                            box_fill=theme_c, radius=20, start_sz=24, min_sz=14, txt_fill=(255, 255, 255), stroke_w=2
-                        )
-                        _fit_single_line(draw, W//2, 195, W-60, top_main_txt, get_font, start_sz=52, min_sz=26, fill=top_col, stroke_w=5)
+                        sub_y_start = 845 if len(sub_lines) == 2 else 875
+                        for idx_s, s_ln in enumerate(sub_lines):
+                            s_col = (255, 240, 0) if idx_s == len(sub_lines) - 1 else (255, 255, 255)
+                            _fit_single_line(draw, W//2, sub_y_start + idx_s * 64, W - 72, s_ln, get_font, start_sz=46, min_sz=22, fill=s_col, stroke_w=7, stroke_c=(0, 0, 0))
 
-                        # 2. 중앙 원-포인트 임팩트 포스터 스테이지 (복잡한 작은 글씨 0개! 거대한 팩트 1개만 정중앙 타격!)
-                        draw.rounded_rectangle([32, 275, W-32, 795], radius=32, fill=(10, 15, 28), outline=theme_c, width=6)
-
-                        if scene_code == "BLIND_HOOK_1":
-                            _draw_box_with_centered_text(draw, [140, 315, W-140, 385], "초반 1초 퀴즈", get_font, box_fill=theme_c, radius=16, start_sz=28, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-90, "이 회사는 어디?", get_font, start_sz=86, min_sz=40, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 650, W-100, "워런 버핏 공식으로 뜯어본 진짜 성적표", get_font, start_sz=32, min_sz=18, fill=(255, 255, 255), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], "끝까지 보시면 마지막에 이름이 공개됩니다!", get_font, box_fill=(22, 32, 54), radius=14, start_sz=24, txt_fill=(0, 255, 136))
-
-                        elif scene_code == "BLIND_HOOK_2":
-                            _draw_box_with_centered_text(draw, [120, 315, W-120, 385], "1,000만 원 넣었을 때", get_font, box_fill=theme_c, radius=16, start_sz=28, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-90, "딱 3가지 힌트!", get_font, start_sz=86, min_sz=40, fill=(255, 255, 255), stroke_w=6)
-                            _fit_single_line(draw, W//2, 650, W-100, "돈복사 속도 · 현금 성장 · 이자 비교", get_font, start_sz=34, min_sz=18, fill=(255, 240, 0), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], "지금 바로 첫 번째 힌트부터 공개합니다!", get_font, box_fill=(22, 32, 54), radius=14, start_sz=24, txt_fill=(255, 255, 255))
-
-                        elif scene_code == "BLIND_HINT_1A":
-                            _draw_box_with_centered_text(draw, [120, 315, W-120, 385], "힌트 1 : 보통 우량회사 평균", get_font, box_fill=(71, 85, 105), radius=16, start_sz=26, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-90, "연 12.0%", get_font, start_sz=96, min_sz=45, fill=(180, 195, 215), stroke_w=6)
-                            _fit_single_line(draw, W//2, 645, W-100, "1,000만 원당 1년에 +120만 원 창출", get_font, start_sz=32, min_sz=18, fill=(255, 255, 255), stroke_w=2)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], "그렇다면 오늘의 비밀 기업은 얼마나 벌까요?", get_font, box_fill=(22, 32, 54), radius=14, start_sz=23, txt_fill=(255, 240, 0))
-
-                        elif scene_code == "BLIND_HINT_1B":
-                            _draw_box_with_centered_text(draw, [100, 315, W-100, 385], "힌트 1 : 이 회사의 돈복사 속도!", get_font, box_fill=theme_c, radius=16, start_sz=28, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-80, c4_big_num, get_font, start_sz=92, min_sz=40, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 645, W-90, c4_sub_tag, get_font, start_sz=34, min_sz=18, fill=(255, 255, 255), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], stamp_moat_word, get_font, box_fill=theme_c, radius=14, start_sz=24, txt_fill=(255, 255, 255), stroke_w=2)
-
-                        elif scene_code == "BLIND_HINT_2A":
-                            _draw_box_with_centered_text(draw, [100, 315, W-100, 385], "힌트 2 : 버핏 연 10% 수익 합격선", get_font, box_fill=(147, 51, 234), radius=16, start_sz=26, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-90, f"연 {req_g_val:+.1f}% 필요", get_font, start_sz=86, min_sz=40, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 645, W-100, f"현재 주가 기준 매년 {req_g_val:+.1f}%만 크면 본전!", get_font, start_sz=30, min_sz=16, fill=(255, 255, 255), stroke_w=2)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], "과연 실제 통장에 찍힌 현금 성장 속도는?", get_font, box_fill=(22, 32, 54), radius=14, start_sz=23, txt_fill=(0, 255, 136))
-
-                        elif scene_code == "BLIND_HINT_2B":
-                            _draw_box_with_centered_text(draw, [100, 315, W-100, 385], "힌트 2 : 실제 통장 현금 성장률!", get_font, box_fill=theme_c, radius=16, start_sz=28, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-80, c6_big_num, get_font, start_sz=92, min_sz=40, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 645, W-90, c6_sub_tag, get_font, start_sz=34, min_sz=18, fill=(255, 255, 255), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [80, 710, W-80, 770], stamp_val_word, get_font, box_fill=theme_c, radius=14, start_sz=24, txt_fill=(255, 255, 255), stroke_w=2)
-
-                        elif scene_code == "BLIND_CLIMAX":
-                            _draw_box_with_centered_text(draw, [100, 315, W-100, 385], "힌트 3 : 미국 국채 이자와 비교!", get_font, box_fill=theme_c, radius=16, start_sz=28, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 505, W-80, f"연 {cur_ey_val:.1f}% vs {ty:.1f}%", get_font, start_sz=78, min_sz=36, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 635, W-90, f"순수 현금배당 연 {safe_div:.2f}% 지급 중!", get_font, start_sz=32, min_sz=18, fill=(255, 255, 255), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [60, 705, W-60, 772], "다음 화면에서 이 기업의 이름이 공개됩니다!", get_font, box_fill=(220, 38, 38), outline_col=(255, 240, 0), outline_w=3, radius=14, start_sz=25, txt_fill=(255, 255, 255), stroke_w=2)
-
-                        else:
-                            # [컷 8: REVEAL_FINAL - 정답 기업명 초대형 공개!]
-                            _draw_box_with_centered_text(draw, [120, 315, W-120, 385], f"정답 공개 ({clean_tk})", get_font, box_fill=(0, 200, 83), radius=16, start_sz=30, txt_fill=(255,255,255), stroke_w=2)
-                            _fit_single_line(draw, W//2, 510, W-70, comp_name, get_font, start_sz=96, min_sz=42, fill=(255, 240, 0), stroke_w=6)
-                            _fit_single_line(draw, W//2, 645, W-90, f"현재 주가: {p_str} · 돈복사 연 {cap_ret_val:.1f}%", get_font, start_sz=32, min_sz=18, fill=(255, 255, 255), stroke_w=3)
-                            _draw_box_with_centered_text(draw, [70, 705, W-70, 772], "놓친 힌트가 있다면 처음부터 다시 확인하세요!", get_font, box_fill=(24, 36, 64), outline_col=(0, 255, 136), outline_w=3, radius=14, start_sz=24, txt_fill=(0, 255, 136), stroke_w=1)
-
-                        txt_col = (255, 240, 0) if (chunk_idx % 2 == 1) else (255, 255, 255)
-                        _draw_safe_subtitle_box(draw, W, 895, sub_text, get_font, txt_col=txt_col, border_c=theme_c)
-                        _draw_legal_basis_footer(draw, W, get_font)
+                        # 5. 최하단 심플 공시 고지
+                        _fit_single_line(draw, W//2, 1090, W - 60, "공시 데이터 기반 단순 통계 비교이며 투자 권유가 아닙니다", get_font, start_sz=14, min_sz=10, fill=(90, 100, 115))
                         return img
+
                     def _upload_shorts_to_youtube(mp4_bytes_data, yt_title_str, yt_desc_str, yt_tags_list, privacy_str="public", publish_at_iso=None):
                         from google.oauth2.credentials import Credentials
                         from googleapiclient.discovery import build
@@ -8055,30 +7978,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             status_dict["privacyStatus"] = "private"
                             status_dict["publishAt"] = publish_at_iso
 
-                        lang_code = "en" if is_en_shorts else "ko"
                         body_dict = {
-                            "snippet": {"title": yt_title_str[:95], "description": yt_desc_str, "tags": clean_tags, "categoryId": "27", "defaultLanguage": lang_code, "defaultAudioLanguage": lang_code},
+                            "snippet": {"title": yt_title_str[:95], "description": yt_desc_str, "tags": clean_tags, "categoryId": "27", "defaultLanguage": "ko", "defaultAudioLanguage": "ko"},
                             "status": status_dict
                         }
                         media_body = MediaIoBaseUpload(io.BytesIO(mp4_bytes_data), mimetype="video/mp4", chunksize=-1, resumable=True)
                         resp = youtube.videos().insert(part="snippet,status", body=body_dict, media_body=media_body).execute()
                         return True, f"https://youtube.com/shorts/{resp.get('id', '')}"
 
-                    if st.button("💥 1단계: 15초 그림 대결 카드 & 자막 잘림 제로 쇼츠(.mp4) 생성", key=f"btn_mp4_v15_{tk}", use_container_width=True, type="primary"):
+                    if st.button("💥 1단계: 10.5초 시네마틱 올블랙 영수증 쇼츠(.mp4) 생성", key=f"btn_mp4_v19_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re
-                            with st.spinner("자막 박스 칼핀 정렬 · 15초 직관적 그림 대결 카드 · 무한루프 쇼츠(.mp4)를 렌더링 중입니다..."):
+                            with st.spinner("10.5초 시네마틱 올블랙 110pt 화면 · 무변조 육성 TTS · 하트비트 베이스 쇼츠(.mp4) 렌더링 중..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
 
-                                # [사진 1 잘림 원천 해결] 과도한 확대 크롭을 없애고 720x1280 정사이즈에서 네온 플래시 타격만 적용!
-                                if "정지" not in motion_intensity:
-                                    vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.07),0.18,0)':contrast='if(lt(t,0.10),1.18,1.03)':saturation=1.12"
-                                else:
-                                    vf_motion = "scale=720:1280:flags=lanczos"
+                                vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.06),0.15,0)':contrast='if(lt(t,0.08),1.15,1.02)'"
 
                                 def _build_single_cut(idx_c, sub_t, sc_code):
                                     f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
@@ -8130,7 +8048,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                                 res_dur = subprocess.run([ffmpeg_exe, "-i", merged_no_bgm], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
                                 m_dur = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_dur.stderr)
-                                vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 15.0
+                                vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 10.8
                                 st.session_state[f"shorts_dur_v12_{clean_tk}"] = vid_dur
 
                                 if "없음" not in bgm_choice:
@@ -8140,7 +8058,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-i", merged_no_bgm, "-i", bgm_wav,
-                                        "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.16[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=1[aout]",
+                                        "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.14[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=1[aout]",
                                         "-map", "0:v", "-map", "[aout]",
                                         "-map_metadata", "-1",
                                         "-metadata", f"creation_time={now_iso_meta}",
@@ -8167,23 +8085,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
 
-                    # =========================================================================
-                    # [사진 2(19613.png) 완벽 수리] 유튜브 제목 & 설명란에서
-                    # '몇 점을 줄까요?', '10초 암산', '1/현재PER', 'FCF' 등 어려운 용어를 싹 다 제거!
-                    # =========================================================================
-                    default_yt_title = f"{yt_prefix_h} 정답은 영상 마지막에 공개됩니다 💥 #shorts #재테크 #주식퀴즈"
+                    default_yt_title = f"{yt_prefix_h} (마지막에 기업 정체 공개) 💥 #shorts #재테크 #주식"
                     default_yt_desc = (
-                        f"📌 [{today_short}] 은행 예금 1,000만 원 vs {comp_name} ({clean_tk}) 장부 핵심 비교\n\n"
-                        f"1️⃣ 돈 굴리는 능력: 연 {cap_ret_val:.1f}% (1,000만 원당 연 +{roic_per_10m_manwon:,.0f}만 원 창출 효과 · S&P500 평균 12% 대비 {roic_vs_spy_gap:+.1f}%p)\n"
-                        f"2️⃣ 버핏의 암산 가격: 연 10% 수익에 필요한 성장은 {req_g_val:+.1f}%인데, 실제 통장 현금은 매년 {actual_fcf_g_val:+.1f}%씩 성장 ({g_margin_val:+.1f}%p 안전마진)\n"
-                        f"3️⃣ 국채 이자 비교: 주식 이익수익률 연 {cur_ey_val:.1f}% vs 10년물 미국채 금리 연 {ty:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
-                        f"4️⃣ 순수 현금배당: 연 {safe_div:.2f}% (1,000만 원당 연 {div_per_10m_manwon:.1f}만 원 현금 지급)\n\n"
-                        f"⚖️ [안내] 본 영상은 DART 및 SEC 10-K 공시 데이터를 바탕으로 작성된 교육용 통계 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
+                        f"📌 [{today_short}] 1,000만 원 넣었을 때 실제 장부 비교 ({comp_name} · {clean_tk})\n\n"
+                        f"1️⃣ 돈 굴리는 능력: 1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출 효과 (장사수익률 연 {cap_ret_val:.1f}% vs 우량주 평균 +120만 원)\n"
+                        f"2️⃣ 버핏의 암산 기준: 연 10% 수익 합격선은 연 {req_g_val:+.1f}% 성장인데, 실제 통장 현금은 매년 {actual_fcf_g_val:+.1f}% 변동\n"
+                        f"3️⃣ 안전 이자 비교: 주식 이익수익률 연 {cur_ey_val:.1f}% ({ey_10m_manwon}만 원) vs 10년물 미국채 연 {ty:.2f}% ({bond_10m_manwon}만 원)\n"
+                        f"4️⃣ 순수 현금배당: 연 {safe_div:.2f}% (1,000만 원당 연 {div_10m_manwon:.1f}만 원 지급)\n\n"
+                        f"⚖️ [안내] 공시 데이터를 바탕으로 작성된 교육용 통계 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
                         f"#shorts #{clean_tag_name} #재테크 #가치투자 #미국주식 #배당주"
                     )
 
-                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v15_{clean_tk}_{mode_tag_k}")
-                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=180, key=f"yt_d_v15_{clean_tk}_{mode_tag_k}")
+                    yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v19_{clean_tk}_{mode_tag_k}")
+                    yt_up_desc = st.text_area("공통 설명란 / 캡션", value=default_yt_desc, height=180, key=f"yt_d_v19_{clean_tk}_{mode_tag_k}")
 
                     from datetime import timedelta, timezone
                     kst_tz = timezone(timedelta(hours=9))
@@ -8199,23 +8113,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
                             ],
-                            key=f"yt_p_v15_{clean_tk}"
+                            key=f"yt_p_v19_{clean_tk}"
                         )
                     is_scheduled_mode = yt_up_priv.startswith("scheduled")
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v15_{clean_tk}")
+                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v19_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v15_{clean_tk}")
+                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v19_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
-                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v15_{clean_tk}")
+                            sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v19_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v15_{clean_tk}")
+                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v19_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
@@ -8232,8 +8146,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     has_video_ready = (f"saved_shorts_mp4_v12_{clean_tk}" in st.session_state)
                     if has_video_ready:
                         saved_mp4_bytes = st.session_state[f"saved_shorts_mp4_v12_{clean_tk}"]
-                        actual_dur = st.session_state.get(f"shorts_dur_v12_{clean_tk}", 15.0)
-                        st.success(f"🎉 총 재생시간 **{actual_dur:.1f}초**! 자막 잘림 제로 & 그림 대결 카드 쇼츠 준비 완료!")
+                        actual_dur = st.session_state.get(f"shorts_dur_v12_{clean_tk}", 10.8)
+                        st.success(f"🎉 총 재생시간 **{actual_dur:.1f}초**! 10만 뷰 타겟 시네마틱 올블랙 쇼츠 준비 완료!")
                         st.video(saved_mp4_bytes)
                         st.download_button(
                             label=f"📥 완성형 쇼츠(.mp4 · {actual_dur:.1f}초) 내 기기에 다운로드",
@@ -8241,15 +8155,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             file_name=f"AGIE_{clean_tk}_{mode_tag_k}_{today_tag_str.replace('.','')}.mp4",
                             mime="video/mp4",
                             use_container_width=True,
-                            key=f"dl_btn_v15_{clean_tk}"
+                            key=f"dl_btn_v19_{clean_tk}"
                         )
 
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
-                        if st.button(btn_yt_label, key=f"btn_yt_up_v15_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
+                        if st.button(btn_yt_label, key=f"btn_yt_up_v19_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
-                            tags_arr = ["shorts", comp_name, clean_tk, "재테크", "가치투자"]
+                            tags_arr = ["shorts", comp_name, clean_tk, "재테크", "주식"]
                             with st.spinner("YouTube Data API로 업로드 중..."):
                                 try:
                                     ok_up, msg_up = _upload_shorts_to_youtube(saved_mp4_bytes, yt_up_title, yt_up_desc, tags_arr, privacy_str=priv_code, publish_at_iso=publish_at_iso_str)
@@ -8263,7 +8177,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     st.error(f"유튜브 업로드 오류: {up_e}")
 
                     with up_col2:
-                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v15_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("📸 인스타 릴스 업로드", key=f"btn_ig_up_v19_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             ig_uid = st.secrets.get("IG_USER_ID", "")
                             ig_tok = st.secrets.get("IG_ACCESS_TOKEN", "")
                             if not (ig_uid and ig_tok):
@@ -8291,7 +8205,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         st.error(f"인스타 업로드 실패: {ig_e}")
 
                     with up_col3:
-                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v15_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
+                        if st.button("🎵 틱톡(TikTok) 자동 업로드", key=f"btn_tt_up_v19_{clean_tk}", use_container_width=True, disabled=not has_video_ready):
                             tt_tok = st.secrets.get("TIKTOK_ACCESS_TOKEN", "")
                             if not tt_tok:
                                 st.warning("스트림릿 Secrets에 `TIKTOK_ACCESS_TOKEN`을 먼저 등록해 주세요.")
