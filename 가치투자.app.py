@@ -5447,7 +5447,6 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-# ▼▼▼ 기존 st.tabs([...]) 선언부를 아래 코드로 교체하세요 ▼▼▼
 tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_qe, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("종목 1:1 맞대결", "1:1 Stock Battle"),
@@ -5458,10 +5457,9 @@ tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_qe, tab2, tab3, tab6, ta
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 100"),
     t("경영진 평가 순위", "Management Ranking"),
-    t("주식 용어 사전", "Stock Glossary"),
+    t("📖 가치투자 바이블 & 쇼츠", "📖 Value Bible & Shorts"),
     t("AGIE 철학", "About AGIE")
 ])
-# ▲▲▲ 여기까지 교체 ▲▲▲
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
@@ -9025,69 +9023,559 @@ with tab3:
                 st.rerun()
 
 # ==========================================
-# 탭 4: 주식 용어 사전 
+# 탭 4: 워런 버핏·찰리 멍거·리루의 가치투자 정석 바이블 & 45초 바이블 쇼츠 스튜디오
 # ==========================================
 with tab4:
-    st.subheader(t("주식 용어 사전", "Stock Glossary"))
-    st.write(t("앱에서 자주 쓰이는 금융 용어들을 알기 쉽게 설명해 드립니다.", "Complex financial jargon used in this app, explained simply using everyday analogies."))
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader(t("📖 워런 버핏 · 찰리 멍거 · 리루의 가치투자 정석 바이블 (Master Operating Manual)", "📖 Principles of Value Investing: Master Operating Manual"))
+    st.caption(t("가치투자는 단순한 통계적 저PBR 주식 매수가 아닙니다. 미래 현금창출능력과 자본배분 효율성을 근간으로 영구적 자본 손실(Permanent Capital Loss)을 원천 차단하는 사상 체계입니다.", "Value investing is a mindset to prevent permanent capital loss based on future cash generation and capital allocation."))
 
-    terms = [
-        ("시가총액 (Market Cap)", 
-         t("이 회사를 '통째로' 살 때 내야 하는 가격표입니다.", "The price tag to buy the ENTIRE company at once."), 
-         t("예를 들어 삼성전자의 시가총액이 400조라면, 통장에 400조 원이 있어야 삼성전자의 주인이 될 수 있다는 뜻입니다.", "If a company's market cap is $1 Trillion, you need that much cash in your bank to buy every single share.")),
-        
-        ("PER (주가수익비율)", 
-         t("내가 투자한 돈의 '본전'을 뽑는 데 몇 년이 걸리는지 알려주는 숫자입니다.", "How many years it will take for the company to earn back your investment."), 
-         t("예를 들어 상가 건물을 10억에 샀는데 1년에 1억씩 번다면 본전 뽑는 데 10년이 걸리죠. 이때 PER은 10배입니다. 숫자가 낮을수록 싼 주식입니다.", "If you buy a building for $100k and it profits $10k a year, it takes 10 years to break even. This is a PE ratio of 10. Lower is usually cheaper.")),
-        
-        ("Fwd PER (선행 주가수익비율)", 
-         t("과거가 아니라 '앞으로 1년 동안 벌 돈'을 기준으로 계산한 본전 회수 기간입니다.", "The PE ratio based on how much money the company is EXPECTED to make next year, rather than last year."), 
-         t("주식은 미래의 가치를 반영하므로 단순 PER보다 Fwd PER이 더 중요합니다.", "Since stocks reflect future value, Fwd PE is more important than trailing PE.")),
-        
-        ("PBR (주가순자산비율)", 
-         t("회사가 당장 문을 닫고 남은 자산을 다 팔았을 때(청산), 투자금을 건질 수 있는지 확인하는 숫자입니다.", "If the company closes tomorrow and sells its assets, will you get your money back?"), 
-         t("PBR이 1보다 낮으면 회사를 다 쪼개서 팔아도 주가보다 돈이 남는다는 뜻으로, 장부상 안전하다는 의미입니다.", "If PBR is below 1, the liquidation value is higher than its stock price. It implies statistical safety on the books.")),
-        
-        ("ROE (자기자본이익률)", 
-         t("회사가 주주의 돈(자본)을 이용해 '얼마나 돈을 효율적으로 잘 버는지' 보여주는 이자율입니다.", "Shows how efficiently the company multiplies its equity capital."), 
-         t("은행 예금이 1년에 3% 이자를 준다면, ROE 15%인 회사는 1년에 15%씩 자본을 불려준다는 뜻입니다. 15% 이상을 꾸준히 유지하는 회사가 훌륭한 기업입니다.", "If a bank gives 3% interest, a company with 15% ROE grows equity at 15% a year. Consistent 15%+ ROE defines a great business.")),
-        
-        ("ROIC (투하자본수익률)", 
-         t("ROE에서 빚(부채)으로 인한 착시 효과를 제거하고, 회사가 실제로 굴린 돈 대비 순수하게 벌어들인 진짜 수익률입니다.", "The true return on all capital invested (debt + equity), removing leverage distortions."), 
-         t("빚을 많이 내서 ROE만 높아 보이는 회사를 걸러내고, 진짜 장사를 잘하는 알짜 기업을 찾아내는 핵심 지표입니다.", "Used to filter out companies that look good just because of high debt, revealing true operational efficiency.")),
-        
-        ("FCF (잉여현금흐름)", 
-         t("월급 받고 생활비, 공과금 등을 다 내고 통장에 진짜 남은 '순수 여윳돈'입니다.", "The pure 'leftover cash' after paying all expenses and capital investments."), 
-         t("영업이익이 높아도 공장 짓느라 돈을 다 쓰면 남는 현금이 없습니다. 진정으로 튼튼한 회사는 이 FCF가 두둑한 회사입니다.", "A company might have high accounting profit, but if it spends it all on maintenance, there's no real cash. High FCF means true financial strength.")),
-        
-        ("DCF (현금흐름할인법) & 내재가치", 
-         t("이 회사가 앞으로 평생 벌어들일 모든 현금을 합쳐서, 현재 가치로 환산해 낸 '진정한 적정 가격'입니다.", "The 'true fair value' calculated by adding up all the future cash the company will ever generate, discounted to today's value."), 
-         t("상가 건물을 살 때 평생 받을 '월세'를 다 계산해보고 진짜 건물값을 정하는 것과 같습니다. 이 가격보다 현재 주가가 싸면 저평가된 것입니다.", "Like valuing a rental property based on future rent. If the stock is cheaper than this DCF value, it is undervalued.")),
-        
-        ("안전마진 (Margin of Safety)", 
-         t("100만 원짜리 물건을 70만 원에 할인할 때 사는 단 원리입니다.", "Like buying a $1,000 item on sale for $700."), 
-         t("분석이 틀렸거나 예기치 못한 위기가 닥쳐도 손실을 방어해 줄 수 있는 '할인 폭(안전판)'을 의미합니다.", "The 'discount cushion' that protects you from losses in case of miscalculation or sudden market crises.")),
-        
-        ("이익수익률 (Earnings Yield)", 
-         t("주식을 은행 예금이라고 가정했을 때, 1년에 이자를 몇 %나 주는지를 나타냅니다.", "If a stock were a bank account, this is the annual interest rate it yields."), 
-         t("계산법은 (1 / PER) 입니다. PER이 10배인 회사의 이익수익률은 10%입니다.", "Calculated as (1 / PE ratio). A company with a PE of 10 has an Earnings Yield of 10%.")),
-        
-        ("주식 위험 프리미엄 (ERP)", 
-         t("안전한 국채 이자 대신 위험한 주식에 투자할 때, 수익을 얼마나 더 얹어주어야 하는가를 나타내는 지표입니다.", "The extra return demanded for investing in risky stocks instead of risk-free government bonds."), 
-         t("이 숫자가 높을수록 주식이 국채보다 매력적(저평가)이라는 뜻이고, 마이너스면 주식이 너무 비싸서 국채를 사는 게 유리하다는 뜻입니다.", "A higher number means stocks are more attractive (cheap). A negative number means stocks are overvalued compared to bonds."))
-    ]
+    # =========================================================================
+    # [상단] 🎬 가치투자 바이블 7대 시리즈 45초 쇼츠(.mp4) 생성 스튜디오
+    # =========================================================================
+    with st.expander("🎬 [가치투자 바이블 쇼츠 스튜디오] PDF 7대 핵심 챕터를 45초 고밀도 그래픽 쇼츠(.mp4)로 즉시 제작", expanded=True):
+        st.info("💡 **종목 영상만 올릴 때의 소재 고갈 완벽 해결!** PDF 바이블의 7가지 핵심 주제를 **완결된 12문장(약 45초 · 어색한 문장 끊김 제로 · 싱크 무결점)**과 **전용 시각 그래픽 보드**로 렌더링합니다.")
 
-    lbl_analogy = t('이해하기:', 'Analogy:')
-    for term, definition, example in terms:
-        st.markdown(f"""
-        <div style="background: rgba(255,255,255,0.03); color: var(--text-color); padding: 22px; border-radius: 16px; border: 1px solid rgba(160,196,255,0.2); margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            <h4 style="margin-top: 0; color: #A0C4FF; margin-bottom: 12px; font-size: 1.2rem;">{term}</h4>
-            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 8px;">{definition}</div>
-            <div style="font-size: 0.95rem; color: #8892b0;"><b>{lbl_analogy}</b> {example}</div>
+        bible_series_db = {
+            "Part 1. 가치투자 4대 불변의 핵심 철학 (소유권 · 미스터 마켓 · 해자 · 능력범위)": {
+                "badge": "BIBLE SERIES #1 · 4대 불변의 핵심 철학",
+                "title": "가치투자의 4대 불변 원칙",
+                "yt_title": "주식을 종잇조각으로 보니까 맨날 물리는 겁니다! 워런 버핏의 4대 투자 철학 📖 #shorts #가치투자 #주식공부",
+                "cards": [
+                    ("원칙 1. 기업 소유권 (Ownership)", "주식은 종잇조각이 아닌 실체적 비즈니스의 지분!", "거래소가 5년간 문을 닫아도 불안 없는 기업만 소유", (0, 230, 118)),
+                    ("원칙 2. 미스터 마켓 (Mr. Market)", "시장은 가치를 알려주는 스승이 아닌 변덕쟁이 동업자!", "일일 등락률은 무시하고 광기와 패닉만 역이용", (56, 189, 248)),
+                    ("원칙 3. 해자 기반 안전마진", "해자 없는 싼 주식(저PBR)은 위험한 가치 함정!", "강력한 해자가 보장하는 미래 주주이익 대비 할인 매수", (245, 158, 11)),
+                    ("원칙 4. 능력 범위 (Circle of Competence)", "내가 완벽히 이해하는 비즈니스에만 머문다!", "전문가의 비관적 반론을 논리로 반박 못 하면 투자 제외", (168, 85, 247))
+                ],
+                "script": [
+                    "[도입] 주식을 단순한 번호판이나 종잇조각으로 보니까 매일 계좌가 흔들리는 겁니다!",
+                    "[도입] 워런 버핏과 찰리 멍거가 평생 지킨 가치투자 4대 불변의 원칙을 정리해 드립니다!",
+                    "[원칙1] 첫째 기업 소유권입니다! 주식 매수는 회사의 지분 100%를 통째로 인수하는 동업 행위입니다.",
+                    "[원칙1] 내일 당장 주식시장이 5년간 문을 닫아도 아무 걱정 없이 보유할 수 있는 기업만 사야 합니다!",
+                    "[원칙2] 둘째 미스터 마켓입니다! 시장은 가치를 가르쳐주는 스승이 아니라 조울증 걸린 동업자일 뿐입니다.",
+                    "[원칙2] 매일 흔들리는 주가에 일희일비하지 말고 시장이 패닉에 빠져 헐값에 던질 때만 이용하세요!",
+                    "[원칙3] 셋째 경제적 해자 기반의 안전마진입니다! 해자가 없는데 장부가치만 싼 주식은 위험한 가치 함정입니다.",
+                    "[원칙3] 반드시 강력한 독점 해자가 보장하는 미래 주주이익 대비 가격이 현저히 낮을 때만 매수해야 합니다!",
+                    "[원칙4] 넷째 능력 범위입니다! 내가 제품 주기와 경쟁 구도를 완벽히 이해하는 비즈니스에만 머물러야 합니다.",
+                    "[원칙4] 업계 최고 전문가의 비관적 반론을 논리적 사실로 반박할 수 없다면 과감히 패스하세요!",
+                    "[결론] 소유권과 미스터 마켓, 안전마진과 능력 범위까지 이 4가지가 영구적 자본 손실을 막는 방패입니다.",
+                    "[결론] 지금 내 포트폴리오의 종목들이 이 4가지 원칙을 통과했는지 처음부터 다시 점검해 보세요!"
+                ]
+            },
+            "Part 2. 기업 분석의 기초: 사실 수집(Scuttlebutt) · 자본경량성 · 경영진의 정직성": {
+                "badge": "BIBLE SERIES #2 · 펀더멘털 & 경영진 감사",
+                "title": "진짜 승자를 가르는 3대 본질",
+                "yt_title": "경영진이 똑똑한데 정직하지 않다면? 주주를 파멸시키는 최악의 함정! 🚨 #shorts #워런버핏 #기업분석",
+                "cards": [
+                    ("A. 사실 수집 (Scuttlebutt 실사)", "재무제표 너머 실제 비즈니스 생태계를 검증하라!", "경쟁사 임원 · 전현직 직원 · 공급망 벤더 교차 체크", (56, 189, 248)),
+                    ("B. 무형의 가격결정력 (Pricing Power)", "인플레이션 방어력의 핵심은 부동산이 아닌 가격결정력!", "가격을 올려도 고객 이탈이 없는 독점적 지위 확인", (0, 230, 118)),
+                    ("C. 자본 경량성 (Asset-Light)", "대규모 설비투자(CapEx) 없이 매출이 크는 구조!", "원가 상승분을 고객에게 100% 즉시 전가 가능한 모델", (245, 158, 11)),
+                    ("D. 무결점의 도덕성 (Integrity)", "지능 + 열정 + 정직함 중 가장 중요한 것은 정직함!", "스톡옵션 남발 · 주주가치 희석 증자 · 분식회계 즉각 배제", (255, 23, 68))
+                ],
+                "script": [
+                    "[도입] 재무제표 숫자만 예쁘다고 무조건 좋은 회사일까요? 절대 그렇지 않습니다!",
+                    "[도입] 서류 너머에서 기업의 진짜 본질을 꿰뚫어 보는 3가지 핵심 기준을 알려드립니다!",
+                    "[원칙1] 첫째 발로 뛰는 사실 수집입니다! 회계 장부 너머의 실제 비즈니스 생태계를 교차 검증해야 합니다.",
+                    "[원칙1] 경쟁사가 가장 두려워하는 지점은 무엇인지 임직원과 고객의 진짜 평가를 확인하세요!",
+                    "[원칙2] 둘째 자본 경량성과 가격결정력입니다! 인플레이션을 이기는 힘은 공장이 아니라 가격결정력에서 나옵니다.",
+                    "[원칙2] 대규모 설비 재투자 없이도 성장하고 가격을 올려도 고객이 떠나지 않는 독점 기업을 찾으세요!",
+                    "[원칙3] 셋째 경영진의 무결점 도덕성입니다! 버핏은 지능과 열정, 그리고 정직함 세 가지를 본다고 했습니다.",
+                    "[원칙3] 하지만 마지막 정직함이 없으면 앞의 지능과 열정이 오히려 주주를 파멸시킨다고 경고했습니다!",
+                    "[원칙4] 스톡옵션을 남발하거나 무리한 유상증자와 전환사채로 주주가치를 희석하는 경영진은 즉각 걸러내야 합니다.",
+                    "[원칙4] 경영상의 실수를 투명하게 고백하고 주주를 진짜 동업자로 대우하는 경영진과만 함께하세요!",
+                    "[결론] 현장 사실 수집과 강력한 가격결정력, 그리고 경영진의 정직함이 위대한 투자의 출발점입니다.",
+                    "[결론] 내가 투자한 회사의 경영진이 과연 이 기준을 통과하는지 처음부터 다시 확인해 보세요!"
+                ]
+            },
+            "Part 3. 필립 피셔 & 버핏의 위대한 기업 발굴 15가지 체크리스트 (4대 탈락 기준)": {
+                "badge": "BIBLE SERIES #3 · 필립 피셔 15대 원칙",
+                "title": "위대한 기업의 4대 평가 축",
+                "yt_title": "평생 보유할 초우량주 고르는 법! 필립 피셔와 버핏의 4대 핵심 필터 🔍 #shorts #필립피셔 #가치투자",
+                "cards": [
+                    ("축 1. 성장성 & 구조적 해자", "시장 잠재력 · 신성장 의지 · R&D 생산성 · 특허 해자", "[탈락] 일회성 유행 테마 · 진입장벽 부재 · 지속 자본잠식", (0, 230, 118)),
+                    ("축 2. 수익성 & 원가 효율", "높은 영업이익률 방어 · 원가절감 체질 · 정밀 회계관리", "[탈락] 저마진 출혈경쟁 · 원가 전가 불가 · 불투명한 회계", (56, 189, 248)),
+                    ("축 3. 조직 문화 & 리더십 승계", "우호적 노사관계 · 임원진 화합 · 두터운 차세대 후계구도", "[탈락] 핵심 인재 이탈 급증 · 제왕적 1인 독재 · 후계 부재", (245, 158, 11)),
+                    ("축 4. 거버넌스 & 주주가치 보호", "10~20년 장기 의사결정 · 주주희석 배제 · 투명한 소통", "[탈락] 사익 편취 · 빈번한 희석성 증자 · 거짓 해명/분식", (255, 23, 68))
+                ],
+                "script": [
+                    "[도입] 반짝 뜨고 사라질 테마주와 10년 동안 복리로 불어날 위대한 기업을 어떻게 구별할 수 있을까요?",
+                    "[도입] 필립 피셔가 정립하고 워런 버핏이 계승한 15가지 체크리스트의 4대 핵심 축을 공개합니다!",
+                    "[원칙1] 첫째 성장성과 해자 축입니다! 투입된 연구개발비가 실제 높은 영업이익으로 직결되는지 확인해야 합니다.",
+                    "[원칙1] 일회성 유행 테마에 불과하거나 경쟁자의 진입을 막을 특허와 전환비용 해자가 없다면 즉시 탈락입니다!",
+                    "[원칙2] 둘째 수익성과 원가 통제력입니다! 경기 변동 속에서도 높은 영업이익률을 방어하는 체질을 갖춰야 합니다.",
+                    "[원칙2] 단 미래 성장을 위한 선제적 연구개발 투자로 일시적으로 마진이 눌린 순간은 오히려 절호의 매수 기회입니다!",
+                    "[원칙3] 셋째 조직과 리더십입니다! 최고경영자 한 명에게만 의존하지 않고 두터운 후계 구도를 양성해야 합니다.",
+                    "[원칙3] 핵심 인재가 줄줄이 퇴사하거나 제왕적 1인 독재로 운영되는 조직은 장기 투자 대상에서 제외하세요!",
+                    "[원칙4] 넷째 거버넌스와 윤리입니다! 단기 실적 맞추기에 급급하지 않고 10년 뒤를 내다보며 자본을 집행해야 합니다.",
+                    "[원칙4] 빈번한 유상증자와 전환사채로 주주가치를 희석하거나 악재를 은폐하는 기업은 단 한 점의 타협 없이 버려야 합니다!",
+                    "[결론] 성장성과 수익성, 건강한 조직과 투명한 거버넌스까지 이 4대 관문을 모두 통과한 기업만 남기세요.",
+                    "[결론] 내 종목이 혹시 탈락 기준에 해당하지는 않는지 처음부터 표를 다시 확인해 보세요!"
+                ]
+            },
+            "Part 4. 찰리 멍거의 다학제적 멘탈 모델 (공학 · 물리화학 · 수학 · 생물학)": {
+                "badge": "BIBLE SERIES #4 · 찰리 멍거의 격자틀 모델",
+                "title": "4대 과학으로 해부하는 기업 수명",
+                "yt_title": "망치를 든 사람에겐 모든 게 못으로 보인다! 찰리 멍거의 4대 과학 투자법 🧠 #shorts #찰리멍거 #멘탈모델",
+                "cards": [
+                    ("공학 : 단일 실패 지점 차단 (Redundancy)", "한 부품이 고장 나도 전체가 무너지지 않는 백업 시스템!", "특정 단일 고객 · 단일 벤더 · 단일 인력 의존 리스크 제거", (56, 189, 248)),
+                    ("물리·화학 : 자가 촉매 (Autocatalysis)", "임계 질량 돌파 후 스스로 수요를 창출하는 가속도!", "결과물이 다시 원인이 되어 후발주자가 못 따라잡는 구조", (245, 158, 11)),
+                    ("수학 : 복리 모형 (Compound Model)", "ROIC > 자본비용 + 잉여현금의 고수익 재투자 바퀴!", "지수적(Exponential) 복리 곡선을 그려내는 핵심 엔진", (0, 230, 118)),
+                    ("생물학 : 다윈주의적 적응력 (Fitness)", "규제 변화 · 파괴적 기술 출현에 스스로 진화하는 DNA!", "과거 성공 공식에 안주하는 공룡 기업은 환경 급변 시 절멸", (168, 85, 247))
+                ],
+                "script": [
+                    "[도입] 망치 하나만 든 사람에게는 세상의 모든 문제가 못으로 보인다는 찰리 멍거의 경고를 아시나요?",
+                    "[도입] 회계학 하나에 갇히지 않고 공학과 물리학, 수학과 생물학으로 기업의 수명을 해부하는 법을 알려드립니다!",
+                    "[원칙1] 첫째 공학의 다중화 원리입니다! 항공기처럼 한 부품이 고장 나도 추락하지 않는 백업 시스템이 있어야 합니다.",
+                    "[원칙1] 단 한 명의 거래처나 단일 제품이 흔들릴 때 회사 전체가 무너지는 단일 실패 지점이 없는지 점검하세요!",
+                    "[원칙2] 둘째 물리화학의 자가 촉매 현상입니다! 임계점을 넘어 결과물이 스스로 새로운 수요를 부르는 구조입니다.",
+                    "[원칙2] 플랫폼 네트워크 효과처럼 가만히 있어도 후발주자와 격차가 기하급수적으로 벌어지는 가속도를 확인하세요!",
+                    "[원칙3] 셋째 수학의 복리 모형입니다! 투하자본수익률이 자본비용을 크게 웃도는지 보는 것입니다.",
+                    "[원칙3] 벌어들인 현금을 다시 높은 수익률로 재투자해 지수 곡선을 그리는 복리의 바퀴가 돌고 있어야 합니다!",
+                    "[원칙4] 넷째 생물학의 진화적 적응력입니다! 과거의 성공에 안주하는 공룡 기업은 기술이 바뀔 때 멸종합니다.",
+                    "[원칙4] 파괴적 기술과 환경 변화 속에서도 스스로 껍질을 깨고 진화하는 생존 DNA를 가졌는지 확인하세요!",
+                    "[결론] 공학의 안전판과 화학의 촉매, 수학의 복리와 생물학의 진화력이 합쳐질 때 불패의 투자가 완성됩니다.",
+                    "[결론] 이 4가지 과학적 렌즈로 내 보유 종목을 처음부터 다시 비춰보세요!"
+                ]
+            },
+            "Part 5. 인지적 오판을 막는 8대 심리학 체크리스트 & 롤라팔루자 효과": {
+                "badge": "BIBLE SERIES #5 · 인간 오판의 심리학",
+                "title": "투자자를 파멸시키는 8대 심리 편향",
+                "yt_title": "아이큐 160도 주식시장에서 파산하는 진짜 이유! 찰리 멍거의 8대 심리 법칙 ⚠️ #shorts #투자심리 #찰리멍거",
+                "cards": [
+                    ("1~2. 인센티브 편향 & 의심 회피", "보너스·스톡옵션이 만든 왜곡 / 내 매수 결정 합리화 금지!", "새로운 악재를 축소 해석하는 확증 편향을 경계하라", (255, 23, 68)),
+                    ("3~4. 질투 편향 & 고통스러운 현실 부정", "남이 급등주로 돈 버는 것에 대한 질투가 파멸의 시작!", "해자가 무너졌는데도 손실 인정이 싫어 품는 거짓 희망 차단", (245, 158, 11)),
+                    ("5~6. 사회적 증거(군중심리) & 스트레스", "남들이 다 사니까 안전하다는 착각이 버블 붕괴의 진원지!", "최근 자극적 뉴스 과몰입 금지 · 극심한 스트레스 시 매매 금지", (56, 189, 248)),
+                    ("7~8. 권위 맹신 & 롤라팔루자 효과", "유명 경제학자·관료의 단기 거시 전망 맹신 금지!", "여러 편향이 한 방향으로 겹쳐 광기를 부를 때 즉시 관망하라", (168, 85, 247))
+                ],
+                "script": [
+                    "[도입] 왜 똑똑한 사람들이 주식 시장만 오면 꼭대기에서 사고 바닥에서 파는 치명적인 실수를 반복할까요?",
+                    "[도입] 찰리 멍거가 평생 경고한 인간 오판의 심리학 핵심 체크리스트를 정리해 드립니다!",
+                    "[원칙1] 첫째 인센티브 편향과 일관성 함정입니다! 스톡옵션에 눈이 먼 경영진이나 애널리스트의 장밋빛 전망을 경계하세요.",
+                    "[원칙1] 특히 내가 이미 샀다는 이유만으로 새로운 악재를 무시하고 내 결정을 합리화하는 확증 편향을 버려야 합니다!",
+                    "[원칙2] 둘째 질투심과 현실 부정입니다! 버핏은 세상을 움직이는 가장 어리석은 감정이 탐욕이 아니라 질투라고 했습니다.",
+                    "[원칙2] 남들이 단기 급등주로 돈 버는 모습에 흔들리지 말고 내 기업의 해자가 훼손됐을 땐 냉정하게 현실을 인정하세요!",
+                    "[원칙3] 셋째 군중 심리와 가용성 편향입니다! 모두가 열광하며 사들이는 인기 테마에 편승하는 순간이 가장 위험합니다.",
+                    "[원칙3] 최근에 본 자극적인 뉴스 한두 개에 과도한 비중을 두거나 스트레스 상태에서 급하게 매매 버튼을 누르지 마세요!",
+                    "[원칙4] 넷째 롤라팔루자 효과입니다! 위의 여러 심리적 편향들이 한 방향으로 겹치면 집단 광기나 극단적 패닉이 터집니다.",
+                    "[원칙4] 시장 전체가 광기에 휩싸여 롤라팔루자 효과가 나타날 때는 모든 판단을 멈추고 한 발 물러서서 관망해야 합니다!",
+                    "[결론] 투자의 성패는 지능지수가 아니라 내 안의 심리적 맹점을 얼마나 철저히 통제하느냐에 달려 있습니다.",
+                    "[결론] 지금 내가 이 8가지 심리 함정 중 하나에 빠져 있지는 않은지 처음부터 다시 점검해 보세요!"
+                ]
+            },
+            "Part 6. 경영진의 자본 배분(Capital Allocation) 5대 경로 & 버핏의 주주이익 산출": {
+                "badge": "BIBLE SERIES #6 · 자본 배분과 주주이익",
+                "title": "CEO의 진짜 성적표: 자본 배분",
+                "yt_title": "회계상 순이익과 EBITDA에 속지 마세요! 워런 버핏이 계산하는 진짜 주주이익 💰 #shorts #자본배분 #재무제표",
+                "cards": [
+                    ("버핏의 진짜 주주이익 (Owner Earnings)", "순이익 + 감가상각비 - 유지보수성 CapEx - 운전자본 변동", "왜곡된 EBITDA를 버리고 주머니에 남는 순수 현금을 보라!", (0, 230, 118)),
+                    ("경로 1~2. 본업 재투자 & 선별적 M&A", "투하자본수익률(ROIC) > 자본비용일 때 본업 재투자 최우선!", "M&A는 해자를 강화하는 볼트온 인수만 인정 (제국 건설 금지)", (56, 189, 248)),
+                    ("경로 3. 자사주 매입의 절대 조건", "반드시 주가가 내재가치보다 현저히 쌀 때만 매입해야 함!", "비싼 가격에 자사주를 사들이는 것은 주주 자본 파괴 행위", (245, 158, 11)),
+                    ("경로 4~5. 현금 배당 & 부채 상환", "사내 고수익 재투자 기회가 고갈됐을 때 주주에게 배당 환원!", "불필요한 차입금을 상환해 파산 위험을 원천 격리", (168, 85, 247))
+                ],
+                "script": [
+                    "[도입] 아무리 돈을 잘 버는 독점 기업이라도 대표이사가 자본 배분을 잘못하면 주주가치는 처참하게 파괴됩니다!",
+                    "[도입] 워런 버핏이 회계상 순이익 대신 계산하는 진짜 주주이익과 자본 배분의 5가지 원칙을 공개합니다!",
+                    "[원칙1] 첫째 버핏의 주주이익 산출법입니다! 감가상각비를 무시하는 왜곡된 에비타 지표를 절대 맹신하지 마세요.",
+                    "[원칙1] 당기순이익에 비현금 비용을 더하고 경쟁력 유지를 위해 꼭 써야 하는 유지보수 설비투자액을 빼야 진짜 여윳돈입니다!",
+                    "[원칙2] 둘째 본업 재투자와 인수합병입니다! 회사의 투하자본수익률이 자본비용보다 높다면 본업 재투자가 1순위입니다.",
+                    "[원칙2] 반대로 경영진이 자기 제국을 넓히려고 비싼 값에 무분별한 인수합병을 벌인다면 즉시 경계해야 합니다!",
+                    "[원칙3] 셋째 자사주 매입의 엄격한 조건입니다! 자사주 매입은 무조건 좋은 것이 아니라 가격이 쌀 때만 가치 있는 행위입니다.",
+                    "[원칙3] 주가가 내재가치보다 훨씬 저평가됐을 때 사서 소각해야 주당 가치가 오르며 고평가 때 사면 오히려 독이 됩니다!",
+                    "[원칙4] 넷째 배당 지급과 부채 상환입니다! 더 이상 높은 수익률로 재투자할 곳이 없을 때는 현금 배당으로 돌려줘야 합니다.",
+                    "[원칙4] 동시에 부채를 선제적으로 줄여 어떤 경제 위기가 와도 파산 위험이 없는 철옹성 같은 재무 구조를 만들어야 합니다!",
+                    "[결론] 진짜 주주이익을 창출하고 이를 가장 효율적인 경로에 배치하는 경영진이 최고의 동업자입니다.",
+                    "[결론] 내 기업이 벌어들인 현금을 어디에 쓰고 있는지 처음부터 5가지 경로를 다시 확인해 보세요!"
+                ]
+            },
+            "Part 7. 역산 밸류에이션(Invert) · 피셔와 버핏의 매수 타이밍 · 매도 3대 철칙": {
+                "badge": "BIBLE SERIES #7 · 밸류에이션과 매수·매도 철칙",
+                "title": "언제 사고 언제 팔 것인가?",
+                "yt_title": "엑셀로 10년 뒤 주가 계산하지 마세요! 버핏의 암산 밸류에이션과 매도 3대 원칙 🎯 #shorts #매수타이밍 #매도원칙",
+                "cards": [
+                    ("A. 거짓 정밀성 탈피 & 역산(Invert)", "엑셀로 소수점까지 DCF를 맞춘다는 환상을 버려라!", "암산으로도 명백히 싼 기회 · 현재 주가에 내포된 성장률 역산", (0, 230, 118)),
+                    ("B. 절호의 매수 타이밍 3가지", "위대한 기업이 일시적 문제로 패닉에 빠졌을 때만 진입!", "① 신제품 초기 결함 ② 거시경제 공황 ③ 해자 무관 일회성 악재", (56, 189, 248)),
+                    ("C. 매도 3대 불변 원칙 (1~2)", "주가가 조금 올랐다고 파는 것이 아니다!", "① 내 초기 분석에 중대한 오류 발견 시 ② 해자 영구 붕괴/극단 버블", (255, 23, 68)),
+                    ("D. 매도 3대 불변 원칙 (3) & 최종 관문", "③ 훨씬 더 확실하고 압도적인 초우량 기회를 발견했을 때!", "10년 후 독점력 · 경영진 정직성 · 영구 보유 관점 최종 점검", (245, 158, 11))
+                ],
+                "script": [
+                    "[도입] 복잡한 엑셀 파일로 10년 뒤 현금흐름을 소수점까지 정밀하게 계산하면 투자가 성공할까요?",
+                    "[도입] 거짓 정밀성의 환상을 깨는 역산 밸류에이션과 버핏의 매수 및 매도 3대 철칙을 알려드립니다!",
+                    "[원칙1] 첫째 암산과 역산 밸류에이션입니다! 계산기를 두드려야만 겨우 싸 보이는 주식은 애초에 안전마진이 없는 것입니다.",
+                    "[원칙1] 거꾸로 현재 주가를 정당화하려면 매년 몇 퍼센트씩 성장해야 하는지 역산해 보고 비상식적 기대가 없을 때만 사세요!",
+                    "[원칙2] 둘째 매수 타이밍입니다! 아무리 위대한 기업이라도 미스터 마켓이 패닉에 빠져 바겐세일을 할 때만 들어가야 합니다.",
+                    "[원칙2] 거시경제 전체의 비이성적 폭락이나 기업의 근본 해자와 무관한 일시적 악재가 터졌을 때가 평생의 기회입니다!",
+                    "[원칙3] 셋째 매도 3대 철칙 중 첫 번째와 두 번째입니다! 단순히 주가가 올랐거나 차트가 꺾였다는 이유로 팔지 마세요.",
+                    "[원칙3] 오직 내 처음 분석에 중대한 오류가 있었음을 깨달았거나 기업의 경제적 해자가 영구히 붕괴했을 때만 파는 것입니다!",
+                    "[원칙4] 마지막 세 번째 매도 조건은 기회비용입니다! 지금 보유한 주식보다 훨씬 더 확실하고 압도적인 기회를 찾았을 때입니다.",
+                    "[원칙4] 이 세 가지 경우가 아니라면 단기 소음에 흔들리지 않고 위대한 기업의 지분을 묵묵히 영구 보유하세요!",
+                    "[결론] 암산으로도 명백한 안전마진에 사서 매도 3원칙에 해당할 때만 파는 것이 가치투자의 완성입니다.",
+                    "[결론] 오늘 매수나 매도 버튼을 누르기 전에 이 3가지 철칙을 처음부터 다시 확인해 보세요!"
+                ]
+            }
+        }
+
+        sel_bible_part = st.selectbox(
+            "📚 쇼츠로 제작할 가치투자 바이블 챕터 선택 (총 7부작 시리즈)",
+            list(bible_series_db.keys()),
+            key="bible_series_sel"
+        )
+        b_meta = bible_series_db[sel_bible_part]
+
+        b_c1, b_c2, b_c3 = st.columns(3)
+        with b_c1:
+            b_voice = st.selectbox("1️⃣ AI 성우 선택", ["🎙️ 인준 (신뢰감 중저음 남성)", "⚡ 선희 (또렷한 아나운서 여성)"], key="bible_v_sel")
+        with b_c2:
+            b_bgm = st.selectbox("2️⃣ 배경음악", ["🔥 시네마틱 다큐멘터리 베이스", "🔇 배경음악 없음"], key="bible_bgm_sel")
+        with b_c3:
+            b_spd = st.slider("3️⃣ 성우 배속(%)", 0, 60, 26, 2, format="+%d%%", key="bible_spd_sel")
+
+        b_script_edit = st.text_area(
+            "✏️ 바이블 45초 완결형 12컷 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
+            value="\n".join(b_meta["script"]),
+            height=250,
+            key=f"bible_script_area_{sel_bible_part[:6]}"
+        )
+
+        if st.button("💥 선택한 바이블 챕터 45초 인포그래픽 쇼츠(.mp4) 생성 시작", use_container_width=True, type="primary", key="btn_gen_bible_mp4"):
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                import imageio_ffmpeg, subprocess, tempfile, os, re, wave, struct, math
+
+                with st.spinner(f"[{b_meta['title']}] 45초 바이블 인포그래픽 쇼츠(.mp4) 렌더링 중..."):
+                    font_dir = tempfile.gettempdir()
+                    bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                    if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
+                        r = requests.get("https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf", timeout=8)
+                        if r.status_code == 200:
+                            with open(bold_p, "wb") as f: f.write(r.content)
+
+                    def _gf_b(sz):
+                        for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                            if os.path.exists(c):
+                                try: return ImageFont.truetype(c, sz)
+                                except Exception: continue
+                        return ImageFont.load_default()
+
+                    def _fit_b(draw, cx, cy, max_w, text, start_sz=38, min_sz=11, fill=(255,255,255), sw=0):
+                        t_s = str(text).strip()
+                        for sz in range(start_sz, min_sz - 1, -2):
+                            f = _gf_b(sz)
+                            bb = draw.textbbox((0, 0), t_s, font=f, stroke_width=sw)
+                            if (bb[2] - bb[0]) <= max_w:
+                                draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_s, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
+                                return
+
+                    raw_b_lines = [ln.strip() for ln in b_script_edit.split("\n") if ln.strip()]
+                    b_chunks = []
+                    for r_l in raw_b_lines[:16]:
+                        tag_sc = "B_ALL"
+                        cl = r_l
+                        if cl.startswith("[도입]"): tag_sc = "B_HOOK"; cl = cl.replace("[도입]", "").strip()
+                        elif cl.startswith("[원칙1]"): tag_sc = "B_CARD_0"; cl = cl.replace("[원칙1]", "").strip()
+                        elif cl.startswith("[원칙2]"): tag_sc = "B_CARD_1"; cl = cl.replace("[원칙2]", "").strip()
+                        elif cl.startswith("[원칙3]"): tag_sc = "B_CARD_2"; cl = cl.replace("[원칙3]", "").strip()
+                        elif cl.startswith("[원칙4]"): tag_sc = "B_CARD_3"; cl = cl.replace("[원칙4]", "").strip()
+                        elif cl.startswith("[결론]"): tag_sc = "B_SUMMARY"; cl = cl.replace("[결론]", "").strip()
+                        b_chunks.append((cl, tag_sc))
+
+                    n_b = len(b_chunks)
+                    cards_data = b_meta["cards"]
+
+                    def _draw_bible_frame(c_idx, sub_txt, sc_code):
+                        W, H = 720, 1280
+                        img = Image.new("RGB", (W, H), color=(6, 9, 18))
+                        draw = ImageDraw.Draw(img)
+
+                        active_card_idx = -1
+                        if sc_code.startswith("B_CARD_"):
+                            active_card_idx = int(sc_code.split("_")[-1])
+                            theme_c = cards_data[active_card_idx][3]
+                        elif sc_code == "B_HOOK":
+                            theme_c = (220, 38, 38)
+                        else:
+                            theme_c = (0, 230, 118)
+
+                        # 상단 헤더
+                        draw.rectangle([0, 75, W, 235], fill=(12, 18, 34))
+                        draw.rectangle([0, 230, W, 242], fill=(28, 38, 58))
+                        draw.rectangle([0, 230, int(W * ((c_idx + 1) / max(1, n_b))), 242], fill=theme_c)
+
+                        draw.rounded_rectangle([120, 90, W-120, 136], radius=18, fill=theme_c)
+                        _fit_b(draw, W//2, 113, W-260, b_meta["badge"], start_sz=21, fill=(255, 255, 255), sw=2)
+                        _fit_b(draw, W//2, 185, W-60, b_meta["title"], start_sz=44, fill=(255, 240, 0), sw=4)
+
+                        # 중앙 4단 핵심 원칙 그래픽 보드 (현재 설명 중인 원칙 카드가 황금 테두리로 크고 밝게 하이라이트!)
+                        draw.rounded_rectangle([28, 260, W-28, 795], radius=24, fill=(10, 15, 28), outline=theme_c, width=4)
+
+                        for idx_cd, (c_title, c_main, c_sub, c_col) in enumerate(cards_data):
+                            ry1 = 282 + idx_cd * 124
+                            ry2 = ry1 + 112
+                            is_spot = (active_card_idx == -1 or active_card_idx == idx_cd)
+                            bg_c = (20, 32, 56) if (active_card_idx == idx_cd) else ((15, 22, 38) if is_spot else (10, 14, 24))
+                            out_c = (255, 240, 0) if (active_card_idx == idx_cd) else (c_col if is_spot else (40, 50, 70))
+                            out_w = 5 if (active_card_idx == idx_cd) else (3 if is_spot else 1)
+
+                            draw.rounded_rectangle([44, ry1, W-44, ry2], radius=16, fill=bg_c, outline=out_c, width=out_w)
+                            # 좌측 번호 뱃지
+                            draw.rounded_rectangle([58, ry1 + 14, 155, ry1 + 48], radius=8, fill=c_col if is_spot else (45, 55, 75))
+                            _fit_b(draw, 106, ry1 + 31, 88, f"CORE {idx_cd+1}", start_sz=16, fill=(255, 255, 255), sw=1)
+                            # 타이틀 & 핵심 내용
+                            _fit_b(draw, 410, ry1 + 31, 480, c_title, start_sz=23, fill=(255, 240, 0) if is_spot else (130, 145, 165), sw=2 if is_spot else 0)
+                            _fit_b(draw, W//2, ry1 + 66, W-120, c_main, start_sz=20, fill=(255, 255, 255) if is_spot else (110, 125, 145), sw=1 if is_spot else 0)
+                            _fit_b(draw, W//2, ry1 + 94, W-120, c_sub, start_sz=16, fill=c_col if is_spot else (90, 105, 125))
+
+                        # 하단 2줄 균등 자막 박스
+                        words = sub_txt.split(" ")
+                        if len(sub_txt) > 16 and len(words) >= 2:
+                            best_sp = len(words) // 2
+                            half_l = len(sub_txt) / 2.0
+                            min_d = 999
+                            for iw in range(1, len(words)):
+                                ll = len(" ".join(words[:iw]))
+                                if abs(ll - half_l) < min_d:
+                                    min_d = abs(ll - half_l)
+                                    best_sp = iw
+                            sub_lns = [" ".join(words[:best_sp]), " ".join(words[best_sp:])]
+                        else:
+                            sub_lns = [sub_txt]
+
+                        draw.rounded_rectangle([32, 815, W-32, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
+                        sy0 = 860 if len(sub_lns) == 2 else 885
+                        for idx_s, s_l in enumerate(sub_lns):
+                            scol = (255, 240, 0) if idx_s == len(sub_lns) - 1 else (255, 255, 255)
+                            _fit_b(draw, W//2, sy0 + idx_s * 50, W-80, s_l, start_sz=34, fill=scol, sw=5)
+
+                        _fit_b(draw, W//2, 1085, W-50, "[안내] 워런 버핏·찰리 멍거·리루의 가치투자 헌장 교육용 콘텐츠입니다", start_sz=14, fill=(115, 125, 140))
+                        return img
+
+                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                    cleans, seg_list = [], [None] * n_b
+
+                    def _build_b_cut(i_b, stxt, scd):
+                        fi = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                        fr = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                        fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                        fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                        _draw_bible_frame(i_b, stxt, scd).save(fi)
+
+                        v_id = "ko-KR-SunHiNeural" if "여성" in b_voice else "ko-KR-InJoonNeural"
+                        tts_b = re.sub(r'\([A-Za-z0-9\s/\-\+]+\)', '', stxt).replace("%", "퍼센트").replace("100%", "백퍼센트")
+                        import edge_tts, asyncio
+                        loop = asyncio.new_event_loop()
+                        try: loop.run_until_complete(edge_tts.Communicate(tts_b, voice=v_id, rate=f"+{int(b_spd)}%", pitch="+0Hz").save(fr))
+                        finally: loop.close()
+
+                        is_last_b = (i_b == n_b - 1)
+                        pad_b = "" if is_last_b else ",apad=pad_dur=0.05"
+                        af_b = f"silenceremove=start_periods=1:start_threshold=-34dB:stop_periods=-1:stop_threshold=-34dB:stop_duration=0.04,atempo=1.05,volume=1.25{pad_b}"
+                        subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_b, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                        exact_d = 3.5
+                        try:
+                            with wave.open(fw, 'rb') as w_chk:
+                                exact_d = max(0.5, w_chk.getnframes() / float(w_chk.getframerate()))
+                        except Exception:
+                            pass
+
+                        subprocess.run([
+                            ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_d:.3f}", "-i", fi, "-i", fw,
+                            "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                            "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
+                        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                        return i_b, fs, [fi, fr, fw, fs]
+
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+                        futs = [ex.submit(_build_b_cut, idx_b, s_t, s_c) for idx_b, (s_t, s_c) in enumerate(b_chunks)]
+                        for ft in concurrent.futures.as_completed(futs):
+                            ib_r, fs_r, t_l = ft.result()
+                            seg_list[ib_r] = fs_r
+                            cleans.extend(t_l)
+
+                    cat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                    cleans.append(cat_txt)
+                    with open(cat_txt, "w", encoding="utf-8") as cf:
+                        for sp in seg_list: cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
+
+                    out_b_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                    cleans.append(out_b_mp4)
+                    subprocess.run([
+                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt,
+                        "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_b_mp4
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                    with open(out_b_mp4, "rb") as vf: b_mp4_bytes = vf.read()
+                    st.success(f"🎉 [{b_meta['title']}] 45초 가치투자 바이블 쇼츠(.mp4) 렌더링 완료!")
+                    st.video(b_mp4_bytes)
+                    st.download_button(
+                        label=f"📥 [{b_meta['title']}] 바이블 쇼츠(.mp4) 다운로드",
+                        data=b_mp4_bytes,
+                        file_name=f"AGIE_Bible_{sel_bible_part[:6].replace(' ','')}.mp4",
+                        mime="video/mp4",
+                        use_container_width=True
+                    )
+                    st.text_input("추천 유튜브 제목", value=b_meta["yt_title"], key="bible_yt_t_out")
+                    for pr in cleans:
+                        if os.path.exists(pr):
+                            try: os.remove(pr)
+                            except Exception: pass
+            except Exception as e:
+                st.warning(f"바이블 쇼츠 생성 오류: {e}")
+
+    st.divider()
+
+    # =========================================================================
+    # [하단] 📖 가치투자 헌장 및 기업 본질 평가 지침서 (PDF 전 4페이지 마스터 매뉴얼 UI)
+    # =========================================================================
+    b_sub1, b_sub2, b_sub3, b_sub4 = st.tabs([
+        "Part 1. 4대 철학과 펀더멘털",
+        "Part 2. 위대한 기업의 15가지 조건",
+        "Part 3. 다학제 멘탈 모델 & 8대 심리학",
+        "Part 4. 자본배분 · 주주이익 · 매수/매도 철칙"
+    ])
+
+    card_css = "background: rgba(255,255,255,0.03); color: var(--text-color); padding: 22px; border-radius: 16px; border: 1px solid rgba(160,196,255,0.22); margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);"
+
+    with b_sub1:
+        st.markdown("#### 1. 가치투자 4대 불변의 핵심 철학 (Mindset & Foundation)")
+        st.markdown("""
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-bottom:20px;">
+            <div style="background:rgba(46,204,113,0.08); border:1.5px solid #2ecc71; border-radius:14px; padding:18px;">
+                <h4 style="color:#2ecc71; margin:0 0 8px 0;">원칙 1. 기업 소유권 (Ownership)</h4>
+                <div style="font-size:0.95rem; line-height:1.6;">주식은 유가증권 조각이 아닌 <b>실체적 비즈니스의 지분</b>입니다. 내일 당장 증권거래소가 5년간 문을 닫아도 아무런 불안 없이 사업 성과를 수취할 수 있는지, <b>지분 100%를 비상장 상태로 소유했다고 가정</b>하고 모든 운영 리스크를 점검합니다.</div>
+            </div>
+            <div style="background:rgba(56,189,248,0.08); border:1.5px solid #38bdf8; border-radius:14px; padding:18px;">
+                <h4 style="color:#38bdf8; margin:0 0 8px 0;">원칙 2. 미스터 마켓 (Mr. Market)</h4>
+                <div style="font-size:0.95rem; line-height:1.6;">시장은 가치를 알려주는 스승이 아니며, 오직 가격만 제시하는 변덕스러운 상대방입니다. <b>일시적 폭락이나 광기 어린 폭등을 이용할 뿐</b>, 시장의 감정(시세 호가, 일일 등락률)을 투자 판단의 지표나 잣대로 절대 삼지 않습니다.</div>
+            </div>
+            <div style="background:rgba(250,204,21,0.08); border:1.5px solid #facc15; border-radius:14px; padding:18px;">
+                <h4 style="color:#facc15; margin:0 0 8px 0;">원칙 3. 경제적 해자 기반 안전마진</h4>
+                <div style="font-size:0.95rem; line-height:1.6;">담배꽁초식 장부가치 할인이 아닙니다. <b>'강력한 해자가 보장하는 보수적 미래 주주이익(Owner Earnings)의 현재 가치'</b> 대비 시장 가격이 현저히 낮을 때만 매수합니다. 해자가 없는 염가 매수는 <b>가치 함정(Value Trap)</b>입니다.</div>
+            </div>
+            <div style="background:rgba(168,85,247,0.08); border:1.5px solid #a855f7; border-radius:14px; padding:18px;">
+                <h4 style="color:#a855f7; margin:0 0 8px 0;">원칙 4. 능력 범위 (Circle of Competence)</h4>
+                <div style="font-size:0.95rem; line-height:1.6;">내가 사업의 제품 주기, 고객 가치, 경쟁 구도를 완벽히 이해하는 비즈니스에만 머뭅니다. <b>업계 최고 전문가의 비관적 반론을 내가 논리적 사실로 조목조목 반박할 수 없다면</b>, 그것은 무조건 능력 범위 밖입니다.</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
+        st.markdown("#### 2. 기업 분석의 기초: 사실 수집과 펀더멘털")
+        st.markdown(f"""
+        <div style="{card_css}">
+            <h4 style="color:#A0C4FF; margin-top:0;">A. 사실 수집 (Scuttlebutt 실사) — 서류 너머 실제 생태계를 발로 뛰어 검증하라</h4>
+            • <b>경쟁업체 5곳의 임원 및 영업진 평가 취합:</b> 경쟁사가 가장 두려워하는 지점 파악<br>
+            • <b>전·현직 임직원 심층 인터뷰:</b> 퇴사 사유, 내부 부조리, 조직 문화 점검<br>
+            • <b>핵심 고객 및 공급망 벤더 면담:</b> 납품 단가 인하 압박, 의존도, 결제 주기 확인
+        </div>
+        <div style="{card_css}">
+            <h4 style="color:#2ecc71; margin-top:0;">B. 자본 경량성(Asset-light) & 무형의 가격결정력(Pricing Power)</h4>
+            • <b>가격결정력:</b> 가격을 인상해도 고객 이탈이 없는 독점적 지위 (인플레이션 방어력의 핵심)<br>
+            • <b>자본 경량성:</b> 매출 성장을 위해 대규모 고정자산(CapEx) 추가 투입이 불필요한 비즈니스 모델<br>
+            • <b>인플레이션 내성:</b> 원가 상승분을 고객에게 100% 즉시 전가 가능한 구조
+        </div>
+        <div style="{card_css} border-left:5px solid #ff4757;">
+            <h4 style="color:#ff7675; margin-top:0;">C. 경영진의 3대 자질: 능력(Intelligence), 열정(Energy), 그리고 무결점의 도덕성(Integrity)</h4>
+            버핏은 <b>"경영진을 평가할 때 지능, 에너지, 정직함을 본다. 그러나 마지막 정직함(Integrity)이 없으면 앞의 두 가지가 주주를 파멸시킨다"</b>고 명시했습니다. 스톡옵션 남발, 무리한 주주가치 희석 증자, 분식성 일회성 비용 조정을 하지 않는지 철저히 감사합니다.
+        </div>
+        """, unsafe_allow_html=True)
+
+    with b_sub2:
+        st.markdown("#### 3. 위대한 기업을 발굴하는 15가지 핵심 체크리스트 (Philip Fisher & Warren Buffett)")
+        fisher_15 = [
+            ("1. 시장 잠재력", "향후 수년간 시장 평균을 훨씬 상회하여 매출액을 크게 늘릴 제품이나 서비스 포트폴리오를 보유하고 있는가?"),
+            ("2. 신성장 동력 의지", "현재 주력 제품의 성장이 성숙기나 한계에 달했을 때를 대비하여 지속적인 신제품 및 신사업을 발굴하려는 경영진의 확고한 의지가 있는가?"),
+            ("3. 연구개발(R&D)의 생산성", "기업 규모 대비 투입된 R&D 비용이 단순 연구에 그치지 않고 실제 상업적 매출과 높은 영업이익으로 직결되는 효율성을 갖추었는가?"),
+            ("4. 탁월한 영업/유통 조직", "경쟁사 대비 제품을 고객에게 효과적으로 전달하고 시장 점유율을 침투할 수 있는 평균 이상의 강력한 영업 조직과 유통망을 보유하고 있는가?"),
+            ("5. 높은 영업이익률과 마진 방어", "경기 변동 속에서도 충분한 영업이익률을 유지하고 있는가? (단, 미래 성장을 위한 선제적 R&D 투자로 인한 일시적 마진 압박은 절호의 매수 기회)"),
+            ("6. 원가 절감 체질", "외부 가격 인상에만 의존하지 않고, 내부 공정 개선 및 원가 절감을 위해 시스템적으로 끊임없이 연구하고 실행하는 조직 문화를 갖추었는가?"),
+            ("7. 우호적 노사관계", "핵심 인력과 생산 직원의 이직률이 낮고, 경영진이 직원을 소모품이 아닌 인적 자본으로 존중하여 분쟁 리스크를 원천 차단하고 있는가?"),
+            ("8. 임원진 간의 협력과 화합", "경영 핵심 임원진 사이에 파벌 싸움이나 정치적 반목이 없으며, 공동의 장기 목표를 향해 원활한 협업과 소통이 유지되고 있는가?"),
+            ("9. 두터운 경영진 승계 구도", "최고경영자 1인에만 의존하지 않고 차세대 리더십과 후계자를 체계적으로 양성하며, 일선 실무자의 혁신 제안을 상층부가 기꺼이 수용하는가?"),
+            ("10. 정밀한 회계 및 원가 관리", "부문별 단위당 원가 분석과 현금흐름 추적 능력이 우수하여 회계적 사각지대나 누수가 발생하지 않는가?"),
+            ("11. 특허 및 구조적 경제적 해자", "높은 진입장벽, 특허권, 네트워크 효과, 전환 비용 등을 통해 경쟁사가 막대한 자본을 쏟아부어도 침범할 수 없는 독점적 우위를 갖추었는가?"),
+            ("12. 장기적 관점의 의사결정", "분기별 단기 실적 맞추기(월가 가이던스)에 연연하여 장기적 연구나 투자를 희생하지 않고, 10~20년 뒤를 내다보며 자본을 집행하는가?"),
+            ("13. 주주 가치 희석 배제", "무리한 유상증자, 전환사채(CB), 신주인수권부사채(BW) 남발로 기존 주주의 주당 가치를 희석하지 않고 이익 잉여금 내에서 성장을 조달하는가?"),
+            ("14. 투명하고 솔직한 소통", "경영상 악재나 실수가 발생했을 때 이를 은폐하거나 포장하지 않고, 주주들에게 객관적 사실과 대응책을 솔직하고 명확하게 공유하는가?"),
+            ("15. 의문의 여지 없는 최고 경영진의 진실성", "경영진의 윤리성, 언행일치, 도덕적 무결성에 단 한 점의 의구심도 남지 않는 기업인가? (의심 발생 시 즉각 검토 중단)")
+        ]
+        for f_t, f_d in fisher_15:
+            st.markdown(f"<div style='padding:12px 16px; border-left:4px solid #A0C4FF; background:rgba(255,255,255,0.02); margin-bottom:8px; border-radius:8px;'><b>{f_t}:</b> {f_d}</div>", unsafe_allow_html=True)
+
+        st.markdown("##### 🚨 4대 평가 축 및 즉각 탈락(Reject) 기준표")
+        reject_df = pd.DataFrame([
+            {"평가 축": "성장성 & 해자", "점검 대상": "1, 2, 3, 4, 11번 항목 (매출 성장성, R&D 효율, 독점적 해자)", "탈락(Reject) 기준": "일회성 유행 테마, 침투 불가능한 진입장벽 부재, 지속적 자본잠식"},
+            {"평가 축": "수익성 & 효율", "점검 대상": "5, 6, 10번 항목 (영업이익률, 원가 통제력, 회계 투명성)", "탈락(Reject) 기준": "저마진 출혈경쟁, 원가 상승분 전가 불가, 불투명한 연결 조정 회계"},
+            {"평가 축": "조직 & 리더십", "점검 대상": "7, 8, 9번 항목 (노사화합, 임원진 팀워크, 승계 계획)", "탈락(Reject) 기준": "핵심 인재 이탈 급증, 제왕적 1인 독재 구조, 후계 부재 리스크"},
+            {"평가 축": "거버넌스 & 윤리", "점검 대상": "12, 13, 14, 15번 항목 (장기 시각, 주주가치 보호, 진실성)", "탈락(Reject) 기준": "사익 편취, 빈번한 희석성 증자, 거짓 해명 및 회계 분식 이력"}
+        ])
+        st.dataframe(reject_df, use_container_width=True, hide_index=True)
+
+    with b_sub3:
+        st.markdown("#### 4. 다학제적 멘탈 모델 (Charlie Munger's Latticework)")
+        st.markdown(f"""
+        <div style="{card_css}"><b>🛠️ 공학 — 단일 실패 지점 차단 (Redundancy):</b> 항공기나 원자로처럼 한 부품이 고장 나도 전체가 붕괴하지 않는 예비 백업 시스템이 있는가? 특정 단일 고객, 단일 벤더, 단일 핵심 인력의 이탈이 기업 존립을 위협하지 않도록 다중화가 되어 있어야 합니다.</div>
+        <div style="{card_css}"><b>⚗️ 물리·화학 — 티핑 포인트와 자가 촉매 (Autocatalysis):</b> 임계 질량(Critical Mass)을 돌파하여 기하급수적 네트워크 효과를 일으키는가? 생성된 결과물이 다시 원인으로 작용하여 스스로 수요를 창출하고 후발 주자가 영원히 따라잡지 못하는 가속도가 붙었는지 점검합니다.</div>
+        <div style="{card_css}"><b>📐 수학 — 복리 모형과 승수 효과 (Compound Model):</b> 투하자본이익률(ROIC)이 자본비용을 현저히 상회하고, 창출된 잉여현금을 다시 높은 ROIC로 재투자할 수 있는 구조적 '복리의 바퀴'가 돌고 있는가? 지수적(Exponential) 곡선을 만들어내는 엔진의 유무를 판별합니다.</div>
+        <div style="{card_css}"><b>🧬 생물학 — 현대 다윈주의적 적응력 (Evolutionary Fitness):</b> 비즈니스 환경, 규제 변화, 파괴적 기술 출현에 대응하여 자체 진화할 수 있는 적응적 적합도를 갖추었는가? 과거의 성공 공식에 안주하는 공룡 기업은 환경 급변 시 절멸하므로 환경 적응적 DNA를 확인합니다.</div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 5. 인지적 오판을 막는 8대 심리학 체크리스트 (The Psychology of Human Misjudgment)")
+        psych_8 = [
+            ("1. 인센티브 반응 편향", "경영진이나 애널리스트가 보너스, 스톡옵션 등 사익 추구 인센티브 때문에 현실을 왜곡하거나 비윤리적 판단을 내리고 있지 않은가?"),
+            ("2. 일관성 & 의심 회피", "과거 내가 내린 매수 결정을 정당화하기 위해 새로운 악재를 축소 해석하거나, 불확실성을 회피하고자 성급히 결론짓지 않았는가?"),
+            ("3. 질투 & 상호성 편향", "남들이 단기 급등주로 돈을 버는 모습에 질투심을 느끼거나, IR 담당자의 과도한 친절과 환대에 휘둘려 객관성을 잃지 않았는가?"),
+            ("4. 고통스러운 현실 부정", "비즈니스의 구조적 해자가 훼손되었다는 명백한 신호가 나타났음에도, 손실을 인정하기 싫어 거짓 희망(과잉 낙관)을 품지 않는가?"),
+            ("5. 사회적 증거 (군중 심리)", "시장 모두가 열광하며 사들이는 인기 테마에 편승하지 않았는가? '남들이 다 하니까 안전하다'는 착각은 대규모 손실의 진원지입니다."),
+            ("6. 가용성 편향 & 스트레스", "최근 뉴스나 눈에 띄는 생생한 단기 정보에만 과도한 가중치를 두지 않는가? 극심한 스트레스 상태에서는 중대한 투자 결정을 절대 금지합니다."),
+            ("7. 권위 맹신 & 소음 편향", "유명 펀드매니저, 경제학자, 정부 관료의 단기 거시경제 전망을 비판적 검증 없이 수용하여 기업 본질 분석을 소홀히 하지 않았는가?"),
+            ("8. 롤라팔루자 효과 (Lollapalooza)", "위 7가지 편향 중 2~3가지 이상이 동일한 방향으로 결합하여 집단 광기나 파괴적 맹점을 유발할 때(극단적 버블 또는 패닉) 즉시 판단을 멈추고 관망하십시오.")
+        ]
+        for p_t, p_d in psych_8:
+            st.markdown(f"<div style='padding:12px 16px; border-left:4px solid #facc15; background:rgba(255,255,255,0.02); margin-bottom:8px; border-radius:8px;'><b>{p_t}:</b> {p_d}</div>", unsafe_allow_html=True)
+
+    with b_sub4:
+        st.markdown("#### 6. 경영진의 자본 배분(Capital Allocation) 및 주주이익 분석")
+        st.markdown(f"""
+        <div style="{card_css} border-left:5px solid #2ecc71;">
+            <h4 style="color:#2ecc71; margin-top:0;">💰 버핏의 주주이익 (Owner Earnings) 산출 공식</h4>
+            보고된 회계상 순이익이나 감가상각을 제거한 왜곡된 EBITDA를 신뢰하지 않습니다.<br>
+            <div style="background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:10px; margin:10px 0; font-size:1.05rem; font-weight:800; color:#facc15;">
+                주주이익 = 당기순이익 + 비현금비용(감가상각 등) - 유지보수성 CapEx ∓ 운전자본 변동
+            </div>
+            * <b>유지보수성 CapEx(Maintenance CapEx):</b> 기업이 현재의 경쟁적 지위와 판매량을 유지하기 위해 필연적으로 재투자해야만 하는 최소한의 설비투자액.
+        </div>
+        <div style="{card_css}">
+            <h4 style="color:#A0C4FF; margin-top:0;">🔄 자본 배분의 5가지 경로 및 우선순위 검증</h4>
+            1. <b>본업 재투자:</b> 투하자본이익률(ROIC) > 자본비용일 때 가장 최우선 집행<br>
+            2. <b>선별적 M&A:</b> 해자를 강화하는 볼트온(Bolt-on) 인수인가, 제국 건설용 낭비인가<br>
+            3. <b>자사주 매입:</b> 주가가 내재가치 대비 현저히 저평가되었을 때만 집행 (고평가 시 매입 금지)<br>
+            4. <b>배당 지급:</b> 사내 재투자 기회가 고갈되었을 때 주주에게 현금 환원<br>
+            5. <b>부채 상환:</b> 재무 건전성을 확보하여 파산 위험 완전 격리
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 7. 밸류에이션, 매수 타이밍, 그리고 매도 3대 철칙")
+        st.markdown(f"""
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+            <div style="{card_css}">
+                <h4 style="color:#38bdf8; margin-top:0;">A. 밸류에이션 규준</h4>
+                • <b>거짓 정밀성(False Precision) 탈피:</b> 엑셀로 10년 DCF를 정밀 추정하는 환상을 버립니다. 암산으로도 확실히 안전마진이 보일 만큼 명백하게 싼 기회에만 들어갑니다.<br><br>
+                • <b>역산 밸류에이션 (Invert):</b> "현재 주가에 시장이 내포하고 있는 영구 성장률은 얼마인가?"를 역산하여 비상식적 기대가 없을 때 매수합니다.
+            </div>
+            <div style="{card_css}">
+                <h4 style="color:#2ecc71; margin-top:0;">B. 매수 타이밍 (피셔 · 버핏)</h4>
+                탁월한 기업이라도 오직 일시적 문제로 미스터 마켓이 패닉에 빠졌을 때만 집행합니다.<br><br>
+                1. 신제품 상업화 초기 단계의 일시적 결함<br>
+                2. 시장 전체의 거시경제적 비이성적 공황<br>
+                3. 기업의 근본 해자를 훼손하지 않는 일회성 소송이나 해결 가능한 경영 악재 발생 시
+            </div>
+            <div style="{card_css}">
+                <h4 style="color:#ff7675; margin-top:0;">C. 매도 3대 불변 원칙</h4>
+                오직 다음 3가지 경우에만 매도합니다:<br><br>
+                1. <b>분석 오류:</b> 내 본초 분석에 중대한 오류가 있었음을 발견했을 때<br>
+                2. <b>해자 훼손 / 극단적 고평가:</b> 비즈니스 해자가 영구 붕괴했거나 상상을 초월한 버블 상태<br>
+                3. <b>기회비용:</b> 훨씬 더 확실하고 압도적인 초우량 기회를 발굴했을 때
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 # ==========================================
 # 탭 5: AGIE 철학
 # ==========================================
