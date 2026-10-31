@@ -4320,6 +4320,39 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     if is_en:
         s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
         return re.sub(r'\s+', ' ', s).strip()
+def split_subtitle_phrases(text_line, max_len=17):
+    """
+    오디오는 한 문장으로 끊김 없이 읽되, 화면 자막만 14~18자(호흡 단위)로 쪼개어
+    '단기 주가 소음에 흔들리지 말고' -> '처음부터 4대 핵심 그래프를 다시 돌려보며' -> '동업 가치를 판단해 보세요!'
+    처럼 순차적으로 화면에 띄워주는 자막 분할기입니다. (직접 '/'를 입력하면 그 위치에서 즉시 분할)
+    """
+    clean_t = str(text_line).strip()
+    if "/" in clean_t:
+        return [p.strip() for p in clean_t.split("/") if p.strip()]
+
+    words = clean_t.split(" ")
+    if len(clean_t) <= max_len + 3 or len(words) <= 3:
+        return [clean_t]
+
+    phrases, cur = [], ""
+    # 한국어 호흡이 자연스럽게 끊기는 어미/조사 패턴
+    break_endings = ("말고", "보며", "인데", "는데", "지만", "하며", "이고", "입니다!", "입니다.", "까요?", "세요!", "소서!", "대비", "기준", "바탕으로", "함께", "통해")
+    for w in words:
+        cand = f"{cur} {w}".strip() if cur else w
+        if len(cand) >= 10 and (w.endswith(break_endings) or w.endswith(",")):
+            phrases.append(cand.rstrip(","))
+            cur = ""
+        elif len(cand) > max_len and cur:
+            phrases.append(cur)
+            cur = w
+        else:
+            cur = cand
+    if cur:
+        if phrases and len(cur) <= 5:
+            phrases[-1] = f"{phrases[-1]} {cur}"
+        else:
+            phrases.append(cur)
+    return phrases        
 
     # 1. "투하자본수익률(ROIC)" 처럼 한글 뒤 괄호 안에 영문 약어가 있으면 중복 발음 방지를 위해 괄호 안 영문을 먼저 제거
     s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
@@ -4331,6 +4364,7 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     s = s.replace("1대1", "일대일").replace("1:1", "일대일")
     s = re.sub(r'(\d),(\d{3})', r'\1\2', s)
     s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
+    s = s.replace("/", " ")
 
     # 3. 대소문자 구분 없이 SK가 "슥"으로 읽히지 않도록 단어 경계 및 접두사 정밀 치환!
     pron_map = [
@@ -7559,9 +7593,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         import subprocess
                         atempo_part = f"atempo={float(atempo_mult):.2f}," if abs(float(atempo_mult) - 1.0) > 0.02 else ""
                         pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
+                        # [수정 후] 문장 맨 앞/맨 뒤 무음만 안전하게 제거하여 발음 씹힘 100% 방지!
                         af_filter = (
-                            "silenceremove=start_periods=1:start_threshold=-34dB:"
-                            "stop_periods=-1:stop_threshold=-34dB:stop_duration=0.03,"
+                            "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,"
                             f"{atempo_part}{eq_str},volume=1.25{pad_part}"
                         )
                         try:
@@ -7822,13 +7856,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.05),0.10,0)'" if "시네마틱" in motion_intensity else "scale=720:1280:flags=lanczos"
 
                                 def _build_single_cut(idx_c, sub_t, sc_code, is_ch_start):
-                                    f_img = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                                     f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                    tmp_Created = [f_raw, f_wav, f_seg]
 
-                                    _draw_core_frame(idx_c, n_chunks, sub_t, sc_code, get_font).save(f_img)
-                                    _generate_chunk_voice(sub_t, f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_chapter_start=is_ch_start, is_final_cut=(idx_c == n_chunks - 1))
+                                    # 1) 오디오는 문장 전체(sub_t)를 한 번에 생성하여 "능력입니다/있습니다" 같은 어색한 끊김 0%!
+                                    _generate_chunk_voice(sub_t.replace("/", " "), f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_chapter_start=is_ch_start, is_final_cut=(idx_c == n_chunks - 1))
 
                                     exact_dur = 3.5
                                     try:
@@ -7837,23 +7871,51 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
+                                    # 2) 화면 자막만 호흡 단위(14~17자)로 2~3등분하여 오디오 진행 시간에 맞춰 이미지를 순차 전환!
+                                    sub_phrases = split_subtitle_phrases(sub_t, max_len=17)
+                                    total_ch_len = max(1, sum(len(p) for p in sub_phrases))
+
+                                    img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                    tmp_Created.append(img_concat_txt)
+                                    last_img_path = None
+
+                                    with open(img_concat_txt, "w", encoding="utf-8") as icf:
+                                        acc_dur = 0.0
+                                        for p_idx, p_txt in enumerate(sub_phrases):
+                                            f_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                            tmp_Created.append(f_img_p)
+                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font).save(f_img_p)
+                                            last_img_path = f_img_p
+
+                                            if p_idx < len(sub_phrases) - 1:
+                                                p_dur = round(exact_dur * (len(p_txt) / float(total_ch_len)), 3)
+                                                p_dur = max(0.45, min(exact_dur - acc_dur - 0.3, p_dur))
+                                                acc_dur += p_dur
+                                            else:
+                                                p_dur = max(0.3, round(exact_dur - acc_dur, 3))
+
+                                            icf.write(f"file '{f_img_p.replace(chr(92), '/')}'\n")
+                                            icf.write(f"duration {p_dur:.3f}\n")
+                                        if last_img_path:
+                                            icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
+
                                     cmd_primary = [
-                                        ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_dur:.3f}", "-i", f_img, "-i", f_wav,
+                                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
                                         "-vf", vf_motion,
                                         "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
                                         "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                         "-t", f"{exact_dur:.3f}", f_seg
                                     ]
                                     res_p = subprocess.run(cmd_primary, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                                    if res_p.returncode != 0:
+                                    if res_p.returncode != 0 and last_img_path:
                                         subprocess.run([
-                                            ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_dur:.3f}", "-i", f_img, "-i", f_wav,
+                                            ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_dur:.3f}", "-i", last_img_path, "-i", f_wav,
                                             "-vf", "scale=720:1280:flags=lanczos",
                                             "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
                                             "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                             "-t", f"{exact_dur:.3f}", f_seg
                                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                    return idx_c, f_seg, [f_img, f_raw, f_wav, f_seg]
+                                    return idx_c, f_seg, tmp_Created
 
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = []
@@ -9358,7 +9420,7 @@ with tab4:
 
                         is_last_b = (i_b == n_b - 1)
                         pad_b = "" if is_last_b else ",apad=pad_dur=0.05"
-                        af_b = f"silenceremove=start_periods=1:start_threshold=-34dB:stop_periods=-1:stop_threshold=-34dB:stop_duration=0.04,atempo=1.05,volume=1.25{pad_b}"
+                        af_b = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04:stop_threshold=-34dB:stop_duration=0.04,atempo=1.05,volume=1.25{pad_b}"
                         subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_b, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                         exact_d = 3.5
@@ -10379,15 +10441,13 @@ with tab_vs:
                             seg_list = [None] * n_vs
 
                             def _build_vs_cut(i_v, stxt, scd):
-                                fi = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                 fr = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                                 fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                 fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                                _draw_vs_pop_frame(i_v, stxt, scd).save(fi)
+                                tmp_v_list = [fr, fw, fs]
 
                                 v_id = "ko-KR-SunHiNeural" if "여성" in vs_voice else "ko-KR-InJoonNeural"
-                                # [핵심 수리] fix_global_tts_pronunciation 적용으로 SK하이닉스를 "에스케이 하이닉스"로 정확히 발음!
-                                tts_v = fix_global_tts_pronunciation(stxt, is_en=False)
+                                tts_v = fix_global_tts_pronunciation(stxt.replace("/", " "), is_en=False)
                                 import edge_tts, asyncio
                                 loop = asyncio.new_event_loop()
                                 try: loop.run_until_complete(edge_tts.Communicate(tts_v, voice=v_id, rate=f"+{int(vs_spd_pct)}%", pitch="+0Hz").save(fr))
@@ -10395,7 +10455,7 @@ with tab_vs:
 
                                 is_last_v = (i_v == n_vs - 1)
                                 pad_v = "" if is_last_v else ",apad=pad_dur=0.04"
-                                af_v = f"silenceremove=start_periods=1:start_threshold=-34dB:stop_periods=-1:stop_threshold=-34dB:stop_duration=0.03,atempo=1.05,volume=1.24{pad_v}"
+                                af_v = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo=1.05,volume=1.24{pad_v}"
                                 subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_v, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 exact_d = 3.5
@@ -10405,31 +10465,34 @@ with tab_vs:
                                 except Exception:
                                     pass
 
+                                sub_phrases = split_subtitle_phrases(stxt, max_len=17)
+                                tot_len = max(1, sum(len(p) for p in sub_phrases))
+                                ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                tmp_v_list.append(ic_txt)
+                                last_fi = None
+                                with open(ic_txt, "w", encoding="utf-8") as icf:
+                                    acc_d = 0.0
+                                    for p_i, p_t in enumerate(sub_phrases):
+                                        fi_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                        tmp_v_list.append(fi_p)
+                                        _draw_vs_pop_frame(i_v, p_t, scd).save(fi_p)
+                                        last_fi = fi_p
+                                        if p_i < len(sub_phrases) - 1:
+                                            pdur = max(0.45, min(exact_d - acc_d - 0.3, round(exact_d * (len(p_t) / float(tot_len)), 3)))
+                                            acc_d += pdur
+                                        else:
+                                            pdur = max(0.3, round(exact_d - acc_d, 3))
+                                        icf.write(f"file '{fi_p.replace(chr(92), '/')}'\n")
+                                        icf.write(f"duration {pdur:.3f}\n")
+                                    if last_fi:
+                                        icf.write(f"file '{last_fi.replace(chr(92), '/')}'\n")
+
                                 subprocess.run([
-                                    ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_d:.3f}", "-i", fi, "-i", fw,
+                                    ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", fw,
                                     "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
                                     "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                return i_v, fs, [fi, fr, fw, fs]
-
-                            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-                                futs = [ex.submit(_build_vs_cut, idx_v, s_t, s_c) for idx_v, (s_t, s_c) in enumerate(vs_pop_chunks)]
-                                for ft in concurrent.futures.as_completed(futs):
-                                    iv_r, fs_r, t_l = ft.result()
-                                    seg_list[iv_r] = fs_r
-                                    cleans.extend(t_l)
-
-                            cat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
-                            cleans.append(cat_txt)
-                            with open(cat_txt, "w", encoding="utf-8") as cf:
-                                for sp in seg_list: cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
-
-                            out_vs_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                            cleans.append(out_vs_mp4)
-                            subprocess.run([
-                                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt,
-                                "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_vs_mp4
-                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                return i_v, fs, tmp_v_list
 
                             # [59초 이내 절대 안전가드]
                             res_d_vs = subprocess.run([ffmpeg_exe, "-i", out_vs_mp4], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
@@ -11261,7 +11324,7 @@ with tab_sector:
 
                                 is_last_c = (idx_s == len(sec_shorts_chunks) - 1)
                                 pad_s = "" if is_last_c else ",apad=pad_dur=0.02"
-                                af_s = f"silenceremove=start_periods=1:start_threshold=-35dB:stop_periods=-1:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_s}"
+                                af_s = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_s}"
                                 subprocess.run([ffmpeg_exe, "-y", "-i", f_mp3, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 _add_heavy_sfx_and_bgm_sec(f_wav, is_last=is_last_c)
 
@@ -11406,7 +11469,7 @@ with tab_heatmap:
 
                             is_last_h = (idx_h == len(hm_chunks) - 1)
                             pad_h = "" if is_last_h else ",apad=pad_dur=0.02"
-                            af_h = f"silenceremove=start_periods=1:start_threshold=-35dB:stop_periods=-1:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_h}"
+                            af_h = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_h}"
                             subprocess.run([ffmpeg_exe, "-y", "-i", f_mp3, "-af", af_h, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                             _add_heavy_sfx_hm(f_wav)
 
@@ -11959,7 +12022,7 @@ with tab_eps_val:
 
                         is_last_c = (idx_s == len(fs_shorts_chunks) - 1)
                         pad_s = "" if is_last_c else ",apad=pad_dur=0.02"
-                        af_s = f"silenceremove=start_periods=1:start_threshold=-35dB:stop_periods=-1:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_s}"
+                        af_s = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04:stop_threshold=-35dB:stop_duration=0.02,atempo=1.25,volume=1.25{pad_s}"
                         subprocess.run([ffmpeg_exe, "-y", "-i", f_mp3, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                         res_v = subprocess.run([ffmpeg_exe, "-y", "-loop", "1", "-i", f_im, "-i", f_wav, "-vf", vf_fs_m, "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-shortest", f_seg], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
