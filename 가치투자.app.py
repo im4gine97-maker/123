@@ -7494,64 +7494,61 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
                     hook_45_map = {
-                        1: (f"내일 당장 주식시장이 5년간 문을 닫아도 {comp_name} 주식을 아무 불안 없이 보유할 수 있을까요?", f"주식을 종잇조각이 아닌 기업 소유권으로 보고 워런 버핏의 4대 기준으로 장부를 검증했습니다!", f"거래소가 5년간 문을 닫아도 버틸 주식인가? {comp_name} 장부 해부"),
-                        2: ("시장은 가치를 알려주는 스승이 아니라 가격만 제시하는 변덕스러운 미스터 마켓일 뿐입니다!", f"일일 주가 등락을 지우고 워런 버핏과 찰리 멍거의 평가 지침으로 {comp_name}을 해부해 봤습니다!", f"주가 차트 뒤에 숨겨진 {comp_name}의 진짜 주주이익과 해자"),
-                        3: ("단순히 장부가치만 싼 주식은 영구적 자본 손실을 부르는 위험한 가치 함정입니다!", f"강력한 경제적 해자와 실제 주주이익을 갖췄는지 {comp_name}의 10년 장부를 뜯어봤습니다!", f"가치 함정인가 진짜 해자 기업인가? {comp_name} 정밀 검증"),
-                        4: ("가장 안전하다는 10년물 미국 국채 이자보다 과연 이 회사가 돈을 더 확실하게 벌고 있을까요?", f"워런 버핏의 역산 밸류에이션과 자본 배분 원칙으로 {comp_name}을 정밀 진단했습니다!", f"미국 국채 금리 vs {comp_name} 주주이익 수익률 맞대결")
+                        1: (f"내일 당장 주식시장이 5년간 문을 닫아도 / {comp_name} 주식을 아무 불안 없이 보유할 수 있을까요?", f"주식을 종잇조각이 아닌 기업 소유권으로 보고 / 워런 버핏의 4대 기준으로 장부를 검증했습니다!", f"거래소가 5년간 문을 닫아도 버틸 주식인가? {comp_name} 장부 해부"),
+                        2: ("시장은 가치를 알려주는 스승이 아니라 / 가격만 제시하는 변덕스러운 미스터 마켓일 뿐입니다!", f"일일 주가 등락을 지우고 / 워런 버핏과 찰리 멍거의 평가 지침으로 / {comp_name}을 해부해 봤습니다!", f"주가 차트 뒤에 숨겨진 {comp_name}의 진짜 주주이익과 해자"),
+                        3: ("단순히 장부가치만 싼 주식은 / 영구적 자본 손실을 부르는 위험한 가치 함정입니다!", f"강력한 경제적 해자와 실제 주주이익을 갖췄는지 / {comp_name}의 10년 장부를 뜯어봤습니다!", f"가치 함정인가 진짜 해자 기업인가? {comp_name} 정밀 검증"),
+                        4: ("가장 안전하다는 10년물 미국 국채 이자보다 / 과연 이 회사가 돈을 더 확실하게 벌고 있을까요?", f"워런 버핏의 역산 밸류에이션과 자본 배분 원칙으로 / {comp_name}을 정밀 진단했습니다!", f"미국 국채 금리 vs {comp_name} 주주이익 수익률 맞대결")
                     }
                     hk_line1, hk_line2, yt_title_prefix_45 = hook_45_map.get(h_idx, hook_45_map[1])
 
-                    # -------------------------------------------------------------
-                    # [PDF 바이블 헌장 100% 반영 · 완결형 12문장 대본 (44~50초, 59초 이내 보장)]
-                    # -------------------------------------------------------------
-                    # 컷 3~4: 수학적 복리 모형(ROIC > 자본비용 12%) & 무형의 가격결정력(영업이익률) [PDF Part 1-2B, Part 2-5, Part 3-수학]
-                    pricing_power_txt = f"영업이익률도 {op_m:.1f}%에 달해 원가 상승을 고객에게 전가하는 가격결정력이 탁월합니다." if op_m >= 15.0 else f"현재 영업이익률은 {op_m:.1f}%로 원가 절감과 마진 방어력을 지속 점검해야 합니다."
+                    # 1) 복리의 바퀴 & 가격결정력 (슬래시 호흡 기본 내장)
+                    pricing_power_txt = f"영업이익률도 {op_m:.1f}%에 달해 / 원가 상승을 고객에게 전가하는 가격결정력이 탁월합니다." if op_m >= 15.0 else f"현재 영업이익률은 {op_m:.1f}%로 / 원가 절감과 마진 방어력을 지속 점검해야 합니다."
                     if cap_ret_val >= 15.0:
-                        m_line1 = f"첫째 복리의 바퀴와 가격결정력입니다! 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 12%를 크게 상회합니다."
+                        m_line1 = f"첫째 복리의 바퀴와 가격결정력입니다! / 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 12%를 크게 상회합니다."
                         m_line2 = f"자본 1,000만 원당 연 {roic_10m_manwon:,}만 원을 창출하며 {pricing_power_txt}"
                     elif cap_ret_val >= 10.0:
-                        m_line1 = f"첫째 복리 수익성입니다! 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 허들인 12% 부근을 유지 중입니다."
+                        m_line1 = f"첫째 복리 수익성입니다! / 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 허들인 12% 부근을 유지 중입니다."
                         m_line2 = f"자본 1,000만 원당 연 {roic_10m_manwon:,}만 원을 벌어들이며 {pricing_power_txt}"
                     elif cap_ret_val > 0:
-                        m_line1 = f"첫째 수익성 점검입니다! 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 기준선인 12%에 미달합니다."
-                        m_line2 = f"장부가치가 낮더라도 해자 수익성이 자본비용을 밑돌면 가치 함정이 될 수 있어 주의해야 합니다."
+                        m_line1 = f"첫째 수익성 점검입니다! / 현재 {cap_ret_label}이 연 {cap_ret_val:.1f}%로 자본비용 기준선인 12%에 미달합니다."
+                        m_line2 = "장부가치가 낮더라도 해자 수익성이 자본비용을 밑돌면 / 가치 함정이 될 수 있어 주의해야 합니다."
                     else:
-                        m_line1 = f"첫째 수익성 경고입니다! 현재 {cap_ret_label}이 {cap_ret_val:.1f}% 적자로 자본을 훼손하고 있습니다."
-                        m_line2 = "해자가 보장하는 현금창출력이 확인되기 전까지는 보수적인 관망이 필요한 구간입니다."
+                        m_line1 = f"첫째 수익성 경고입니다! / 현재 {cap_ret_label}이 {cap_ret_val:.1f}% 적자로 자본을 훼손하고 있습니다."
+                        m_line2 = "해자가 보장하는 현금창출력이 확인되기 전까지는 / 보수적인 관망이 필요한 구간입니다."
 
-                    # 컷 5~6: 거짓 정밀성 탈피 & 역산 밸류에이션(Invert) vs 버핏의 주주이익(FCF) [PDF Part 4-6, Part 4-7A]
+                    # 2) 역산 밸류에이션 & 주주이익 (슬래시 호흡 기본 내장)
                     if eff_cur_pe_sh > 0:
-                        b_line1 = f"둘째 역산 밸류에이션과 주주이익입니다! 현재 PER {eff_cur_pe_sh:.1f}배 기준 시장이 요구하는 영구 성장률은 연 {req_g_val:+.1f}%입니다."
+                        b_line1 = f"둘째 역산 밸류에이션과 주주이익입니다! / 현재 PER {eff_cur_pe_sh:.1f}배 기준 시장이 요구하는 영구 성장률은 연 {req_g_val:+.1f}%입니다."
                         if g_margin_val >= 2.0 and actual_fcf_g_val > 0:
-                            b_line2 = f"반면 설비투자를 뺀 실제 주주이익은 매년 {actual_fcf_g_val:+.1f}%씩 성장해 암산으로도 {g_margin_val:+.1f}%p의 안전마진이 보입니다."
+                            b_line2 = f"반면 설비투자를 뺀 실제 주주이익은 / 매년 {actual_fcf_g_val:+.1f}%씩 성장해 암산으로도 {g_margin_val:+.1f}%p의 안전마진이 보입니다."
                         elif g_margin_val >= -2.0 and actual_fcf_g_val > 0:
-                            b_line2 = f"설비투자를 차감한 실제 주주이익도 연 {actual_fcf_g_val:+.1f}%씩 성장해 현재 주가에 비상식적인 거품이 없습니다."
+                            b_line2 = f"설비투자를 차감한 실제 주주이익도 / 연 {actual_fcf_g_val:+.1f}%씩 성장해 현재 주가에 비상식적인 거품이 없습니다."
                         else:
-                            b_line2 = f"하지만 실제 주주이익 성장률은 연 {actual_fcf_g_val:+.1f}%에 머물러 현재 주가에 높은 미래 기대치가 선반영돼 있습니다."
+                            b_line2 = f"하지만 실제 주주이익 성장률은 연 {actual_fcf_g_val:+.1f}%에 머물러 / 현재 주가에 높은 미래 기대치가 선반영돼 있습니다."
                     else:
-                        b_line1 = "둘째 역산 밸류에이션 점검입니다! 현재 회계상 순이익 적자로 암산 이익수익률 산출이 불가능합니다."
-                        b_line2 = "버핏의 원칙에 따라 일시적 연구개발 투자로 인한 압박인지 구조적 적자인지 엄격히 구분해야 합니다."
+                        b_line1 = "둘째 역산 밸류에이션 점검입니다! / 현재 회계상 순이익 적자로 암산 이익수익률 산출이 불가능합니다."
+                        b_line2 = "일시적 연구개발 투자로 인한 압박인지 / 구조적 적자인지 엄격히 구분해야 합니다."
 
-                    # 컷 7~8: 거시 기회비용 (주식 이익수익률 vs 10년물 미국채 금리) [PDF Part 4-7]
-                    mac_line1 = f"셋째 무위험 채권과의 기회비용입니다! 10년물 미국채 금리가 연 {ty:.2f}%인데 이 기업의 이익수익률은 연 {cur_ey_val:.2f}%입니다."
+                    # 3) 무위험 채권과의 기회비용 (슬래시 호흡 기본 내장)
+                    mac_line1 = f"셋째 무위험 채권과의 기회비용입니다! / 10년물 미국채 금리가 연 {ty:.2f}%인데 이 기업의 이익수익률은 연 {cur_ey_val:.2f}%입니다."
                     if erp_val >= 0:
-                        mac_line2 = f"국채보다 연 {erp_val:+.2f}%p 높은 프리미엄을 제공해 기회비용 측면에서 주식 보유 매력이 확실히 앞섭니다."
+                        mac_line2 = f"국채보다 연 {erp_val:+.2f}%p 높은 프리미엄을 제공해 / 기회비용 측면에서 주식 보유 매력이 확실히 앞섭니다."
                     else:
-                        mac_line2 = f"단기 이익수익률은 국채보다 {abs(erp_val):.2f}%p 낮기 때문에 확실한 주주이익 복리 성장이 전제되어야 합니다."
+                        mac_line2 = f"단기 이익수익률은 국채보다 {abs(erp_val):.2f}%p 낮기 때문에 / 확실한 주주이익 복리 성장이 전제되어야 합니다."
 
-                    # 컷 9~10: 공학 단일 실패 지점 차단(재무 안전판) & 자본 배분(주주희석 배제 · 재투자 vs 배당) [PDF Part 2-13, Part 3-공학, Part 4-6]
+                    # 4) 재무 안전판 & 자본 배분 (슬래시 호흡 기본 내장)
                     dilution_warn = "유상증자나 전환사채로 인한 심각한 주식 희석 징후가 없으며," if bb_yield >= -1.0 else f"최근 주식 수가 연 {abs(bb_yield):.1f}% 늘어나 주주가치 희석 주의가 필요하며,"
-                    saf_line1 = f"넷째 재무 안전판과 자본 배분입니다! {dilution_warn} 유동비율 {current_ratio:.2f}배로 위기 대응 백업을 갖췄습니다." if current_ratio > 0 else f"넷째 자본 배분과 건전성입니다! {dilution_warn} 금융업 특성에 맞춘 자본 적정성을 유지 중입니다."
+                    saf_line1 = f"넷째 재무 안전판과 자본 배분입니다! / {dilution_warn} / 유동비율 {current_ratio:.2f}배로 위기 대응 백업을 갖췄습니다." if current_ratio > 0 else f"넷째 자본 배분과 건전성입니다! / {dilution_warn} / 금융업 특성에 맞춘 자본 적정성을 유지 중입니다."
                     if cap_ret_val >= 15.0 and safe_div < 1.5:
-                        saf_line2 = f"높은 투하자본수익률을 바탕으로 잉여현금을 본업에 최우선 재투자하며 복리 가치를 극대화하고 있습니다."
+                        saf_line2 = "높은 투하자본수익률을 바탕으로 / 잉여현금을 본업에 최우선 재투자하며 / 복리 가치를 극대화하고 있습니다."
                     elif safe_div > 0:
-                        saf_line2 = f"본업 재투자와 함께 최근 10년 중 {max(1, div_10y_cnt)}년간 꾸준히 현금 배당을 지급해 연 {safe_div:.2f}%를 환원 중입니다."
+                        saf_line2 = f"본업 재투자와 함께 최근 10년 중 {max(1, div_10y_cnt)}년간 / 꾸준히 현금 배당을 지급해 연 {safe_div:.2f}%를 환원 중입니다."
                     else:
-                        saf_line2 = "현재 배당 대신 설비투자와 부채 관리에 자본을 배치하고 있어 향후 투하자본수익률 반등이 핵심입니다."
+                        saf_line2 = "현재 배당 대신 설비투자와 부채 관리에 자본을 배치하고 있어 / 향후 투하자본수익률 반등이 핵심입니다."
 
-                    # 컷 11~12: 최종 관문(Final Gate: 10년 후 독점력 · 영구 보유 관점) & 무한루프 클로징 [PDF Part 4 Final Gate]
-                    sum_line1 = f"최종 점검입니다! 과연 {comp_name}이 10년 후에도 독점 해자를 유지하며 내 자본을 복리로 불려줄 기업일까요?"
-                    sum_line2 = "단기 주가 소음에 흔들리지 말고 처음부터 4대 핵심 그래프를 다시 돌려보며 동업 가치를 판단해 보세요!"
+                    # 5) 최종 점검 및 결론 (보여주신 예시와 100% 동일!)
+                    sum_line1 = f"최종 점검입니다! / 과연 {comp_name}이 10년 후에도 독점 해자를 유지하며 / 내 자본을 복리로 불려줄 기업일까요?"
+                    sum_line2 = "단기 주가 소음에 흔들리지 말고 / 동업 가치를 판단해 보세요!"
 
                     default_12cuts_script = [
                         f"[도입] {hk_line1}",
@@ -7567,7 +7564,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[결론] {sum_line1}",
                         f"[결론] {sum_line2}"
                     ]
-
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V22_BIBLE"
                     mode_tag_k = f"KO_{ov_sig}"
 
@@ -7958,14 +7954,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    # [싱크 완벽 보정] 화면 글자 수가 아니라 성우가 실제로 발음하는 음절 길이(spoken_weight) + 문장부호 휴지기로 시간 배분!
-                                    sub_phrases = split_subtitle_phrases(sub_t, max_len=19)
+                                    # [싱크 정밀 보정] 숫자·소수점·기호를 성우가 실제 발음하는 한글 음절로 변환해 자막 전환 타이밍 계산!
+                                    sub_phrases = split_subtitle_phrases(sub_t, max_len=24)
                                     spoken_weights = []
                                     for p_txt in sub_phrases:
-                                        spoken_str = re.sub(r'\s+', '', fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts))
-                                        # 느낌표/물음표/마침표가 있으면 성우가 0.25초 쉬어가므로 가중치(+3.5음절) 추가
-                                        pause_w = 3.5 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", "다!", "다.", "요?", "요!"]) else 0.8
-                                        spoken_weights.append(max(2.0, float(len(spoken_str)) + pause_w))
+                                        s_pron = fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts)
+                                        s_pron = s_pron.replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
+                                        # 숫자 1글자는 한국어 발음 시 평균 1.8음절(예: 14 -> 십사, 31 -> 삼십일)을 차지함
+                                        digit_cnt = sum(1 for ch in s_pron if ch.isdigit())
+                                        text_cnt = sum(1 for ch in re.sub(r'\s+', '', s_pron) if not ch.isdigit())
+                                        pause_w = 2.8 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
+                                        spoken_weights.append(max(2.0, text_cnt + (digit_cnt * 1.8) + pause_w))
 
                                     total_weight = sum(spoken_weights)
                                     img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
