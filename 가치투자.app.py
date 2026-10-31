@@ -8238,6 +8238,509 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
                # ▼▼▼ [수리 3 최종 완전체] 📊 10년(40분기) 연간 · 분기별 · 연환산(TTM/×4) 핵심 장부 요약 및 차트 (한국 DART 4대 보고서 & 미국 SEC 10-Q/10-K 10년 연동) ▼▼▼
                 st.divider()
+# =========================================================================
+                # [신규 탑재] 📺 7. 16:9 와이드 롱폼(Long-Form) 심층 다큐멘터리 스튜디오 (1920x1080 FHD)
+                # - 블룸버그 터미널 x 버크셔 주주서한 스타일의 6챕터 와이드 프레젠테이션 자동 렌더링!
+                # =========================================================================
+                with st.expander(t("📺 7. 유튜브 롱폼(16:9 FHD) 심층 기업해부 다큐멘터리 스튜디오", "📺 7. YouTube Long-Form (16:9 FHD) Deep-Dive Studio"), expanded=False):
+                    st.info("💎 **[1920×1080 FHD 와이드 데스크탑 뷰]** 쇼츠에서 다 담지 못한 **워런 버핏·찰리 멍거·리루의 6대 평가 프레임워크(소유권 · 복리 해자 · 주주이익 역산 · 미국채 기회비용 · 4대 과학 멘탈모델 · 매수/매도 철칙)**를 3분 분량의 고품격 와이드 프레젠테이션 영상(.mp4)으로 제작합니다.")
+
+                    lf_c1, lf_c2, lf_c3 = st.columns(3)
+                    with lf_c1:
+                        lf_voice = st.selectbox(
+                            "1️⃣ 롱폼 전용 다큐멘터리 성우",
+                            [
+                                "🎙️ 인준 (차분하고 신뢰감 있는 중저음 다큐멘터리 톤)",
+                                "⚡ 선희 (명쾌하고 지적인 프레젠테이션 아나운서 톤)"
+                            ],
+                            key=f"lf_voice_sel_{tk}"
+                        )
+                    with lf_c2:
+                        lf_spd = st.slider(
+                            "2️⃣ 성우 낭독 배속 (롱폼 황금배속 +18%)",
+                            min_value=0, max_value=50, value=18, step=2, format="+%d%%",
+                            help="롱폼 다큐멘터리는 쇼츠보다 살짝 여유 있고 중후한 +16%~+20% 배속이 가장 몰입감이 높습니다.",
+                            key=f"lf_spd_sel_{tk}"
+                        )
+                    with lf_c3:
+                        lf_bgm = st.selectbox(
+                            "3️⃣ 배경음악 (다큐멘터리 앰비언트)",
+                            [
+                                "🎹 시네마틱 딥 포커스 앰비언트 (은은한 배경음)",
+                                "🔇 배경음악 없음 (성우 목소리만)"
+                            ],
+                            key=f"lf_bgm_sel_{tk}"
+                        )
+
+                    # 롱폼용 핵심 변수 정리
+                    lf_eff_pe = t_pe if (t_pe and t_pe > 0) else (f_pe if f_pe > 0 else 0.0)
+                    lf_ey = (100.0 / lf_eff_pe) if lf_eff_pe > 0 else 0.0
+                    lf_req_g = 10.0 - lf_ey
+                    lf_fcf_g = final_g * 100.0
+                    lf_g_margin = lf_fcf_g - lf_req_g
+                    lf_erp = lf_ey - ty
+                    lf_cap_val = roe if is_financial else (roic_val if roic_val != 0 else roe)
+                    lf_cap_lbl = "자기자본수익률" if is_financial else "투하자본수익률"
+                    lf_roic_gap = lf_cap_val - 12.0
+                    lf_roic_won = int(round(lf_cap_val * 10.0, 0))
+                    lf_ey_won = int(round(lf_ey * 10.0, 0))
+                    lf_bond_won = int(round(ty * 10.0, 0))
+                    lf_div_val = div if 'div' in locals() else 0.0
+                    lf_comp_nm = primary_names.get(tk, i.get('shortName', tk))
+                    lf_clean_tk = tk.split('.')[0] if kr else tk
+                    lf_today = datetime.now().strftime('%Y.%m.%d')
+
+                    # 6개 챕터 구성의 심층 다큐멘터리 대본 (슬래시 '/'로 자막 호흡 완벽 제어)
+                    lf_ch1_intro = (
+                        f"[CH1] 주식을 단순한 유가증권 조각이 아니라 / 실체적 비즈니스의 지분 100%를 인수하는 동업으로 보십시오. / "
+                        f"내일 당장 증권거래소가 5년간 문을 닫더라도 / 아무런 불안 없이 보유할 수 있는 기업인지 확인하기 위해, / "
+                        f"워런 버핏과 찰리 멍거, 그리고 리루의 가치투자 헌장을 바탕으로 / {lf_comp_nm}의 10년 장부를 정밀 해부해 보겠습니다."
+                    )
+                    if lf_cap_val >= 15.0:
+                        lf_ch2_moat = (
+                            f"[CH2] 첫 번째 관문은 경제적 해자와 수학적 복리 엔진입니다. / "
+                            f"현재 {lf_comp_nm}의 {lf_cap_lbl}은 연 {lf_cap_val:.1f}%로, / 시장 평균 자본비용인 12%를 무려 {lf_roic_gap:+.1f}%p나 초과하고 있습니다. / "
+                            f"자본 1,000만 원당 매년 {lf_roic_won:,}만 원의 수익을 창출하는 셈이며, / "
+                            f"본업의 영업이익률 역시 {op_m:.1f}%를 기록해 / 인플레이션 원가 상승분을 고객에게 전가하는 가격결정력을 증명하고 있습니다."
+                        )
+                    else:
+                        lf_ch2_moat = (
+                            f"[CH2] 첫 번째 관문은 경제적 해자와 수익성 점검입니다. / "
+                            f"현재 {lf_comp_nm}의 {lf_cap_lbl}은 연 {lf_cap_val:.1f}%로, / 자본비용 허들인 12% 대비 {lf_roic_gap:+.1f}%p 수준을 기록하고 있습니다. / "
+                            f"영업이익률은 {op_m:.1f}%를 나타내고 있어, / 단순한 장부가치 할인에 속는 가치 함정을 피하려면 / 본업의 마진 방어력과 자본 효율성 반등을 반드시 확인해야 합니다."
+                        )
+
+                    if lf_eff_pe > 0:
+                        lf_ch3_val = (
+                            f"[CH3] 두 번째 관문은 거짓 정밀성을 탈피한 역산 밸류에이션과 주주이익입니다. / "
+                            f"엑셀로 복잡한 10년 추정치를 맞추는 환상 대신 / 현재 주가에 내포된 시장의 기대치를 역산해 보겠습니다. / "
+                            f"현재 PER {lf_eff_pe:.1f}배 기준 이익수익률은 연 {lf_ey:.2f}%이므로, / 연 10% 허들을 넘기 위해 필요한 영구 성장률은 연 {lf_req_g:+.1f}%입니다. / "
+                            f"반면 설비투자를 차감한 실제 주주이익 성장률은 연 {lf_fcf_g:+.1f}%를 기록해 / 요구치 대비 {lf_g_margin:+.1f}%p의 {'탄탄한 안전마진이 확보되어 있습니다.' if lf_g_margin >= 0 else '성장 부담이 존재하므로 보수적 접근이 필요합니다.'}"
+                        )
+                    else:
+                        lf_ch3_val = (
+                            f"[CH3] 두 번째 관문은 주주이익과 역산 밸류에이션 점검입니다. / "
+                            f"현재 회계상 순이익 적자 구간으로 PER 기반의 이익수익률 역산이 제한됩니다. / "
+                            f"버핏의 지침에 따라 선제적 연구개발 투자로 인한 일시적 마진 압박인지, / 아니면 구조적인 현금 창출 능력 훼손인지 10년 현금흐름표를 통해 엄격히 구분해야 합니다."
+                        )
+
+                    lf_ch4_macro = (
+                        f"[CH4] 세 번째 관문은 무위험 자산인 10년물 미국 국채와의 기회비용 비교입니다. / "
+                        f"현재 10년물 미국채 금리가 연 {ty:.2f}%로 / 1,000만 원 투자 시 매년 {lf_bond_won}만 원의 확정 이자를 제공합니다. / "
+                        f"이에 맞서는 {lf_comp_nm}의 이익수익률은 연 {lf_ey:.2f}%, 금액으로는 연 {lf_ey_won}만 원 수준이어서 / "
+                        f"국채 대비 {lf_erp:+.2f}%p의 스프레드를 기록 중입니다. / "
+                        f"{'무위험 채권보다 당장의 수익 매력이 확실히 우위에 있습니다.' if lf_erp >= 0 else '단기 이자율은 국채가 앞서므로 장기적인 주주이익 복리 성장이 반드시 뒷받침되어야 합니다.'}"
+                    )
+
+                    lf_dil_str = "유상증자나 전환사채 남발로 인한 심각한 주주가치 희석 징후가 없으며," if bb_yield >= -1.0 else f"최근 주식 수가 연 {abs(bb_yield):.1f}% 증가해 주주가치 희석 여부를 면밀히 감시해야 하며,"
+                    lf_ch5_mental = (
+                        f"[CH5] 네 번째 관문은 찰리 멍거의 다학제적 멘탈 모델과 자본 배분 감사입니다. / "
+                        f"공학적 관점에서 유동비율 {current_ratio:.2f}배의 유동성 백업을 확보해 / 단일 실패 지점 리스크를 차단하고 있는지 점검해야 합니다. / "
+                        f"또한 피셔의 13번째 원칙에 비추어 볼 때 {lf_dil_str} / "
+                        f"창출된 현금은 본업 재투자와 연 {lf_div_val:.2f}%의 순수 현금배당으로 배분되고 있습니다."
+                    )
+
+                    lf_ch6_outro = (
+                        f"[CH6] 마지막 최종 게이트와 매수·매도 원칙입니다. / "
+                        f"위대한 기업이라도 미스터 마켓이 거시경제 공황이나 일시적 악재로 패닉에 빠졌을 때 매수하고, / "
+                        f"오직 분석 오류나 해자 붕괴, 또는 훨씬 더 확실한 기회비용이 나타났을 때만 매도해야 합니다. / "
+                        f"과연 {lf_comp_nm}이 향후 10년 뒤에도 독점력을 유지할 평생의 동업자인지 / 본 데이터 리포트를 통해 현명한 의사결정을 내리시기 바랍니다."
+                    )
+
+                    default_lf_script = "\n".join([lf_ch1_intro, lf_ch2_moat, lf_ch3_val, lf_ch4_macro, lf_ch5_mental, lf_ch6_outro])
+                    lf_script_input = st.text_area(
+                        "✏️ 롱폼 6챕터 다큐멘터리 대본 편집창 ([CH1]~[CH6] 태그에 맞춰 1920x1080 와이드 차트 보드가 자동 전환되며, '/' 위치마다 하단 자막이 바뀝니다)",
+                        value=default_lf_script,
+                        height=260,
+                        key=f"lf_script_area_{tk}"
+                    )
+
+                    if st.button("🎬 16:9 FHD 와이드 롱폼 다큐멘터리(.mp4) 렌더링 시작", key=f"btn_gen_lf_{tk}", use_container_width=True, type="primary"):
+                        try:
+                            from PIL import Image, ImageDraw
+                            import imageio_ffmpeg, subprocess, tempfile, os, re, wave, struct, math
+
+                            with st.spinner(f"[{lf_comp_nm}] 1920×1080 FHD 6챕터 와이드 인포그래픽 & 다큐멘터리 오디오 렌더링 중..."):
+                                get_font_lf = _load_korean_pil_fonts()
+                                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                                cleanup_lf = []
+
+                                raw_lf_lines = [ln.strip() for ln in lf_script_input.split("\n") if ln.strip()]
+                                lf_chunks = []
+                                for idx_r, r_ln in enumerate(raw_lf_lines):
+                                    ch_code = f"CH{min(6, idx_r + 1)}"
+                                    cl_s = r_ln
+                                    for c_i in range(1, 7):
+                                        if cl_s.startswith(f"[CH{c_i}]"):
+                                            ch_code = f"CH{c_i}"
+                                            cl_s = cl_s.replace(f"[CH{c_i}]", "").strip()
+                                            break
+                                    lf_chunks.append((cl_s, ch_code))
+
+                                n_lf = len(lf_chunks)
+
+                                def _draw_longform_16x9_frame(ch_idx, total_chs, sub_phrase, ch_code):
+                                    W, H = 1920, 1080
+                                    img = Image.new("RGB", (W, H), color=(7, 10, 19))
+                                    draw = ImageDraw.Draw(img)
+
+                                    ch_themes = {
+                                        "CH1": ((56, 189, 248), "CHAPTER 1 · 기업 소유권(Ownership)과 가치투자 4대 헌장"),
+                                        "CH2": ((0, 230, 118), "CHAPTER 2 · 경제적 해자(ROIC 복리 엔진) & 무형의 가격결정력"),
+                                        "CH3": ((245, 158, 11), "CHAPTER 3 · 버핏의 주주이익(Owner Earnings) & 역산 밸류에이션"),
+                                        "CH4": ((59, 130, 246), "CHAPTER 4 · 거시 기회비용 검증 : 10년물 미국채 vs 이익수익률"),
+                                        "CH5": ((168, 85, 247), "CHAPTER 5 · 찰리 멍거의 다학제적 멘탈모델 & 자본 배분 감사"),
+                                        "CH6": ((0, 200, 83), "CHAPTER 6 · 피셔·버핏의 매수 타이밍 & 매도 3대 불변 철칙")
+                                    }
+                                    theme_c, ch_header_txt = ch_themes.get(ch_code, ((56, 189, 248), "가치투자 심층 브리핑"))
+
+                                    # 1. 상단 와이드 마스터 헤더 바 (Y: 0 ~ 115)
+                                    draw.rectangle([0, 0, W, 115], fill=(12, 18, 34))
+                                    draw.rectangle([0, 112, W, 118], fill=(28, 38, 58))
+                                    draw.rectangle([0, 112, int(W * ((ch_idx + 1) / max(1, total_chs))), 118], fill=theme_c)
+
+                                    _draw_box_with_centered_text(draw, [40, 24, 340, 88], f"AGIE MASTER REPORT", get_font_lf, box_fill=theme_c, radius=12, start_sz=24, txt_fill=(255,255,255), stroke_w=2)
+                                    _fit_single_line(draw, 920, 56, 1100, f"{lf_comp_nm} ({lf_clean_tk}) · 10년 장부 & 가치투자 헌장 정밀 해부", get_font_lf, start_sz=38, min_sz=20, fill=(255, 240, 0), stroke_w=4)
+                                    _draw_box_with_centered_text(draw, [1540, 24, 1880, 88], f"기준일: {lf_today} · {p_str}", get_font_lf, box_fill=(20, 30, 52), outline_col=theme_c, outline_w=2, radius=12, start_sz=22, txt_fill=(255,255,255))
+
+                                    # 2. 좌측 고정 사이드바 (X: 40 ~ 445, Y: 140 ~ 860) - 6챕터 진행 트리 & 핵심 스펙 요약
+                                    draw.rounded_rectangle([40, 140, 445, 860], radius=20, fill=(11, 16, 30), outline=(40, 55, 80), width=2)
+                                    _fit_single_line(draw, 242, 178, 360, "ANALYSIS ROADMAP", get_font_lf, start_sz=22, fill=(160, 196, 255), stroke_w=2)
+
+                                    nav_items = [
+                                        ("CH1", "1. 기업 소유권 & 4대 철학"),
+                                        ("CH2", "2. 해자(ROIC) & 가격결정력"),
+                                        ("CH3", "3. 주주이익 & 역산 밸류"),
+                                        ("CH4", "4. vs 10년물 미국채 금리"),
+                                        ("CH5", "5. 멘탈모델 & 자본배분"),
+                                        ("CH6", "6. 매수타이밍 & 매도철칙")
+                                    ]
+                                    for idx_n, (nc, n_lbl) in enumerate(nav_items):
+                                        ny1 = 212 + idx_n * 62
+                                        is_cur = (ch_code == nc)
+                                        draw.rounded_rectangle([60, ny1, 425, ny1 + 50], radius=10, fill=theme_c if is_cur else (18, 25, 42), outline=(255, 240, 0) if is_cur else (45, 60, 85), width=3 if is_cur else 1)
+                                        _fit_single_line(draw, 242, ny1 + 25, 340, n_lbl, get_font_lf, start_sz=20, fill=(255, 255, 255) if is_cur else (140, 155, 175), stroke_w=2 if is_cur else 0)
+
+                                    # 좌측 하단 핵심 스펙 미니 보드
+                                    draw.rounded_rectangle([60, 598, 425, 840], radius=14, fill=(15, 22, 38), outline=theme_c, width=2)
+                                    _fit_single_line(draw, 242, 628, 330, f"[{lf_comp_nm} 핵심 요약]", get_font_lf, start_sz=20, fill=(255, 240, 0), stroke_w=2)
+                                    specs_lf = [
+                                        f"• {lf_cap_lbl}: 연 {lf_cap_val:.1f}%",
+                                        f"• 현재 PER / PBR: {lf_eff_pe:.1f}배 / {pbr:.2f}배",
+                                        f"• 이익수익률(1/PER): 연 {lf_ey:.2f}%",
+                                        f"• 주주이익(FCF) 성장: 연 {lf_fcf_g:+.1f}%",
+                                        f"• 순수 현금배당: 연 {lf_div_val:.2f}%"
+                                    ]
+                                    for idx_sp, sp_s in enumerate(specs_lf):
+                                        _fit_single_line(draw, 242, 668 + idx_sp * 32, 340, sp_s, get_font_lf, start_sz=18, fill=(220, 230, 245))
+
+                                    # 3. 우측 메인 와이드 프레젠테이션 스테이지 (X: 470 ~ 1880, Y: 140 ~ 860)
+                                    draw.rounded_rectangle([470, 140, 1880, 860], radius=22, fill=(11, 16, 30), outline=theme_c, width=4)
+                                    draw.rounded_rectangle([495, 162, 1855, 220], radius=12, fill=(18, 28, 48), outline=theme_c, width=2)
+                                    _fit_single_line(draw, 1175, 191, 1300, ch_header_txt, get_font_lf, start_sz=27, fill=(255, 240, 0), stroke_w=2)
+
+                                    if ch_code == "CH1":
+                                        # [CH1 와이드 그래픽: 가치투자 4대 불변 철학 2x2 매트릭스 + 종합 스코어]
+                                        c_boxes = [
+                                            ("원칙 1. 기업 소유권 (Ownership)", "주식은 종잇조각이 아닌 실체적 비즈니스의 지분!", "거래소가 5년간 문을 닫아도 불안 없는 기업만 보유", (0, 230, 118)),
+                                            ("원칙 2. 미스터 마켓 (Mr. Market)", "시장은 스승이 아닌 가격만 제시하는 변덕쟁이!", "일일 시세 등락은 무시하고 패닉과 광기만 역이용", (56, 189, 248)),
+                                            ("원칙 3. 해자 기반 안전마진", f"{lf_comp_nm} 주주이익 성장 연 {lf_fcf_g:+.1f}% vs 요구치 {lf_req_g:+.1f}%", "해자 없는 단순 저PBR 염가 매수는 가치 함정(Value Trap)", (245, 158, 11)),
+                                            ("원칙 4. 능력 범위 (Circle of Competence)", f"본업 영업마진 {op_m:.1f}% · 유동비율 {current_ratio:.2f}배 검증", "전문가의 비관적 반론을 논리로 반박 가능한 기업만 투자", (168, 85, 247))
+                                        ]
+                                        for idx_cb, (ct, cm, cs, cc) in enumerate(c_boxes):
+                                            bx1 = 505 if (idx_cb % 2 == 0) else 1195
+                                            by1 = 245 if (idx_cb < 2) else 515
+                                            draw.rounded_rectangle([bx1, by1, bx1 + 655, by1 + 240], radius=18, fill=(16, 24, 42), outline=cc, width=3)
+                                            _draw_box_with_centered_text(draw, [bx1 + 24, by1 + 20, bx1 + 631, by1 + 74], ct, get_font_lf, box_fill=cc, radius=10, start_sz=24, txt_fill=(255,255,255), stroke_w=2)
+                                            _fit_single_line(draw, bx1 + 327, by1 + 128, 610, cm, get_font_lf, start_sz=25, fill=(255, 240, 0), stroke_w=2)
+                                            _fit_single_line(draw, bx1 + 327, by1 + 190, 610, cs, get_font_lf, start_sz=20, fill=(210, 225, 240))
+
+                                        _draw_box_with_centered_text(draw, [505, 775, 1850, 838], f"바이블 종합 진단 : {op_title} · 투하자본수익률 연 {lf_cap_val:.1f}% / 역산 안전마진 {lf_g_margin:+.1f}%p", get_font_lf, box_fill=(20, 34, 58), outline_col=theme_c, outline_w=2, radius=12, start_sz=23, txt_fill=(0, 255, 136))
+
+                                    elif ch_code == "CH2":
+                                        # [CH2 와이드 그래픽: 좌측 ROIC vs 자본비용 막대그래프 + 우측 가격결정력 & 자본경량성 진단 카드]
+                                        draw.rounded_rectangle([500, 240, 1160, 755], radius=18, fill=(15, 22, 38), outline=(0, 230, 118), width=3)
+                                        _fit_single_line(draw, 830, 278, 620, f"복리 엔진({lf_cap_lbl}) vs 자본비용 허들(12%)", get_font_lf, start_sz=24, fill=(255, 240, 0), stroke_w=2)
+                                        b_base = 665
+                                        mx_rv = max(20.0, abs(lf_cap_val) * 1.25)
+                                        bars_m = [
+                                            ("은행예금", 3.5, "+35만/년", (100, 116, 139)),
+                                            ("자본비용(허들)", 12.0, "+120만/년", (56, 189, 248)),
+                                            (lf_comp_nm, lf_cap_val, f"{lf_roic_won:+,}만/년", (0, 230, 118) if lf_cap_val >= 12.0 else (245, 158, 11))
+                                        ]
+                                        for ib, (bn, bv, bw_s, bc_m) in enumerate(bars_m):
+                                            bx_m = 545 + ib * 200
+                                            bh_m = int(max(36, min(310, (max(0.5, abs(bv)) / mx_rv) * 310)))
+                                            draw.rounded_rectangle([bx_m, b_base - bh_m, bx_m + 145, b_base], radius=12, fill=bc_m, outline=(255,240,0) if ib==2 else None, width=4 if ib==2 else 0)
+                                            _fit_single_line(draw, bx_m + 72, b_base - bh_m - 28, 170, f"연 {bv:.1f}%", get_font_lf, start_sz=26, fill=(255, 240, 0) if ib==2 else (220,230,240), stroke_w=2)
+                                            _fit_single_line(draw, bx_m + 72, b_base - max(22, bh_m // 2), 135, bw_s, get_font_lf, start_sz=20, fill=(255,255,255), stroke_w=2)
+                                            _fit_single_line(draw, bx_m + 72, b_base + 28, 175, bn, get_font_lf, start_sz=20, fill=(255,255,255))
+
+                                        # 우측: 가격결정력(Pricing Power) & 10년 평균 수익성 보드
+                                        draw.rounded_rectangle([1190, 240, 1850, 755], radius=18, fill=(15, 22, 38), outline=(56, 189, 248), width=3)
+                                        _fit_single_line(draw, 1520, 278, 620, "무형의 가격결정력(Pricing Power) & 해자 검증", get_font_lf, start_sz=24, fill=(255, 240, 0), stroke_w=2)
+                                        right_cards = [
+                                            ("본업 영업이익률 (마진 방어력)", f"연 {op_m:.1f}%", "원가 상승분을 고객에게 전가 가능한 독점적 마진" if op_m >= 15.0 else "산업 내 경쟁 및 원가 통제력 지속 관찰 필요"),
+                                            ("1,000만 원당 연간 창출 수익", f"{lf_roic_won:+,}만 원 / 년", f"S&P500 평균(+120만 원) 대비 {lf_roic_gap:+.1f}%p 격차"),
+                                            ("해자 지속성 (10년 역사적 체력)", f"10년 평균 ROE {hist_roe_10y:.1f}%" if hist_roe_10y else f"현재 ROE {roe:.1f}%", "단발성 호황이 아닌 구조적 복리의 바퀴 작동 여부")
+                                        ]
+                                        for irc, (rt, rv, rd) in enumerate(right_cards):
+                                            ry_c = 320 + irc * 138
+                                            draw.rounded_rectangle([1215, ry_c, 1825, ry_c + 120], radius=14, fill=(20, 30, 52), outline=(60, 80, 115), width=2)
+                                            _fit_single_line(draw, 1520, ry_c + 28, 580, rt, get_font_lf, start_sz=20, fill=(180, 200, 230))
+                                            _fit_single_line(draw, 1520, ry_c + 64, 580, rv, get_font_lf, start_sz=30, fill=(0, 255, 136) if lf_cap_val >= 12.0 else (255, 240, 0), stroke_w=3)
+                                            _fit_single_line(draw, 1520, ry_c + 98, 580, rd, get_font_lf, start_sz=17, fill=(220, 230, 240))
+
+                                        _draw_box_with_centered_text(draw, [500, 775, 1850, 838], f"핵심 판정: 인플레이션 방어력의 본질은 부동산이 아닌 무형의 가격결정력({op_m:.1f}%)과 높은 ROIC({lf_cap_val:.1f}%)입니다.", get_font_lf, box_fill=(20, 34, 58), radius=12, start_sz=22, txt_fill=(255, 255, 255))
+
+                                    elif ch_code == "CH3":
+                                        # [CH3 와이드 그래픽: 좌측 역산 밸류에이션(Invert) 공식 카드 + 우측 10년 주주이익(FCF) 대형 막대차트]
+                                        draw.rounded_rectangle([500, 240, 1080, 755], radius=18, fill=(15, 22, 38), outline=(245, 158, 11), width=3)
+                                        _fit_single_line(draw, 790, 278, 540, "버핏의 역산 밸류에이션 (Invert)", get_font_lf, start_sz=24, fill=(255, 240, 0), stroke_w=2)
+                                        inv_boxes = [
+                                            ("1. 현재 이익수익률 (1 / PER)", f"연 {lf_ey:.2f}% (PER {lf_eff_pe:.1f}배)", (56, 189, 248)),
+                                            ("2. 연 10% 허들 내포 요구성장률", f"매년 {lf_req_g:+.1f}% 성장 필요", (245, 158, 11)),
+                                            ("3. 실제 주주이익(FCF) 성장률", f"매년 {lf_fcf_g:+.1f}% 실제 성장!", (0, 230, 118) if lf_g_margin >= 0 else (255, 23, 68)),
+                                            ("4. 암산 역산 안전마진 격차", f"{lf_g_margin:+.1f}%p {'안전마진 확보!' if lf_g_margin >= 0 else '성장 기대치 부담'}", (0, 230, 118) if lf_g_margin >= 0 else (255, 23, 68))
+                                        ]
+                                        for i_iv, (ivt, ivv, ivc) in enumerate(inv_boxes):
+                                            iy = 315 + i_iv * 105
+                                            draw.rounded_rectangle([525, iy, 1055, iy + 90], radius=12, fill=(20, 30, 52), outline=ivc, width=3)
+                                            _fit_single_line(draw, 790, iy + 28, 500, ivt, get_font_lf, start_sz=19, fill=(200, 215, 235))
+                                            _fit_single_line(draw, 790, iy + 64, 500, ivv, get_font_lf, start_sz=27, fill=(255, 240, 0), stroke_w=2)
+
+                                        # 우측: 최근 10년 실제 주주이익(FCF = OCF - 유지보수 CapEx) 추이 대형 차트
+                                        draw.rounded_rectangle([1110, 240, 1850, 755], radius=18, fill=(15, 22, 38), outline=(0, 230, 118), width=3)
+                                        _fit_single_line(draw, 1480, 278, 700, "최근 10년 버핏의 주주이익 (Owner Earnings / FCF) 추이", get_font_lf, start_sz=23, fill=(255, 240, 0), stroke_w=2)
+                                        d_fvals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [1.0, 1.2, 1.5, 1.8]
+                                        d_fyrs = fcf_yrs_10y[-len(d_fvals):] if len(fcf_yrs_10y) >= len(d_fvals) else [str(2026-i) for i in range(len(d_fvals))][::-1]
+                                        mx_fv = max([abs(v) for v in d_fvals] + [1.0]) * 1.18
+                                        n_fv = len(d_fvals)
+                                        bw_f = max(32, min(52, int(620 / max(1, n_fv))))
+                                        bg_f = max(8, int((680 - bw_f * n_fv) / max(1, n_fv + 1)))
+                                        base_fy = 685
+                                        for idx_f, (fv, fy_s) in enumerate(zip(d_fvals, d_fyrs)):
+                                            bxf = 1135 + bg_f + idx_f * (bw_f + bg_f)
+                                            bhf = int(max(20, min(330, (abs(fv) / mx_fv) * 330)))
+                                            bcol = (255, 23, 68) if fv < 0 else ((255, 240, 0) if idx_f == n_fv - 1 else (0, 230, 118))
+                                            draw.rounded_rectangle([bxf, base_fy - bhf, bxf + bw_f, base_fy], radius=6, fill=bcol)
+                                            _fit_single_line(draw, bxf + bw_f//2, base_fy - bhf - 18, bw_f + 24, f"{fv:,.0f}", get_font_lf, start_sz=15, min_sz=10, fill=(255, 255, 255))
+                                            _fit_single_line(draw, bxf + bw_f//2, base_fy + 22, bw_f + 16, str(fy_s)[-2:] + "년", get_font_lf, start_sz=16, fill=(200, 215, 235))
+
+                                        _draw_box_with_centered_text(draw, [500, 775, 1850, 838], "주주이익(Owner Earnings) = 당기순이익 + 감가상각비 - 유지보수성 설비투자(CapEx) [왜곡된 EBITDA 배제]", get_font_lf, box_fill=(20, 34, 58), radius=12, start_sz=21, txt_fill=(0, 255, 136))
+
+                                    elif ch_code == "CH4":
+                                        # [CH4 와이드 그래픽: 10년물 미국채 금리 vs 주식 이익수익률 맞대결 보드]
+                                        draw.rounded_rectangle([500, 240, 1160, 755], radius=18, fill=(15, 22, 38), outline=(59, 130, 246), width=3)
+                                        _fit_single_line(draw, 830, 280, 620, "1,000만 원 투자 시 1년 기대수익 맞대결", get_font_lf, start_sz=25, fill=(255, 240, 0), stroke_w=2)
+                                        my_base = 670
+                                        mx_ey = max(lf_ey, ty, 8.0) * 1.25
+                                        hb = int(max(45, min(310, (ty / mx_ey) * 310)))
+                                        hs = int(max(45, min(310, (max(0.4, lf_ey) / mx_ey) * 310)))
+
+                                        draw.rounded_rectangle([600, my_base - hb, 780, my_base], radius=14, fill=(100, 116, 139))
+                                        _fit_single_line(draw, 690, my_base - hb - 30, 200, f"연 {ty:.2f}%", get_font_lf, start_sz=32, fill=(220,230,240), stroke_w=3)
+                                        _fit_single_line(draw, 690, my_base - max(24, hb//2), 165, f"+{lf_bond_won}만 원/년", get_font_lf, start_sz=22, fill=(255,255,255), stroke_w=2)
+                                        _fit_single_line(draw, 690, my_base + 28, 210, "10년물 미국채(무위험)", get_font_lf, start_sz=20, fill=(200,215,235))
+
+                                        draw.rounded_rectangle([880, my_base - hs, 1060, my_base], radius=14, fill=(0, 230, 118) if lf_erp >= 0 else (245, 158, 11), outline=(255,240,0), width=4)
+                                        _fit_single_line(draw, 970, my_base - hs - 30, 200, f"연 {lf_ey:.2f}%!", get_font_lf, start_sz=34, fill=(255,240,0), stroke_w=3)
+                                        _fit_single_line(draw, 970, my_base - max(24, hs//2), 165, f"+{lf_ey_won}만 원/년", get_font_lf, start_sz=22, fill=(255,255,255), stroke_w=2)
+                                        _fit_single_line(draw, 970, my_base + 28, 210, f"{lf_comp_nm} 이익수익률", get_font_lf, start_sz=20, fill=(255,255,255))
+
+                                        draw.rounded_rectangle([1190, 240, 1850, 755], radius=18, fill=(15, 22, 38), outline=(245, 158, 11), width=3)
+                                        _fit_single_line(draw, 1520, 280, 620, "거시 기회비용 & 채권 대비 프리미엄 분석", get_font_lf, start_sz=25, fill=(255, 240, 0), stroke_w=2)
+                                        mac_cards = [
+                                            ("주식 위험프리미엄 (ERP 스프레드)", f"{lf_erp:+.2f}%p", "이익수익률(1/PER)에서 무위험 미국채 금리를 차감한 초과수익"),
+                                            ("버핏 약산 기준선 (미국채 + 5.0%p)", f"목표 허들 연 {ty+5.0:.2f}%", f"현재 이익수익률({lf_ey:.2f}%) + 주주이익 성장({lf_fcf_g:+.1f}%)로 달성 검증"),
+                                            ("기회비용 최종 판정", "주식 보유 우위" if lf_erp >= 0 else "성장성 보완 필요", "무위험 채권 이자보다 높은 현금 수익률 창출 중" if lf_erp >= 0 else "단기 이자는 채권이 우위이나 복리 성장률로 극복 여부 점검")
+                                        ]
+                                        for imc, (mt, mv, md) in enumerate(mac_cards):
+                                            my_c = 320 + imc * 138
+                                            draw.rounded_rectangle([1215, my_c, 1825, my_c + 120], radius=14, fill=(20, 30, 52), outline=(60, 80, 115), width=2)
+                                            _fit_single_line(draw, 1520, my_c + 28, 580, mt, get_font_lf, start_sz=20, fill=(180, 200, 230))
+                                            _fit_single_line(draw, 1520, my_c + 64, 580, mv, get_font_lf, start_sz=30, fill=(255, 240, 0), stroke_w=3)
+                                            _fit_single_line(draw, 1520, my_c + 98, 580, md, get_font_lf, start_sz=17, fill=(220, 230, 240))
+
+                                        _draw_box_with_centered_text(draw, [500, 775, 1850, 838], f"모든 투자의 기준점은 무위험 10년물 미국채 금리({ty:.2f}%)이며, 이를 초과하는 확실한 마진이 있어야 합니다.", get_font_lf, box_fill=(20, 34, 58), radius=12, start_sz=22, txt_fill=(255, 255, 255))
+
+                                    elif ch_code == "CH5":
+                                        # [CH5 와이드 그래픽: 찰리 멍거의 4대 학문적 멘탈모델 매트릭스]
+                                        m_models = [
+                                            ("공학 (Redundancy · 단일실패 차단)", f"유동비율 {current_ratio:.2f}배 백업 시스템", "한 부품이 고장 나도 붕괴하지 않는 재무 유동성 방어막", (56, 189, 248)),
+                                            ("물리·화학 (Autocatalysis · 자가촉매)", f"영업이익률 {op_m:.1f}%의 지배력", "임계 질량 돌파 후 결과물이 스스로 수요를 창출하는 구조", (245, 158, 11)),
+                                            ("수학 (Compound · 복리 승수효과)", f"ROIC 연 {lf_cap_val:.1f}% 재투자 엔진", "자본비용(12%)을 상회하는 고수익 재투자의 지수 곡선", (0, 230, 118)),
+                                            ("생물학 (Fitness · 다윈주의 적응력)", f"{'주식 희석 없음(주주보호)' if bb_yield >= -1.0 else '주식수 변동 점검'} · 배당 {lf_div_val:.2f}%", "규제 및 기술 변화에 적응하며 주주가치를 지키는 진화력", (168, 85, 247))
+                                        ]
+                                        for imm, (mt, mv, md, mc) in enumerate(m_models):
+                                            bx1 = 505 if (imm % 2 == 0) else 1195
+                                            by1 = 245 if (imm < 2) else 515
+                                            draw.rounded_rectangle([bx1, by1, bx1 + 655, by1 + 240], radius=18, fill=(16, 24, 42), outline=mc, width=3)
+                                            _draw_box_with_centered_text(draw, [bx1 + 24, by1 + 20, bx1 + 631, by1 + 74], mt, get_font_lf, box_fill=mc, radius=10, start_sz=23, txt_fill=(255,255,255), stroke_w=2)
+                                            _fit_single_line(draw, bx1 + 327, by1 + 128, 610, mv, get_font_lf, start_sz=28, fill=(255, 240, 0), stroke_w=2)
+                                            _fit_single_line(draw, bx1 + 327, by1 + 190, 610, md, get_font_lf, start_sz=19, fill=(210, 225, 240))
+
+                                        _draw_box_with_centered_text(draw, [505, 775, 1850, 838], "망치 증후군(Man with a hammer)을 탈피하여 공학·물리학·수학·생물학의 격자틀 모델로 영속성을 검증합니다.", get_font_lf, box_fill=(20, 34, 58), radius=12, start_sz=21, txt_fill=(0, 255, 136))
+
+                                    else:
+                                        # [CH6 와이드 그래픽: 피셔·버핏의 매수 타이밍 3원칙 vs 매도 3대 불변 철칙]
+                                        draw.rounded_rectangle([500, 240, 1160, 755], radius=18, fill=(15, 22, 38), outline=(0, 230, 118), width=3)
+                                        _draw_box_with_centered_text(draw, [530, 260, 1130, 318], "피셔 & 버핏의 3대 매수 타이밍", get_font_lf, box_fill=(0, 200, 83), radius=12, start_sz=25, txt_fill=(255,255,255), stroke_w=2)
+                                        buy_rules = [
+                                            ("1. 신제품 상업화 초기의 일시적 문제", "공장 가동 초기나 신제품 출시 직후의 일시적 비용 증가 구간"),
+                                            ("2. 거시경제적 비이성적 패닉 (Mr. Market)", "금리·전쟁 등 거시 소음으로 우량주까지 동반 폭락할 때"),
+                                            ("3. 해자를 훼손하지 않는 일회성 악재", "해결 가능한 일시적 소송이나 단기 실적 미스로 급락할 때")
+                                        ]
+                                        for ibr, (brt, brd) in enumerate(buy_rules):
+                                            by_r = 345 + ibr * 130
+                                            draw.rounded_rectangle([530, by_r, 1130, by_r + 112], radius=12, fill=(20, 32, 52), outline=(0, 230, 118), width=2)
+                                            _fit_single_line(draw, 830, by_r + 36, 560, brt, get_font_lf, start_sz=22, fill=(255, 240, 0), stroke_w=2)
+                                            _fit_single_line(draw, 830, by_r + 80, 560, brd, get_font_lf, start_sz=18, fill=(220, 230, 245))
+
+                                        draw.rounded_rectangle([1190, 240, 1850, 755], radius=18, fill=(15, 22, 38), outline=(255, 23, 68), width=3)
+                                        _draw_box_with_centered_text(draw, [1220, 260, 1820, 318], "절대 불변의 매도 3대 철칙 (이외 매도 금지)", get_font_lf, box_fill=(220, 38, 38), radius=12, start_sz=25, txt_fill=(255,255,255), stroke_w=2)
+                                        sell_rules = [
+                                            ("1. 내 초기 분석에 중대한 오류가 있었을 때", "사실 수집이나 재무 분석에서 내 판단이 틀렸음을 깨달은 즉시"),
+                                            ("2. 경제적 해자의 영구 붕괴 / 극단적 버블", "독점력이 영구 훼손되었거나 상상을 초월한 고평가 버블일 때"),
+                                            ("3. 압도적으로 더 확실한 기회 발견 (기회비용)", "현재 보유 종목보다 훨씬 더 안전하고 확실한 초우량주 발굴 시")
+                                        ]
+                                        for isr, (srt, srd) in enumerate(sell_rules):
+                                            sy_r = 345 + isr * 130
+                                            draw.rounded_rectangle([1220, sy_r, 1820, sy_r + 112], radius=12, fill=(36, 20, 32), outline=(255, 118, 117), width=2)
+                                            _fit_single_line(draw, 1520, sy_r + 36, 560, srt, get_font_lf, start_sz=22, fill=(255, 240, 0), stroke_w=2)
+                                            _fit_single_line(draw, 1520, sy_r + 80, 560, srd, get_font_lf, start_sz=18, fill=(220, 230, 245))
+
+                                        _draw_box_with_centered_text(draw, [500, 775, 1850, 838], f"최종 게이트: {lf_comp_nm}은 10년 후에도 독점력을 유지하는가? 단기 시세에 흔들리지 않는 영구 보유자 관점을 견지하십시오.", get_font_lf, box_fill=(20, 34, 58), radius=12, start_sz=21, txt_fill=(0, 255, 136))
+
+                                    # 4. 하단 시네마틱 와이드 자막 바 (X: 40 ~ 1880, Y: 880 ~ 1015)
+                                    draw.rounded_rectangle([40, 880, 1880, 1015], radius=18, fill=(10, 14, 26), outline=theme_c, width=4)
+                                    _fit_single_line(draw, W//2, 947, 1760, sub_phrase, get_font_lf, start_sz=40, min_sz=20, fill=(255, 240, 0), stroke_w=5, stroke_c=(0, 0, 0))
+
+                                    _fit_single_line(draw, W//2, 1048, 1800, "[안내] DART · SEC 10-K/20-F 공시 데이터 기반 학술·교육용 리포트이며 특정 종목의 매수·매도 추천이 아닙니다.", get_font_lf, start_sz=16, fill=(120, 135, 155))
+                                    return img
+
+                                seg_lf_list = [None] * n_lf
+
+                                def _build_lf_cut(idx_c, ch_text, ch_cd):
+                                    f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                                    f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                                    f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                    tmp_loc = [f_raw, f_wav, f_seg]
+
+                                    tts_txt = fix_global_tts_pronunciation(ch_text.replace("/", " "), is_en=False)
+                                    v_id = "ko-KR-SunHiNeural" if "여성" in str(lf_voice) else "ko-KR-InJoonNeural"
+                                    import edge_tts, asyncio
+                                    loop = asyncio.new_event_loop()
+                                    try:
+                                        loop.run_until_complete(edge_tts.Communicate(str(tts_txt), voice=v_id, rate=f"+{int(lf_spd)}%", pitch="+0Hz").save(f_raw))
+                                    finally:
+                                        loop.close()
+
+                                    af_lf = "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,equalizer=f=180:width_type=h:width=100:g=2.5,volume=1.25,apad=pad_dur=0.25"
+                                    subprocess.run([ffmpeg_exe, "-y", "-i", f_raw, "-af", af_lf, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                    exact_d = 12.0
+                                    try:
+                                        with wave.open(f_wav, 'rb') as wf_c:
+                                            exact_d = max(1.0, wf_c.getnframes() / float(wf_c.getframerate()))
+                                    except Exception:
+                                        pass
+
+                                    phrases = split_subtitle_phrases(ch_text, max_len=36)
+                                    weights = []
+                                    for p_t in phrases:
+                                        sp_s = fix_global_tts_pronunciation(p_t, is_en=False).replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
+                                        d_cnt = sum(1 for ch in sp_s if ch.isdigit())
+                                        t_cnt = sum(1 for ch in re.sub(r'\s+', '', sp_s) if not ch.isdigit())
+                                        pw = 3.0 if any(p_t.endswith(m) for m in [".", "!", "?", ","]) else 0.8
+                                        weights.append(max(2.0, t_cnt + d_cnt * 1.8 + pw))
+
+                                    tot_w = sum(weights)
+                                    ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                    tmp_loc.append(ic_txt)
+                                    last_im = None
+                                    with open(ic_txt, "w", encoding="utf-8") as icf:
+                                        acc_d = 0.0
+                                        for p_i, (p_t, w_v) in enumerate(zip(phrases, weights)):
+                                            f_im = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                            tmp_loc.append(f_im)
+                                            _draw_longform_16x9_frame(idx_c, n_lf, p_t, ch_cd).save(f_im)
+                                            last_im = f_im
+                                            if p_i < len(phrases) - 1:
+                                                pdur = max(0.6, min(exact_d - acc_d - 0.4, round(exact_d * (w_v / tot_w), 3)))
+                                                acc_d += pdur
+                                            else:
+                                                pdur = max(0.4, round(exact_d - acc_d, 3))
+                                            icf.write(f"file '{f_im.replace(chr(92), '/')}'\n")
+                                            icf.write(f"duration {pdur:.3f}\n")
+                                        if last_im:
+                                            icf.write(f"file '{last_im.replace(chr(92), '/')}'\n")
+
+                                    subprocess.run([
+                                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", f_wav,
+                                        "-vf", "scale=1920:1080:flags=lanczos", "-r", "30",
+                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+                                        "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                                        "-t", f"{exact_d:.3f}", f_seg
+                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                    return idx_c, f_seg, tmp_loc
+
+                                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+                                    futs = [ex.submit(_build_lf_cut, i_c, c_t, c_cd) for i_c, (c_t, c_cd) in enumerate(lf_chunks)]
+                                    for ft in concurrent.futures.as_completed(futs):
+                                        ir, seg_p, tl = ft.result()
+                                        seg_lf_list[ir] = seg_p
+                                        cleanup_lf.extend(tl)
+
+                                cat_lf = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                cleanup_lf.append(cat_lf)
+                                with open(cat_lf, "w", encoding="utf-8") as cf:
+                                    for sp in seg_lf_list:
+                                        cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
+
+                                merged_lf = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                cleanup_lf.append(merged_lf)
+                                subprocess.run([
+                                    ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_lf,
+                                    "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", merged_lf
+                                ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                res_d_lf = subprocess.run([ffmpeg_exe, "-i", merged_lf], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                                m_dlf = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_d_lf.stderr)
+                                lf_dur_val = (int(m_dlf.group(1))*3600 + int(m_dlf.group(2))*60 + float(m_dlf.group(3))) if m_dlf else 150.0
+
+                                final_lf_mp4 = merged_lf
+                                if "없음" not in lf_bgm:
+                                    bgm_lf_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                                    out_lf_bgm = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                    cleanup_lf.extend([bgm_lf_wav, out_lf_bgm])
+                                    _generate_trendy_bgm_wav(bgm_lf_wav, lf_dur_val, "120BPM")
+                                    subprocess.run([
+                                        ffmpeg_exe, "-y", "-i", merged_lf, "-i", bgm_lf_wav,
+                                        "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.08[ba];[va][ba]amix=inputs=2:duration=first[aout]",
+                                        "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out_lf_bgm
+                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                    final_lf_mp4 = out_lf_bgm
+
+                                with open(final_lf_mp4, "rb") as vf:
+                                    lf_bytes = vf.read()
+
+                                st.success(f"🎉 [{lf_comp_nm}] 16:9 FHD 롱폼 다큐멘터리 완성! (총 재생시간: **{int(lf_dur_val//60)}분 {int(lf_dur_val%60)}초**)")
+                                st.video(lf_bytes)
+                                st.download_button(
+                                    label=f"📥 [{lf_comp_nm}] 16:9 FHD 롱폼 다큐멘터리(.mp4) 다운로드",
+                                    data=lf_bytes,
+                                    file_name=f"AGIE_LongForm_1080p_{lf_clean_tk}_{lf_today.replace('.','')}.mp4",
+                                    mime="video/mp4",
+                                    use_container_width=True,
+                                    key=f"dl_lf_btn_{tk}"
+                                )
+                                for prm in cleanup_lf:
+                                    if os.path.exists(prm):
+                                        try: os.remove(prm)
+                                        except Exception: pass
+                        except Exception as e_lf:
+                            st.warning(f"롱폼 렌더링 오류: {e_lf}")
                 st.subheader(t("📊 10년 핵심 장부 요약 및 차트 (연간 10년 · 분기별 40분기 · 연환산 10년)", "📊 10-Year Financial Statements & Charts (Annual · 40 Quarters · Annualized)"))
 
                 cd = tk.split('.')[0] if kr else tk
@@ -9570,7 +10073,208 @@ with tab4:
                 st.warning(f"바이블 쇼츠 생성 오류: {e}")
 
     st.divider()
+# =========================================================================
+    # [신규 탑재] 📺 가치투자 바이블 16:9 FHD 롱폼 마스터클래스 스튜디오 (개별 파트 & 전 7장 풀버전 지원)
+    # =========================================================================
+    with st.expander("📺 [가치투자 바이블 16:9 롱폼 마스터클래스] PDF 7대 챕터 개별 강의 & 전 7장 통합 풀버전(.mp4) 제작", expanded=False):
+        st.info("🏛️ **아이비리그 비즈니스 스쿨 & 버크셔 주주총회 강의 보드 디자인(1920×1080 FHD):** 개별 파트를 2~3분 심층 강의로 만들거나, **전 7장 통합 마스터피스(약 6~8분)**를 선택해 채널 대표 롱폼 영상으로 발행할 수 있습니다.")
 
+        lf_bible_options = ["🔥 [전 7장 통합 마스터피스] 워런 버핏·찰리 멍거·리루의 가치투자 바이블 전권 완독 다큐멘터리"] + list(bible_series_db.keys())
+        sel_lf_bible = st.selectbox("📚 16:9 롱폼으로 제작할 바이블 범위 선택", lf_bible_options, key="lf_bible_scope_sel")
+
+        lfb_c1, lfb_c2 = st.columns(2)
+        with lfb_c1:
+            lfb_voice = st.selectbox("1️⃣ 마스터클래스 성우 선택", ["🎙️ 인준 (중후한 다큐멘터리 남성)", "⚡ 선희 (명쾌한 마스터클래스 여성)"], key="lfb_v_sel")
+        with lfb_c2:
+            lfb_spd = st.slider("2️⃣ 강의 낭독 배속(%)", 0, 50, 18, 2, format="+%d%%", key="lfb_spd_sel")
+
+        if sel_lf_bible.startswith("🔥 [전 7장 통합"):
+            target_parts_keys = list(bible_series_db.keys())
+        else:
+            target_parts_keys = [sel_lf_bible]
+
+        default_lfb_lines = []
+        for p_idx, pk in enumerate(target_parts_keys):
+            p_obj = bible_series_db[pk]
+            # 각 파트의 대본에 슬래시('/') 호흡을 부여하여 하나의 문단으로 결합
+            joined_p = " / ".join([re.sub(r'^\[[^\]]+\]\s*', '', ln) for ln in p_obj["script"]])
+            default_lfb_lines.append(f"[PART{p_idx+1}] {joined_p}")
+
+        lfb_script_edit = st.text_area(
+            "✏️ 바이블 16:9 롱폼 마스터클래스 대본 편집창 ('/' 기호마다 와이드 화면 하단 자막이 호흡에 맞춰 전환됩니다)",
+            value="\n\n".join(default_lfb_lines),
+            height=260,
+            key=f"lfb_script_edit_{len(target_parts_keys)}_{sel_lf_bible[:8]}"
+        )
+
+        if st.button("🎬 16:9 FHD 가치투자 바이블 롱폼 마스터클래스(.mp4) 생성 시작", use_container_width=True, type="primary", key="btn_gen_lfb_mp4"):
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                import imageio_ffmpeg, subprocess, tempfile, os, re, wave
+
+                with st.spinner("1920×1080 FHD 아이비리그 강의 보드 & 바이블 마스터클래스 롱폼(.mp4) 렌더링 중..."):
+                    font_dir = tempfile.gettempdir()
+                    bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                    if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
+                        r = requests.get("https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf", timeout=8)
+                        if r.status_code == 200:
+                            with open(bold_p, "wb") as f: f.write(r.content)
+
+                    def _gf_lfb(sz):
+                        for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                            if os.path.exists(c):
+                                try: return ImageFont.truetype(c, sz)
+                                except Exception: continue
+                        return ImageFont.load_default()
+
+                    def _fit_lfb(draw, cx, cy, max_w, text, start_sz=36, min_sz=12, fill=(255,255,255), sw=0):
+                        t_s = str(text).strip()
+                        if not t_s: return
+                        for sz in range(start_sz, min_sz - 1, -2):
+                            f = _gf_lfb(sz)
+                            bb = draw.textbbox((0, 0), t_s, font=f, stroke_width=sw)
+                            if (bb[2] - bb[0]) <= max_w:
+                                draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_s, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
+                                return
+
+                    raw_lfb_pars = [p.strip() for p in lfb_script_edit.split("\n") if p.strip()]
+                    n_pars = len(raw_lfb_pars)
+
+                    def _draw_lfb_16x9_board(p_idx, sub_phrase):
+                        W, H = 1920, 1080
+                        img = Image.new("RGB", (W, H), color=(7, 10, 19))
+                        draw = ImageDraw.Draw(img)
+
+                        pk_cur = target_parts_keys[min(p_idx, len(target_parts_keys) - 1)]
+                        meta_cur = bible_series_db[pk_cur]
+                        cards_cur = meta_cur["cards"]
+                        theme_c = (245, 158, 11) if (p_idx % 2 == 1) else (0, 230, 118)
+
+                        # 상단 마스터클래스 헤더
+                        draw.rectangle([0, 0, W, 115], fill=(12, 18, 34))
+                        draw.rectangle([0, 112, W, 118], fill=(28, 38, 58))
+                        draw.rectangle([0, 112, int(W * ((p_idx + 1) / max(1, n_pars))), 118], fill=theme_c)
+
+                        draw.rounded_rectangle([40, 24, 420, 88], radius=12, fill=theme_c)
+                        _fit_lfb(draw, 230, 56, 350, meta_cur["badge"], start_sz=23, fill=(255,255,255), sw=2)
+                        _fit_lfb(draw, 1150, 56, 1300, f"PRINCIPLES OF VALUE INVESTING · {meta_cur['title']}", start_sz=38, fill=(255, 240, 0), sw=4)
+
+                        # 중앙 2x2 와이드 아카데미 카드 보드 (X: 40 ~ 1880, Y: 140 ~ 855)
+                        for icd, (ct, cm, cs, cc) in enumerate(cards_cur):
+                            bx1 = 40 if (icd % 2 == 0) else 975
+                            by1 = 145 if (icd < 2) else 505
+                            draw.rounded_rectangle([bx1, by1, bx1 + 905, by1 + 335], radius=20, fill=(13, 20, 36), outline=cc, width=4)
+                            draw.rounded_rectangle([bx1 + 28, by1 + 24, bx1 + 877, by1 + 88], radius=12, fill=cc)
+                            _fit_lfb(draw, bx1 + 452, by1 + 56, 820, ct, start_sz=28, fill=(255, 255, 255), sw=2)
+                            _fit_lfb(draw, bx1 + 452, by1 + 165, 840, cm, start_sz=30, fill=(255, 240, 0), sw=3)
+                            draw.rounded_rectangle([bx1 + 28, by1 + 235, bx1 + 877, by1 + 305], radius=10, fill=(20, 30, 52))
+                            _fit_lfb(draw, bx1 + 452, by1 + 270, 820, cs, start_sz=22, fill=(210, 225, 245))
+
+                        # 하단 와이드 자막 박스
+                        draw.rounded_rectangle([40, 880, 1880, 1015], radius=18, fill=(10, 14, 26), outline=theme_c, width=4)
+                        _fit_lfb(draw, W//2, 947, 1760, sub_phrase, start_sz=40, min_sz=20, fill=(255, 240, 0), sw=5)
+                        _fit_lfb(draw, W//2, 1048, 1800, "워런 버핏 · 찰리 멍거 · 리루의 가치투자 헌장 및 기업 본질 평가 지침서 (Master Operating Manual)", start_sz=16, fill=(120, 135, 155))
+                        return img
+
+                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                    cleans_lfb, segs_lfb = [], [None] * n_pars
+
+                    def _build_lfb_part(idx_p, raw_p_txt):
+                        cl_p = re.sub(r'^\[PART\d+\]\s*', '', raw_p_txt).strip()
+                        f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+                        f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
+                        f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                        t_files = [f_raw, f_wav, f_seg]
+
+                        tts_s = fix_global_tts_pronunciation(cl_p.replace("/", " "), is_en=False)
+                        v_id = "ko-KR-SunHiNeural" if "여성" in str(lfb_voice) else "ko-KR-InJoonNeural"
+                        import edge_tts, asyncio
+                        loop = asyncio.new_event_loop()
+                        try:
+                            loop.run_until_complete(edge_tts.Communicate(str(tts_s), voice=v_id, rate=f"+{int(lfb_spd)}%", pitch="+0Hz").save(f_raw))
+                        finally:
+                            loop.close()
+
+                        af_s = "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,volume=1.25,apad=pad_dur=0.30"
+                        subprocess.run([ffmpeg_exe, "-y", "-i", f_raw, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                        exact_d = 25.0
+                        try:
+                            with wave.open(f_wav, 'rb') as w_c:
+                                exact_d = max(1.0, w_c.getnframes() / float(w_c.getframerate()))
+                        except Exception:
+                            pass
+
+                        phrases = [p.strip() for p in cl_p.split("/") if p.strip()] if "/" in cl_p else split_subtitle_phrases(cl_p, max_len=36)
+                        weights = [max(2.0, float(len(re.sub(r'\s+', '', fix_global_tts_pronunciation(pt))))) for pt in phrases]
+                        tot_w = sum(weights)
+
+                        ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                        t_files.append(ic_txt)
+                        last_im = None
+                        with open(ic_txt, "w", encoding="utf-8") as icf:
+                            acc_d = 0.0
+                            for pi, (pt, wv) in enumerate(zip(phrases, weights)):
+                                fim = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                t_files.append(fim)
+                                _draw_lfb_16x9_board(idx_p, pt).save(fim)
+                                last_im = fim
+                                if pi < len(phrases) - 1:
+                                    pdur = max(0.6, min(exact_d - acc_d - 0.4, round(exact_d * (wv / tot_w), 3)))
+                                    acc_d += pdur
+                                else:
+                                    pdur = max(0.4, round(exact_d - acc_d, 3))
+                                icf.write(f"file '{fim.replace(chr(92), '/')}'\n")
+                                icf.write(f"duration {pdur:.3f}\n")
+                            if last_im:
+                                icf.write(f"file '{last_im.replace(chr(92), '/')}'\n")
+
+                        subprocess.run([
+                            ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", f_wav,
+                            "-vf", "scale=1920:1080:flags=lanczos", "-r", "30",
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+                            "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                            "-t", f"{exact_d:.3f}", f_seg
+                        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                        return idx_p, f_seg, t_files
+
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+                        futs = [ex.submit(_build_lfb_part, ip, rp) for ip, rp in enumerate(raw_lfb_pars)]
+                        for ft in concurrent.futures.as_completed(futs):
+                            ir, sp, tl = ft.result()
+                            segs_lfb[ir] = sp
+                            cleans_lfb.extend(tl)
+
+                    cat_b = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                    cleans_lfb.append(cat_b)
+                    with open(cat_b, "w", encoding="utf-8") as cf:
+                        for sp in segs_lfb:
+                            cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
+
+                    out_lfb = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                    cleans_lfb.append(out_lfb)
+                    subprocess.run([
+                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_b,
+                        "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_lfb
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                    with open(out_lfb, "rb") as vf:
+                        lfb_bytes = vf.read()
+                    st.success("🎉 16:9 FHD 가치투자 바이블 마스터클래스 롱폼(.mp4) 완성!")
+                    st.video(lfb_bytes)
+                    st.download_button(
+                        label="📥 16:9 FHD 바이블 마스터클래스 롱폼(.mp4) 다운로드",
+                        data=lfb_bytes,
+                        file_name="AGIE_Bible_MasterClass_1080p.mp4",
+                        mime="video/mp4",
+                        use_container_width=True
+                    )
+                    for prm in cleans_lfb:
+                        if os.path.exists(prm):
+                            try: os.remove(prm)
+                            except Exception: pass
+            except Exception as e_lfb:
+                st.warning(f"바이블 롱폼 생성 오류: {e_lfb}")
     # =========================================================================
     # [하단] 📖 가치투자 헌장 및 기업 본질 평가 지침서 (PDF 전 4페이지 마스터 매뉴얼 UI)
     # =========================================================================
