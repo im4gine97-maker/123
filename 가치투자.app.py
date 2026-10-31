@@ -4312,38 +4312,83 @@ def clean_ceo_name(name):
                 k_name = k_name[:-len(s)].strip(); break
         return k_name
     return name_str
-# =========================================================================
-# [글로벌 통합 TTS 발음 교정기] SK("슥" 오발음 방지), LG, ROIC 등 모든 탭 완벽 통일
-# =========================================================================
 def fix_global_tts_pronunciation(text_s, is_en=False):
-    s = str(text_s)
+    if text_s is None:
+        return "데이터 확인"
+    if isinstance(text_s, (list, tuple)):
+        text_s = " ".join(str(x) for x in text_s)
+    s = str(text_s).replace("/", " ")
+
     if is_en:
         s = re.sub(r'[\(\)\[\]\{\}]', ' ', s)
-        return re.sub(r'\s+', ' ', s).strip()
+        res_en = re.sub(r'\s+', ' ', s).strip()
+        return res_en if res_en else "Check data."
+
+    s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
+    s = re.sub(r'[\(\)\[\]\{\}⚡🔥💰🎁🚀📈🚨✅⚠️🌱⏸️💥💣🔁↑↓🏦🏢⚖️❓🔒🔓🎉🟦🟥📊📌]', ' ', s)
+    s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
+    s = s.replace("%p", "퍼센트포인트").replace("%", "퍼센트")
+    s = s.replace("1,000만", "천만").replace("1000만", "천만").replace("4가지", "네가지").replace("3가지", "세가지")
+    s = s.replace("1대1", "일대일").replace("1:1", "일대일")
+    s = re.sub(r'(\d),(\d{3})', r'\1\2', s)
+    s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
+
+    pron_map = [
+        ("SK하이닉스", "에스케이 하이닉스"), ("SK스퀘어", "에스케이 스퀘어"), ("SK이노베이션", "에스케이 이노베이션"),
+        ("SK텔레콤", "에스케이 텔레콤"), ("SK바이오팜", "에스케이 바이오팜"), ("SK이터닉스", "에스케이 이터닉스"),
+        ("LG에너지솔루션", "엘지 에너지솔루션"), ("LG엔솔", "엘지 엔솔"), ("LG전자", "엘지 전자"),
+        ("LG화학", "엘지 화학"), ("LG생활건강", "엘지 생활건강"), ("LG이노텍", "엘지 이노텍"),
+        ("LG디스플레이", "엘지 디스플레이"), ("HD현대", "에이치디 현대"), ("LS일렉트릭", "엘에스 일렉트릭"),
+        ("KB금융", "케이비 금융"), ("CJ제일제당", "씨제이 제일제당"), ("DB손해보험", "디비 손해보험"),
+        ("DB하이텍", "디비 하이텍"), ("GS건설", "지에스 건설"), ("NH투자증권", "엔에이치 투자증권"),
+        ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
+        ("NAVER", "네이버"), ("KAKAO", "카카오"), ("HYUNDAI", "현대"),
+        ("SAMSUNG", "삼성"), ("CELLTRION", "셀트리온"), ("KRAFTON", "크래프톤"),
+        ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"), ("NVIDIA", "엔비디아"),
+        ("LVMH", "엘브이엠에이치"), ("HSBC", "에이치에스비씨"), ("BYD", "비야디"),
+        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"),
+        ("PER", "피이알"), ("PBR", "피비알"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
+        ("BPS", "비피에스"), ("FCF", "잉여현금흐름"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
+        ("EBITDA", "에비타"), ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
+        ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
+        ("OCI", "오씨아이"), ("LIG", "엘아이지"), ("BGF", "비지에프"), ("KCC", "케이씨씨"),
+        ("JYP", "제이와이피"), ("F&F", "에프앤에프"), ("AMD", "에이엠디"), ("IBM", "아이비엠"),
+        ("SK", "에스케이 "), ("LG", "엘지 "), ("KT", "케이티 "), ("KB", "케이비 "),
+        ("CJ", "씨제이 "), ("HD", "에이치디 "), ("LS", "엘에스 "), ("DB", "디비 "),
+        ("GS", "지에스 "), ("NH", "엔에이치 "), ("vs", "대"), ("VS", "대")
+    ]
+    for eng_k, kor_v in pron_map:
+        s = re.sub(re.escape(eng_k), kor_v, s, flags=re.IGNORECASE)
+    res_ko = re.sub(r'\s+', ' ', s).strip()
+    return res_ko if res_ko else "데이터 확인"
+
+
 def split_subtitle_phrases(text_line, max_len=17):
-    """
-    오디오는 한 문장으로 끊김 없이 읽되, 화면 자막만 14~18자(호흡 단위)로 쪼개어
-    '단기 주가 소음에 흔들리지 말고' -> '처음부터 4대 핵심 그래프를 다시 돌려보며' -> '동업 가치를 판단해 보세요!'
-    처럼 순차적으로 화면에 띄워주는 자막 분할기입니다. (직접 '/'를 입력하면 그 위치에서 즉시 분할)
-    """
+    if text_line is None:
+        return ["데이터 확인"]
+    if isinstance(text_line, (list, tuple)):
+        text_line = " ".join(str(x) for x in text_line)
     clean_t = str(text_line).strip()
+    if not clean_t:
+        return ["데이터 확인"]
+
     if "/" in clean_t:
-        return [p.strip() for p in clean_t.split("/") if p.strip()]
+        parts = [str(p).strip() for p in clean_t.split("/") if str(p).strip()]
+        return parts if parts else [clean_t]
 
     words = clean_t.split(" ")
     if len(clean_t) <= max_len + 3 or len(words) <= 3:
         return [clean_t]
 
     phrases, cur = [], ""
-    # 한국어 호흡이 자연스럽게 끊기는 어미/조사 패턴
     break_endings = ("말고", "보며", "인데", "는데", "지만", "하며", "이고", "입니다!", "입니다.", "까요?", "세요!", "소서!", "대비", "기준", "바탕으로", "함께", "통해")
     for w in words:
         cand = f"{cur} {w}".strip() if cur else w
         if len(cand) >= 10 and (w.endswith(break_endings) or w.endswith(",")):
-            phrases.append(cand.rstrip(","))
+            phrases.append(str(cand.rstrip(",")))
             cur = ""
         elif len(cand) > max_len and cur:
-            phrases.append(cur)
+            phrases.append(str(cur))
             cur = w
         else:
             cur = cand
@@ -4351,8 +4396,8 @@ def split_subtitle_phrases(text_line, max_len=17):
         if phrases and len(cur) <= 5:
             phrases[-1] = f"{phrases[-1]} {cur}"
         else:
-            phrases.append(cur)
-    return phrases        
+            phrases.append(str(cur))
+    return [str(p) for p in phrases if str(p).strip()] or [clean_t]
 
     # 1. "투하자본수익률(ROIC)" 처럼 한글 뒤 괄호 안에 영문 약어가 있으면 중복 발음 방지를 위해 괄호 안 영문을 먼저 제거
     s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
@@ -7574,26 +7619,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_chapter_start=False, is_final_cut=False):
-                        tts_ready_text = fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)
-                        voice_id = "ko-KR-SunHiNeural" if "여성" in voice_choice else "ko-KR-InJoonNeural"
+                        tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip()
+                        if not tts_ready_text:
+                            tts_ready_text = "핵심 지표 확인"
+                        voice_id = "ko-KR-SunHiNeural" if "여성" in str(voice_choice) else "ko-KR-InJoonNeural"
                         eq_str = "equalizer=f=180:width_type=h:width=100:g=2.5,equalizer=f=3200:width_type=h:width=1200:g=2.8"
                         rate_str = f"+{int(voice_speed)}%"
 
                         try:
                             import edge_tts, asyncio
                             async def _run():
-                                await edge_tts.Communicate(tts_ready_text, voice=voice_id, rate=rate_str, pitch="+0Hz").save(raw_mp3_path)
+                                await edge_tts.Communicate(str(tts_ready_text), voice=str(voice_id), rate=str(rate_str), pitch="+0Hz").save(str(raw_mp3_path))
                             loop = asyncio.new_event_loop()
                             try: loop.run_until_complete(_run())
                             finally: loop.close()
-                        except ImportError:
+                        except Exception:
                             from gtts import gTTS
-                            gTTS(text=tts_ready_text, lang='ko', slow=False).save(raw_mp3_path)
+                            gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
 
                         import subprocess
                         atempo_part = f"atempo={float(atempo_mult):.2f}," if abs(float(atempo_mult) - 1.0) > 0.02 else ""
                         pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
-                        # [수정 후] 문장 맨 앞/맨 뒤 무음만 안전하게 제거하여 발음 씹힘 100% 방지!
                         af_filter = (
                             "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,"
                             f"{atempo_part}{eq_str},volume=1.25{pad_part}"
@@ -7626,6 +7672,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         return _get_f
 
                     def _clean_font_safe_text(txt):
+                        if txt is None:
+                            return ""
+                        if isinstance(txt, (list, tuple)):
+                            txt = " ".join(str(x) for x in txt)
                         s = str(txt)
                         rep_map = {"①": "1.", "②": "2.", "③": "3.", "④": "4.", "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "", "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "", "💥": "", "🏦": "", "🏢": "", "⚖️": "", "❓": "?", "🎉": ""}
                         for k_bad, v_good in rep_map.items():
@@ -7633,7 +7683,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         return re.sub(r'\s+', ' ', s).strip()
 
                     def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=50, min_sz=11, fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0)):
-                        t_str = _clean_font_safe_text(text)
+                        t_str = str(_clean_font_safe_text(text))
                         if not t_str:
                             return get_font(min_sz), 0, 0
                         for sz in range(start_sz, min_sz - 1, -2):
