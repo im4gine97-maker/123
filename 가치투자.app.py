@@ -7418,7 +7418,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         with spd_c2:
                             atempo_mult = st.slider(
                                 "🚀 2차 물리가속(배)",
-                                min_value=0.95, max_value=1.40, value=1.18, step=0.05,
+                                min_value=0.95, max_value=1.40, value=1.05, step=0.05,
                                 format="%.2fx",
                                 key=f"shorts_atempo_v21_{tk}"
                             )
@@ -8038,8 +8038,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 46.0
 
                                 # [59초 이내 절대 안전가드 강화] 53초를 초과하면 무조건 49.5초(약 50초)로 자동 배속 압축!
-                                if vid_dur > 53.0:
-                                    spd_fix = min(1.45, max(1.05, vid_dur / 49.5))
+                                if vid_dur > 59.0:
+                                    spd_fix = min(1.45, max(1.05, vid_dur / 59.0))
                                     fixed_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                     cleanup_files.append(fixed_mp4)
                                     res_fix = subprocess.run([
