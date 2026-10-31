@@ -4363,7 +4363,7 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     return res_ko if res_ko else "데이터 확인"
 
 
-def split_subtitle_phrases(text_line, max_len=19):
+def split_subtitle_phrases(text_line, max_len=45):
     """
     [의미 호흡 기반 스마트 자막 분할기]
     1) 사용자가 '/'를 넣었으면 그 위치대로 최우선 분할
