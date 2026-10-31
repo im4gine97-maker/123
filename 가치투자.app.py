@@ -10109,7 +10109,7 @@ with tab4:
             for ln in p_obj["script"]:
                 cl_ln = re.sub(r'^\[[^\]]+\]\s*', '', ln).strip()
                 # 문장 내 자연스러운 호흡 위치에 '/' 자동 부여
-                cl_ln_ slashed = split_subtitle_phrases(cl_ln, max_len=24)
+                cl_ln_slashed = split_subtitle_phrases(cl_ln, max_len=24)
                 default_lfb_lines.append(" / ".join(cl_ln_slashed))
 
         lfb_script_edit = st.text_area(
