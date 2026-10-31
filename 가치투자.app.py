@@ -4363,7 +4363,13 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     return res_ko if res_ko else "데이터 확인"
 
 
-def split_subtitle_phrases(text_line, max_len=17):
+def split_subtitle_phrases(text_line, max_len=19):
+    """
+    [의미 호흡 기반 스마트 자막 분할기]
+    1) 사용자가 '/'를 넣었으면 그 위치대로 최우선 분할
+    2) 마침표/느낌표/물음표/쉼표(! ? . ,)에서 무조건 먼저 1차 분할 ('최종 점검입니다! 과연 구글이' 섞임 방지)
+    3) 긴 절은 복합명사를 찢지 않고 한국어 조사/어미 뒤에서만 균등 분할
+    """
     if text_line is None:
         return ["데이터 확인"]
     if isinstance(text_line, (list, tuple)):
@@ -4372,32 +4378,64 @@ def split_subtitle_phrases(text_line, max_len=17):
     if not clean_t:
         return ["데이터 확인"]
 
+    # 1. 사용자가 직접 '/'로 지정한 경우
     if "/" in clean_t:
         parts = [str(p).strip() for p in clean_t.split("/") if str(p).strip()]
         return parts if parts else [clean_t]
 
-    words = clean_t.split(" ")
-    if len(clean_t) <= max_len + 3 or len(words) <= 3:
-        return [clean_t]
+    # 2. 문장부호(! ? . ,) 기준으로 1차 절(Clause) 분리
+    raw_clauses = [c.strip() for c in re.split(r'(?<=[\!\?\.,])\s+', clean_t) if c.strip()]
+    final_phrases = []
 
-    phrases, cur = [], ""
-    break_endings = ("말고", "보며", "인데", "는데", "지만", "하며", "이고", "입니다!", "입니다.", "까요?", "세요!", "소서!", "대비", "기준", "바탕으로", "함께", "통해")
-    for w in words:
-        cand = f"{cur} {w}".strip() if cur else w
-        if len(cand) >= 10 and (w.endswith(break_endings) or w.endswith(",")):
-            phrases.append(str(cand.rstrip(",")))
+    # 한국어 의미 호흡이 자연스럽게 쉬어가는 어미/조사/단어 끝 패턴
+    natural_breaks = (
+        "말고", "보며", "인데", "는데", "지만", "하며", "이고", "하고", "해서", "되어",
+        "으로", "로써", "에서", "에게", "보다", "대비", "기준", "바탕으로", "통해", "따라",
+        "은", "는", "이", "가", "을", "를", "도", "만"
+    )
+
+    for clause in raw_clauses:
+        clause_clean = clause.rstrip(",")
+        if len(clause_clean) <= max_len:
+            final_phrases.append(clause_clean)
+            continue
+
+        words = clause_clean.split(" ")
+        # 글자 수가 20~34자 사이면 가장 중앙에 가까운 '자연스러운 조사/어미' 뒤에서 딱 2등분
+        if len(clause_clean) <= max_len * 1.85:
+            target_pos = len(clause_clean) / 2.0
+            best_idx = len(words) // 2
+            best_score = 999.0
+            for idx in range(1, len(words)):
+                left_str = " ".join(words[:idx])
+                dist = abs(len(left_str) - target_pos)
+                # 조사/어미로 끝나는 어절에 가산점(거리 페널티 차감) 부여
+                bonus = -4.5 if words[idx - 1].endswith(natural_breaks) else 0.0
+                if (dist + bonus) < best_score and len(left_str) >= 7:
+                    best_score = dist + bonus
+                    best_idx = idx
+            final_phrases.append(" ".join(words[:best_idx]))
+            final_phrases.append(" ".join(words[best_idx:]))
+        else:
+            # 35자 이상 긴 문장은 3등분
             cur = ""
-        elif len(cand) > max_len and cur:
-            phrases.append(str(cur))
-            cur = w
-        else:
-            cur = cand
-    if cur:
-        if phrases and len(cur) <= 5:
-            phrases[-1] = f"{phrases[-1]} {cur}"
-        else:
-            phrases.append(str(cur))
-    return [str(p) for p in phrases if str(p).strip()] or [clean_t]
+            for w in words:
+                cand = f"{cur} {w}".strip() if cur else w
+                if len(cand) >= 12 and w.endswith(natural_breaks) and len(cand) <= max_len + 2:
+                    final_phrases.append(cand)
+                    cur = ""
+                elif len(cand) > max_len and cur:
+                    final_phrases.append(cur)
+                    cur = w
+                else:
+                    cur = cand
+            if cur:
+                if final_phrases and len(cur) <= 5:
+                    final_phrases[-1] = f"{final_phrases[-1]} {cur}"
+                else:
+                    final_phrases.append(cur)
+
+    return [str(p).strip() for p in final_phrases if str(p).strip()] or [clean_t]
 
     # 1. "투하자본수익률(ROIC)" 처럼 한글 뒤 괄호 안에 영문 약어가 있으면 중복 발음 방지를 위해 괄호 안 영문을 먼저 제거
     s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
@@ -7911,7 +7949,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                     tmp_Created = [f_raw, f_wav, f_seg]
 
-                                    # 1) 오디오는 문장 전체(sub_t)를 한 번에 생성하여 "능력입니다/있습니다" 같은 어색한 끊김 0%!
                                     _generate_chunk_voice(sub_t.replace("/", " "), f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_chapter_start=is_ch_start, is_final_cut=(idx_c == n_chunks - 1))
 
                                     exact_dur = 3.5
@@ -7921,47 +7958,54 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    # 2) 화면 자막만 호흡 단위(14~17자)로 2~3등분하여 오디오 진행 시간에 맞춰 이미지를 순차 전환!
-                                    sub_phrases = split_subtitle_phrases(sub_t, max_len=17)
-                                    total_ch_len = max(1, sum(len(p) for p in sub_phrases))
+                                    # [싱크 완벽 보정] 화면 글자 수가 아니라 성우가 실제로 발음하는 음절 길이(spoken_weight) + 문장부호 휴지기로 시간 배분!
+                                    sub_phrases = split_subtitle_phrases(sub_t, max_len=19)
+                                    spoken_weights = []
+                                    for p_txt in sub_phrases:
+                                        spoken_str = re.sub(r'\s+', '', fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts))
+                                        # 느낌표/물음표/마침표가 있으면 성우가 0.25초 쉬어가므로 가중치(+3.5음절) 추가
+                                        pause_w = 3.5 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", "다!", "다.", "요?", "요!"]) else 0.8
+                                        spoken_weights.append(max(2.0, float(len(spoken_str)) + pause_w))
 
+                                    total_weight = sum(spoken_weights)
                                     img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                     tmp_Created.append(img_concat_txt)
                                     last_img_path = None
 
                                     with open(img_concat_txt, "w", encoding="utf-8") as icf:
                                         acc_dur = 0.0
-                                        for p_idx, p_txt in enumerate(sub_phrases):
+                                        for p_idx, (p_txt, s_w) in enumerate(zip(sub_phrases, spoken_weights)):
                                             f_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_img_p)
                                             _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font).save(f_img_p)
                                             last_img_path = f_img_p
 
                                             if p_idx < len(sub_phrases) - 1:
-                                                p_dur = round(exact_dur * (len(p_txt) / float(total_ch_len)), 3)
-                                                p_dur = max(0.45, min(exact_dur - acc_dur - 0.3, p_dur))
+                                                p_dur = round(exact_dur * (s_w / total_weight), 3)
+                                                p_dur = max(0.45, min(exact_dur - acc_dur - 0.35, p_dur))
                                                 acc_dur += p_dur
                                             else:
-                                                p_dur = max(0.3, round(exact_dur - acc_dur, 3))
+                                                p_dur = max(0.35, round(exact_dur - acc_dur, 3))
 
                                             icf.write(f"file '{f_img_p.replace(chr(92), '/')}'\n")
                                             icf.write(f"duration {p_dur:.3f}\n")
                                         if last_img_path:
                                             icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
 
+                                    # concat demuxer가 duration을 100% 정확히 지키도록 -vsync cfr -r 30 명시!
                                     cmd_primary = [
                                         ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
-                                        "-vf", vf_motion,
-                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                                        "-vf", vf_motion, "-fps_mode", "cfr", "-r", "30",
+                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                                         "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                         "-t", f"{exact_dur:.3f}", f_seg
                                     ]
                                     res_p = subprocess.run(cmd_primary, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                                     if res_p.returncode != 0 and last_img_path:
                                         subprocess.run([
-                                            ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_dur:.3f}", "-i", last_img_path, "-i", f_wav,
-                                            "-vf", "scale=720:1280:flags=lanczos",
-                                            "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                                            ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
+                                            "-vf", "scale=720:1280:flags=lanczos", "-r", "30",
+                                            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                                             "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                             "-t", f"{exact_dur:.3f}", f_seg
                                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
