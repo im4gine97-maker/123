@@ -7803,7 +7803,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         3: f"내일 당장 증권거래소가 5년간 문을 닫아도 / {comp_name} 불안 없이 보유할 수 있을까요? / 실제 현금 창출 속도를 바로 검증합니다!",
                         4: f"단순히 주가가 싸다고 사면 위험합니다! / {comp_name}에 진짜 안전마진이 있는지 / 현재 실적과 10년 장부로 정밀 검증합니다!"
                     }
-
+                    # ✅ [추가] 유튜브 쇼츠 자동 제목 프리픽스 (yt_title_prefix_45) 정의
+                    yt_title_map_v27 = {
+                        0: f"차트만 보고 있지 마라! {comp_name} 10년 장부 팩트 폭격 (ROIC {cap_ret_val:.1f}%)",
+                        1: f"{comp_name} 이 장부 모르면 주식 접어야 합니다 (버핏 역산 안전마진 {g_margin_val:+.1f}%p)",
+                        2: f"남들 급등주 쫓을 때 워런 버핏이 {comp_name} 장부를 보고 웃은 이유",
+                        3: f"주식시장이 5년간 문을 닫아도 {comp_name} 마음 편히 들고 갈 수 있을까?",
+                        4: f"{comp_name} 지금 사도 될까? 10년물 미국채 금리 vs 주주이익 역산 검증"
+                    }
+                    yt_title_prefix_45 = yt_title_map_v27.get(h_idx if 'h_idx' in locals() else 0, yt_title_map_v27[0])
                     # 1) 존댓말 8컷 대본 (45초 칼각 · 숫자 발화 시점 1:1 슬래시 매칭)
                     erp_jd_str = f"안전한 10년물 미국채 이자보다 / 확실히 {erp_val:+.1f}%p나 돈을 더 벌어다 줍니다!" if erp_val >= 0 else f"10년물 미국채 이자({ty:.2f}%) 대비 / {erp_val:+.1f}%p 차이가 나 성장이 중요합니다."
                     mgn_jd_str = f"안전마진이 {g_margin_val:+.1f}%p나 남습니다!" if g_margin_val >= 0 else f"안전마진이 {g_margin_val:+.1f}%p로 기대감이 반영돼 있습니다."
