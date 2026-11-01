@@ -8827,7 +8827,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    phrases = (ch_text, max_len=36)
+                                    phrases = split_subtitle_phrases(ch_text, max_len=36)
                                     weights = []
                                     for p_t in phrases:
                                         sp_s = fix_global_tts_pronunciation(p_t, is_en=False).replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
