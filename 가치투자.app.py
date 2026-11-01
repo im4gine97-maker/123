@@ -7794,20 +7794,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     }
                     hk_line1, hk_line2, yt_title_prefix_45 = hook_45_map.get(h_idx, hook_45_map[1])
 
-                    # 1) 복리의 바퀴 & 가격결정력 (숫자 발음 타이밍마다 '/' 분할!)
+                    # 1) 복리의 바퀴 & 가격결정력
                     m_line1 = f"첫째 돈 복사 속도입니다! / 보통 기업은 연 12%를 버는데 / 여긴 연 {cap_ret_val:.1f}%씩 창출합니다!"
                     m_line2 = f"1,000만 원 넣으면 연 {roic_10m_manwon:,}만 원씩 불어나고 / 영업마진도 {op_m:.1f}%라 가격결정력이 막강합니다!"
 
-                    # 2) 이익수익률(vs 미국채) & 역산 주주이익 (3번째 미국채 챕터 완벽 통합!)
-                    b_line1 = f"둘째 이익수익률과 역산 암산법입니다! / 현재 이익수익률은 연 {cur_ey_val:.2f}%로 / 10년물 미국채 {ty:.2f}%와 비교됩니다."
-                    b_line2 = f"연 10% 수익을 위한 요구성장은 {req_g_val:+.1f}%인데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / 안전마진이 {g_margin_val:+.1f}%p나 확보됩니다!"
+                    # 2) 이익수익률(vs 미국채) & 역산 주주이익 (요청하신 문구 구조 완벽 반영!)
+                    b_line1 = f"둘째 버핏의 역산 암산법입니다! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / 안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 {'남습니다!' if erp_val >= 0 else '차이가 납니다.'}"
+                    b_line2 = f"매년 {req_g_val:+.1f}%만 커져도 되는데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / 안전마진이 {g_margin_val:+.1f}%p나 {'남습니다!' if g_margin_val >= 0 else '부족합니다.'}"
 
                     # 3) 재무 안전판 & 자본 배분
                     saf_line1 = f"셋째 재무 안전판과 배당입니다! / 유동비율 {current_ratio:.2f}배로 튼튼하고 / 10년 중 {div_10y_cnt}회 배당하며 연 {safe_div:.2f}%를 환원합니다."
                     saf_line2 = f"남는 잉여현금은 본업에 다시 재투자해 / 복리 엔진을 계속 가동하고 있습니다!"
 
-                    # 4) 최종 점검 (군더더기 없이 1컷 압축!)
-                    sum_line1 = f"단기 주가 소음에 흔들리지 말고 / {comp_name}의 3대 핵심 판서를 다시 돌려보며 직접 판단해 보세요!"
+                    # 4) 최종 점검
+                    sum_line1 = f"단기 주가 소음에 흔들리지 말고 / {comp_name}의 핵심 판서를 다시 돌려보며 직접 판단해 보세요!"
 
                     default_12cuts_script = [
                         f"[도입] 주식 가격이 매일 바뀐다고 차트만 보고 사시나요? / {comp_name} 장부 안 보고 사면 큰 손해 봅니다!",
@@ -7820,22 +7820,32 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[결론] {sum_line1}"
                     ]
 
-                    # [머니치트키식 반말 구어체: 38초 컷 & 숫자 발화 시점 1:1 판서 매칭!]
+                    # [머니치트키식 반말 구어체: 요청하신 [가격] 대본 토씨 하나 안 틀리고 100% 반영!]
                     if "반말" in tone_mode_sh:
+                        erp_banmal = (
+                            f"안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 남고."
+                            if erp_val >= 0 else
+                            f"10년물 미국채 이자 대비 {erp_val:+.1f}%p 차이가 나고."
+                        )
+                        margin_banmal = (
+                            f"안전마진이 {g_margin_val:+.1f}%p나 남거든!"
+                            if g_margin_val >= 0 else
+                            f"안전마진이 {g_margin_val:+.1f}%p라 기대감이 좀 들어있어."
+                        )
                         default_12cuts_script = [
                             f"[도입] 주식 가격이 매일 바뀐다고 차트만 보고 사는 거 아니지? / {comp_name} 이 장부 안 보고 사면 진짜 큰 손해 본다!",
                             f"[해자] 첫째 돈 복사 속도야! / 보통 회사는 연 12% 버는데 / 여긴 무려 연 {cap_ret_val:.1f}%씩 돈을 쓸어담고 있어!",
                             f"[해자] 내 돈 1,000만 원당 1년에 {roic_10m_manwon:,}만 원을 버는 셈이고 / 영업마진도 {op_m:.1f}%라 가격결정력이 진짜 막강해!",
-                            f"[가격] 둘째 버핏의 역산 암산법이야! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / 안전한 10년물 미국채 이자는 연 {ty:.2f}%야.",
-                            f"[가격] 매년 {req_g_val:+.1f}%만 커져도 연 10% 수익인데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / 안전마진이 {g_margin_val:+.1f}%p나 남거든!",
+                            f"[가격] 둘째 버핏의 역산 암산법이야! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / {erp_banmal}",
+                            f"[가격] 매년 {req_g_val:+.1f}%만 커져도 되는데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / {margin_banmal}",
                             f"[안전] 셋째 재무 안전판과 배당이야! / 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 순수 현금배당도 연 {safe_div:.2f}%씩 챙겨주고 있어.",
                             f"[안전] 무엇보다 번 돈을 본업에 다시 재투자해서 / 스스로 눈덩이를 굴리는 복리 구조야!",
                             f"[결론] 장부 확인도 안 하고 최고가에 사면 속 터지잖아? / 처음부터 핵심 판서를 다시 돌려보며 직접 판단해 봐!"
                         ]
 
-                    # 세션 캐시 강제 갱신(V25_CHALK)으로 이전의 긴 12줄 대본이 남아있지 않게 처리!
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V25_CHALK"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V26_FINAL"
                     mode_tag_k = f"KO_{ov_sig}"
+                    
                     st.success("🎬 **[V22 PDF 바이블 헌장 100% 동기화 & 59초 이내 안전가드 탑재]** ① SK하이닉스 '슥' 오발음 완벽 교정, ② 단순 저PBR 찬양을 빼고 **가격결정력·주주이익·역산 밸류에이션·주주희석 배제·자본배분 원칙** 반영, ③ **무조건 45~54초(59초 이내)**로 렌더링됩니다!")
                     editable_script_text = st.text_area(
                         "✏️ 바이블 기준 12컷 완결형 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
@@ -9915,304 +9925,177 @@ with tab4:
     st.caption(t("가치투자는 단순한 통계적 저PBR 주식 매수가 아닙니다. 미래 현금창출능력과 자본배분 효율성을 근간으로 영구적 자본 손실(Permanent Capital Loss)을 원천 차단하는 사상 체계입니다.", "Value investing is a mindset to prevent permanent capital loss based on future cash generation and capital allocation."))
 
     # =========================================================================
-    # [상단] 🎬 가치투자 바이블 7대 시리즈 45초 쇼츠(.mp4) 생성 스튜디오
+    # [V26 전면 개조] 🎬 가치투자 바이블 쇼츠 스튜디오 (구글 쇼츠 2번째 영상과 100% 동일한 칠판 판서 & 체리콕 버핏 풀샷!)
+    # - 1) 옛날 4단 박스 & 구석 캐릭터 완전 제거 -> 로열 네이비 칠판 + 체리콕 버핏 강단 풀샷 교차 연출!
+    # - 2) 대본 호흡('/')에 맞춰 분필 소리('사각- 톡!')와 함께 핵심 원칙이 칠판에 하나씩 판서 빌드업!
+    # - 3) 머니치트키식 친근한 반말(45초 컷) vs 정통 마스터 존댓말 원클릭 전환 지원!
     # =========================================================================
-    with st.expander("🎬 [가치투자 바이블 쇼츠 스튜디오] PDF 7대 핵심 챕터를 45초 고밀도 그래픽 쇼츠(.mp4)로 즉시 제작", expanded=True):
-        st.info("💡 **종목 영상만 올릴 때의 소재 고갈 완벽 해결!** PDF 바이블의 7가지 핵심 주제를 **완결된 12문장(약 45초 · 어색한 문장 끊김 제로 · 싱크 무결점)**과 **전용 시각 그래픽 보드**로 렌더링합니다.")
+    with st.expander("🎬 [가치투자 바이블 쇼츠 스튜디오] 체리콕 버핏 강단 풀샷 & 칠판 판서 빌드업(.mp4) 원클릭 제작", expanded=False):
+        st.info("🔥 **[개별 종목 쇼츠와 100% 동일한 시그니처 칠판 판서 디자인 적용]** 복잡한 박스 대신, **강단 위 버핏 할아버지 풀샷**과 **분필 소리(`사각- 톡!`)에 맞춰 하나씩 적히는 칠판 다이어그램 판서**로 45초 만에 7대 바이블 챕터를 마스터합니다!")
 
-        bible_series_db = {
-            "Part 1. 가치투자 4대 불변의 핵심 철학 (소유권 · 미스터 마켓 · 해자 · 능력범위)": {
-                "badge": "BIBLE SERIES #1 · 4대 불변의 핵심 철학",
-                "title": "가치투자의 4대 불변 원칙",
-                "yt_title": "주식을 종잇조각으로 보니까 맨날 물리는 겁니다! 워런 버핏의 4대 투자 철학 📖 #shorts #가치투자 #주식공부",
-                "cards": [
-                    ("원칙 1. 기업 소유권 (Ownership)", "주식은 종잇조각이 아닌 실체적 비즈니스의 지분!", "거래소가 5년간 문을 닫아도 불안 없는 기업만 소유", (0, 230, 118)),
-                    ("원칙 2. 미스터 마켓 (Mr. Market)", "시장은 가치를 알려주는 스승이 아닌 변덕쟁이 동업자!", "일일 등락률은 무시하고 광기와 패닉만 역이용", (56, 189, 248)),
-                    ("원칙 3. 해자 기반 안전마진", "해자 없는 싼 주식(저PBR)은 위험한 가치 함정!", "강력한 해자가 보장하는 미래 주주이익 대비 할인 매수", (245, 158, 11)),
-                    ("원칙 4. 능력 범위 (Circle of Competence)", "내가 완벽히 이해하는 비즈니스에만 머문다!", "전문가의 비관적 반론을 논리로 반박 못 하면 투자 제외", (168, 85, 247))
-                ],
-                "script": [
-                    "[도입] 주식을 단순한 번호판이나 종잇조각으로 보니까 매일 계좌가 흔들리는 겁니다!",
-                    "[도입] 워런 버핏과 찰리 멍거가 평생 지킨 가치투자 4대 불변의 원칙을 정리해 드립니다!",
-                    "[원칙1] 첫째 기업 소유권입니다! 주식 매수는 회사의 지분 100%를 통째로 인수하는 동업 행위입니다.",
-                    "[원칙1] 내일 당장 주식시장이 5년간 문을 닫아도 아무 걱정 없이 보유할 수 있는 기업만 사야 합니다!",
-                    "[원칙2] 둘째 미스터 마켓입니다! 시장은 가치를 가르쳐주는 스승이 아니라 조울증 걸린 동업자일 뿐입니다.",
-                    "[원칙2] 매일 흔들리는 주가에 일희일비하지 말고 시장이 패닉에 빠져 헐값에 던질 때만 이용하세요!",
-                    "[원칙3] 셋째 경제적 해자 기반의 안전마진입니다! 해자가 없는데 장부가치만 싼 주식은 위험한 가치 함정입니다.",
-                    "[원칙3] 반드시 강력한 독점 해자가 보장하는 미래 주주이익 대비 가격이 현저히 낮을 때만 매수해야 합니다!",
-                    "[원칙4] 넷째 능력 범위입니다! 내가 제품 주기와 경쟁 구도를 완벽히 이해하는 비즈니스에만 머물러야 합니다.",
-                    "[원칙4] 업계 최고 전문가의 비관적 반론을 논리적 사실로 반박할 수 없다면 과감히 패스하세요!",
-                    "[결론] 소유권과 미스터 마켓, 안전마진과 능력 범위까지 이 4가지가 영구적 자본 손실을 막는 방패입니다.",
-                    "[결론] 지금 내 포트폴리오의 종목들이 이 4가지 원칙을 통과했는지 처음부터 다시 점검해 보세요!"
-                ]
-            },
-            "Part 2. 기업 분석의 기초: 사실 수집(Scuttlebutt) · 자본경량성 · 경영진의 정직성": {
-                "badge": "BIBLE SERIES #2 · 펀더멘털 & 경영진 감사",
-                "title": "진짜 승자를 가르는 3대 본질",
-                "yt_title": "경영진이 똑똑한데 정직하지 않다면? 주주를 파멸시키는 최악의 함정! 🚨 #shorts #워런버핏 #기업분석",
-                "cards": [
-                    ("A. 사실 수집 (Scuttlebutt 실사)", "재무제표 너머 실제 비즈니스 생태계를 검증하라!", "경쟁사 임원 · 전현직 직원 · 공급망 벤더 교차 체크", (56, 189, 248)),
-                    ("B. 무형의 가격결정력 (Pricing Power)", "인플레이션 방어력의 핵심은 부동산이 아닌 가격결정력!", "가격을 올려도 고객 이탈이 없는 독점적 지위 확인", (0, 230, 118)),
-                    ("C. 자본 경량성 (Asset-Light)", "대규모 설비투자(CapEx) 없이 매출이 크는 구조!", "원가 상승분을 고객에게 100% 즉시 전가 가능한 모델", (245, 158, 11)),
-                    ("D. 무결점의 도덕성 (Integrity)", "지능 + 열정 + 정직함 중 가장 중요한 것은 정직함!", "스톡옵션 남발 · 주주가치 희석 증자 · 분식회계 즉각 배제", (255, 23, 68))
-                ],
-                "script": [
-                    "[도입] 재무제표 숫자만 예쁘다고 무조건 좋은 회사일까요? 절대 그렇지 않습니다!",
-                    "[도입] 서류 너머에서 기업의 진짜 본질을 꿰뚫어 보는 3가지 핵심 기준을 알려드립니다!",
-                    "[원칙1] 첫째 발로 뛰는 사실 수집입니다! 회계 장부 너머의 실제 비즈니스 생태계를 교차 검증해야 합니다.",
-                    "[원칙1] 경쟁사가 가장 두려워하는 지점은 무엇인지 임직원과 고객의 진짜 평가를 확인하세요!",
-                    "[원칙2] 둘째 자본 경량성과 가격결정력입니다! 인플레이션을 이기는 힘은 공장이 아니라 가격결정력에서 나옵니다.",
-                    "[원칙2] 대규모 설비 재투자 없이도 성장하고 가격을 올려도 고객이 떠나지 않는 독점 기업을 찾으세요!",
-                    "[원칙3] 셋째 경영진의 무결점 도덕성입니다! 버핏은 지능과 열정, 그리고 정직함 세 가지를 본다고 했습니다.",
-                    "[원칙3] 하지만 마지막 정직함이 없으면 앞의 지능과 열정이 오히려 주주를 파멸시킨다고 경고했습니다!",
-                    "[원칙4] 스톡옵션을 남발하거나 무리한 유상증자와 전환사채로 주주가치를 희석하는 경영진은 즉각 걸러내야 합니다.",
-                    "[원칙4] 경영상의 실수를 투명하게 고백하고 주주를 진짜 동업자로 대우하는 경영진과만 함께하세요!",
-                    "[결론] 현장 사실 수집과 강력한 가격결정력, 그리고 경영진의 정직함이 위대한 투자의 출발점입니다.",
-                    "[결론] 내가 투자한 회사의 경영진이 과연 이 기준을 통과하는지 처음부터 다시 확인해 보세요!"
-                ]
-            },
-            "Part 3. 필립 피셔 & 버핏의 위대한 기업 발굴 15가지 체크리스트 (4대 탈락 기준)": {
-                "badge": "BIBLE SERIES #3 · 필립 피셔 15대 원칙",
-                "title": "위대한 기업의 4대 평가 축",
-                "yt_title": "평생 보유할 초우량주 고르는 법! 필립 피셔와 버핏의 4대 핵심 필터 🔍 #shorts #필립피셔 #가치투자",
-                "cards": [
-                    ("축 1. 성장성 & 구조적 해자", "시장 잠재력 · 신성장 의지 · R&D 생산성 · 특허 해자", "[탈락] 일회성 유행 테마 · 진입장벽 부재 · 지속 자본잠식", (0, 230, 118)),
-                    ("축 2. 수익성 & 원가 효율", "높은 영업이익률 방어 · 원가절감 체질 · 정밀 회계관리", "[탈락] 저마진 출혈경쟁 · 원가 전가 불가 · 불투명한 회계", (56, 189, 248)),
-                    ("축 3. 조직 문화 & 리더십 승계", "우호적 노사관계 · 임원진 화합 · 두터운 차세대 후계구도", "[탈락] 핵심 인재 이탈 급증 · 제왕적 1인 독재 · 후계 부재", (245, 158, 11)),
-                    ("축 4. 거버넌스 & 주주가치 보호", "10~20년 장기 의사결정 · 주주희석 배제 · 투명한 소통", "[탈락] 사익 편취 · 빈번한 희석성 증자 · 거짓 해명/분식", (255, 23, 68))
-                ],
-                "script": [
-                    "[도입] 반짝 뜨고 사라질 테마주와 10년 동안 복리로 불어날 위대한 기업을 어떻게 구별할 수 있을까요?",
-                    "[도입] 필립 피셔가 정립하고 워런 버핏이 계승한 15가지 체크리스트의 4대 핵심 축을 공개합니다!",
-                    "[원칙1] 첫째 성장성과 해자 축입니다! 투입된 연구개발비가 실제 높은 영업이익으로 직결되는지 확인해야 합니다.",
-                    "[원칙1] 일회성 유행 테마에 불과하거나 경쟁자의 진입을 막을 특허와 전환비용 해자가 없다면 즉시 탈락입니다!",
-                    "[원칙2] 둘째 수익성과 원가 통제력입니다! 경기 변동 속에서도 높은 영업이익률을 방어하는 체질을 갖춰야 합니다.",
-                    "[원칙2] 단 미래 성장을 위한 선제적 연구개발 투자로 일시적으로 마진이 눌린 순간은 오히려 절호의 매수 기회입니다!",
-                    "[원칙3] 셋째 조직과 리더십입니다! 최고경영자 한 명에게만 의존하지 않고 두터운 후계 구도를 양성해야 합니다.",
-                    "[원칙3] 핵심 인재가 줄줄이 퇴사하거나 제왕적 1인 독재로 운영되는 조직은 장기 투자 대상에서 제외하세요!",
-                    "[원칙4] 넷째 거버넌스와 윤리입니다! 단기 실적 맞추기에 급급하지 않고 10년 뒤를 내다보며 자본을 집행해야 합니다.",
-                    "[원칙4] 빈번한 유상증자와 전환사채로 주주가치를 희석하거나 악재를 은폐하는 기업은 단 한 점의 타협 없이 버려야 합니다!",
-                    "[결론] 성장성과 수익성, 건강한 조직과 투명한 거버넌스까지 이 4대 관문을 모두 통과한 기업만 남기세요.",
-                    "[결론] 내 종목이 혹시 탈락 기준에 해당하지는 않는지 처음부터 표를 다시 확인해 보세요!"
-                ]
-            },
-            "Part 4. 찰리 멍거의 다학제적 멘탈 모델 (공학 · 물리화학 · 수학 · 생물학)": {
-                "badge": "BIBLE SERIES #4 · 찰리 멍거의 격자틀 모델",
-                "title": "4대 과학으로 해부하는 기업 수명",
-                "yt_title": "망치를 든 사람에겐 모든 게 못으로 보인다! 찰리 멍거의 4대 과학 투자법 🧠 #shorts #찰리멍거 #멘탈모델",
-                "cards": [
-                    ("공학 : 단일 실패 지점 차단 (Redundancy)", "한 부품이 고장 나도 전체가 무너지지 않는 백업 시스템!", "특정 단일 고객 · 단일 벤더 · 단일 인력 의존 리스크 제거", (56, 189, 248)),
-                    ("물리·화학 : 자가 촉매 (Autocatalysis)", "임계 질량 돌파 후 스스로 수요를 창출하는 가속도!", "결과물이 다시 원인이 되어 후발주자가 못 따라잡는 구조", (245, 158, 11)),
-                    ("수학 : 복리 모형 (Compound Model)", "ROIC > 자본비용 + 잉여현금의 고수익 재투자 바퀴!", "지수적(Exponential) 복리 곡선을 그려내는 핵심 엔진", (0, 230, 118)),
-                    ("생물학 : 다윈주의적 적응력 (Fitness)", "규제 변화 · 파괴적 기술 출현에 스스로 진화하는 DNA!", "과거 성공 공식에 안주하는 공룡 기업은 환경 급변 시 절멸", (168, 85, 247))
-                ],
-                "script": [
-                    "[도입] 망치 하나만 든 사람에게는 세상의 모든 문제가 못으로 보인다는 찰리 멍거의 경고를 아시나요?",
-                    "[도입] 회계학 하나에 갇히지 않고 공학과 물리학, 수학과 생물학으로 기업의 수명을 해부하는 법을 알려드립니다!",
-                    "[원칙1] 첫째 공학의 다중화 원리입니다! 항공기처럼 한 부품이 고장 나도 추락하지 않는 백업 시스템이 있어야 합니다.",
-                    "[원칙1] 단 한 명의 거래처나 단일 제품이 흔들릴 때 회사 전체가 무너지는 단일 실패 지점이 없는지 점검하세요!",
-                    "[원칙2] 둘째 물리화학의 자가 촉매 현상입니다! 임계점을 넘어 결과물이 스스로 새로운 수요를 부르는 구조입니다.",
-                    "[원칙2] 플랫폼 네트워크 효과처럼 가만히 있어도 후발주자와 격차가 기하급수적으로 벌어지는 가속도를 확인하세요!",
-                    "[원칙3] 셋째 수학의 복리 모형입니다! 투하자본수익률이 자본비용을 크게 웃도는지 보는 것입니다.",
-                    "[원칙3] 벌어들인 현금을 다시 높은 수익률로 재투자해 지수 곡선을 그리는 복리의 바퀴가 돌고 있어야 합니다!",
-                    "[원칙4] 넷째 생물학의 진화적 적응력입니다! 과거의 성공에 안주하는 공룡 기업은 기술이 바뀔 때 멸종합니다.",
-                    "[원칙4] 파괴적 기술과 환경 변화 속에서도 스스로 껍질을 깨고 진화하는 생존 DNA를 가졌는지 확인하세요!",
-                    "[결론] 공학의 안전판과 화학의 촉매, 수학의 복리와 생물학의 진화력이 합쳐질 때 불패의 투자가 완성됩니다.",
-                    "[결론] 이 4가지 과학적 렌즈로 내 보유 종목을 처음부터 다시 비춰보세요!"
-                ]
-            },
-            "Part 5. 인지적 오판을 막는 8대 심리학 체크리스트 & 롤라팔루자 효과": {
-                "badge": "BIBLE SERIES #5 · 인간 오판의 심리학",
-                "title": "투자자를 파멸시키는 8대 심리 편향",
-                "yt_title": "아이큐 160도 주식시장에서 파산하는 진짜 이유! 찰리 멍거의 8대 심리 법칙 ⚠️ #shorts #투자심리 #찰리멍거",
-                "cards": [
-                    ("1~2. 인센티브 편향 & 의심 회피", "보너스·스톡옵션이 만든 왜곡 / 내 매수 결정 합리화 금지!", "새로운 악재를 축소 해석하는 확증 편향을 경계하라", (255, 23, 68)),
-                    ("3~4. 질투 편향 & 고통스러운 현실 부정", "남이 급등주로 돈 버는 것에 대한 질투가 파멸의 시작!", "해자가 무너졌는데도 손실 인정이 싫어 품는 거짓 희망 차단", (245, 158, 11)),
-                    ("5~6. 사회적 증거(군중심리) & 스트레스", "남들이 다 사니까 안전하다는 착각이 버블 붕괴의 진원지!", "최근 자극적 뉴스 과몰입 금지 · 극심한 스트레스 시 매매 금지", (56, 189, 248)),
-                    ("7~8. 권위 맹신 & 롤라팔루자 효과", "유명 경제학자·관료의 단기 거시 전망 맹신 금지!", "여러 편향이 한 방향으로 겹쳐 광기를 부를 때 즉시 관망하라", (168, 85, 247))
-                ],
-                "script": [
-                    "[도입] 왜 똑똑한 사람들이 주식 시장만 오면 꼭대기에서 사고 바닥에서 파는 치명적인 실수를 반복할까요?",
-                    "[도입] 찰리 멍거가 평생 경고한 인간 오판의 심리학 핵심 체크리스트를 정리해 드립니다!",
-                    "[원칙1] 첫째 인센티브 편향과 일관성 함정입니다! 스톡옵션에 눈이 먼 경영진이나 애널리스트의 장밋빛 전망을 경계하세요.",
-                    "[원칙1] 특히 내가 이미 샀다는 이유만으로 새로운 악재를 무시하고 내 결정을 합리화하는 확증 편향을 버려야 합니다!",
-                    "[원칙2] 둘째 질투심과 현실 부정입니다! 버핏은 세상을 움직이는 가장 어리석은 감정이 탐욕이 아니라 질투라고 했습니다.",
-                    "[원칙2] 남들이 단기 급등주로 돈 버는 모습에 흔들리지 말고 내 기업의 해자가 훼손됐을 땐 냉정하게 현실을 인정하세요!",
-                    "[원칙3] 셋째 군중 심리와 가용성 편향입니다! 모두가 열광하며 사들이는 인기 테마에 편승하는 순간이 가장 위험합니다.",
-                    "[원칙3] 최근에 본 자극적인 뉴스 한두 개에 과도한 비중을 두거나 스트레스 상태에서 급하게 매매 버튼을 누르지 마세요!",
-                    "[원칙4] 넷째 롤라팔루자 효과입니다! 위의 여러 심리적 편향들이 한 방향으로 겹치면 집단 광기나 극단적 패닉이 터집니다.",
-                    "[원칙4] 시장 전체가 광기에 휩싸여 롤라팔루자 효과가 나타날 때는 모든 판단을 멈추고 한 발 물러서서 관망해야 합니다!",
-                    "[결론] 투자의 성패는 지능지수가 아니라 내 안의 심리적 맹점을 얼마나 철저히 통제하느냐에 달려 있습니다.",
-                    "[결론] 지금 내가 이 8가지 심리 함정 중 하나에 빠져 있지는 않은지 처음부터 다시 점검해 보세요!"
-                ]
-            },
-            "Part 6. 경영진의 자본 배분(Capital Allocation) 5대 경로 & 버핏의 주주이익 산출": {
-                "badge": "BIBLE SERIES #6 · 자본 배분과 주주이익",
-                "title": "CEO의 진짜 성적표: 자본 배분",
-                "yt_title": "회계상 순이익과 EBITDA에 속지 마세요! 워런 버핏이 계산하는 진짜 주주이익 💰 #shorts #자본배분 #재무제표",
-                "cards": [
-                    ("버핏의 진짜 주주이익 (Owner Earnings)", "순이익 + 감가상각비 - 유지보수성 CapEx - 운전자본 변동", "왜곡된 EBITDA를 버리고 주머니에 남는 순수 현금을 보라!", (0, 230, 118)),
-                    ("경로 1~2. 본업 재투자 & 선별적 M&A", "투하자본수익률(ROIC) > 자본비용일 때 본업 재투자 최우선!", "M&A는 해자를 강화하는 볼트온 인수만 인정 (제국 건설 금지)", (56, 189, 248)),
-                    ("경로 3. 자사주 매입의 절대 조건", "반드시 주가가 내재가치보다 현저히 쌀 때만 매입해야 함!", "비싼 가격에 자사주를 사들이는 것은 주주 자본 파괴 행위", (245, 158, 11)),
-                    ("경로 4~5. 현금 배당 & 부채 상환", "사내 고수익 재투자 기회가 고갈됐을 때 주주에게 배당 환원!", "불필요한 차입금을 상환해 파산 위험을 원천 격리", (168, 85, 247))
-                ],
-                "script": [
-                    "[도입] 아무리 돈을 잘 버는 독점 기업이라도 대표이사가 자본 배분을 잘못하면 주주가치는 처참하게 파괴됩니다!",
-                    "[도입] 워런 버핏이 회계상 순이익 대신 계산하는 진짜 주주이익과 자본 배분의 5가지 원칙을 공개합니다!",
-                    "[원칙1] 첫째 버핏의 주주이익 산출법입니다! 감가상각비를 무시하는 왜곡된 에비타 지표를 절대 맹신하지 마세요.",
-                    "[원칙1] 당기순이익에 비현금 비용을 더하고 경쟁력 유지를 위해 꼭 써야 하는 유지보수 설비투자액을 빼야 진짜 여윳돈입니다!",
-                    "[원칙2] 둘째 본업 재투자와 인수합병입니다! 회사의 투하자본수익률이 자본비용보다 높다면 본업 재투자가 1순위입니다.",
-                    "[원칙2] 반대로 경영진이 자기 제국을 넓히려고 비싼 값에 무분별한 인수합병을 벌인다면 즉시 경계해야 합니다!",
-                    "[원칙3] 셋째 자사주 매입의 엄격한 조건입니다! 자사주 매입은 무조건 좋은 것이 아니라 가격이 쌀 때만 가치 있는 행위입니다.",
-                    "[원칙3] 주가가 내재가치보다 훨씬 저평가됐을 때 사서 소각해야 주당 가치가 오르며 고평가 때 사면 오히려 독이 됩니다!",
-                    "[원칙4] 넷째 배당 지급과 부채 상환입니다! 더 이상 높은 수익률로 재투자할 곳이 없을 때는 현금 배당으로 돌려줘야 합니다.",
-                    "[원칙4] 동시에 부채를 선제적으로 줄여 어떤 경제 위기가 와도 파산 위험이 없는 철옹성 같은 재무 구조를 만들어야 합니다!",
-                    "[결론] 진짜 주주이익을 창출하고 이를 가장 효율적인 경로에 배치하는 경영진이 최고의 동업자입니다.",
-                    "[결론] 내 기업이 벌어들인 현금을 어디에 쓰고 있는지 처음부터 5가지 경로를 다시 확인해 보세요!"
-                ]
-            },
-            "Part 7. 역산 밸류에이션(Invert) · 피셔와 버핏의 매수 타이밍 · 매도 3대 철칙": {
-                "badge": "BIBLE SERIES #7 · 밸류에이션과 매수·매도 철칙",
-                "title": "언제 사고 언제 팔 것인가?",
-                "yt_title": "엑셀로 10년 뒤 주가 계산하지 마세요! 버핏의 암산 밸류에이션과 매도 3대 원칙 🎯 #shorts #매수타이밍 #매도원칙",
-                "cards": [
-                    ("A. 거짓 정밀성 탈피 & 역산(Invert)", "엑셀로 소수점까지 DCF를 맞춘다는 환상을 버려라!", "암산으로도 명백히 싼 기회 · 현재 주가에 내포된 성장률 역산", (0, 230, 118)),
-                    ("B. 절호의 매수 타이밍 3가지", "위대한 기업이 일시적 문제로 패닉에 빠졌을 때만 진입!", "① 신제품 초기 결함 ② 거시경제 공황 ③ 해자 무관 일회성 악재", (56, 189, 248)),
-                    ("C. 매도 3대 불변 원칙 (1~2)", "주가가 조금 올랐다고 파는 것이 아니다!", "① 내 초기 분석에 중대한 오류 발견 시 ② 해자 영구 붕괴/극단 버블", (255, 23, 68)),
-                    ("D. 매도 3대 불변 원칙 (3) & 최종 관문", "③ 훨씬 더 확실하고 압도적인 초우량 기회를 발견했을 때!", "10년 후 독점력 · 경영진 정직성 · 영구 보유 관점 최종 점검", (245, 158, 11))
-                ],
-                "script": [
-                    "[도입] 복잡한 엑셀 파일로 10년 뒤 현금흐름을 소수점까지 정밀하게 계산하면 투자가 성공할까요?",
-                    "[도입] 거짓 정밀성의 환상을 깨는 역산 밸류에이션과 버핏의 매수 및 매도 3대 철칙을 알려드립니다!",
-                    "[원칙1] 첫째 암산과 역산 밸류에이션입니다! 계산기를 두드려야만 겨우 싸 보이는 주식은 애초에 안전마진이 없는 것입니다.",
-                    "[원칙1] 거꾸로 현재 주가를 정당화하려면 매년 몇 퍼센트씩 성장해야 하는지 역산해 보고 비상식적 기대가 없을 때만 사세요!",
-                    "[원칙2] 둘째 매수 타이밍입니다! 아무리 위대한 기업이라도 미스터 마켓이 패닉에 빠져 바겐세일을 할 때만 들어가야 합니다.",
-                    "[원칙2] 거시경제 전체의 비이성적 폭락이나 기업의 근본 해자와 무관한 일시적 악재가 터졌을 때가 평생의 기회입니다!",
-                    "[원칙3] 셋째 매도 3대 철칙 중 첫 번째와 두 번째입니다! 단순히 주가가 올랐거나 차트가 꺾였다는 이유로 팔지 마세요.",
-                    "[원칙3] 오직 내 처음 분석에 중대한 오류가 있었음을 깨달았거나 기업의 경제적 해자가 영구히 붕괴했을 때만 파는 것입니다!",
-                    "[원칙4] 마지막 세 번째 매도 조건은 기회비용입니다! 지금 보유한 주식보다 훨씬 더 확실하고 압도적인 기회를 찾았을 때입니다.",
-                    "[원칙4] 이 세 가지 경우가 아니라면 단기 소음에 흔들리지 않고 위대한 기업의 지분을 묵묵히 영구 보유하세요!",
-                    "[결론] 암산으로도 명백한 안전마진에 사서 매도 3원칙에 해당할 때만 파는 것이 가치투자의 완성입니다.",
-                    "[결론] 오늘 매수나 매도 버튼을 누르기 전에 이 3가지 철칙을 처음부터 다시 확인해 보세요!"
-                ]
-            }
-        }
+        b_col1, b_col2, b_col3, b_col4 = st.columns([1.6, 1.1, 1.1, 1.0])
+        with b_col1:
+            sel_bible_part = st.selectbox("📚 쇼츠로 제작할 바이블 챕터 (Part 1 ~ Part 7)", list(bible_series_db.keys()), key="bible_part_sel_v26")
+        with b_col2:
+            b_tone = st.selectbox("🗣️ 대본 말투 스타일", ["🔥 머니치트키식 반말 (45초 도파민)", "🎙️ 정통 마스터 존댓말"], index=0, key="bible_tone_v26")
+        with b_col3:
+            b_voice = st.selectbox("🎙️ AI 성우 선택", ["🔥 현수 (임팩트 남성)", "🎙️ 인준 (중후한 남성)", "⚡ 선희 (아나운서 여성)"], index=0, key="bible_voice_v26")
+        with b_col4:
+            b_spd = st.slider("⚡ 성우 배속", 10, 45, 28, 2, format="+%d%%", help="28%~30% 배속이 발음도 또렷하고 45초 내외로 가장 듣기 좋습니다.", key="bible_spd_v26")
 
-        sel_bible_part = st.selectbox(
-            "📚 쇼츠로 제작할 가치투자 바이블 챕터 선택 (총 7부작 시리즈)",
-            list(bible_series_db.keys()),
-            key="bible_series_sel"
-        )
         b_meta = bible_series_db[sel_bible_part]
+        cards_data = b_meta["cards"]  # 4개의 핵심 카드 [(제목, 핵심문구, 보조문구, 색상), ...]
 
-        b_c1, b_c2, b_c3 = st.columns(3)
-        with b_c1:
-            b_voice = st.selectbox("1️⃣ AI 성우 선택", ["🎙️ 인준 (신뢰감 중저음 남성)", "⚡ 선희 (또렷한 아나운서 여성)"], key="bible_v_sel")
-        with b_c2:
-            b_bgm = st.selectbox("2️⃣ 배경음악", ["🔥 시네마틱 다큐멘터리 베이스", "🔇 배경음악 없음"], key="bible_bgm_sel")
-        with b_c3:
-            b_spd = st.slider("3️⃣ 성우 배속(%)", 0, 60, 26, 2, format="+%d%%", key="bible_spd_sel")
+        # 선택한 파트의 4대 핵심 카드를 기반으로 '단계별 칠판 판서'에 딱 맞는 8줄 슬래시('/') 대본 자동 생성!
+        c1_t, c1_m, c1_s, _ = cards_data[0]
+        c2_t, c2_m, c2_s, _ = cards_data[1]
+        c3_t, c3_m, c3_s, _ = cards_data[2]
+        c4_t, c4_m, c4_s, _ = cards_data[3]
 
-        b_script_edit = st.text_area(
-            "✏️ 바이블 45초 완결형 12컷 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
-            value="\n".join(b_meta["script"]),
-            height=250,
-            key=f"bible_script_area_{sel_bible_part[:6]}"
+        if "반말" in b_tone:
+            default_b_lines = [
+                f"[도입] 주식할 때 이 원칙 모르면 진짜 큰 손해 본다! / 워런 버핏의 {b_meta['title']} 딱 45초 만에 정리해 줄게!",
+                f"[원칙1] 첫째 {c1_t}이야! / {c1_m} / {c1_s}!",
+                f"[원칙2] 둘째 {c2_t}이야! / {c2_m} / {c2_s}!",
+                f"[원칙3] 셋째 {c3_t}이야! / {c3_m} / {c3_s}!",
+                f"[원칙4] 넷째 {c4_t}이야! / {c4_m} / {c4_s}!",
+                f"[결론] 이 4가지 치트키도 안 보고 주식 사면 속 터지잖아? / 처음부터 핵심 판서를 다시 돌려보며 내 종목을 점검해 봐!"
+            ]
+        else:
+            default_b_lines = [
+                f"[도입] 주식 투자에서 영구적 손실을 막는 절대 원칙! / 워런 버핏의 {b_meta['title']} 핵심만 정리해 드립니다!",
+                f"[원칙1] 첫째 {c1_t}입니다! / {c1_m} / {c1_s}!",
+                f"[원칙2] 둘째 {c2_t}입니다! / {c2_m} / {c2_s}!",
+                f"[원칙3] 셋째 {c3_t}입니다! / {c3_m} / {c3_s}!",
+                f"[원칙4] 넷째 {c4_t}입니다! / {c4_m} / {c4_s}!",
+                f"[결론] 내 포트폴리오의 종목들이 이 4대 기준을 통과했는지 / 처음부터 칠판 판서를 다시 돌려보며 점검해 보세요!"
+            ]
+
+        b_script_txt = st.text_area(
+            "✏️ 바이블 쇼츠 대본 편집창 ('/' 기호마다 분필 소리 '사각- 톡!'과 함께 칠판에 다음 단계 내용이 하나씩 적힙니다!)",
+            value="\n".join(default_b_lines),
+            height=210,
+            key=f"b_script_v26_{sel_bible_part[:8]}_{'BM' if '반말' in b_tone else 'JD'}"
         )
 
-        if st.button("💥 선택한 바이블 챕터 45초 인포그래픽 쇼츠(.mp4) 생성 시작", use_container_width=True, type="primary", key="btn_gen_bible_mp4"):
+        if st.button(f"🎬 [{b_meta['badge']}] 칠판 판서 & 버핏 풀샷 쇼츠(.mp4) 렌더링 시작", use_container_width=True, type="primary", key="btn_gen_bible_v26"):
             try:
-                from PIL import Image, ImageDraw, ImageFont
-                import imageio_ffmpeg, subprocess, tempfile, os, re, wave, struct, math
+                from PIL import Image, ImageDraw
+                import imageio_ffmpeg, subprocess, tempfile, os, re, wave, gc
 
-                with st.spinner(f"[{b_meta['title']}] 45초 바이블 인포그래픽 쇼츠(.mp4) 렌더링 중..."):
-                    font_dir = tempfile.gettempdir()
-                    bold_p = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
-                    if not os.path.exists(bold_p) or os.path.getsize(bold_p) < 10000:
-                        r = requests.get("https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf", timeout=8)
-                        if r.status_code == 200:
-                            with open(bold_p, "wb") as f: f.write(r.content)
+                with st.spinner(f"[{b_meta['title']}] 체리콕 버핏 풀샷 & 분필 판서 쇼츠(.mp4) 고속 렌더링 중..."):
+                    get_font_b = _load_korean_pil_fonts()
+                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
-                    def _gf_b(sz):
-                        for c in [bold_p, "C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
-                            if os.path.exists(c):
-                                try: return ImageFont.truetype(c, sz)
-                                except Exception: continue
-                        return ImageFont.load_default()
+                    raw_b_lines = [ln.strip() for ln in b_script_txt.split("\n") if ln.strip()]
+                    if not raw_b_lines:
+                        raw_b_lines = default_b_lines
 
-                    def _fit_b(draw, cx, cy, max_w, text, start_sz=38, min_sz=11, fill=(255,255,255), sw=0):
-                        t_s = str(text).strip()
-                        for sz in range(start_sz, min_sz - 1, -2):
-                            f = _gf_b(sz)
-                            bb = draw.textbbox((0, 0), t_s, font=f, stroke_width=sw)
-                            if (bb[2] - bb[0]) <= max_w:
-                                draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_s, font=f, fill=fill, stroke_width=sw, stroke_fill=(0,0,0))
-                                return
-
-                    raw_b_lines = [ln.strip() for ln in b_script_edit.split("\n") if ln.strip()]
                     b_chunks = []
-                    for r_l in raw_b_lines[:16]:
-                        tag_sc = "B_ALL"
-                        cl = r_l
-                        if cl.startswith("[도입]"): tag_sc = "B_HOOK"; cl = cl.replace("[도입]", "").strip()
-                        elif cl.startswith("[원칙1]"): tag_sc = "B_CARD_0"; cl = cl.replace("[원칙1]", "").strip()
-                        elif cl.startswith("[원칙2]"): tag_sc = "B_CARD_1"; cl = cl.replace("[원칙2]", "").strip()
-                        elif cl.startswith("[원칙3]"): tag_sc = "B_CARD_2"; cl = cl.replace("[원칙3]", "").strip()
-                        elif cl.startswith("[원칙4]"): tag_sc = "B_CARD_3"; cl = cl.replace("[원칙4]", "").strip()
-                        elif cl.startswith("[결론]"): tag_sc = "B_SUMMARY"; cl = cl.replace("[결론]", "").strip()
-                        b_chunks.append((cl, tag_sc))
+                    for idx_r, r_ln in enumerate(raw_b_lines):
+                        sc_cd = "B_HOOK"
+                        cl_s = r_ln
+                        if cl_s.startswith("[도입]"):
+                            sc_cd, cl_s = "B_HOOK", cl_s.replace("[도입]", "").strip()
+                        elif cl_s.startswith("[원칙1]"):
+                            sc_cd, cl_s = "B_CARD_0", cl_s.replace("[원칙1]", "").strip()
+                        elif cl_s.startswith("[원칙2]"):
+                            sc_cd, cl_s = "B_CARD_1", cl_s.replace("[원칙2]", "").strip()
+                        elif cl_s.startswith("[원칙3]"):
+                            sc_cd, cl_s = "B_CARD_2", cl_s.replace("[원칙3]", "").strip()
+                        elif cl_s.startswith("[원칙4]"):
+                            sc_cd, cl_s = "B_CARD_3", cl_s.replace("[원칙4]", "").strip()
+                        elif cl_s.startswith("[결론]"):
+                            sc_cd, cl_s = "B_SUMMARY", cl_s.replace("[결론]", "").strip()
+                        else:
+                            if idx_r == 0: sc_cd = "B_HOOK"
+                            elif idx_r == len(raw_b_lines) - 1: sc_cd = "B_SUMMARY"
+                            else: sc_cd = f"B_CARD_{min(3, (idx_r - 1) % 4)}"
+                        b_chunks.append((cl_s, sc_cd))
 
                     n_b = len(b_chunks)
-                    cards_data = b_meta["cards"]
 
-                    def _draw_bible_frame(c_idx, sub_txt, sc_code, is_mouth_open=False, sub_step=0):
+                    def _draw_bible_chalk_frame(c_idx, sub_txt, sc_code, is_mouth_open=False, sub_step=0):
                         W, H = 720, 1280
-                        img = Image.new("RGB", (W, H), color=(6, 9, 18))
+                        img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        active_card_idx = (c_idx + sub_step) % 4
+                        # 1. 상단 블랙 헤더 (구글 2번째 영상과 100% 동일한 스타일!)
+                        top_yellow = f"가치투자 바이블 치트키"
                         if sc_code.startswith("B_CARD_"):
-                            active_card_idx = int(sc_code.split("_")[-1])
-                            theme_c = cards_data[active_card_idx][3]
-                        elif sc_code == "B_HOOK":
-                            theme_c = (220, 38, 38)
+                            c_i = int(sc_code.split("_")[-1])
+                            top_white = f"원칙 {c_i+1}. {cards_data[c_i][0]}"
                         else:
-                            theme_c = (0, 230, 118)
+                            top_white = b_meta["title"]
 
-                        # 1. 상단 헤더 (Y: 75 ~ 225)
-                        draw.rectangle([0, 75, W, 225], fill=(12, 18, 34))
-                        draw.rectangle([0, 220, W, 230], fill=(28, 38, 58))
-                        draw.rectangle([0, 220, int(W * ((c_idx + 1) / max(1, n_b))), 230], fill=theme_c)
+                        _fit_single_line(draw, W // 2, 108, W - 50, top_yellow, get_font_b, start_sz=58, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 192, W - 50, top_white, get_font_b, start_sz=46, min_sz=22, fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
 
-                        draw.rounded_rectangle([110, 88, W-110, 132], radius=16, fill=theme_c)
-                        _fit_b(draw, W//2, 110, W-240, b_meta["badge"], start_sz=20, fill=(255, 255, 255), sw=2)
-                        _fit_b(draw, W//2, 176, W-50, b_meta["title"], start_sz=40, fill=(255, 240, 0), sw=4)
+                        # 2. 중앙 월스트리트 딥 네이비 & 로열 골드 칠판 보드 (Y: 250 ~ 990)
+                        board_top, board_bot = 250, 990
+                        board_bg_col = (10, 22, 44)
+                        draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
+                        draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
+                        draw.rectangle([0, 978, W, 1002], fill=(30, 45, 75))
+                        draw.rectangle([0, 1002, W, 1014], fill=(217, 165, 32))
+                        draw.rectangle([0, 1014, W, 1038], fill=(16, 26, 48))
 
-                        # 2. 중앙 4단 핵심 원칙 홀로그램 팝업 보드 (Y: 242 ~ 668)
-                        draw.rounded_rectangle([28, 242, W-28, 668], radius=24, fill=(10, 15, 28), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
+                        # 3. [강사 풀샷 ⇄ 칠판 판서 빌드업 교차 분기]
+                        # - 도입부(B_HOOK), 결론 마지막 호흡, 그리고 각 원칙의 첫 호명("첫째 기업 소유권이야!" sub_step==0) 때는
+                        #   강단 위 체리콕 버핏 할아버지가 풀샷으로 등장!
+                        # - 설명 호흡(sub_step >= 1)으로 넘어가면 칠판에 다이어그램이 사각! 소리와 함께 단계별로 그려짐!
+                        show_char_full = (
+                            sc_code == "B_HOOK" or
+                            (sc_code == "B_SUMMARY" and sub_step >= 1) or
+                            (sc_code.startswith("B_CARD_") and sub_step == 0)
+                        )
 
-                        for idx_cd, (c_title, c_main, c_sub, c_col) in enumerate(cards_data):
-                            is_spot = (idx_cd == active_card_idx)
-                            ry1 = 256 + idx_cd * 100
-                            ry2 = ry1 + 92
-                            rx1 = 38 if is_spot else 48
-                            rx2 = (W - 38) if is_spot else (W - 48)
-                            bg_c = (24, 38, 66) if is_spot else (14, 20, 34)
-                            out_c = (255, 240, 0) if is_spot else c_col
-                            out_w = 5 if is_spot else 2
+                        if show_char_full:
+                            draw_talking_character_avatar(
+                                draw, img, cx=W // 2, cy=505, radius=145,
+                                is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
+                                is_presenter_stage=True, sub_step=sub_step
+                            )
+                        else:
+                            line_col = (90, 155, 235)
+                            yellow_c = (248, 224, 34)
+                            white_c = (255, 255, 255)
+                            green_c = (74, 255, 154)
 
-                            draw.rounded_rectangle([rx1, ry1, rx2, ry2], radius=14, fill=bg_c, outline=out_c, width=out_w)
-                            draw.rounded_rectangle([rx1 + 12, ry1 + 10, rx1 + 105, ry1 + 38], radius=7, fill=c_col if is_spot else (45, 55, 75))
-                            _fit_b(draw, rx1 + 58, ry1 + 24, 86, f"CORE {idx_cd+1}", start_sz=15, fill=(255, 255, 255), sw=1)
-                            _fit_b(draw, 415, ry1 + 24, 460, ("👉 " + c_title) if is_spot else c_title, start_sz=21 if is_spot else 19, fill=(255, 240, 0) if is_spot else (170, 185, 205), sw=2 if is_spot else 0)
-                            _fit_b(draw, W//2, ry1 + 54, W-110, c_main, start_sz=19 if is_spot else 17, fill=(255, 255, 255) if is_spot else (130, 145, 165), sw=1 if is_spot else 0)
-                            _fit_b(draw, W//2, ry1 + 78, W-110, c_sub, start_sz=15, fill=(0, 255, 136) if is_spot else c_col)
+                            if sc_code.startswith("B_CARD_"):
+                                c_i = int(sc_code.split("_")[-1])
+                                ct, cm, cs, cc = cards_data[c_i]
 
-                        # 3. 중앙 대형 말풍선 자막 보드 (Y: 682 ~ 822)
-                        words = sub_txt.split(" ")
-                        if len(sub_txt) > 15 and len(words) >= 2:
+                                # [Step 1 (sub_step == 1): 상단 핵심 원칙 타이틀 박스 + 중앙 수직 화살표 + 핵심 정의 판서!]
+                                draw.rounded_rectangle([95, 305, W - 95, 395], radius=16, fill=(18, 36, 72), outline=yellow_c, width=4)
+                                _fit_single_line(draw, W // 2, 350, W - 230, f"CORE {c_i+1} · {ct}", get_font_b, start_sz=40, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+
+                                # 연결선 & 1차 핵심 명제 판서
+                                draw.line([(W // 2, 395), (W // 2, 465)], fill=line_col, width=6)
+                                draw.ellipse([W // 2 - 8, 458, W // 2 + 8, 474], fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 520, W - 70, cm, get_font_b, start_sz=42, min_sz=20, fill=white_c, stroke_w=4, stroke_c=board_bg_col)
+
+                                # [Step 2 (sub_step >= 2): 하단 실전 적용 황금 캡슐이 사각! 소리와 함께 이어서 등장!]
+                                if sub_step >= 2:
+                                    draw.line([(W // 2, 565), (W // 2, 635)], fill=line_col, width=6)
+                                    draw.rounded_rectangle([55, 635, W - 55, 765], radius=20, fill=(16, 38, 68), outline=green_c, width=4)
+                                    _fit_single_line(draw, W // 2, 672, W - 150, "실전 투자 행동 지침 (Action Rule)", get_font_b, start_sz=25, fill=yellow_c)
+                                    _fit_single_line(draw, W // 2, 722, W - 140, cs, get_font_b, start_sz=36, min_sz=18, fill=green_c, stroke_w=3, stroke_c=(0, 0, 0))
+                            else:
+                                # [B_SUMMARY: 4대 핵심 원칙 최종 칠판 요약표]
+                                _fit_single_line(draw, W // 2, 335, W - 80, f"{b_meta['title']} 4대 핵심", get_font_b, start_sz=46, fill=yellow_c)
+                                for idx_cd, (ct, cm, cs, cc) in enumerate(cards_data):
+                                    ry = 405 + idx_cd * 92
+                                    draw.rounded_rectangle([45, ry, W - 45, ry + 78], radius=14, fill=(16, 32, 62), outline=yellow_c if idx_cd == 0 else (70, 105, 160), width=3 if idx_cd == 0 else 2)
+                                    _fit_single_line(draw, W // 2, ry + 26, W - 120, f"{idx_cd+1}. {ct}", get_font_b, start_sz=28, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, ry + 56, W - 120, cm, get_font_b, start_sz=22, fill=white_c)
+
+                        # 4. 하단 무박스 스트로크 왕글씨 자막 (구글 2번째 영상과 100% 동일!)
+                        clean_sub = _clean_font_safe_text(sub_txt)
+                        words = clean_sub.split(" ")
+                        if len(clean_sub) > 13 and len(words) >= 2:
                             best_sp = len(words) // 2
-                            half_l = len(sub_txt) / 2.0
+                            half_l = len(clean_sub) / 2.0
                             min_d = 999
                             for iw in range(1, len(words)):
                                 ll = len(" ".join(words[:iw]))
@@ -10221,72 +10104,66 @@ with tab4:
                                     best_sp = iw
                             sub_lns = [" ".join(words[:best_sp]), " ".join(words[best_sp:])]
                         else:
-                            sub_lns = [sub_txt]
+                            sub_lns = [clean_sub]
 
-                        draw.rounded_rectangle([32, 682, W-32, 822], radius=22, fill=(12, 18, 34), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
-                        draw.polygon([(205, 822), (245, 822), (215, 852)], fill=(255, 240, 0) if is_mouth_open else theme_c)
-                        sy0 = 726 if len(sub_lns) == 2 else 752
+                        sy0 = 845 if len(sub_lns) == 2 else 885
                         for idx_s, s_l in enumerate(sub_lns):
-                            scol = (255, 240, 0) if idx_s == len(sub_lns) - 1 else (255, 255, 255)
-                            _fit_b(draw, W//2, sy0 + idx_s * 48, W-90, s_l, start_sz=34, fill=scol, sw=5)
+                            _fit_single_line(
+                                draw, W // 2, sy0 + idx_s * 64, W - 60, s_l,
+                                get_font_b, start_sz=50, min_sz=24,
+                                fill=(255, 255, 255), stroke_w=9, stroke_c=(0, 0, 0)
+                            )
 
-                        # 4. 하단 대형 버핏 강사(반지름 86px) + 우측 바이블 핵심 노트 칠판 (Y: 860 ~ 1065)
-                        draw_talking_character_avatar(
-                            draw, img, cx=155, cy=955, radius=86,
-                            is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
-                            accent_col=theme_c, is_presenter_stage=True, sub_step=sub_step
-                        )
-                        draw.rounded_rectangle([55, 1025, 255, 1062], radius=10, fill=theme_c, outline=(255, 240, 0), width=2)
-                        _fit_b(draw, 155, 1043, 185, "📖 버핏의 바이블 강의", start_sz=17, fill=(255, 255, 255), sw=2)
-
-                        cur_ct, cur_cm, cur_cs, cur_cc = cards_data[active_card_idx]
-                        draw.rounded_rectangle([290, 865, W-32, 1055], radius=18, fill=(14, 22, 40), outline=cur_cc, width=3)
-                        draw.rounded_rectangle([308, 880, W-50, 922], radius=8, fill=(24, 38, 66))
-                        _fit_b(draw, 489, 901, 350, f"📌 핵심 원칙 {active_card_idx+1} 요약 노트", start_sz=18, fill=(255, 240, 0), sw=2)
-                        _fit_b(draw, 489, 955, 360, cur_ct, start_sz=21, fill=(255, 255, 255), sw=2)
-                        _fit_b(draw, 489, 1010, 360, cur_cs, start_sz=18, fill=(0, 255, 136), sw=1)
-
-                        _fit_b(draw, W//2, 1090, W-50, "[안내] 워런 버핏·찰리 멍거·리루의 가치투자 헌장 교육용 콘텐츠입니다", start_sz=14, fill=(115, 125, 140))
+                        # 5. 하단 블랙 푸터
+                        _fit_single_line(draw, W // 2, 1105, W - 80, f"▶ @BuffettBook · {b_meta['badge']}", get_font_b, start_sz=28, fill=(255, 255, 255))
+                        _fit_single_line(draw, W // 2, 1165, W - 60, "[안내] 워런 버핏·찰리 멍거·리루의 가치투자 헌장 교육용 콘텐츠입니다", get_font_b, start_sz=14, fill=(110, 120, 130))
                         return img
 
-                    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-                    cleans, seg_list = [], [None] * n_b
-
-                    def _build_b_cut(i_b, stxt, scd):
+                    seg_b_files = []
+                    for i_b, (stxt, scd) in enumerate(b_chunks):
                         fr = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                         fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                         fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                        tmp_b_list = [fr, fw, fs]
+                        step_tmps = [fr, fw]
 
-                        v_id = "ko-KR-SunHiNeural" if "여성" in b_voice else "ko-KR-InJoonNeural"
+                        if "여성" in b_voice: v_id, v_pitch = "ko-KR-SunHiNeural", "+2Hz"
+                        elif "인준" in b_voice: v_id, v_pitch = "ko-KR-InJoonNeural", "+0Hz"
+                        else: v_id, v_pitch = "ko-KR-HyunsuNeural", "+8Hz"
+
                         tts_b = fix_global_tts_pronunciation(stxt.replace("/", " "), is_en=False)
                         import edge_tts, asyncio
                         loop = asyncio.new_event_loop()
-                        try: loop.run_until_complete(edge_tts.Communicate(str(tts_b), voice=v_id, rate=f"+{int(b_spd)}%", pitch="+0Hz").save(fr))
-                        finally: loop.close()
+                        try:
+                            loop.run_until_complete(edge_tts.Communicate(str(tts_b), voice=v_id, rate=f"+{int(b_spd)}%", pitch=v_pitch).save(fr))
+                        finally:
+                            loop.close()
 
                         is_last_b = (i_b == n_b - 1)
-                        pad_b = "" if is_last_b else ",apad=pad_dur=0.04"
+                        pad_b = "" if is_last_b else ",apad=pad_dur=0.05"
                         af_b = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo=1.12,volume=1.25{pad_b}"
-                        subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_b, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                        subprocess.run([ffmpeg_exe, "-y", "-threads", "2", "-i", fr, "-af", af_b, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                        sub_phrases = split_subtitle_phrases(stxt, max_len=20)
+                        sub_phrases = split_subtitle_phrases(stxt, max_len=22)
                         spoken_weights = [max(2.0, float(len(re.sub(r'\s+', '', fix_global_tts_pronunciation(p_t))))) for p_t in sub_phrases]
 
                         ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
-                        tmp_b_list.append(ic_txt)
+                        step_tmps.append(ic_txt)
                         img_pair_list = []
                         last_fi = None
                         for p_i, p_t in enumerate(sub_phrases):
                             fi_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                             fi_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                            tmp_b_list.extend([fi_closed, fi_open])
-                            _draw_bible_frame(i_b, p_t, scd, is_mouth_open=False, sub_step=p_i).save(fi_closed)
-                            _draw_bible_frame(i_b, p_t, scd, is_mouth_open=True, sub_step=p_i).save(fi_open)
+                            step_tmps.extend([fi_closed, fi_open])
+
+                            im_c = _draw_bible_chalk_frame(i_b, p_t, scd, is_mouth_open=False, sub_step=p_i)
+                            im_c.save(fi_closed); im_c.close()
+                            im_o = _draw_bible_chalk_frame(i_b, p_t, scd, is_mouth_open=True, sub_step=p_i)
+                            im_o.save(fi_open); im_o.close()
+
                             img_pair_list.append((fi_closed, fi_open))
                             last_fi = fi_closed
 
-                        lipsync_entries, exact_d = build_lipsync_concat_entries(fw, sub_phrases, spoken_weights, img_pair_list, step_sec=0.14)
+                        lipsync_entries, exact_d = build_lipsync_concat_entries(fw, sub_phrases, spoken_weights, img_pair_list, step_sec=0.10, add_chalk_sfx=True)
                         with open(ic_txt, "w", encoding="utf-8") as icf:
                             for im_p, dur_v in lipsync_entries:
                                 icf.write(f"file '{im_p.replace(chr(92), '/')}'\n")
@@ -10295,49 +10172,46 @@ with tab4:
                                 icf.write(f"file '{last_fi.replace(chr(92), '/')}'\n")
 
                         subprocess.run([
-                            ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", fw,
-                            "-vf", "scale=720:1280:flags=lanczos", "-r", "30", "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                            "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
+                            ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", fw,
+                            "-vf", "scale=720:1280:flags=lanczos", "-r", "30", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                            "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                        return i_b, fs, tmp_b_list
 
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-                        futs = [ex.submit(_build_b_cut, idx_b, s_t, s_c) for idx_b, (s_t, s_c) in enumerate(b_chunks)]
-                        for ft in concurrent.futures.as_completed(futs):
-                            ib_r, fs_r, t_l = ft.result()
-                            seg_list[ib_r] = fs_r
-                            cleans.extend(t_l)
+                        seg_b_files.append(fs)
+                        for tf_rm in step_tmps:
+                            if os.path.exists(tf_rm):
+                                try: os.remove(tf_rm)
+                                except Exception: pass
+                        gc.collect()
 
-                    cat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
-                    cleans.append(cat_txt)
-                    with open(cat_txt, "w", encoding="utf-8") as cf:
-                        for sp in seg_list: cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
+                    cat_b = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                    with open(cat_b, "w", encoding="utf-8") as cf:
+                        for sp in seg_b_files:
+                            cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
 
-                    out_b_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                    cleans.append(out_b_mp4)
-                    subprocess.run([
-                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_txt,
-                        "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_b_mp4
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                    out_b = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                    subprocess.run([ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", cat_b, "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                    with open(out_b_mp4, "rb") as vf: b_mp4_bytes = vf.read()
-                    st.success(f"🎉 [{b_meta['title']}] 45초 가치투자 바이블 쇼츠(.mp4) 렌더링 완료!")
-                    st.video(b_mp4_bytes)
+                    with open(out_b, "rb") as vf:
+                        b_bytes = vf.read()
+
+                    for sp in seg_b_files + [cat_b, out_b]:
+                        if os.path.exists(sp):
+                            try: os.remove(sp)
+                            except Exception: pass
+                    gc.collect()
+
+                    st.success(f"🎉 [{b_meta['title']}] 체리콕 버핏 풀샷 & 분필 판서 쇼츠 완성!")
+                    st.video(b_bytes)
                     st.download_button(
-                        label=f"📥 [{b_meta['title']}] 바이블 쇼츠(.mp4) 다운로드",
-                        data=b_mp4_bytes,
-                        file_name=f"AGIE_Bible_{sel_bible_part[:6].replace(' ','')}.mp4",
+                        label=f"📥 [{b_meta['badge']}] 바이블 칠판 판서 쇼츠(.mp4) 다운로드",
+                        data=b_bytes,
+                        file_name=f"AGIE_Bible_Chalk_Part{list(bible_series_db.keys()).index(sel_bible_part)+1}.mp4",
                         mime="video/mp4",
                         use_container_width=True
                     )
-                    st.text_input("추천 유튜브 제목", value=b_meta["yt_title"], key="bible_yt_t_out")
-                    for pr in cleans:
-                        if os.path.exists(pr):
-                            try: os.remove(pr)
-                            except Exception: pass
-            except Exception as e:
-                st.warning(f"바이블 쇼츠 생성 오류: {e}")
-
+            except Exception as e_b:
+                st.warning(f"바이블 쇼츠 생성 오류: {e_b}")
     st.divider()
 # =========================================================================
     # [롱폼 완전체 V2] 📺 가치투자 바이블 16:9 롱폼 마스터클래스 (파트별 4~5분 / 통합 20분+ 장편 엔진)
