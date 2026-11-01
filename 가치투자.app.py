@@ -7830,9 +7830,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # 2) 머니치트키식 반말 8컷 대본 (45초 칼각 · 주린이 비유 + TTM/10년 명시 + 강렬한 댓글/저장 CTA!)
                     if "반말" in tone_mode_sh:
                         erp_bm_str = (
-                            f"안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 더 벌어다 주고."
+                            f"국채 대비 {erp_val:+.1f}%p나 더 벌어다 주고."
                             if erp_val >= 0 else
-                            f"10년물 미국채 이자 대비 {erp_val:+.1f}%p 차이가 나고."
+                            f"국채 대비 {erp_val:+.1f}%p 차이가 나고."
                         )
                         mgn_bm_str = (
                             f"안전마진이 {g_margin_val:+.1f}%p나 남거든!"
@@ -7841,13 +7841,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         )
                         default_12cuts_script = [
                             f"[도입] {hook_v27_banmal.get(h_idx, hook_v27_banmal[0])}",
-                            f"[해자] 첫째 내 돈을 일하게 만드는 속도야! / 보통 회사는 연 12% 버는데 / 여긴 현재 실적 기준 연 {cap_ret_val:.1f}%씩 돈을 쓸어담고 있어!",
-                            f"[해자] 내 돈 1,000만 원 넣으면 1년에 {roic_10m_manwon:,}만 원을 벌어다 주고 / 영업마진도 {op_m:.1f}%라 가격결정력이 진짜 막강해!",
-                            f"[가격] 둘째 버핏의 역산 암산법이야! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / {erp_bm_str}",
+                            f"[해자] 첫째 내 돈을 일하게 하는 속도야! / 보통 회사는 연 12% 버는데 / 여긴 현재 연 {cap_ret_val:.1f}%야",
+                            f"[해자] 1,000만 원 넣으면 년에 {roic_10m_manwon:,}만 원에 / 영업마진도 {op_m:.1f}%라 가격결정력이 막강해!",
+                            f"[가격] 둘째 버핏의 역산 암산법이야! / 이익수익률은 연 {cur_ey_val:.2f}%고 / {erp_bm_str}",
                             f"[가격] 매년 {req_g_val:+.1f}%만 커져도 되는데 / 최근 10년 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / {mgn_bm_str}",
-                            f"[안전] 셋째 재무 안전판과 배당이야! / 위기 대응 체력인 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 현금배당도 연 {safe_div:.2f}%씩 꼬박꼬박 챙겨줘.",
-                            f"[안전] 무엇보다 번 돈을 본업에 다시 재투자해서 / 스스로 눈덩이를 굴리는 복리 구조야!",
-                            f"[결론] 너라면 이 가격에 {comp_name} 살래? / 다음에 까볼 종목을 댓글로 남기고 까먹기 전에 저장과 팔로우 눌러 둬!"
+                            f"[안전] 셋째 재무 안전판과 배당이야! / 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 배당도 연 {safe_div:.2f}%씩 챙겨줘.",
+                            f"[안전] 번 돈을 본업에 다시 재투자해서 / 눈덩이를 굴리는 복리 구조야!",
+                            f"[결론] 너라면 이 가격에 {comp_name} 살래? / 다음에 까볼 종목을 댓글로 남기고 저장과 팔로우 눌러 둬!"
                         ]
 
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V27_SPOTLIGHT"
