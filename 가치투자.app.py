@@ -7830,14 +7830,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # 2) 머니치트키식 반말 8컷 대본 (45초 칼각 · 주린이 비유 + TTM/10년 명시 + 강렬한 댓글/저장 CTA!)
                     if "반말" in tone_mode_sh:
                         erp_bm_str = (
-                            f"국채 대비 {erp_val:+.1f}%p나 더 주고."
+                            f"국채 대비 {erp_val:+.1f}%나 더 주고."
                             if erp_val >= 0 else
-                            f"국채 대비 {erp_val:+.1f}%p 차이지만."
+                            f"국채 대비 {erp_val:+.1f}% 차이지만."
                         )
                         mgn_bm_str = (
-                            f"안전마진이 {g_margin_val:+.1f}%p나 남거든!"
+                            f"안전마진이 {g_margin_val:+.1f}%나 남거든!"
                             if g_margin_val >= 0 else
-                            f"안전마진이 {g_margin_val:+.1f}%p라 기대감이 좀 들어있어."
+                            f"안전마진이 {g_margin_val:+.1f}%라 기대감이 좀 들어있어."
                         )
                         default_12cuts_script = [
                             f"[도입] {hook_v27_banmal.get(h_idx, hook_v27_banmal[0])}",
