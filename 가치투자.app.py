@@ -10545,7 +10545,7 @@ with tab4:
                         pass
                     total_acc_seconds += exact_d
 
-                    phrases = (cl_line, max_len=34)
+                    phrases = split_subtitle_phrases(cl_line, max_len=34)
                     weights = []
                     for pt in phrases:
                         sp_p = fix_global_tts_pronunciation(pt, is_en=False)
