@@ -7682,7 +7682,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         with spd_c2:
                             atempo_mult = st.slider(
                                 "🚀 2차 물리가속(배)",
-                                min_value=0.95, max_value=1.40, value=1.05, step=0.05,
+                                min_value=0.95, max_value=1.40, value=1.15, step=0.05,
                                 format="%.2fx",
                                 key=f"shorts_atempo_v21_{tk}"
                             )
