@@ -7786,64 +7786,63 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             custom_char_pil = Image.open(custom_char_file)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
-                    hook_45_map = {
-                        1: (f"내일 당장 주식시장이 5년간 문을 닫아도 / {comp_name} 주식을 아무 불안 없이 보유할 수 있을까요?", f"주식을 종잇조각이 아닌 기업 소유권으로 보고 / 워런 버핏의 4대 기준으로 장부를 검증했습니다!", f"거래소가 5년간 문을 닫아도 버틸 주식인가? {comp_name} 장부 해부"),
-                        2: ("시장은 가치를 알려주는 스승이 아니라 / 가격만 제시하는 변덕스러운 미스터 마켓일 뿐입니다!", f"일일 주가 등락을 지우고 / 워런 버핏과 찰리 멍거의 평가 지침으로 / {comp_name}을 해부해 봤습니다!", f"주가 차트 뒤에 숨겨진 {comp_name}의 진짜 주주이익과 해자"),
-                        3: ("단순히 장부가치만 싼 주식은 / 영구적 자본 손실을 부르는 위험한 가치 함정입니다!", f"강력한 경제적 해자와 실제 주주이익을 갖췄는지 / {comp_name}의 10년 장부를 뜯어봤습니다!", f"가치 함정인가 진짜 해자 기업인가? {comp_name} 정밀 검증"),
-                        4: ("가장 안전하다는 10년물 미국 국채 이자보다 / 과연 이 회사가 돈을 더 확실하게 벌고 있을까요?", f"워런 버핏의 역산 밸류에이션과 자본 배분 원칙으로 / {comp_name}을 정밀 진단했습니다!", f"미국 국채 금리 vs {comp_name} 주주이익 수익률 맞대결")
+                    # =========================================================================
+                    # [V27 업그레이드] 초반 1.5초 초강력 반전 훅 + 주린이 비유 + TTM/10년 기준 명시 + 댓글/저장 CTA (45초 칼각)
+                    # =========================================================================
+                    hook_v27_banmal = {
+                        0: f"차트만 보고 있지 마! / {comp_name} 이 장부 모르면 주식 당장 접어야 해! / 남들 급등주 쫓을 때 버핏이 왜 웃었는지 45초 만에 까보자!",
+                        1: f"차트만 보고 있지 마! / {comp_name} 이 장부 모르면 주식 당장 접어야 해! / 워런 버핏의 실전 팩트 체크 바로 들어간다!",
+                        2: f"남들 다 테마주 쫓아갈 때 / 워런 버핏은 왜 {comp_name} 장부를 보고 웃었을까? / 최근 10년 장부 팩트를 딱 45초 만에 까보자!",
+                        3: f"내일 주식시장이 5년간 문을 닫아도 / {comp_name} 마음 편히 들고 있을 수 있어? / 차트 뒤에 숨겨진 진짜 돈 복사 속도를 까보자!",
+                        4: f"주식이 싸다고 무조건 사면 큰일 나! / {comp_name}이 진짜 안전마진이 있는지 / 현재 실적과 10년 장부로 단번에 검증해 보자!"
                     }
-                    hk_line1, hk_line2, yt_title_prefix_45 = hook_45_map.get(h_idx, hook_45_map[1])
+                    hook_v27_jondaet = {
+                        0: f"차트만 보고 계시지 마세요! / {comp_name} 이 장부를 모르면 투자를 멈춰야 합니다! / 버핏이 웃고 있는 이유를 45초 만에 해부합니다!",
+                        1: f"차트만 보고 계시지 마세요! / {comp_name} 이 장부를 모르면 큰 손해를 봅니다! / 워런 버핏의 실전 팩트 체크 바로 시작합니다!",
+                        2: f"남들 다 급등주 쫓아갈 때 / 워런 버핏은 왜 {comp_name} 장부를 보고 웃었을까요? / 최근 10년 장부 팩트를 45초 만에 공개합니다!",
+                        3: f"내일 당장 증권거래소가 5년간 문을 닫아도 / {comp_name} 불안 없이 보유할 수 있을까요? / 실제 현금 창출 속도를 바로 검증합니다!",
+                        4: f"단순히 주가가 싸다고 사면 위험합니다! / {comp_name}에 진짜 안전마진이 있는지 / 현재 실적과 10년 장부로 정밀 검증합니다!"
+                    }
 
-                    # 1) 복리의 바퀴 & 가격결정력
-                    m_line1 = f"첫째 돈 복사 속도입니다! / 보통 기업은 연 12%를 버는데 / 여긴 연 {cap_ret_val:.1f}%씩 창출합니다!"
-                    m_line2 = f"1,000만 원 넣으면 연 {roic_10m_manwon:,}만 원씩 불어나고 / 영업마진도 {op_m:.1f}%라 가격결정력이 막강합니다!"
-
-                    # 2) 이익수익률(vs 미국채) & 역산 주주이익 (요청하신 문구 구조 완벽 반영!)
-                    b_line1 = f"둘째 버핏의 역산 암산법입니다! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / 안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 {'남습니다!' if erp_val >= 0 else '차이가 납니다.'}"
-                    b_line2 = f"매년 {req_g_val:+.1f}%만 커져도 되는데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / 안전마진이 {g_margin_val:+.1f}%p나 {'남습니다!' if g_margin_val >= 0 else '부족합니다.'}"
-
-                    # 3) 재무 안전판 & 자본 배분
-                    saf_line1 = f"셋째 재무 안전판과 배당입니다! / 유동비율 {current_ratio:.2f}배로 튼튼하고 / 10년 중 {div_10y_cnt}회 배당하며 연 {safe_div:.2f}%를 환원합니다."
-                    saf_line2 = f"남는 잉여현금은 본업에 다시 재투자해 / 복리 엔진을 계속 가동하고 있습니다!"
-
-                    # 4) 최종 점검
-                    sum_line1 = f"단기 주가 소음에 흔들리지 말고 / {comp_name}의 핵심 판서를 다시 돌려보며 직접 판단해 보세요!"
+                    # 1) 존댓말 8컷 대본 (45초 칼각 · 숫자 발화 시점 1:1 슬래시 매칭)
+                    erp_jd_str = f"안전한 10년물 미국채 이자보다 / 확실히 {erp_val:+.1f}%p나 돈을 더 벌어다 줍니다!" if erp_val >= 0 else f"10년물 미국채 이자({ty:.2f}%) 대비 / {erp_val:+.1f}%p 차이가 나 성장이 중요합니다."
+                    mgn_jd_str = f"안전마진이 {g_margin_val:+.1f}%p나 남습니다!" if g_margin_val >= 0 else f"안전마진이 {g_margin_val:+.1f}%p로 기대감이 반영돼 있습니다."
 
                     default_12cuts_script = [
-                        f"[도입] 주식 가격이 매일 바뀐다고 차트만 보고 사시나요? / {comp_name} 장부 안 보고 사면 큰 손해 봅니다!",
-                        f"[해자] {m_line1}",
-                        f"[해자] {m_line2}",
-                        f"[가격] {b_line1}",
-                        f"[가격] {b_line2}",
-                        f"[안전] {saf_line1}",
-                        f"[안전] {saf_line2}",
-                        f"[결론] {sum_line1}"
+                        f"[도입] {hook_v27_jondaet.get(h_idx, hook_v27_jondaet[0])}",
+                        f"[해자] 첫째 내 돈을 일하게 만드는 속도입니다! / 보통 회사는 연 12%를 버는데 / 현재 최근 실적 기준 연 {cap_ret_val:.1f}%씩 돈을 불려줍니다!",
+                        f"[해자] 내 돈 1,000만 원당 1년에 {roic_10m_manwon:,}만 원을 벌어다 주고 / 영업마진도 {op_m:.1f}%라 가격결정력이 막강합니다!",
+                        f"[가격] 둘째 국채 이자 비교와 역산 암산법입니다! / 현재 주가 기준 이익수익률은 연 {cur_ey_val:.2f}%로 / {erp_jd_str}",
+                        f"[가격] 주가가 정당화되려면 매년 {req_g_val:+.1f}%만 커져도 되는데 / 최근 10년 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / {mgn_jd_str}",
+                        f"[안전] 셋째 재무 안전판과 배당입니다! / 비상금 체력인 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 순수 현금배당도 연 {safe_div:.2f}%씩 챙겨줍니다.",
+                        f"[안전] 무엇보다 벌어들인 현금을 본업에 다시 재투자해 / 스스로 눈덩이를 굴리는 복리 엔진이 돌고 있습니다!",
+                        f"[결론] 여러분은 지금 가격에 {comp_name} 사시겠습니까? / 다음 분석할 종목을 댓글로 남기고 저장과 팔로우도 잊지 마세요!"
                     ]
 
-                    # [머니치트키식 반말 구어체: 요청하신 [가격] 대본 토씨 하나 안 틀리고 100% 반영!]
+                    # 2) 머니치트키식 반말 8컷 대본 (45초 칼각 · 주린이 비유 + TTM/10년 명시 + 강렬한 댓글/저장 CTA!)
                     if "반말" in tone_mode_sh:
-                        erp_banmal = (
-                            f"안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 남고."
+                        erp_bm_str = (
+                            f"안전한 10년물 미국채 이자 대비 {erp_val:+.1f}%p나 더 벌어다 주고."
                             if erp_val >= 0 else
                             f"10년물 미국채 이자 대비 {erp_val:+.1f}%p 차이가 나고."
                         )
-                        margin_banmal = (
+                        mgn_bm_str = (
                             f"안전마진이 {g_margin_val:+.1f}%p나 남거든!"
                             if g_margin_val >= 0 else
                             f"안전마진이 {g_margin_val:+.1f}%p라 기대감이 좀 들어있어."
                         )
                         default_12cuts_script = [
-                            f"[도입] 주식 가격이 매일 바뀐다고 차트만 보고 사는 거 아니지? / {comp_name} 이 장부 안 보고 사면 진짜 큰 손해 본다!",
-                            f"[해자] 첫째 돈 복사 속도야! / 보통 회사는 연 12% 버는데 / 여긴 무려 연 {cap_ret_val:.1f}%씩 돈을 쓸어담고 있어!",
-                            f"[해자] 내 돈 1,000만 원당 1년에 {roic_10m_manwon:,}만 원을 버는 셈이고 / 영업마진도 {op_m:.1f}%라 가격결정력이 진짜 막강해!",
-                            f"[가격] 둘째 버핏의 역산 암산법이야! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / {erp_banmal}",
-                            f"[가격] 매년 {req_g_val:+.1f}%만 커져도 되는데 / 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / {margin_banmal}",
-                            f"[안전] 셋째 재무 안전판과 배당이야! / 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 순수 현금배당도 연 {safe_div:.2f}%씩 챙겨주고 있어.",
+                            f"[도입] {hook_v27_banmal.get(h_idx, hook_v27_banmal[0])}",
+                            f"[해자] 첫째 내 돈을 일하게 만드는 속도야! / 보통 회사는 연 12% 버는데 / 여긴 현재 실적 기준 연 {cap_ret_val:.1f}%씩 돈을 쓸어담고 있어!",
+                            f"[해자] 내 돈 1,000만 원 넣으면 1년에 {roic_10m_manwon:,}만 원을 벌어다 주고 / 영업마진도 {op_m:.1f}%라 가격결정력이 진짜 막강해!",
+                            f"[가격] 둘째 버핏의 역산 암산법이야! / 지금 이익수익률은 연 {cur_ey_val:.2f}%고 / {erp_bm_str}",
+                            f"[가격] 매년 {req_g_val:+.1f}%만 커져도 되는데 / 최근 10년 실제 주주이익이 연 {actual_fcf_g_val:+.1f}%씩 커져서 / {mgn_bm_str}",
+                            f"[안전] 셋째 재무 안전판과 배당이야! / 위기 대응 체력인 유동비율이 {current_ratio:.2f}배로 튼튼하고 / 현금배당도 연 {safe_div:.2f}%씩 꼬박꼬박 챙겨줘.",
                             f"[안전] 무엇보다 번 돈을 본업에 다시 재투자해서 / 스스로 눈덩이를 굴리는 복리 구조야!",
-                            f"[결론] 장부 확인도 안 하고 최고가에 사면 속 터지잖아? / 처음부터 핵심 판서를 다시 돌려보며 직접 판단해 봐!"
+                            f"[결론] 너라면 이 가격에 {comp_name} 살래? / 다음에 까볼 종목을 댓글로 남기고 까먹기 전에 저장과 팔로우 눌러 둬!"
                         ]
 
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V26_FINAL"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V27_SPOTLIGHT"
                     mode_tag_k = f"KO_{ov_sig}"
                     
                     st.success("🎬 **[V22 PDF 바이블 헌장 100% 동기화 & 59초 이내 안전가드 탑재]** ① SK하이닉스 '슥' 오발음 완벽 교정, ② 단순 저PBR 찬양을 빼고 **가격결정력·주주이익·역산 밸류에이션·주주희석 배제·자본배분 원칙** 반영, ③ **무조건 45~54초(59초 이내)**로 렌더링됩니다!")
@@ -8026,23 +8025,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 블랙 헤더
+                        # 1. 상단 블랙 헤더 (현재 분석 기준 TTM / 10Y 팩트 배지 명시로 고수들의 반박 원천 차단!)
                         header_sub_map = {
-                            "SCENE_HOOK": "10년 장부 완벽 정리",
-                            "SCENE_MOAT": "1. 돈 복사 속도 (ROIC · 마진)",
-                            "SCENE_BUFFETT": "2. 이익수익률(vs국채) & 역산마진",
-                            "SCENE_MACRO": "2. 이익수익률(vs국채) & 역산마진",
-                            "SCENE_SAFETY": "3. 재무 안전판 & 현금배당",
-                            "SCENE_SUMMARY": "워런 버핏 기준 최종 성적표"
+                            "SCENE_HOOK": "최근 10년 장부 & TTM 실전 해부",
+                            "SCENE_MOAT": "1. 내 돈 일하는 속도 (현재 TTM 팩트)",
+                            "SCENE_BUFFETT": "2. 국채 이자 비교 & 10년 역산 마진",
+                            "SCENE_MACRO": "2. 국채 이자 비교 & 10년 역산 마진",
+                            "SCENE_SAFETY": "3. 위기대응 체력 & 복리 재투자",
+                            "SCENE_SUMMARY": "과연 이 가격에 살까? (최종 판정)"
                         }
                         top_yellow_title = f"{comp_name} 장부 치트키"
-                        top_white_sub = header_sub_map.get(scene_code, "ROIC, 주주이익, 안전마진")
+                        top_white_sub = header_sub_map.get(scene_code, "ROIC · 주주이익 · 안전마진")
 
-                        _fit_single_line(draw, W // 2, 108, W - 50, top_yellow_title, get_font, start_sz=60, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
-                        _fit_single_line(draw, W // 2, 192, W - 50, top_white_sub, get_font, start_sz=46, min_sz=24, fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 102, W - 40, top_yellow_title, get_font, start_sz=62, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 188, W - 40, top_white_sub, get_font, start_sz=42, min_sz=22, fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
 
-                        # 2. 중앙 월스트리트 딥 네이비 & 로열 골드 보드
-                        board_top, board_bot = 250, 990
+                        # 2. 중앙 월스트리트 딥 네이비 & 로열 골드 칠판 보드 (Y: 245 ~ 995)
+                        board_top, board_bot = 245, 995
                         board_bg_col = (10, 22, 44)
                         draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
                         draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
@@ -8050,123 +8049,226 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         draw.rectangle([0, 1002, W, 1014], fill=(217, 165, 32))
                         draw.rectangle([0, 1014, W, 1038], fill=(16, 26, 48))
 
-                        # 3. 해당 챕터 안에서 몇 번째 호흡(step_in_scene)인지 정밀 추적!
-                        # - 첫 번째 줄: "첫째 돈 복사 속도야!(0) / 보통 회사는 12% 버는데(1) / 여긴 43%씩 벌어!(2)"
-                        # - 두 번째 줄: "1,000만 원당 430만 원 벌고(3) / 영업마진도 31.8%야!(4)"
+                        # 3. 챕터 내 세부 진행 스텝(step_in_scene) 계산
                         prev_cuts_in_scene = sum(1 for ic in range(chunk_idx) if pop_chunks[ic][1] == scene_code)
                         if prev_cuts_in_scene == 0:
-                            step_in_scene = sub_step  # 0(강사 풀샷), 1(좌측 빗변), 2(우측 빗변)
+                            step_in_scene = sub_step
                         else:
-                            step_in_scene = 3 + sub_step  # 3(하단 양끝 수치), 4(최종 아랫변 캡슐 완성!)
+                            step_in_scene = 3 + sub_step
 
+                        # [강사 풀샷 등장 타이밍]: 도입부 전체, 각 챕터의 첫 화두(step 0), 그리고 마지막 엔딩 CTA!
                         show_character_fullshot = (
                             "캐릭터 없음" not in char_mode_sh and (
                                 scene_code == "SCENE_HOOK" or
-                                (scene_code == "SCENE_SUMMARY" and sub_step >= 1) or
+                                scene_code == "SCENE_SUMMARY" or
                                 (prev_cuts_in_scene == 0 and sub_step == 0)
                             )
                         )
 
+                        yellow_c = (248, 224, 34)
+                        white_c = (255, 255, 255)
+                        green_c = (0, 230, 118)
+                        red_c = (255, 65, 85)
+                        sky_c = (56, 189, 248)
+
                         if show_character_fullshot:
+                            # 버핏 강사 풀샷 렌더링
+                            char_cy = 485 if scene_code == "SCENE_SUMMARY" else 510
                             draw_talking_character_avatar(
-                                draw, img, cx=W // 2, cy=505, radius=145,
+                                draw, img, cx=W // 2, cy=char_cy, radius=142,
                                 is_mouth_open=is_mouth_open, char_style=char_mode_sh,
-                                custom_pil_img=custom_char_pil, is_presenter_stage=True, sub_step=sub_step
+                                custom_pil_img=custom_char_pil, is_presenter_stage=True, sub_step=sub_step + chunk_idx
                             )
+
+                            # (특수 연출 1) 도입부 첫 3초 후킹 배지: 캐릭터 머리 위쪽에 강렬한 레드/골드 후킹 캡슐 팝업!
+                            if scene_code == "SCENE_HOOK":
+                                hook_badge_txt = "🚨 차트만 보면 안 되는 이유 (10년 장부 팩트)" if sub_step == 0 else f"🔍 워런 버핏의 {comp_name} 실전 장부 검증"
+                                draw.rounded_rectangle([45, 270, W - 45, 332], radius=16, fill=(185, 24, 38) if sub_step == 0 else (20, 42, 82), outline=yellow_c, width=3)
+                                _fit_single_line(draw, W // 2, 301, W - 120, hook_badge_txt, get_font, start_sz=28, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
+
+                            # (특수 연출 2) 엔딩 CTA 화면: 댓글 참여 질문 + 저장 & 팔로우 대형 액션 버튼 3종 팝업!
+                            elif scene_code == "SCENE_SUMMARY":
+                                draw.rounded_rectangle([35, 265, W - 35, 335], radius=16, fill=(18, 38, 74), outline=yellow_c, width=3)
+                                _fit_single_line(draw, W // 2, 300, W - 100, f"🏆 {comp_name} : ROIC {cap_ret_val:.1f}% · 안전마진 {g_margin_val:+.1f}%p", get_font, start_sz=28, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
+
+                                # 강단 앞쪽에 댓글/저장/팔로우 3대 행동 유도(CTA) 네온 버튼 배치!
+                                cta_boxes = [
+                                    (40, 745, 345, 815, "💬 댓글로 다음 종목 신청!", (220, 38, 68)),
+                                    (375, 745, 680, 815, "🔖 저장 & 팔로우 필수!", (0, 185, 95))
+                                ]
+                                for bx1, by1, bx2, by2, btxt, bcol in cta_boxes:
+                                    draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=4)
+                                    _fit_single_line(draw, (bx1 + bx2) // 2, (by1 + by2) // 2, (bx2 - bx1) - 24, btxt, get_font, start_sz=25, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
+
                         else:
-                            line_col = (90, 155, 235)
-                            yellow_c = (248, 224, 34)
-                            white_c = (255, 255, 255)
-                            green_c = (74, 255, 154)
-
+                            # =================================================================
+                            # [V27 핵심: '시선 분산 제로' 스포트라이트 단독 인포그래픽 판서 엔진]
+                            # - 한꺼번에 여러 숫자를 띄우지 않고, 지금 말하는 그 숫자 하나만
+                            #   화면 정중앙(Y: 360 ~ 760)에 105pt 초대형 인포그래픽 카드로 단독 팝업합니다!
+                            # - 지나간 숫자는 최상단(Y: 268 ~ 326)의 브레드크럼 바에 작게 요약됩니다.
+                            # =================================================================
                             if scene_code == "SCENE_MOAT":
-                                # [Step 1: "보통 회사는 연 12% 버는데" -> 상단 꼭짓점 + 좌측 12.0% 선만 먼저 그어짐!]
-                                _fit_single_line(draw, W // 2, 335, 460, "내 돈 1,000만", get_font, start_sz=56, fill=white_c)
-                                draw.line([(W // 2 - 40, 380), (155, 565)], fill=line_col, width=6)
-                                _fit_single_line(draw, 215, 445, 220, "평균 허들", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                _fit_single_line(draw, 215, 495, 220, "12.0%", get_font, start_sz=46, fill=white_c, stroke_w=5, stroke_c=board_bg_col)
+                                if step_in_scene == 1:
+                                    # [1단계: "보통 회사는 연 12% 버는데" -> 12.0% 단독 스포트라이트!]
+                                    draw.rounded_rectangle([55, 270, W - 55, 326], radius=14, fill=(18, 34, 64), outline=sky_c, width=2)
+                                    _fit_single_line(draw, W // 2, 298, W - 140, "📌 STEP 1 · 시장 평균 돈 복사 속도 (자본비용 허들)", get_font, start_sz=24, fill=sky_c)
 
-                                # [Step 2: "여긴 무려 연 43.0%씩 돈을 쓸어담고 있어!" -> 우측 43.0% 선이 이어서 그어짐!]
-                                if step_in_scene >= 2:
-                                    draw.line([(W // 2 + 40, 380), (565, 565)], fill=line_col, width=6)
-                                    _fit_single_line(draw, 505, 445, 230, "돈복사(ROIC)", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 505, 495, 230, f"{cap_ret_val:.1f}%", get_font, start_sz=48, fill=green_c, stroke_w=5, stroke_c=board_bg_col)
+                                    _fit_single_line(draw, W // 2, 405, W - 80, "보통 회사가 1년에 버는 수익률", get_font, start_sz=36, fill=(200, 215, 235))
+                                    _fit_single_line(draw, W // 2, 515, W - 60, "연 12.0%", get_font, start_sz=108, fill=white_c, stroke_w=6, stroke_c=(0, 0, 0))
 
-                                # [Step 3: "1,000만 원당 1년에 430만 원을 버는 셈이고" -> 양쪽 하단 금액(보통 120만 vs 연 +430만) 등장!]
-                                if step_in_scene >= 3:
-                                    _fit_single_line(draw, 155, 612, 250, "보통 120만", get_font, start_sz=42, fill=(200, 215, 230))
-                                    _fit_single_line(draw, 565, 612, 250, f"연 {roic_10m_manwon:+,}만", get_font, start_sz=46, fill=green_c)
+                                    # 직관적 게이지 바 (기준선 12%)
+                                    draw.rounded_rectangle([85, 615, W - 85, 668], radius=14, fill=(22, 36, 62), outline=(90, 115, 150), width=2)
+                                    draw.rounded_rectangle([85, 615, 260, 668], radius=14, fill=(120, 140, 170))
+                                    _fit_single_line(draw, W // 2, 725, W - 80, "내 돈 1,000만 원 넣으면 ➔ 1년에 +120만 원 수준", get_font, start_sz=30, fill=yellow_c)
 
-                                # [Step 4: "영업마진도 31.8%라 가격결정력이 진짜 막강해!" -> 하단 캡슐 완성!]
-                                if step_in_scene >= 4:
-                                    draw.line([(155, 650), (565, 650)], fill=line_col, width=5)
-                                    draw.rounded_rectangle([165, 668, 555, 768], radius=18, fill=(16, 34, 68), outline=yellow_c, width=3)
-                                    _fit_single_line(draw, W // 2, 696, 360, "가격결정력 (영업마진)", get_font, start_sz=26, fill=yellow_c)
-                                    _fit_single_line(draw, W // 2, 738, 360, f"연 {op_m:.1f}%", get_font, start_sz=44, fill=green_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                elif step_in_scene == 2:
+                                    # [2단계: "여긴 현재 실적 기준 연 43.0%씩 돈을 쓸어담고 있어!" -> 43.0% 초대형 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, "✓ 보통 회사 평균 : 연 12.0%  |  📊 기준 : 최근 12개월(TTM) 실전 팩트", get_font, start_sz=22, fill=(190, 210, 235))
+
+                                    _fit_single_line(draw, W // 2, 395, W - 70, f"{comp_name}의 돈 복사 속도 (ROIC)", get_font, start_sz=38, fill=yellow_c)
+                                    roic_col = green_c if cap_ret_val >= 15.0 else (yellow_c if cap_ret_val >= 10.0 else red_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"연 {cap_ret_val:.1f}%!", get_font, start_sz=115, fill=roic_col, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    # 평균(12%) 대비 몇 배 빠른지 직관적 풀게이지 인포그래픽 바!
+                                    draw.rounded_rectangle([75, 610, W - 75, 668], radius=16, fill=(20, 34, 60), outline=yellow_c, width=3)
+                                    fill_w = int(max(60, min(W - 150, (min(abs(cap_ret_val), 45.0) / 45.0) * (W - 150))))
+                                    draw.rounded_rectangle([75, 610, 75 + fill_w, 668], radius=16, fill=roic_col)
+                                    mult_v = cap_ret_val / 12.0 if cap_ret_val > 0 else 0.0
+                                    _fit_single_line(draw, W // 2, 639, W - 170, f"평균(12%)보다 {mult_v:.1f}배 빠른 복리 엔진 ({roic_vs_spy_gap:+.1f}%p 초과!)", get_font, start_sz=25, fill=(0, 0, 0) if roic_col == green_c else white_c, stroke_w=2 if roic_col != green_c else 0)
+                                    _fit_single_line(draw, W // 2, 725, W - 70, "투하자본 대비 현금 창출 효율 최상위권!" if cap_ret_val >= 15.0 else "자본 효율성 추이 지속 점검 필요", get_font, start_sz=30, fill=white_c)
+
+                                elif step_in_scene == 3:
+                                    # [3단계: "내 돈 1,000만 원 넣으면 1년에 430만 원을 벌어다 주고" -> 금액 환산 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 보통 회사 : 연 12.0% (+120만)  ➔  ✓ {comp_name} : 연 {cap_ret_val:.1f}% (TTM)", get_font, start_sz=22, fill=yellow_c)
+
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "내 돈 1,000만 원이 1년 뒤 벌어오는 돈", get_font, start_sz=36, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"{roic_10m_manwon:+,}만 원!", get_font, start_sz=110, fill=yellow_c, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    # 보통 회사(+120만) vs 이 기업 금액 비교 캡슐
+                                    draw.rounded_rectangle([65, 610, 335, 735], radius=16, fill=(20, 32, 54), outline=(100, 120, 150), width=2)
+                                    _fit_single_line(draw, 200, 645, 240, "보통 회사 (12%)", get_font, start_sz=24, fill=(180, 195, 215))
+                                    _fit_single_line(draw, 200, 695, 240, "+120만 원/년", get_font, start_sz=34, fill=white_c)
+
+                                    draw.rounded_rectangle([365, 610, W - 65, 735], radius=16, fill=(16, 48, 52), outline=green_c, width=4)
+                                    _fit_single_line(draw, 510, 645, 260, f"{comp_name} ({cap_ret_val:.1f}%)", get_font, start_sz=24, fill=yellow_c)
+                                    _fit_single_line(draw, 510, 695, 260, f"{roic_10m_manwon:+,}만 원/년!", get_font, start_sz=36, fill=green_c, stroke_w=2)
+
+                                else:
+                                    # [4단계: "영업마진도 31.8%라 가격결정력이 진짜 막강해!" -> 영업이익률 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 돈 복사 속도(ROIC) : 연 {cap_ret_val:.1f}% (1,000만 원당 연 {roic_10m_manwon:+,}만 원)", get_font, start_sz=22, fill=green_c)
+
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "인플레이션을 이기는 가격결정력 (영업이익률)", get_font, start_sz=33, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"연 {op_m:.1f}%!", get_font, start_sz=112, fill=green_c if op_m >= 15.0 else yellow_c, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    draw.rounded_rectangle([75, 615, W - 75, 735], radius=18, fill=(18, 38, 72), outline=yellow_c, width=3)
+                                    _fit_single_line(draw, W // 2, 652, W - 180, f"1만 원어치 팔면 {int(op_m*100):,}원이 순수 영업이익으로 남는 독점 해자!", get_font, start_sz=25, fill=yellow_c)
+                                    _fit_single_line(draw, W // 2, 700, W - 180, "원가가 올라도 고객에게 가격을 전가할 수 있는 비즈니스", get_font, start_sz=24, fill=white_c)
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
-                                # [Step 1: "지금 이익수익률은 연 6.80%고" -> 상단 꼭짓점 이익수익률 단독 등장!]
-                                _fit_single_line(draw, W // 2, 335, 560, f"이익수익률 {cur_ey_val:.2f}% (PER {eff_cur_pe_sh:.1f}배)", get_font, start_sz=46, fill=white_c)
+                                if step_in_scene == 1:
+                                    # [1단계: "지금 이익수익률은 연 6.80%고" -> 6.80% 단독 팝업!]
+                                    draw.rounded_rectangle([55, 270, W - 55, 326], radius=14, fill=(18, 34, 64), outline=sky_c, width=2)
+                                    _fit_single_line(draw, W // 2, 298, W - 140, f"📌 STEP 2 · 내 주식이 매년 벌어주는 수익률 (현재 PER {eff_cur_pe_sh:.1f}배 역수)", get_font, start_sz=22, fill=sky_c)
 
-                                # [Step 2: "안전한 10년물 미국채 이자는 연 4.93%야" -> 좌측 빗변 미국채 금리 등장!]
-                                if step_in_scene >= 2:
-                                    draw.line([(W // 2 - 40, 380), (155, 565)], fill=line_col, width=6)
-                                    _fit_single_line(draw, 215, 445, 220, "10년 미국채", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 215, 495, 220, f"연 {ty:.2f}%", get_font, start_sz=44, fill=white_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 155, 612, 260, f"국채대비 {erp_val:+.1f}%p", get_font, start_sz=40, fill=green_c if erp_val >= 0 else yellow_c)
+                                    _fit_single_line(draw, W // 2, 400, W - 70, f"{comp_name} 현재 이익수익률 (1 ÷ PER)", get_font, start_sz=35, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 515, W - 50, f"연 {cur_ey_val:.2f}%", get_font, start_sz=110, fill=yellow_c, stroke_w=7, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 650, W - 80, f"시가총액 대비 매년 {cur_ey_val:.2f}%의 순이익을 창출하는 상태", get_font, start_sz=28, fill=green_c)
+                                    _fit_single_line(draw, W // 2, 710, W - 80, "그렇다면 무위험 미국 국채 이자와 비교하면 어떨까?", get_font, start_sz=26, fill=(190, 210, 235))
 
-                                # [Step 3: "매년 +3.2%만 커져도 연 10% 수익인데" -> 우측 빗변 요구성장률 등장!]
-                                if step_in_scene >= 3:
-                                    draw.line([(W // 2 + 40, 380), (565, 565)], fill=line_col, width=6)
-                                    _fit_single_line(draw, 505, 445, 230, "요구 성장률", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 505, 495, 230, f"연 {req_g_val:+.1f}%", get_font, start_sz=44, fill=white_c, stroke_w=5, stroke_c=board_bg_col)
+                                elif step_in_scene == 2:
+                                    # [2단계: "안전한 10년물 미국채 이자 대비 +1.9%p나 더 벌어다 주고" -> +1.9%p 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 주식 이익수익률 : 연 {cur_ey_val:.2f}%  vs  ✓ 10년물 미국 국채 : 연 {ty:.2f}%", get_font, start_sz=22, fill=yellow_c)
 
-                                # [Step 4: "실제 주주이익이 연 +12.3%씩 커져서" -> 우측 하단 실제 주주이익 성장 등장!]
-                                if step_in_scene >= 4:
-                                    _fit_single_line(draw, 565, 612, 260, f"실제 {actual_fcf_g_val:+.1f}%", get_font, start_sz=44, fill=green_c if g_margin_val >= 0 else (255, 120, 120))
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "무위험 10년물 미국 국채 이자 대비", get_font, start_sz=36, fill=white_c)
+                                    erp_col = green_c if erp_val >= 0 else red_c
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"{erp_val:+.1f}%p!", get_font, start_sz=115, fill=erp_col, stroke_w=7, stroke_c=(0, 0, 0))
 
-                                # [Step 5: "안전마진이 +9.1%p나 남거든!" -> 하단 안전마진 캡슐 완성!]
-                                if step_in_scene >= 5:
-                                    draw.line([(155, 650), (565, 650)], fill=line_col, width=5)
-                                    draw.rounded_rectangle([155, 668, 565, 768], radius=18, fill=(16, 34, 68), outline=yellow_c, width=3)
-                                    _fit_single_line(draw, W // 2, 696, 380, "버핏 역산 안전마진 (실제 - 요구)", get_font, start_sz=25, fill=yellow_c)
-                                    _fit_single_line(draw, W // 2, 738, 380, f"{g_margin_val:+.1f}%p {'안전마진!' if g_margin_val >= 0 else '기대반영'}", get_font, start_sz=42, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                    draw.rounded_rectangle([65, 610, 335, 735], radius=16, fill=(20, 32, 54), outline=(100, 120, 150), width=2)
+                                    _fit_single_line(draw, 200, 645, 240, "10년 미국채(무위험)", get_font, start_sz=23, fill=(180, 195, 215))
+                                    _fit_single_line(draw, 200, 695, 240, f"연 {ty:.2f}%", get_font, start_sz=36, fill=white_c)
 
-                            elif scene_code == "SCENE_SAFETY":
-                                # [Step 1: "유동비율이 2.79배로 튼튼하고" -> 좌측 유동비율만 먼저 등장!]
-                                _fit_single_line(draw, W // 2, 335, 500, "재무 안전판 & 자본배분", get_font, start_sz=50, fill=white_c)
-                                draw.line([(W // 2 - 40, 380), (155, 565)], fill=line_col, width=6)
-                                _fit_single_line(draw, 215, 445, 220, "유동비율", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                _fit_single_line(draw, 215, 495, 220, f"{current_ratio:.2f}배", get_font, start_sz=44, fill=white_c, stroke_w=5, stroke_c=board_bg_col)
-                                _fit_single_line(draw, 155, 612, 260, "주식희석 無" if bb_yield >= -1.0 else "희석주의", get_font, start_sz=42, fill=white_c)
+                                    draw.rounded_rectangle([365, 610, W - 65, 735], radius=16, fill=(16, 48, 52) if erp_val >= 0 else (52, 24, 34), outline=erp_col, width=4)
+                                    _fit_single_line(draw, 510, 645, 260, f"{comp_name} 이익수익률", get_font, start_sz=23, fill=yellow_c)
+                                    _fit_single_line(draw, 510, 695, 260, f"연 {cur_ey_val:.2f}%!", get_font, start_sz=36, fill=erp_col, stroke_w=2)
 
-                                # [Step 2: "순수 현금배당도 연 0.31%씩 챙겨주고 있어" -> 우측 배당 등장!]
-                                if step_in_scene >= 2:
-                                    draw.line([(W // 2 + 40, 380), (565, 565)], fill=line_col, width=6)
-                                    _fit_single_line(draw, 505, 445, 230, "10년 배당", get_font, start_sz=28, fill=yellow_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 505, 495, 230, f"{div_10y_cnt}회 지급", get_font, start_sz=42, fill=white_c, stroke_w=5, stroke_c=board_bg_col)
-                                    _fit_single_line(draw, 565, 612, 260, f"배당 {safe_div:.2f}%", get_font, start_sz=44, fill=green_c)
+                                elif step_in_scene == 3:
+                                    # [3단계: "매년 +3.2%만 커져도 되는데" -> 요구성장률 +3.2% 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 버핏 역산 공식 : 연 10% 목표수익률 - 이익수익률({cur_ey_val:.1f}%) = 요구성장률", get_font, start_sz=21, fill=sky_c)
 
-                                # [Step 3: "번 돈을 본업에 다시 재투자해서 복리 구조야!" -> 하단 재투자 캡슐 완성!]
-                                if step_in_scene >= 3:
-                                    draw.line([(155, 650), (565, 650)], fill=line_col, width=5)
-                                    draw.rounded_rectangle([165, 668, 555, 768], radius=18, fill=(16, 34, 68), outline=yellow_c, width=3)
-                                    _fit_single_line(draw, W // 2, 696, 360, "잉여현금 최우선 경로", get_font, start_sz=25, fill=yellow_c)
-                                    _fit_single_line(draw, W // 2, 738, 360, "본업 고수익 재투자!", get_font, start_sz=40, fill=green_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "연 10% 수익을 위해 주가가 요구하는 성장률", get_font, start_sz=33, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"연 {req_g_val:+.1f}%", get_font, start_sz=110, fill=white_c, stroke_w=7, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 650, W - 80, f"앞으로 회사가 매년 {req_g_val:+.1f}%씩만 성장해도 연 10% 수익 달성!", get_font, start_sz=27, fill=yellow_c)
+                                    _fit_single_line(draw, W // 2, 710, W - 80, "그렇다면 최근 10년 장부의 실제 성장 속도는 어땠을까?", get_font, start_sz=25, fill=(190, 210, 235))
+
+                                elif step_in_scene == 4:
+                                    # [4단계: "최근 10년 실제 주주이익이 연 +12.3%씩 커져서" -> +12.3% 단독 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 시장 요구 성장률 : 연 {req_g_val:+.1f}%  |  📊 기준 : 최근 10년 장부 FCF 추이", get_font, start_sz=21, fill=yellow_c)
+
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "설비투자 다 빼고 남는 실제 주주이익 성장률", get_font, start_sz=33, fill=white_c)
+                                    fcf_col = green_c if actual_fcf_g_val >= req_g_val else red_c
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"연 {actual_fcf_g_val:+.1f}%!", get_font, start_sz=112, fill=fcf_col, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    draw.rounded_rectangle([65, 615, W - 65, 730], radius=16, fill=(18, 36, 68), outline=fcf_col, width=3)
+                                    _fit_single_line(draw, W // 2, 650, W - 160, f"요구 성장률({req_g_val:+.1f}%) vs 10년 실제 성장률({actual_fcf_g_val:+.1f}%)", get_font, start_sz=26, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 698, W - 160, "회계상 착시가 아닌 현금흐름표(Owner Earnings) 팩트!", get_font, start_sz=24, fill=yellow_c)
+
+                                else:
+                                    # [5단계: "안전마진이 +9.1%p나 남거든!" -> 최종 역산 안전마진 초대형 팝업!]
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 실제 주주이익 성장({actual_fcf_g_val:+.1f}%) - 내포 요구성장({req_g_val:+.1f}%)", get_font, start_sz=22, fill=white_c)
+
+                                    _fit_single_line(draw, W // 2, 390, W - 70, "워런 버핏 역산(Invert) 가격 안전마진", get_font, start_sz=36, fill=yellow_c)
+                                    mgn_col = green_c if g_margin_val >= 0 else red_c
+                                    _fit_single_line(draw, W // 2, 505, W - 40, f"{g_margin_val:+.1f}%p!", get_font, start_sz=118, fill=mgn_col, stroke_w=8, stroke_c=(0, 0, 0))
+
+                                    draw.rounded_rectangle([65, 610, W - 65, 745], radius=20, fill=(16, 48, 52) if g_margin_val >= 0 else (56, 20, 30), outline=yellow_c, width=4)
+                                    _fit_single_line(draw, W // 2, 652, W - 160, "암산으로도 확인되는 확실한 안전마진 구간!" if g_margin_val >= 0 else "현재 주가에 미래 성장 기대감이 높게 반영된 구간!", get_font, start_sz=28, fill=yellow_c, stroke_w=2)
+                                    _fit_single_line(draw, W // 2, 706, W - 160, f"국채 대비 스프레드 {erp_val:+.1f}%p · 역산 마진 {g_margin_val:+.1f}%p", get_font, start_sz=25, fill=white_c)
 
                             else:
-                                _fit_single_line(draw, W // 2, 345, 560, f"{comp_name} 최종 성적표", get_font, start_sz=50, fill=yellow_c)
-                                sum_items = [
-                                    (f"1. 돈복사(ROIC) : 연 {cap_ret_val:.1f}% (마진 {op_m:.1f}%)", green_c if cap_ret_val >= 12.0 else white_c),
-                                    (f"2. 이익수익률 : 연 {cur_ey_val:.2f}% (국채 {ty:.2f}%)", white_c),
-                                    (f"3. 주주이익 성장 : 연 {actual_fcf_g_val:+.1f}% (마진 {g_margin_val:+.1f}%p)", green_c if g_margin_val >= 0 else yellow_c),
-                                    (f"4. 유동비율 {current_ratio:.2f}배 · 배당 연 {safe_div:.2f}%", yellow_c)
-                                ]
-                                for idx_si, (si_txt, si_col) in enumerate(sum_items):
-                                    draw.rounded_rectangle([45, 410 + idx_si * 84, W - 45, 480 + idx_si * 84], radius=12, fill=(16, 32, 62), outline=(60, 90, 140), width=2)
-                                    _fit_single_line(draw, W // 2, 445 + idx_si * 84, W - 120, si_txt, get_font, start_sz=34, fill=si_col, stroke_w=3, stroke_c=(0, 0, 0))
+                                # [SCENE_SAFETY: 1단계 유동비율 -> 2단계 현금배당 -> 3단계 본업 재투자 복리 엔진 단독 팝업!]
+                                if step_in_scene == 1:
+                                    draw.rounded_rectangle([55, 270, W - 55, 326], radius=14, fill=(18, 34, 64), outline=sky_c, width=2)
+                                    _fit_single_line(draw, W // 2, 298, W - 140, "📌 STEP 3 · 불황에도 절대 안 망하는 위기 대응 체력 (최근 분기)", get_font, start_sz=22, fill=sky_c)
 
-                        # 4. 하단 무박스 스트로크 왕글씨 자막
+                                    _fit_single_line(draw, W // 2, 395, W - 70, "단기 부채를 갚을 비상금 체력 (유동비율)", get_font, start_sz=35, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"{current_ratio:.2f}배!", get_font, start_sz=112, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=7, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 650, W - 80, "유상증자 같은 주주가치 희석 없이 현금 흐름 탄탄!" if bb_yield >= -1.0 else "최근 주식 수 변동(희석 여부) 점검 필요", get_font, start_sz=28, fill=yellow_c)
+                                    _fit_single_line(draw, W // 2, 710, W - 80, "공학적 다중 백업(Redundancy) 기준 통과", get_font, start_sz=25, fill=(190, 210, 235))
+
+                                elif step_in_scene == 2:
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 비상금 체력(유동비율) : {current_ratio:.2f}배  |  ✓ 주주가치 희석 없음", get_font, start_sz=22, fill=green_c)
+
+                                    _fit_single_line(draw, W // 2, 395, W - 70, f"최근 10년 중 {div_10y_cnt}회 지급한 순수 현금배당", get_font, start_sz=35, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 510, W - 50, f"연 {safe_div:.2f}%", get_font, start_sz=110, fill=yellow_c, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    # 10년 배당 이력 10칸 네온 블록 인포그래픽
+                                    for idx_blk in range(10):
+                                        bx_l = 70 + idx_blk * 58
+                                        is_p = (idx_blk >= (10 - div_10y_cnt))
+                                        draw.rounded_rectangle([bx_l, 620, bx_l + 50, 675], radius=8, fill=green_c if is_p else (30, 45, 70), outline=yellow_c if is_p else None, width=2 if is_p else 0)
+                                        _fit_single_line(draw, bx_l + 25, 647, 46, "배당" if is_p else "재투자", get_font, start_sz=14, fill=(0, 0, 0) if is_p else (140, 155, 175), stroke_w=1 if not is_p else 0)
+                                    _fit_single_line(draw, W // 2, 725, W - 80, f"1,000만 원 보유 시 매년 약 {div_10m_manwon:.1f}만 원 현금 입금!", get_font, start_sz=28, fill=white_c)
+
+                                else:
+                                    draw.rounded_rectangle([45, 268, W - 45, 324], radius=14, fill=(16, 32, 60), outline=(80, 110, 155), width=2)
+                                    _fit_single_line(draw, W // 2, 296, W - 120, f"✓ 유동비율 {current_ratio:.2f}배  ·  ✓ 현금배당 연 {safe_div:.2f}% ({div_10y_cnt}년 지급)", get_font, start_sz=22, fill=yellow_c)
+
+                                    _fit_single_line(draw, W // 2, 390, W - 70, "남은 잉여현금이 향하는 최우선 경로", get_font, start_sz=35, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 505, W - 40, "본업 재투자!", get_font, start_sz=96, fill=green_c, stroke_w=7, stroke_c=(0, 0, 0))
+
+                                    draw.rounded_rectangle([60, 605, W - 60, 745], radius=20, fill=(18, 42, 74), outline=yellow_c, width=4)
+                                    _fit_single_line(draw, W // 2, 648, W - 150, f"ROIC 연 {cap_ret_val:.1f}% 고수익 본업에 다시 현금을 투입해", get_font, start_sz=27, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 702, W - 150, "스스로 눈덩이를 굴리는 수학적 복리(Compound) 완성!", get_font, start_sz=27, fill=yellow_c, stroke_w=2)
+
+                        # 4. 하단 무박스 스트로크 왕글씨 자막 (Y: 845 ~ 945)
                         clean_sub = _clean_font_safe_text(sub_text)
                         words = clean_sub.split(" ")
                         if len(clean_sub) > 13 and len(words) >= 2:
@@ -8185,14 +8287,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         sy_start = 845 if len(sub_lines) == 2 else 885
                         for idx_l, ln_s in enumerate(sub_lines):
                             _fit_single_line(
-                                draw, W // 2, sy_start + idx_l * 64, W - 60, ln_s,
+                                draw, W // 2, sy_start + idx_l * 64, W - 50, ln_s,
                                 get_font, start_sz=50, min_sz=24,
-                                fill=(255, 255, 255), stroke_w=9, stroke_c=(0, 0, 0)
+                                fill=yellow_c if (scene_code == "SCENE_SUMMARY" and idx_l == 1) else white_c,
+                                stroke_w=9, stroke_c=(0, 0, 0)
                             )
 
-                        # 5. 하단 블랙 푸터
-                        _fit_single_line(draw, W // 2, 1105, W - 80, "▶ @BuffettBook · 가치투자 10년 장부", get_font, start_sz=28, fill=(255, 255, 255))
-                        _fit_single_line(draw, W // 2, 1165, W - 60, "[안내] DART·SEC 공시 기반 교육용 통계이며 매수·매도 추천이 아닙니다", get_font, start_sz=14, fill=(110, 120, 130))
+                        # 5. 하단 블랙 푸터 (데이터 기준 TTM/10Y 및 법적 안전 고지 명시)
+                        _fit_single_line(draw, W // 2, 1102, W - 60, "▶ @BuffettBook · 댓글로 다음 분석 종목을 신청하세요!", get_font, start_sz=26, fill=yellow_c)
+                        _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시(TTM·최근 10년 장부) 기반 교육용 통계이며 특정 종목 매수·매도 권유가 아닙니다", get_font, start_sz=13, fill=(120, 130, 145))
                         return img
                         
                     if st.button("💥 1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
