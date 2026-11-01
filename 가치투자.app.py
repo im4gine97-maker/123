@@ -8213,7 +8213,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                                     f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                                    tmp_Created = [f_raw, f_wav, f_seg]
+                                    
+                                    # ✅ [핵심 수정 1] f_seg(완성된 조각 영상)는 병합 전까지 지우면 안 되므로 tmp_Created에서 반드시 뺍니다!
+                                    tmp_Created = [f_raw, f_wav]
 
                                     _generate_chunk_voice(sub_t.replace("/", " "), f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_chapter_start=is_ch_start, is_final_cut=(idx_c == n_chunks - 1))
 
@@ -8266,7 +8268,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         if last_img_path:
                                             icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
 
-                                    # 묵직한 인코딩 부하를 줄이기 위해 -preset ultrafast -threads 2 적용
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
                                         "-vf", "scale=720:1280:flags=lanczos", "-r", "30",
@@ -8275,14 +8276,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         "-t", f"{exact_dur:.3f}", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                                    # 컷 인코딩이 끝나자마자 즉시 임시파일 청소 및 메모리 회수
+                                    # 이미지와 오디오(tmp_Created)만 즉시 청소하고, f_seg는 살려둡니다!
                                     for tf_rm in tmp_Created:
                                         if os.path.exists(tf_rm):
                                             try: os.remove(tf_rm)
                                             except Exception: pass
                                     gc.collect()
 
-                                    return idx_c, f_seg, []
+                                    # ✅ [핵심 수정 2] 최종 병합이 끝난 뒤 지워지도록 [f_seg]를 반환합니다!
+                                    return idx_c, f_seg, [f_seg]
 
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = []
@@ -8563,6 +8565,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     lf_comp_nm = primary_names.get(tk, i.get('shortName', tk))
                     lf_clean_tk = tk.split('.')[0] if kr else tk
                     lf_today = datetime.now().strftime('%Y.%m.%d')
+                    
+                    # ✅ [추가] lf_script_paragraphs = [ 바로 윗줄에 이 2줄을 넣어주세요!
+                    _safe_bb = bb_yield if 'bb_yield' in locals() else 0.0
+                    lf_dil_str = "유상증자나 전환사채 남발로 인한 심각한 주주가치 희석 징후가 없으며," if _safe_bb >= -1.0 else f"최근 주식 수가 연 {abs(_safe_bb):.1f}% 증가해 주주가치 희석 여부를 면밀히 감시해야 하며,"
 
                     # [탭 1 개별 기업 롱폼: 4~5분 분량의 18개 심층 다큐멘터리 문단]
                     lf_script_paragraphs = [
