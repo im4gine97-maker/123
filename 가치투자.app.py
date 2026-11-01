@@ -4436,78 +4436,106 @@ def split_subtitle_phrases(text_line, max_len=45):
                     final_phrases.append(cur)
 
     return [str(p).strip() for p in final_phrases if str(p).strip()] or [clean_t]
-# =========================================================================
-# [신규 탑재] 머니치트키 스타일 '말하는 캐릭터(Lip-Sync Avatar)' & WAV 파형 분석 엔진
-# =========================================================================
-def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=False, char_style="버핏 할아버지", accent_col=(0, 230, 118), custom_pil_img=None):
+def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=False, char_style="버핏 할아버지", accent_col=(0, 230, 118), custom_pil_img=None, is_presenter_stage=False, sub_step=0):
+    """
+    [V23 업그레이드: 대형 반신(Half-Body) 강사 & 홀로그램 지시봉 포인터 엔진]
+    - is_presenter_stage=True 일 때 구석의 작은 원형 아이콘이 아니라,
+      화면 중앙 하단에서 지시봉(Pointer)을 들고 위쪽 재무 차트를 직접 띄워주며 강의하는 대형 버핏 캐릭터를 렌더링합니다!
+    """
     from PIL import Image, ImageDraw
     r = int(radius)
 
+    # 1. 버핏이 위쪽 재무 보드로 쏘아 올리는 '홀로그램 프로젝션 빔(Projection Light Beam)' 효과
+    if is_presenter_stage:
+        beam_top_y = 660
+        # 지시봉 끝에서 상단 차트 보드로 퍼져나가는 입체 홀로그램 라인
+        pointer_tip_x = cx + int(r * 1.15) + (8 if is_mouth_open else 0)
+        pointer_tip_y = cy - int(r * 0.55) - (12 if is_mouth_open else 0)
+        target_x = 180 + ((sub_step % 3) * 180)
+        draw.line([(pointer_tip_x, pointer_tip_y), (target_x, beam_top_y)], fill=(255, 240, 0) if is_mouth_open else accent_col, width=4 if is_mouth_open else 2)
+        draw.ellipse([target_x - 10, beam_top_y - 10, target_x + 10, beam_top_y + 10], fill=(255, 240, 0), outline=accent_col, width=3)
+
+    # 2. 후광 네온 오라(Aura) 및 강단 데스크 배경
     if is_mouth_open:
-        draw.ellipse([cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10], outline=accent_col, width=4)
-        draw.ellipse([cx - r - 5, cy - r - 5, cx + r + 5, cy + r + 5], outline=(255, 240, 0), width=3)
+        draw.ellipse([cx - r - 14, cy - r - 14, cx + r + 14, cy + r + 14], outline=accent_col, width=5)
+        draw.ellipse([cx - r - 6, cy - r - 6, cx + r + 6, cy + r + 6], outline=(255, 240, 0), width=3)
     else:
-        draw.ellipse([cx - r - 4, cy - r - 4, cx + r + 4, cy + r + 4], outline=accent_col, width=3)
+        draw.ellipse([cx - r - 5, cy - r - 5, cx + r + 5, cy + r + 5], outline=accent_col, width=3)
 
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(18, 26, 46), outline=(255, 255, 255), width=3)
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(16, 24, 44), outline=(255, 255, 255), width=4)
 
+    # 사용자 업로드 이미지 처리
     if custom_pil_img is not None:
         try:
-            d_sz = r * 2 - 8
-            if is_mouth_open:
-                d_sz += 4
+            d_sz = r * 2 - 8 + (6 if is_mouth_open else 0)
             c_resized = custom_pil_img.convert("RGBA").resize((d_sz, d_sz))
             mask = Image.new("L", (d_sz, d_sz), 0)
-            m_draw = ImageDraw.Draw(mask)
-            m_draw.ellipse([0, 0, d_sz, d_sz], fill=255)
+            ImageDraw.Draw(mask).ellipse([0, 0, d_sz, d_sz], fill=255)
             base_img.paste(c_resized, (int(cx - d_sz // 2), int(cy - d_sz // 2)), mask)
-            eq_y = cy + r - 12
-            for idx_bar, bh in enumerate([10, 18, 14, 20, 10] if is_mouth_open else [4, 4, 4, 4, 4]):
-                bx = cx - 22 + idx_bar * 10
-                draw.rectangle([bx, eq_y - bh, bx + 6, eq_y], fill=(255, 240, 0) if is_mouth_open else (120, 135, 155))
             return
         except Exception:
             pass
 
-    suit_col = (30, 58, 138) if "애널리스트" in str(char_style) else ((15, 23, 42) if "버핏" in str(char_style) else (16, 185, 129))
-    draw.pieslice([cx - int(r*0.82), cy + int(r*0.25), cx + int(r*0.82), cy + int(r*1.35)], start=180, end=360, fill=suit_col)
-    draw.polygon([(cx - int(r*0.22), cy + int(r*0.28)), (cx + int(r*0.22), cy + int(r*0.28)), (cx, cy + int(r*0.75))], fill=(255, 255, 255))
-    draw.polygon([(cx - int(r*0.08), cy + int(r*0.35)), (cx + int(r*0.08), cy + int(r*0.35)), (cx + int(r*0.11), cy + int(r*0.75)), (cx, cy + int(r*0.88)), (cx - int(r*0.11), cy + int(r*0.75))], fill=(220, 38, 38))
+    # 3. 반신(Half-Body) 정장 상반신 & 넥타이 (훨씬 큼직하고 입체적인 강사 비율)
+    suit_col = (30, 58, 138) if "애널리스트" in str(char_style) else (15, 23, 42)
+    draw.pieslice([cx - int(r * 0.95), cy + int(r * 0.15), cx + int(r * 0.95), cy + int(r * 1.45)], start=180, end=360, fill=suit_col, outline=(255, 255, 255), width=2)
+    # 셔츠 V존 & 시그니처 레드 넥타이
+    draw.polygon([(cx - int(r * 0.28), cy + int(r * 0.18)), (cx + int(r * 0.28), cy + int(r * 0.18)), (cx, cy + int(r * 0.85))], fill=(255, 255, 255))
+    draw.polygon([(cx - int(r * 0.09), cy + int(r * 0.25)), (cx + int(r * 0.09), cy + int(r * 0.25)), (cx + int(r * 0.13), cy + int(r * 0.78)), (cx, cy + int(r * 0.92)), (cx - int(r * 0.13), cy + int(r * 0.78))], fill=(220, 38, 38))
 
-    fy_off = -3 if is_mouth_open else 0
-    face_r = int(r * 0.52)
-    fy = cy - int(r * 0.14) + fy_off
+    # 4. 강사 오른팔 & 황금 지시봉(Pointer Stick) 액션! (말할 때마다 지시봉 각도가 역동적으로 움직임!)
+    if is_presenter_stage:
+        arm_y_shift = -10 if is_mouth_open else 0
+        hand_x = cx + int(r * 0.78)
+        hand_y = cy + int(r * 0.05) + arm_y_shift
+        # 정장 소매 팔뚝
+        draw.line([(cx + int(r * 0.45), cy + int(r * 0.45)), (hand_x, hand_y)], fill=suit_col, width=int(r * 0.28))
+        # 손 모양
+        draw.ellipse([hand_x - int(r * 0.15), hand_y - int(r * 0.15), hand_x + int(r * 0.15), hand_y + int(r * 0.15)], fill=(255, 224, 189), outline=(15, 23, 42), width=2)
+        # 황금 지시봉 (위쪽 데이터 보드를 가리킴!)
+        stick_end_x = cx + int(r * 1.15) + (8 if is_mouth_open else 0)
+        stick_end_y = cy - int(r * 0.55) - (12 if is_mouth_open else 0)
+        draw.line([(hand_x, hand_y), (stick_end_x, stick_end_y)], fill=(255, 240, 0), width=6)
+        draw.ellipse([stick_end_x - 7, stick_end_y - 7, stick_end_x + 7, stick_end_y + 7], fill=(255, 23, 68), outline=(255, 255, 255), width=2)
+
+    # 5. 얼굴 헤드 (말할 때 들썩이는 리듬감)
+    fy_off = -5 if is_mouth_open else 0
+    face_r = int(r * 0.56)
+    fy = cy - int(r * 0.18) + fy_off
 
     hair_col = (226, 232, 240) if "버핏" in str(char_style) else (30, 41, 59)
-    draw.ellipse([cx - face_r - 4, fy - face_r - 8, cx + face_r + 4, fy + face_r - 6], fill=hair_col)
+    draw.ellipse([cx - face_r - 5, fy - face_r - 10, cx + face_r + 5, fy + face_r - 6], fill=hair_col)
     draw.ellipse([cx - face_r, fy - face_r + 4, cx + face_r, fy + face_r + 4], fill=(255, 224, 189), outline=(210, 170, 135), width=2)
 
+    # 6. 안경 & 눈동자 & 눈썹 제스처
     eye_y = fy - int(face_r * 0.12)
     eye_dx = int(face_r * 0.38)
     g_col = (217, 119, 6) if "버핏" in str(char_style) else (15, 23, 42)
-    g_r = int(face_r * 0.28)
-    draw.ellipse([cx - eye_dx - g_r, eye_y - g_r, cx - eye_dx + g_r, eye_y + g_r], outline=g_col, width=3)
-    draw.ellipse([cx + eye_dx - g_r, eye_y - g_r, cx + eye_dx + g_r, eye_y + g_r], outline=g_col, width=3)
-    draw.line([(cx - eye_dx + g_r, eye_y), (cx + eye_dx - g_r, eye_y)], fill=g_col, width=3)
+    g_r = int(face_r * 0.29)
+    draw.ellipse([cx - eye_dx - g_r, eye_y - g_r, cx - eye_dx + g_r, eye_y + g_r], outline=g_col, width=4)
+    draw.ellipse([cx + eye_dx - g_r, eye_y - g_r, cx + eye_dx + g_r, eye_y + g_r], outline=g_col, width=4)
+    draw.line([(cx - eye_dx + g_r, eye_y), (cx + eye_dx - g_r, eye_y)], fill=g_col, width=4)
 
-    pup_r = max(3, int(face_r * 0.11))
-    draw.ellipse([cx - eye_dx - pup_r, eye_y - pup_r, cx - eye_dx + pup_r, eye_y + pup_r], fill=(15, 23, 42))
-    draw.ellipse([cx + eye_dx - pup_r, eye_y - pup_r, cx + eye_dx + pup_r, eye_y + pup_r], fill=(15, 23, 42))
+    pup_r = max(4, int(face_r * 0.12))
+    # 시선이 위쪽 차트와 정면을 번갈아 보는 생동감
+    look_y = eye_y - (3 if (sub_step % 2 == 1) else 0)
+    draw.ellipse([cx - eye_dx - pup_r, look_y - pup_r, cx - eye_dx + pup_r, look_y + pup_r], fill=(15, 23, 42))
+    draw.ellipse([cx + eye_dx - pup_r, look_y - pup_r, cx + eye_dx + pup_r, look_y + pup_r], fill=(15, 23, 42))
 
-    eb_y = eye_y - g_r - (6 if is_mouth_open else 3)
-    draw.line([(cx - eye_dx - g_r, eb_y), (cx - eye_dx + g_r, eb_y - 2)], fill=hair_col, width=4)
-    draw.line([(cx + eye_dx - g_r, eb_y - 2), (cx + eye_dx + g_r, eb_y)], fill=hair_col, width=4)
+    eb_y = eye_y - g_r - (8 if is_mouth_open else 4)
+    draw.line([(cx - eye_dx - g_r, eb_y), (cx - eye_dx + g_r, eb_y - 3)], fill=hair_col, width=5)
+    draw.line([(cx + eye_dx - g_r, eb_y - 3), (cx + eye_dx + g_r, eb_y)], fill=hair_col, width=5)
 
+    # 7. 입 모양 (립싱크)
     mouth_y = fy + int(face_r * 0.48)
     if is_mouth_open:
-        mw, mh = int(face_r * 0.42), int(face_r * 0.30)
-        draw.ellipse([cx - mw, mouth_y - mh//2, cx + mw, mouth_y + mh], fill=(185, 28, 28), outline=(15, 23, 42), width=2)
-        draw.chord([cx - mw + 3, mouth_y - mh//2, cx + mw - 3, mouth_y + mh//2], start=180, end=360, fill=(255, 255, 255))
-        draw.pieslice([cx - mw//2, mouth_y, cx + mw//2, mouth_y + mh], start=0, end=180, fill=(248, 113, 113))
+        mw, mh = int(face_r * 0.44), int(face_r * 0.32)
+        draw.ellipse([cx - mw, mouth_y - mh // 2, cx + mw, mouth_y + mh], fill=(185, 28, 28), outline=(15, 23, 42), width=2)
+        draw.chord([cx - mw + 3, mouth_y - mh // 2, cx + mw - 3, mouth_y + mh // 2], start=180, end=360, fill=(255, 255, 255))
+        draw.pieslice([cx - mw // 2, mouth_y, cx + mw // 2, mouth_y + mh], start=0, end=180, fill=(248, 113, 113))
     else:
-        mw = int(face_r * 0.34)
+        mw = int(face_r * 0.35)
         draw.arc([cx - mw, mouth_y - 6, cx + mw, mouth_y + 8], start=10, end=170, fill=(15, 23, 42), width=4)
-
 
 def build_lipsync_concat_entries(wav_path, sub_phrases, spoken_weights, img_pair_list, step_sec=0.13):
     import wave, struct, math
@@ -7930,15 +7958,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill)
                         _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
 
-                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False):
+                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         scene_theme_map = {
                             "SCENE_HOOK": ((220, 38, 38), "가치투자 헌장 4대 기준 총괄 점검"),
-                            "SCENE_MOAT": ((0, 200, 83), "기준 1 · 복리의 바퀴(ROIC) & 가격결정력"),
-                            "SCENE_BUFFETT": ((245, 158, 11), "기준 2 · 역산 밸류에이션 & 주주이익(FCF)"),
-                            "SCENE_MACRO": ((56, 189, 248), "기준 3 · 무위험 미국채 vs 이익수익률"),
-                            "SCENE_SAFETY": ((168, 85, 247), "기준 4 · 단일 실패지점 차단 & 자본배분"),
+                            "SCENE_MOAT": ((0, 200, 83), "강의 1 · 복리의 바퀴(ROIC) & 가격결정력"),
+                            "SCENE_BUFFETT": ((245, 158, 11), "강의 2 · 역산 밸류에이션 & 주주이익(FCF)"),
+                            "SCENE_MACRO": ((56, 189, 248), "강의 3 · 무위험 미국채 vs 이익수익률"),
+                            "SCENE_SAFETY": ((168, 85, 247), "강의 4 · 단일 실패지점 차단 & 자본배분"),
                             "SCENE_SUMMARY": ((0, 230, 118), "최종 관문(Final Gate) 종합 판정")
                         }
                         theme_c, chapter_title = scene_theme_map.get(scene_code, ((56, 189, 248), "워런 버핏 기준 장부 해부"))
@@ -7946,13 +7974,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         img = Image.new("RGB", (W, H), color=(6, 9, 18))
                         draw = ImageDraw.Draw(img)
 
-                        draw.rectangle([0, 75, W, 235], fill=(12, 18, 34))
-                        draw.rectangle([0, 230, W, 242], fill=(28, 38, 58))
-                        draw.rectangle([0, 230, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 242], fill=theme_c)
+                        # 1. 상단 헤더 (Y: 75 ~ 215)
+                        draw.rectangle([0, 75, W, 215], fill=(12, 18, 34))
+                        draw.rectangle([0, 210, W, 220], fill=(28, 38, 58))
+                        draw.rectangle([0, 210, int(W * ((chunk_idx + 1) / max(1, total_chunks))), 220], fill=theme_c)
 
-                        _draw_box_with_centered_text(draw, [100, 90, W-100, 136], f"{chapter_title} · [{today_short}]", get_font, box_fill=theme_c, radius=18, start_sz=21, txt_fill=(255,255,255), stroke_w=2)
-                        _fit_single_line(draw, W//2, 185, W-60, f"{comp_name} ({clean_tk}) · 현재가 {p_str}", get_font, start_sz=40, min_sz=20, fill=(255, 240, 0), stroke_w=4)
+                        _draw_box_with_centered_text(draw, [90, 86, W-90, 128], f"{chapter_title} · [{today_short}]", get_font, box_fill=theme_c, radius=16, start_sz=20, txt_fill=(255,255,255), stroke_w=2)
+                        _fit_single_line(draw, W//2, 168, W-50, f"{comp_name} ({clean_tk}) · 현재가 {p_str}", get_font, start_sz=38, min_sz=20, fill=(255, 240, 0), stroke_w=4)
 
+                        # 2. 상단 4대 챕터 탭 (Y: 228 ~ 274)
                         nav_tabs = [
                             ("1. 복리·해자", scene_code in ["SCENE_MOAT", "SCENE_HOOK", "SCENE_SUMMARY"]),
                             ("2. 역산·주주이익", scene_code in ["SCENE_BUFFETT", "SCENE_HOOK", "SCENE_SUMMARY"]),
@@ -7962,121 +7992,136 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         for idx_t, (t_lbl, is_active) in enumerate(nav_tabs):
                             tx1 = 36 + idx_t * 164
                             _draw_box_with_centered_text(
-                                draw, [tx1, 256, tx1 + 156, 308], t_lbl, get_font,
+                                draw, [tx1, 228, tx1 + 156, 274], t_lbl, get_font,
                                 box_fill=theme_c if is_active else (18, 26, 44),
                                 outline_col=(255, 240, 0) if is_active else (50, 65, 90),
-                                outline_w=3 if is_active else 1, radius=10, start_sz=18, txt_fill=(255,255,255), stroke_w=2 if is_active else 0
+                                outline_w=3 if is_active else 1, radius=10, start_sz=17, txt_fill=(255,255,255), stroke_w=2 if is_active else 0
                             )
 
-                        draw.rounded_rectangle([32, 322, W-32, 795], radius=24, fill=(10, 15, 28), outline=theme_c, width=4)
+                        # 3. 버핏 캐릭터가 띄워주는 '다이나믹 홀로그램 팝업 보드' (Y: 286 ~ 668)
+                        # sub_step(자막 진행 순서)과 chunk_idx에 따라 보드 내부 요소가 순차적으로 확대·하이라이트 팝업됨!
+                        active_focus_idx = (chunk_idx + sub_step) % 4
+                        draw.rounded_rectangle([28, 286, W-28, 668], radius=24, fill=(10, 16, 32), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
 
                         if scene_code == "SCENE_MOAT":
-                            _fit_single_line(draw, W//2, 358, W-90, f"복리 엔진({cap_ret_label}) vs 자본비용 허들(12.0%) 비교", get_font, start_sz=23, fill=(255, 240, 0), stroke_w=2)
-                            base_y = 640
+                            _fit_single_line(draw, W//2, 316, W-90, f"복리 엔진({cap_ret_label}) vs 자본비용 허들(12.0%) 팝업 비교", get_font, start_sz=21, fill=(255, 240, 0), stroke_w=2)
+                            base_y = 555
                             max_v = max(20.0, abs(cap_ret_val) * 1.25)
                             bars_moat = [
                                 ("은행 예금", 3.5, "+35만/년", (100, 116, 139)),
                                 ("자본비용 허들", 12.0, "+120만/년", (56, 189, 248)),
                                 (f"{comp_name}", cap_ret_val, f"{roic_10m_manwon:+,}만/년", (0, 230, 118) if cap_ret_val >= 12.0 else (255, 193, 7))
                             ]
+                            # sub_step이 진행될수록 예금 -> 허들 -> 이 기업 순서로 스포트라이트 점등!
+                            spot_bar = 2 if sub_step >= 1 else (chunk_idx % 3)
                             for idx_b, (b_nm, b_val, b_won, b_col) in enumerate(bars_moat):
+                                is_spot = (idx_b == spot_bar or idx_b == 2)
                                 bx = 88 + idx_b * 198
-                                bh = int(max(32, min(195, (max(0.5, abs(b_val)) / max_v) * 195)))
-                                draw.rounded_rectangle([bx, base_y - bh, bx + 140, base_y], radius=12, fill=b_col, outline=(255,240,0) if idx_b==2 else None, width=4 if idx_b==2 else 0)
-                                _fit_single_line(draw, bx + 70, base_y - bh - 26, 160, f"연 {b_val:.1f}%", get_font, start_sz=27, fill=(255, 240, 0) if idx_b==2 else (220, 230, 240), stroke_w=3)
-                                _fit_single_line(draw, bx + 70, base_y - max(18, bh // 2), 130, b_won, get_font, start_sz=19, fill=(255, 255, 255), stroke_w=2)
-                                _fit_single_line(draw, bx + 70, base_y + 24, 160, b_nm, get_font, start_sz=19, fill=(255, 255, 255))
+                                bh = int(max(30, min(160, (max(0.5, abs(b_val)) / max_v) * 160)))
+                                if idx_b == spot_bar:
+                                    bh += 8  # 팝업 강조 시 막대가 위로 살짝 솟아오르는 다이내믹 효과!
+                                draw.rounded_rectangle([bx, base_y - bh, bx + 140, base_y], radius=12, fill=b_col, outline=(255, 240, 0) if is_spot else None, width=5 if idx_b == spot_bar else 2)
+                                _fit_single_line(draw, bx + 70, base_y - bh - 22, 160, f"연 {b_val:.1f}%", get_font, start_sz=26 if is_spot else 22, fill=(255, 240, 0) if is_spot else (180, 195, 210), stroke_w=3)
+                                _fit_single_line(draw, bx + 70, base_y - max(16, bh // 2), 130, b_won, get_font, start_sz=18, fill=(255, 255, 255), stroke_w=2)
+                                _fit_single_line(draw, bx + 70, base_y + 20, 160, b_nm, get_font, start_sz=18, fill=(255, 255, 255))
 
-                            verdict_m = f"영업이익률(가격결정력) {op_m:.1f}% · 자본비용 대비 {roic_vs_spy_gap:+.1f}%p {'초과 복리 창출!' if roic_vs_spy_gap >= 0 else '미달 주의'}"
-                            _draw_box_with_centered_text(draw, [52, 705, W-52, 772], verdict_m, get_font, box_fill=(20, 32, 54), outline_col=theme_c, outline_w=2, radius=14, start_sz=21, txt_fill=(0, 255, 136) if roic_vs_spy_gap >= 0 else (255, 193, 7))
+                            verdict_m = f"🔥 가격결정력(영업마진) {op_m:.1f}% · 자본비용 대비 {roic_vs_spy_gap:+.1f}%p 초과 복리!"
+                            _draw_box_with_centered_text(draw, [46, 592, W-46, 650], verdict_m, get_font, box_fill=(24, 40, 68) if sub_step > 0 else (16, 26, 44), outline_col=(255, 240, 0) if sub_step > 0 else theme_c, outline_w=3, radius=14, start_sz=20, txt_fill=(0, 255, 136))
 
                         elif scene_code == "SCENE_BUFFETT":
-                            _fit_single_line(draw, W//2, 355, W-90, f"역산 밸류에이션(Invert): 1/PER({cur_ey_val:.1f}%) + 요구성장({req_g_val:+.1f}%) = 10%", get_font, start_sz=21, fill=(255, 240, 0), stroke_w=2)
+                            _fit_single_line(draw, W//2, 314, W-90, f"버핏 역산(Invert): 1/PER({cur_ey_val:.1f}%) + 요구성장({req_g_val:+.1f}%) = 10%", get_font, start_sz=20, fill=(255, 240, 0), stroke_w=2)
 
                             max_g_bar = max(abs(req_g_val), abs(actual_fcf_g_val), 15.0) * 1.2
-                            w_req = int(max(35, min(280, (abs(req_g_val) / max_g_bar) * 280)))
-                            w_act = int(max(35, min(280, (abs(actual_fcf_g_val) / max_g_bar) * 280)))
+                            w_req = int(max(35, min(270, (abs(req_g_val) / max_g_bar) * 270)))
+                            w_act = int(max(35, min(270, (abs(actual_fcf_g_val) / max_g_bar) * 270)))
 
-                            _fit_single_line(draw, 135, 410, 160, "내포 요구성장", get_font, start_sz=19, fill=(220, 230, 240))
-                            draw.rounded_rectangle([225, 392, 520, 428], radius=8, fill=(24, 34, 54))
-                            draw.rounded_rectangle([225, 392, 225 + w_req, 428], radius=8, fill=(245, 158, 11))
-                            _fit_single_line(draw, 595, 410, 130, f"연 {req_g_val:+.1f}%", get_font, start_sz=22, fill=(245, 158, 11), stroke_w=2)
+                            # sub_step==0 이면 내포 요구성장률 하이라이트, sub_step>=1 이면 실제 주주이익 성장 하이라이트!
+                            hi_req = (sub_step == 0)
+                            draw.rounded_rectangle([46, 338, W-46, 382], radius=10, fill=(28, 38, 60) if hi_req else (16, 22, 38), outline=(255, 240, 0) if hi_req else None, width=3 if hi_req else 0)
+                            _fit_single_line(draw, 135, 360, 155, "내포 요구성장", get_font, start_sz=18, fill=(255, 240, 0) if hi_req else (200, 215, 230))
+                            draw.rounded_rectangle([225, 346, 510, 374], radius=6, fill=(24, 34, 54))
+                            draw.rounded_rectangle([225, 346, 225 + w_req, 374], radius=6, fill=(245, 158, 11))
+                            _fit_single_line(draw, 590, 360, 130, f"연 {req_g_val:+.1f}%", get_font, start_sz=21, fill=(245, 158, 11), stroke_w=2)
 
-                            _fit_single_line(draw, 135, 462, 160, "주주이익 성장", get_font, start_sz=19, fill=(255, 240, 0))
-                            draw.rounded_rectangle([225, 444, 520, 480], radius=8, fill=(24, 34, 54))
-                            draw.rounded_rectangle([225, 444, 225 + w_act, 480], radius=8, fill=(0, 230, 118) if g_margin_val >= 0 else (255, 23, 68))
-                            _fit_single_line(draw, 595, 462, 130, f"연 {actual_fcf_g_val:+.1f}%", get_font, start_sz=24, fill=(0, 255, 136) if g_margin_val >= 0 else (255, 118, 117), stroke_w=2)
+                            hi_act = (sub_step >= 1)
+                            draw.rounded_rectangle([46, 388, W-46, 434], radius=10, fill=(22, 46, 42) if hi_act else (16, 22, 38), outline=(0, 255, 136) if hi_act else None, width=3 if hi_act else 0)
+                            _fit_single_line(draw, 135, 411, 155, "실제 주주이익", get_font, start_sz=18, fill=(0, 255, 136) if hi_act else (200, 215, 230))
+                            draw.rounded_rectangle([225, 397, 510, 425], radius=6, fill=(24, 34, 54))
+                            draw.rounded_rectangle([225, 397, 225 + w_act, 425], radius=6, fill=(0, 230, 118) if g_margin_val >= 0 else (255, 23, 68))
+                            _fit_single_line(draw, 590, 411, 130, f"연 {actual_fcf_g_val:+.1f}%!", get_font, start_sz=23, fill=(0, 255, 136), stroke_w=2)
 
-                            draw.rounded_rectangle([52, 500, W-52, 692], radius=14, fill=(14, 20, 36), outline=(60, 75, 105), width=2)
-                            _fit_single_line(draw, W//2, 524, W-120, "최근 10년 버핏의 주주이익(Owner Earnings / FCF) 추이", get_font, start_sz=18, fill=(180, 195, 220))
+                            draw.rounded_rectangle([46, 444, W-46, 584], radius=12, fill=(14, 20, 36), outline=(60, 75, 105), width=2)
                             disp_f_vals = fcf_vals_10y[-10:] if len(fcf_vals_10y) >= 2 else [1.0, 1.2, 1.5]
                             disp_f_yrs = fcf_yrs_10y[-len(disp_f_vals):] if len(fcf_yrs_10y) >= len(disp_f_vals) else [str(2026-i) for i in range(len(disp_f_vals))][::-1]
                             mx_f = max([abs(v) for v in disp_f_vals] + [1.0]) * 1.15
                             nf = len(disp_f_vals)
                             bw = max(24, min(42, int(480 / max(1, nf))))
                             bg = max(4, int((580 - bw * nf) / max(1, nf + 1)))
-                            by_f = 662
+                            by_f = 558
                             for idx_f, (fv, fy_s) in enumerate(zip(disp_f_vals, disp_f_yrs)):
                                 bxf = 70 + bg + idx_f * (bw + bg)
-                                bhf = int(max(12, min(110, (abs(fv) / mx_f) * 110)))
+                                bhf = int(max(10, min(85, (abs(fv) / mx_f) * 85)))
                                 bcol = (255, 23, 68) if fv < 0 else ((255, 240, 0) if idx_f == nf - 1 else (0, 230, 118))
-                                draw.rounded_rectangle([bxf, by_f - bhf, bxf + bw, by_f], radius=5, fill=bcol)
-                                _fit_single_line(draw, bxf + bw//2, by_f + 14, bw + 10, str(fy_s)[-2:] + "년", get_font, start_sz=13, min_sz=9, fill=(200, 210, 225))
+                                draw.rounded_rectangle([bxf, by_f - bhf, bxf + bw, by_f], radius=4, fill=bcol)
+                                _fit_single_line(draw, bxf + bw//2, by_f + 13, bw + 10, str(fy_s)[-2:] + "년", get_font, start_sz=12, min_sz=9, fill=(200, 210, 225))
 
-                            v_bft = f"역산 판정: 주주이익 성장이 시장 내포 기대치보다 {g_margin_val:+.1f}%p {'높아 명백한 안전마진 확보!' if g_margin_val >= 0 else '낮아 기대치 부담 존재'}"
-                            _draw_box_with_centered_text(draw, [52, 705, W-52, 772], v_bft, get_font, box_fill=(20, 32, 54), outline_col=theme_c, outline_w=2, radius=14, start_sz=21, txt_fill=(255, 240, 0))
+                            v_bft = f"💡 역산 판정: 주주이익 성장이 요구치보다 {g_margin_val:+.1f}%p {'높아 안전마진 확보!' if g_margin_val >= 0 else '낮아 주의 필요'}"
+                            _draw_box_with_centered_text(draw, [46, 592, W-46, 650], v_bft, get_font, box_fill=(24, 38, 64), outline_col=(255, 240, 0), outline_w=3, radius=14, start_sz=20, txt_fill=(255, 240, 0))
 
                         elif scene_code == "SCENE_MACRO":
-                            _fit_single_line(draw, W//2, 358, W-90, "거시 기회비용 비교 : 무위험 10년물 미국채 vs 주주 이익수익률", get_font, start_sz=23, fill=(255, 240, 0), stroke_w=2)
-                            base_my = 648
+                            _fit_single_line(draw, W//2, 316, W-90, "거시 기회비용 팝업 : 무위험 10년물 미국채 vs 주주 이익수익률", get_font, start_sz=21, fill=(255, 240, 0), stroke_w=2)
+                            base_my = 555
                             max_ey_v = max(cur_ey_val, ty, 8.0) * 1.28
-                            h_bond = int(max(36, min(200, (ty / max_ey_v) * 200)))
-                            h_stk = int(max(36, min(200, (max(0.3, cur_ey_val) / max_ey_v) * 200)))
+                            h_bond = int(max(32, min(160, (ty / max_ey_v) * 160)))
+                            h_stk = int(max(32, min(160, (max(0.3, cur_ey_val) / max_ey_v) * 160))) + (8 if sub_step >= 1 else 0)
 
-                            draw.rounded_rectangle([135, base_my - h_bond, 295, base_my], radius=14, fill=(100, 116, 139))
-                            _fit_single_line(draw, 215, base_my - h_bond - 28, 180, f"연 {ty:.2f}%", get_font, start_sz=30, fill=(220, 230, 240), stroke_w=3)
-                            _fit_single_line(draw, 215, base_my - max(20, h_bond // 2), 150, f"+{bond_10m_manwon}만 원/년", get_font, start_sz=21, fill=(255, 255, 255), stroke_w=2)
-                            _fit_single_line(draw, 215, base_my + 26, 180, "10년물 미국채(무위험)", get_font, start_sz=19, fill=(200, 215, 235))
+                            draw.rounded_rectangle([135, base_my - h_bond, 295, base_my], radius=14, fill=(100, 116, 139), outline=(255, 240, 0) if sub_step == 0 else None, width=4 if sub_step == 0 else 0)
+                            _fit_single_line(draw, 215, base_my - h_bond - 24, 180, f"연 {ty:.2f}%", get_font, start_sz=27, fill=(220, 230, 240), stroke_w=3)
+                            _fit_single_line(draw, 215, base_my - max(18, h_bond // 2), 150, f"+{bond_10m_manwon}만 원/년", get_font, start_sz=19, fill=(255, 255, 255), stroke_w=2)
+                            _fit_single_line(draw, 215, base_my + 22, 180, "10년물 미국채(무위험)", get_font, start_sz=18, fill=(200, 215, 235))
 
                             stk_bar_col = (0, 230, 118) if erp_val >= 0 else (245, 158, 11)
-                            draw.rounded_rectangle([425, base_my - h_stk, 585, base_my], radius=14, fill=stk_bar_col, outline=(255, 240, 0), width=4)
-                            _fit_single_line(draw, 505, base_my - h_stk - 28, 180, f"연 {cur_ey_val:.2f}%!", get_font, start_sz=32, fill=(255, 240, 0), stroke_w=3)
-                            _fit_single_line(draw, 505, base_my - max(20, h_stk // 2), 150, f"+{ey_10m_manwon}만 원/년", get_font, start_sz=21, fill=(255, 255, 255), stroke_w=2)
-                            _fit_single_line(draw, 505, base_my + 26, 180, f"{comp_name} (PER {eff_cur_pe_sh:.1f}배)", get_font, start_sz=19, fill=(255, 255, 255))
+                            draw.rounded_rectangle([425, base_my - h_stk, 585, base_my], radius=14, fill=stk_bar_col, outline=(255, 240, 0), width=5 if sub_step >= 1 else 2)
+                            _fit_single_line(draw, 505, base_my - h_stk - 24, 180, f"연 {cur_ey_val:.2f}%!", get_font, start_sz=30, fill=(255, 240, 0), stroke_w=3)
+                            _fit_single_line(draw, 505, base_my - max(18, h_stk // 2), 150, f"+{ey_10m_manwon}만 원/년", get_font, start_sz=19, fill=(255, 255, 255), stroke_w=2)
+                            _fit_single_line(draw, 505, base_my + 22, 180, f"{comp_name} (PER {eff_cur_pe_sh:.1f}배)", get_font, start_sz=18, fill=(255, 255, 255))
 
-                            v_mac = f"국채 대비 스프레드 {erp_val:+.2f}%p ({'무위험 채권 대비 기회비용 우위!' if erp_val >= 0 else '단기 이자는 국채 우위 · 복리 성장으로 보완'})"
-                            _draw_box_with_centered_text(draw, [52, 705, W-52, 772], v_mac, get_font, box_fill=(20, 32, 54), outline_col=theme_c, outline_w=2, radius=14, start_sz=21, txt_fill=(0, 255, 136) if erp_val >= 0 else (255, 240, 0))
+                            v_mac = f"⚡ 국채 대비 스프레드 {erp_val:+.2f}%p ({'무위험 채권 대비 수익 매력 우위!' if erp_val >= 0 else '복리 성장으로 보완 필요'})"
+                            _draw_box_with_centered_text(draw, [46, 592, W-46, 650], v_mac, get_font, box_fill=(24, 38, 64), outline_col=(255, 240, 0), outline_w=3, radius=14, start_sz=20, txt_fill=(0, 255, 136) if erp_val >= 0 else (255, 240, 0))
 
                         elif scene_code == "SCENE_SAFETY":
-                            # [PDF Part 2-13 주주희석 배제, Part 3-공학 단일 실패 지점 차단, Part 4-6 자본 배분]
-                            _fit_single_line(draw, W//2, 356, W-90, "단일 실패지점 차단(공학 백업) & 자본 배분 건전성", get_font, start_sz=23, fill=(255, 240, 0), stroke_w=2)
+                            _fit_single_line(draw, W//2, 314, W-90, "단일 실패지점 차단(공학 백업) & 자본 배분 팝업 점검", get_font, start_sz=21, fill=(255, 240, 0), stroke_w=2)
 
-                            draw.rounded_rectangle([50, 388, W-50, 480], radius=14, fill=(16, 24, 42), outline=(60, 75, 105), width=2)
-                            _fit_single_line(draw, 195, 412, 260, "단일실패 차단 (유동비율)", get_font, start_sz=19, fill=(200, 215, 235))
-                            _fit_single_line(draw, 555, 412, 180, f"{current_ratio:.2f}배 ({'백업충분' if current_ratio>=1.2 else '점검'})", get_font, start_sz=21, fill=(0, 255, 136) if current_ratio>=1.2 else (255, 193, 7), stroke_w=2)
-                            draw.rounded_rectangle([70, 440, W-70, 464], radius=8, fill=(28, 38, 58))
-                            cr_w = int(max(30, min(W-140, (min(current_ratio, 3.0) / 3.0) * (W-140))))
-                            draw.rounded_rectangle([70, 440, 70 + cr_w, 464], radius=8, fill=(0, 230, 118) if current_ratio >= 1.2 else (255, 193, 7))
+                            s_hi0 = (sub_step == 0)
+                            draw.rounded_rectangle([46, 340, W-46, 418], radius=12, fill=(24, 36, 62) if s_hi0 else (16, 24, 42), outline=(255, 240, 0) if s_hi0 else (60, 75, 105), width=4 if s_hi0 else 2)
+                            _fit_single_line(draw, 195, 362, 260, "단일실패 차단 (유동비율)", get_font, start_sz=18, fill=(200, 215, 235))
+                            _fit_single_line(draw, 555, 362, 180, f"{current_ratio:.2f}배 ({'백업충분' if current_ratio>=1.2 else '점검'})", get_font, start_sz=20, fill=(0, 255, 136) if current_ratio>=1.2 else (255, 193, 7), stroke_w=2)
+                            draw.rounded_rectangle([68, 386, W-68, 406], radius=6, fill=(28, 38, 58))
+                            cr_w = int(max(30, min(W-136, (min(current_ratio, 3.0) / 3.0) * (W-136))))
+                            draw.rounded_rectangle([68, 386, 68 + cr_w, 406], radius=6, fill=(0, 230, 118) if current_ratio >= 1.2 else (255, 193, 7))
 
-                            draw.rounded_rectangle([50, 494, W-50, 586], radius=14, fill=(16, 24, 42), outline=(60, 75, 105), width=2)
-                            _fit_single_line(draw, 195, 518, 260, "가격결정력 (영업이익률)", get_font, start_sz=19, fill=(200, 215, 235))
-                            _fit_single_line(draw, 555, 518, 180, f"연 {op_m:.1f}% ({'해자견고' if op_m>=15 else '보통'})", get_font, start_sz=21, fill=(0, 255, 136) if op_m>=15 else (56, 189, 248), stroke_w=2)
-                            draw.rounded_rectangle([70, 546, W-70, 570], radius=8, fill=(28, 38, 58))
-                            opm_w = int(max(30, min(W-140, (min(max(0.0, op_m), 45.0) / 45.0) * (W-140))))
-                            draw.rounded_rectangle([70, 546, 70 + opm_w, 570], radius=8, fill=(56, 189, 248) if op_m < 20 else (0, 230, 118))
+                            s_hi1 = (sub_step == 1)
+                            draw.rounded_rectangle([46, 426, W-46, 504], radius=12, fill=(24, 36, 62) if s_hi1 else (16, 24, 42), outline=(255, 240, 0) if s_hi1 else (60, 75, 105), width=4 if s_hi1 else 2)
+                            _fit_single_line(draw, 195, 448, 260, "가격결정력 (영업이익률)", get_font, start_sz=18, fill=(200, 215, 235))
+                            _fit_single_line(draw, 555, 448, 180, f"연 {op_m:.1f}% ({'해자견고' if op_m>=15 else '보통'})", get_font, start_sz=20, fill=(0, 255, 136) if op_m>=15 else (56, 189, 248), stroke_w=2)
+                            draw.rounded_rectangle([68, 472, W-68, 492], radius=6, fill=(28, 38, 58))
+                            opm_w = int(max(30, min(W-136, (min(max(0.0, op_m), 45.0) / 45.0) * (W-136))))
+                            draw.rounded_rectangle([68, 472, 68 + opm_w, 492], radius=6, fill=(56, 189, 248) if op_m < 20 else (0, 230, 118))
 
-                            draw.rounded_rectangle([50, 600, W-50, 692], radius=14, fill=(16, 24, 42), outline=(168, 85, 247), width=2)
-                            _fit_single_line(draw, W//2, 622, W-120, f"자본배분: 순수배당 연 {safe_div:.2f}% · 최근 10년 중 {div_10y_cnt}회 지급", get_font, start_sz=19, fill=(255, 240, 0), stroke_w=1)
+                            s_hi2 = (sub_step >= 2)
+                            draw.rounded_rectangle([46, 512, W-46, 584], radius=12, fill=(28, 24, 52) if s_hi2 else (16, 24, 42), outline=(255, 240, 0) if s_hi2 else (168, 85, 247), width=4 if s_hi2 else 2)
+                            _fit_single_line(draw, W//2, 530, W-120, f"자본배분: 순수배당 연 {safe_div:.2f}% · 최근 10년 중 {div_10y_cnt}회 지급", get_font, start_sz=17, fill=(255, 240, 0), stroke_w=1)
                             for idx_blk in range(10):
                                 bx_l = 72 + idx_blk * 58
                                 is_paid_blk = (idx_blk >= (10 - div_10y_cnt))
-                                draw.rounded_rectangle([bx_l, 644, bx_l + 48, 678], radius=6, fill=(168, 85, 247) if is_paid_blk else (30, 38, 56), outline=(255, 240, 0) if is_paid_blk else None, width=2 if is_paid_blk else 0)
-                                _fit_single_line(draw, bx_l + 24, 661, 44, "지급" if is_paid_blk else "재투자", get_font, start_sz=12, fill=(255, 255, 255) if is_paid_blk else (120, 135, 155))
+                                draw.rounded_rectangle([bx_l, 548, bx_l + 48, 574], radius=5, fill=(168, 85, 247) if is_paid_blk else (30, 38, 56))
+                                _fit_single_line(draw, bx_l + 24, 561, 44, "지급" if is_paid_blk else "재투자", get_font, start_sz=11, fill=(255, 255, 255) if is_paid_blk else (120, 135, 155))
 
                             dil_status = "주주가치 희석 없음(합격)" if bb_yield >= -1.0 else f"주식수 연 {abs(bb_yield):.1f}% 희석 주의"
-                            _draw_box_with_centered_text(draw, [52, 705, W-52, 772], f"피셔 13번 점검: {dil_status} · 1,000만 원당 연 {div_10m_manwon:.1f}만 원 배당", get_font, box_fill=(20, 32, 54), outline_col=theme_c, outline_w=2, radius=14, start_sz=20, txt_fill=(255, 255, 255))
+                            _draw_box_with_centered_text(draw, [46, 592, W-46, 650], f"피셔 13번 점검: {dil_status} · 1,000만 원당 연 {div_10m_manwon:.1f}만 원 배당", get_font, box_fill=(20, 32, 54), outline_col=theme_c, outline_w=2, radius=14, start_sz=19, txt_fill=(255, 255, 255))
 
                         else:
+                            # [도입 & 결론: 4대 핵심 축이 자막 진행(active_focus_idx)에 맞춰 하나씩 황금빛으로 팝업 하이라이트!]
                             summary_rows = [
                                 ("1. 복리 엔진 & 가격결정력", f"현재 ROIC {cap_ret_val:.1f}% (허들 12% 대비 {roic_vs_spy_gap:+.1f}%p) · 마진 {op_m:.1f}%", "합격" if cap_ret_val >= 12.0 else "주의", (0, 230, 118) if cap_ret_val >= 12.0 else (255, 193, 7)),
                                 ("2. 역산 밸류에이션 & 주주이익", f"실제 주주이익 성장 {actual_fcf_g_val:+.1f}% vs 내포 요구성장 {req_g_val:+.1f}%", "안전마진" if g_margin_val >= 0 else "기대반영", (0, 230, 118) if g_margin_val >= 0 else (255, 23, 68)),
@@ -8084,18 +8129,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 ("4. 재무 안전판 & 자본 배분", f"{'주식희석 없음' if bb_yield >= -1.0 else '희석주의'} · 유동비율 {current_ratio:.2f}배 · 배당 {safe_div:.2f}%", "검증완료", (168, 85, 247))
                             ]
                             for idx_sr, (sr_t, sr_s, sr_b, sr_c) in enumerate(summary_rows):
-                                ry1 = 342 + idx_sr * 108
-                                ry2 = ry1 + 96
-                                draw.rounded_rectangle([46, ry1, W-46, ry2], radius=16, fill=(16, 24, 42), outline=sr_c, width=3)
-                                _fit_single_line(draw, 275, ry1 + 30, 420, sr_t, get_font, start_sz=21, fill=(255, 255, 255), stroke_w=2)
-                                _fit_single_line(draw, 275, ry1 + 68, 420, sr_s, get_font, start_sz=18, fill=(255, 240, 0))
-                                _draw_box_with_centered_text(draw, [505, ry1 + 16, W-62, ry2 - 16], sr_b, get_font, box_fill=sr_c, radius=12, start_sz=22, txt_fill=(255,255,255), stroke_w=2)
+                                is_pop = (idx_sr == active_focus_idx)
+                                ry1 = 300 + idx_sr * 88
+                                ry2 = ry1 + 78
+                                rx1 = 38 if is_pop else 48
+                                rx2 = (W - 38) if is_pop else (W - 48)
+                                draw.rounded_rectangle([rx1, ry1, rx2, ry2], radius=14, fill=(24, 38, 66) if is_pop else (15, 22, 38), outline=(255, 240, 0) if is_pop else sr_c, width=5 if is_pop else 2)
+                                _fit_single_line(draw, 270, ry1 + 25, 420, ("👉 " + sr_t) if is_pop else sr_t, get_font, start_sz=21 if is_pop else 19, fill=(255, 240, 0) if is_pop else (220, 230, 240), stroke_w=2)
+                                _fit_single_line(draw, 270, ry1 + 56, 420, sr_s, get_font, start_sz=17, fill=(255, 255, 255) if is_pop else (170, 185, 205))
+                                _draw_box_with_centered_text(draw, [505, ry1 + 12, rx2 - 14, ry2 - 12], sr_b, get_font, box_fill=sr_c, radius=10, start_sz=21, txt_fill=(255,255,255), stroke_w=2)
 
+                        # 4. 버핏 강사 전용 대형 말풍선 & 주인공 반신 캐릭터 스테이지 (Y: 682 ~ 1065)
                         clean_sub = _clean_font_safe_text(sub_text)
-                        box_x1, box_x2 = 32, W - 32
-                        safe_w = (box_x2 - box_x1) - 44
                         words = clean_sub.split(" ")
-                        if len(clean_sub) > 16 and len(words) >= 2:
+                        if len(clean_sub) > 15 and len(words) >= 2:
                             best_split = len(words) // 2
                             half_len = len(clean_sub) / 2.0
                             min_diff = 999
@@ -8108,40 +8155,45 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             sub_lines = [clean_sub]
 
-                        clean_sub = _clean_font_safe_text(sub_text)
-                        box_x1, box_x2 = 32, W - 32
-                        safe_w = (box_x2 - box_x1) - 44
-                        words = clean_sub.split(" ")
-                        if len(clean_sub) > 16 and len(words) >= 2:
-                            best_split = len(words) // 2
-                            half_len = len(clean_sub) / 2.0
-                            min_diff = 999
-                            for idx_w in range(1, len(words)):
-                                l_len = len(" ".join(words[:idx_w]))
-                                if abs(l_len - half_len) < min_diff:
-                                    min_diff = abs(l_len - half_len)
-                                    best_split = idx_w
-                            sub_lines = [" ".join(words[:best_split]), " ".join(words[best_split:])]
-                        else:
-                            sub_lines = [clean_sub]
-
-                        # [머니치트키 스타일: 말풍선 + 좌측 캐릭터 립싱크 아바타 배치]
                         if "캐릭터 없음" not in char_mode_sh:
-                            draw.rounded_rectangle([172, 815, W - 28, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
-                            draw.polygon([(152, 885), (174, 870), (174, 900)], fill=theme_c)
-                            sy_start = 860 if len(sub_lines) == 2 else 885
+                            # (A) 상단 중앙 말풍선 (버핏 머리 바로 위에서 대사가 큼직하게 터져 나옴!)
+                            draw.rounded_rectangle([32, 682, W - 32, 822], radius=22, fill=(12, 18, 34), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
+                            # 버핏 입 쪽에서 올라오는 말풍선 꼬리
+                            draw.polygon([(205, 822), (245, 822), (215, 852)], fill=(255, 240, 0) if is_mouth_open else theme_c)
+                            sy_start = 726 if len(sub_lines) == 2 else 752
                             for idx_l, ln_s in enumerate(sub_lines):
                                 l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
-                                _fit_single_line(draw, 172 + (W - 200)//2, sy_start + idx_l * 50, W - 230, ln_s, get_font, start_sz=32, min_sz=15, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
-                            draw_talking_character_avatar(draw, img, cx=92, cy=885, radius=58, is_mouth_open=is_mouth_open, char_style=char_mode_sh, accent_col=theme_c, custom_pil_img=custom_char_pil)
-                        else:
-                            draw.rounded_rectangle([box_x1, 815, box_x2, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
-                            sy_start = 860 if len(sub_lines) == 2 else 885
-                            for idx_l, ln_s in enumerate(sub_lines):
-                                l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
-                                _fit_single_line(draw, W//2, sy_start + idx_l * 50, safe_w, ln_s, get_font, start_sz=34, min_sz=16, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, W // 2, sy_start + idx_l * 48, W - 100, ln_s, get_font, start_sz=35, min_sz=17, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
 
-                        _fit_single_line(draw, W//2, 1085, W - 60, "[안내] DART·SEC 공시 기반 학술·교육용 통계 자료이며 매수·매도 추천이 아닙니다", get_font, start_sz=14, min_sz=10, fill=(115, 125, 140))
+                            # (B) 하단 강단(Stage) — 3배 커진 주인공 버핏 강사(반지름 86px) + 우측 실시간 핵심 팩트 칠판!
+                            draw_talking_character_avatar(
+                                draw, img, cx=155, cy=955, radius=86,
+                                is_mouth_open=is_mouth_open, char_style=char_mode_sh,
+                                accent_col=theme_c, custom_pil_img=custom_char_pil,
+                                is_presenter_stage=True, sub_step=sub_step
+                            )
+                            _draw_box_with_centered_text(draw, [55, 1025, 255, 1062], "🎙️ 버핏의 장부 강의", get_font, box_fill=theme_c, outline_col=(255, 240, 0), outline_w=2, radius=10, start_sz=17, txt_fill=(255, 255, 255), stroke_w=2)
+
+                            # 버핏 오른쪽 옆에 실시간으로 함께 바뀌는 '강사의 핵심 칠판(Chalkboard Card)'
+                            chalk_notes = [
+                                ("📌 핵심 체크 1 : 돈복사 해자", f"ROIC 연 {cap_ret_val:.1f}% vs 허들 12%", f"1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출!"),
+                                ("📌 핵심 체크 2 : 역산 안전마진", f"주주이익 {actual_fcf_g_val:+.1f}% vs 요구 {req_g_val:+.1f}%", f"버핏 암산 마진 {g_margin_val:+.1f}%p!"),
+                                ("📌 핵심 체크 3 : vs 미국 국채", f"주식 {cur_ey_val:.2f}% vs 국채 {ty:.2f}%", f"국채 대비 {erp_val:+.2f}%p 스프레드!"),
+                                ("📌 핵심 체크 4 : 재무 & 배당", f"유동비율 {current_ratio:.2f}배 · 마진 {op_m:.1f}%", f"순수 현금배당 연 {safe_div:.2f}% 지급!")
+                            ]
+                            ck_t, ck_m, ck_s = chalk_notes[active_focus_idx]
+                            draw.rounded_rectangle([290, 865, W - 32, 1055], radius=18, fill=(14, 22, 40), outline=theme_c, width=3)
+                            _draw_box_with_centered_text(draw, [308, 880, W - 50, 922], ck_t, get_font, box_fill=(24, 38, 66), radius=8, start_sz=19, txt_fill=(255, 240, 0), stroke_w=2)
+                            _fit_single_line(draw, 489, 962, 360, ck_m, get_font, start_sz=25, fill=(255, 255, 255), stroke_w=3)
+                            _fit_single_line(draw, 489, 1015, 360, ck_s, get_font, start_sz=21, fill=(0, 255, 136), stroke_w=2)
+                        else:
+                            draw.rounded_rectangle([32, 815, W - 32, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
+                            sy_start = 860 if len(sub_lines) == 2 else 885
+                            for idx_l, ln_s in enumerate(sub_lines):
+                                l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
+                                _fit_single_line(draw, W//2, sy_start + idx_l * 50, W - 80, ln_s, get_font, start_sz=34, min_sz=16, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
+
+                        _fit_single_line(draw, W//2, 1090, W - 60, "[안내] DART·SEC 공시 기반 학술·교육용 통계 자료이며 매수·매도 추천이 아닙니다", get_font, start_sz=14, min_sz=10, fill=(115, 125, 140))
                         return img
 
                     if st.button("💥 1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
@@ -8188,14 +8240,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     tmp_Created.append(img_concat_txt)
                                     img_pair_list = []
                                     last_img_path = None
-                                    for p_txt in sub_phrases:
+                                   # [자막 구간(p_idx)이 넘어갈 때마다 sub_step을 전달하여 위쪽 차트와 칠판이 실시간 팝업 전환됨!]
+                                    for p_idx, p_txt in enumerate(sub_phrases):
                                         f_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                         tmp_Created.append(f_closed)
-                                        _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False).save(f_closed)
+                                        _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False, sub_step=p_idx).save(f_closed)
                                         if "캐릭터 없음" not in char_mode_sh:
                                             f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_open)
-                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True).save(f_open)
+                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx).save(f_open)
                                         else:
                                             f_open = f_closed
                                         img_pair_list.append((f_closed, f_open))
