@@ -8209,6 +8209,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.05),0.10,0)'" if "시네마틱" in motion_intensity else "scale=720:1280:flags=lanczos"
 
                                 def _build_single_cut(idx_c, sub_t, sc_code, is_ch_start):
+                                    import gc
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                                     f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
@@ -8223,7 +8224,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    # ✅ [교체] 숫자·기호 음절 계산 및 립싱크(입 닫음/열림) 타임라인 생성
                                     sub_phrases = split_subtitle_phrases(sub_t, max_len=24)
                                     spoken_weights = []
                                     for p_txt in sub_phrases:
@@ -8234,23 +8234,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         pause_w = 2.8 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
                                         spoken_weights.append(max(2.0, text_cnt + (digit_cnt * 1.8) + pause_w))
 
-                                    total_weight = sum(spoken_weights)
-
                                     img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                     tmp_Created.append(img_concat_txt)
                                     img_pair_list = []
                                     last_img_path = None
-                                   # [자막 구간(p_idx)이 넘어갈 때마다 sub_step을 전달하여 위쪽 차트와 칠판이 실시간 팝업 전환됨!]
+
                                     for p_idx, p_txt in enumerate(sub_phrases):
                                         f_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                         tmp_Created.append(f_closed)
-                                        _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False, sub_step=p_idx).save(f_closed)
+                                        im_c = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False, sub_step=p_idx)
+                                        im_c.save(f_closed)
+                                        im_c.close()
+
                                         if "캐릭터 없음" not in char_mode_sh:
                                             f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_open)
-                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx).save(f_open)
+                                            im_o = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx)
+                                            im_o.save(f_open)
+                                            im_o.close()
                                         else:
                                             f_open = f_closed
+
                                         img_pair_list.append((f_closed, f_open))
                                         last_img_path = f_closed
 
@@ -8262,23 +8266,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         if last_img_path:
                                             icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
 
-                                    cmd_primary = [
-                                        ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
-                                        "-vf", vf_motion, "-fps_mode", "cfr", "-r", "30",
-                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                                        "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                                    # 묵직한 인코딩 부하를 줄이기 위해 -preset ultrafast -threads 2 적용
+                                    subprocess.run([
+                                        ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
+                                        "-vf", "scale=720:1280:flags=lanczos", "-r", "30",
+                                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                         "-t", f"{exact_dur:.3f}", f_seg
-                                    ]
-                                    res_p = subprocess.run(cmd_primary, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                                    if res_p.returncode != 0 and last_img_path:
-                                        subprocess.run([
-                                            ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
-                                            "-vf", "scale=720:1280:flags=lanczos", "-r", "30",
-                                            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
-                                            "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
-                                            "-t", f"{exact_dur:.3f}", f_seg
-                                        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                    return idx_c, f_seg, tmp_Created
+                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                                    # 컷 인코딩이 끝나자마자 즉시 임시파일 청소 및 메모리 회수
+                                    for tf_rm in tmp_Created:
+                                        if os.path.exists(tf_rm):
+                                            try: os.remove(tf_rm)
+                                            except Exception: pass
+                                    gc.collect()
+
+                                    return idx_c, f_seg, []
 
                                 with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                                     futs = []
