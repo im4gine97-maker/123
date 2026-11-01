@@ -11613,7 +11613,7 @@ with tab_vs:
                                 except Exception:
                                     pass
 
-                                sub_phrases = (stxt, max_len=17)
+                                sub_phrases = split_subtitle_phrases(stxt, max_len=17)
                                 tot_len = max(1, sum(len(p) for p in sub_phrases))
                                 ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                 tmp_v_list.append(ic_txt)
