@@ -10170,12 +10170,12 @@ with tab4:
                     n_b = len(b_chunks)
                     cards_data = b_meta["cards"]
 
-                    def _draw_bible_frame(c_idx, sub_txt, sc_code):
+                    def _draw_bible_frame(c_idx, sub_txt, sc_code, is_mouth_open=False, sub_step=0):
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(6, 9, 18))
                         draw = ImageDraw.Draw(img)
 
-                        active_card_idx = -1
+                        active_card_idx = (c_idx + sub_step) % 4
                         if sc_code.startswith("B_CARD_"):
                             active_card_idx = int(sc_code.split("_")[-1])
                             theme_c = cards_data[active_card_idx][3]
@@ -10184,38 +10184,38 @@ with tab4:
                         else:
                             theme_c = (0, 230, 118)
 
-                        # 상단 헤더
-                        draw.rectangle([0, 75, W, 235], fill=(12, 18, 34))
-                        draw.rectangle([0, 230, W, 242], fill=(28, 38, 58))
-                        draw.rectangle([0, 230, int(W * ((c_idx + 1) / max(1, n_b))), 242], fill=theme_c)
+                        # 1. 상단 헤더 (Y: 75 ~ 225)
+                        draw.rectangle([0, 75, W, 225], fill=(12, 18, 34))
+                        draw.rectangle([0, 220, W, 230], fill=(28, 38, 58))
+                        draw.rectangle([0, 220, int(W * ((c_idx + 1) / max(1, n_b))), 230], fill=theme_c)
 
-                        draw.rounded_rectangle([120, 90, W-120, 136], radius=18, fill=theme_c)
-                        _fit_b(draw, W//2, 113, W-260, b_meta["badge"], start_sz=21, fill=(255, 255, 255), sw=2)
-                        _fit_b(draw, W//2, 185, W-60, b_meta["title"], start_sz=44, fill=(255, 240, 0), sw=4)
+                        draw.rounded_rectangle([110, 88, W-110, 132], radius=16, fill=theme_c)
+                        _fit_b(draw, W//2, 110, W-240, b_meta["badge"], start_sz=20, fill=(255, 255, 255), sw=2)
+                        _fit_b(draw, W//2, 176, W-50, b_meta["title"], start_sz=40, fill=(255, 240, 0), sw=4)
 
-                        # 중앙 4단 핵심 원칙 그래픽 보드 (현재 설명 중인 원칙 카드가 황금 테두리로 크고 밝게 하이라이트!)
-                        draw.rounded_rectangle([28, 260, W-28, 795], radius=24, fill=(10, 15, 28), outline=theme_c, width=4)
+                        # 2. 중앙 4단 핵심 원칙 홀로그램 팝업 보드 (Y: 242 ~ 668)
+                        draw.rounded_rectangle([28, 242, W-28, 668], radius=24, fill=(10, 15, 28), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
 
                         for idx_cd, (c_title, c_main, c_sub, c_col) in enumerate(cards_data):
-                            ry1 = 282 + idx_cd * 124
-                            ry2 = ry1 + 112
-                            is_spot = (active_card_idx == -1 or active_card_idx == idx_cd)
-                            bg_c = (20, 32, 56) if (active_card_idx == idx_cd) else ((15, 22, 38) if is_spot else (10, 14, 24))
-                            out_c = (255, 240, 0) if (active_card_idx == idx_cd) else (c_col if is_spot else (40, 50, 70))
-                            out_w = 5 if (active_card_idx == idx_cd) else (3 if is_spot else 1)
+                            is_spot = (idx_cd == active_card_idx)
+                            ry1 = 256 + idx_cd * 100
+                            ry2 = ry1 + 92
+                            rx1 = 38 if is_spot else 48
+                            rx2 = (W - 38) if is_spot else (W - 48)
+                            bg_c = (24, 38, 66) if is_spot else (14, 20, 34)
+                            out_c = (255, 240, 0) if is_spot else c_col
+                            out_w = 5 if is_spot else 2
 
-                            draw.rounded_rectangle([44, ry1, W-44, ry2], radius=16, fill=bg_c, outline=out_c, width=out_w)
-                            # 좌측 번호 뱃지
-                            draw.rounded_rectangle([58, ry1 + 14, 155, ry1 + 48], radius=8, fill=c_col if is_spot else (45, 55, 75))
-                            _fit_b(draw, 106, ry1 + 31, 88, f"CORE {idx_cd+1}", start_sz=16, fill=(255, 255, 255), sw=1)
-                            # 타이틀 & 핵심 내용
-                            _fit_b(draw, 410, ry1 + 31, 480, c_title, start_sz=23, fill=(255, 240, 0) if is_spot else (130, 145, 165), sw=2 if is_spot else 0)
-                            _fit_b(draw, W//2, ry1 + 66, W-120, c_main, start_sz=20, fill=(255, 255, 255) if is_spot else (110, 125, 145), sw=1 if is_spot else 0)
-                            _fit_b(draw, W//2, ry1 + 94, W-120, c_sub, start_sz=16, fill=c_col if is_spot else (90, 105, 125))
+                            draw.rounded_rectangle([rx1, ry1, rx2, ry2], radius=14, fill=bg_c, outline=out_c, width=out_w)
+                            draw.rounded_rectangle([rx1 + 12, ry1 + 10, rx1 + 105, ry1 + 38], radius=7, fill=c_col if is_spot else (45, 55, 75))
+                            _fit_b(draw, rx1 + 58, ry1 + 24, 86, f"CORE {idx_cd+1}", start_sz=15, fill=(255, 255, 255), sw=1)
+                            _fit_b(draw, 415, ry1 + 24, 460, ("👉 " + c_title) if is_spot else c_title, start_sz=21 if is_spot else 19, fill=(255, 240, 0) if is_spot else (170, 185, 205), sw=2 if is_spot else 0)
+                            _fit_b(draw, W//2, ry1 + 54, W-110, c_main, start_sz=19 if is_spot else 17, fill=(255, 255, 255) if is_spot else (130, 145, 165), sw=1 if is_spot else 0)
+                            _fit_b(draw, W//2, ry1 + 78, W-110, c_sub, start_sz=15, fill=(0, 255, 136) if is_spot else c_col)
 
-                        # 하단 2줄 균등 자막 박스
+                        # 3. 중앙 대형 말풍선 자막 보드 (Y: 682 ~ 822)
                         words = sub_txt.split(" ")
-                        if len(sub_txt) > 16 and len(words) >= 2:
+                        if len(sub_txt) > 15 and len(words) >= 2:
                             best_sp = len(words) // 2
                             half_l = len(sub_txt) / 2.0
                             min_d = 999
@@ -10228,50 +10228,83 @@ with tab4:
                         else:
                             sub_lns = [sub_txt]
 
-                        draw.rounded_rectangle([32, 815, W-32, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
-                        sy0 = 860 if len(sub_lns) == 2 else 885
+                        draw.rounded_rectangle([32, 682, W-32, 822], radius=22, fill=(12, 18, 34), outline=(255, 240, 0) if is_mouth_open else theme_c, width=4)
+                        draw.polygon([(205, 822), (245, 822), (215, 852)], fill=(255, 240, 0) if is_mouth_open else theme_c)
+                        sy0 = 726 if len(sub_lns) == 2 else 752
                         for idx_s, s_l in enumerate(sub_lns):
                             scol = (255, 240, 0) if idx_s == len(sub_lns) - 1 else (255, 255, 255)
-                            _fit_b(draw, W//2, sy0 + idx_s * 50, W-80, s_l, start_sz=34, fill=scol, sw=5)
+                            _fit_b(draw, W//2, sy0 + idx_s * 48, W-90, s_l, start_sz=34, fill=scol, sw=5)
 
-                        _fit_b(draw, W//2, 1085, W-50, "[안내] 워런 버핏·찰리 멍거·리루의 가치투자 헌장 교육용 콘텐츠입니다", start_sz=14, fill=(115, 125, 140))
+                        # 4. 하단 대형 버핏 강사(반지름 86px) + 우측 바이블 핵심 노트 칠판 (Y: 860 ~ 1065)
+                        draw_talking_character_avatar(
+                            draw, img, cx=155, cy=955, radius=86,
+                            is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
+                            accent_col=theme_c, is_presenter_stage=True, sub_step=sub_step
+                        )
+                        draw.rounded_rectangle([55, 1025, 255, 1062], radius=10, fill=theme_c, outline=(255, 240, 0), width=2)
+                        _fit_b(draw, 155, 1043, 185, "📖 버핏의 바이블 강의", start_sz=17, fill=(255, 255, 255), sw=2)
+
+                        cur_ct, cur_cm, cur_cs, cur_cc = cards_data[active_card_idx]
+                        draw.rounded_rectangle([290, 865, W-32, 1055], radius=18, fill=(14, 22, 40), outline=cur_cc, width=3)
+                        draw.rounded_rectangle([308, 880, W-50, 922], radius=8, fill=(24, 38, 66))
+                        _fit_b(draw, 489, 901, 350, f"📌 핵심 원칙 {active_card_idx+1} 요약 노트", start_sz=18, fill=(255, 240, 0), sw=2)
+                        _fit_b(draw, 489, 955, 360, cur_ct, start_sz=21, fill=(255, 255, 255), sw=2)
+                        _fit_b(draw, 489, 1010, 360, cur_cs, start_sz=18, fill=(0, 255, 136), sw=1)
+
+                        _fit_b(draw, W//2, 1090, W-50, "[안내] 워런 버핏·찰리 멍거·리루의 가치투자 헌장 교육용 콘텐츠입니다", start_sz=14, fill=(115, 125, 140))
                         return img
 
                     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                     cleans, seg_list = [], [None] * n_b
 
                     def _build_b_cut(i_b, stxt, scd):
-                        fi = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                         fr = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                         fw = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                         fs = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                        _draw_bible_frame(i_b, stxt, scd).save(fi)
+                        tmp_b_list = [fr, fw, fs]
 
                         v_id = "ko-KR-SunHiNeural" if "여성" in b_voice else "ko-KR-InJoonNeural"
-                        tts_b = re.sub(r'\([A-Za-z0-9\s/\-\+]+\)', '', stxt).replace("%", "퍼센트").replace("100%", "백퍼센트")
+                        tts_b = fix_global_tts_pronunciation(stxt.replace("/", " "), is_en=False)
                         import edge_tts, asyncio
                         loop = asyncio.new_event_loop()
-                        try: loop.run_until_complete(edge_tts.Communicate(tts_b, voice=v_id, rate=f"+{int(b_spd)}%", pitch="+0Hz").save(fr))
+                        try: loop.run_until_complete(edge_tts.Communicate(str(tts_b), voice=v_id, rate=f"+{int(b_spd)}%", pitch="+0Hz").save(fr))
                         finally: loop.close()
 
                         is_last_b = (i_b == n_b - 1)
-                        pad_b = "" if is_last_b else ",apad=pad_dur=0.05"
-                        af_b = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04:stop_threshold=-34dB:stop_duration=0.04,atempo=1.05,volume=1.25{pad_b}"
+                        pad_b = "" if is_last_b else ",apad=pad_dur=0.04"
+                        af_b = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo=1.12,volume=1.25{pad_b}"
                         subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_b, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                        exact_d = 3.5
-                        try:
-                            with wave.open(fw, 'rb') as w_chk:
-                                exact_d = max(0.5, w_chk.getnframes() / float(w_chk.getframerate()))
-                        except Exception:
-                            pass
+                        sub_phrases = split_subtitle_phrases(stxt, max_len=20)
+                        spoken_weights = [max(2.0, float(len(re.sub(r'\s+', '', fix_global_tts_pronunciation(p_t))))) for p_t in sub_phrases]
+
+                        ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                        tmp_b_list.append(ic_txt)
+                        img_pair_list = []
+                        last_fi = None
+                        for p_i, p_t in enumerate(sub_phrases):
+                            fi_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                            fi_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                            tmp_b_list.extend([fi_closed, fi_open])
+                            _draw_bible_frame(i_b, p_t, scd, is_mouth_open=False, sub_step=p_i).save(fi_closed)
+                            _draw_bible_frame(i_b, p_t, scd, is_mouth_open=True, sub_step=p_i).save(fi_open)
+                            img_pair_list.append((fi_closed, fi_open))
+                            last_fi = fi_closed
+
+                        lipsync_entries, exact_d = build_lipsync_concat_entries(fw, sub_phrases, spoken_weights, img_pair_list, step_sec=0.14)
+                        with open(ic_txt, "w", encoding="utf-8") as icf:
+                            for im_p, dur_v in lipsync_entries:
+                                icf.write(f"file '{im_p.replace(chr(92), '/')}'\n")
+                                icf.write(f"duration {dur_v:.3f}\n")
+                            if last_fi:
+                                icf.write(f"file '{last_fi.replace(chr(92), '/')}'\n")
 
                         subprocess.run([
-                            ffmpeg_exe, "-y", "-loop", "1", "-t", f"{exact_d:.3f}", "-i", fi, "-i", fw,
-                            "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                            ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", fw,
+                            "-vf", "scale=720:1280:flags=lanczos", "-r", "30", "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                             "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                        return i_b, fs, [fi, fr, fw, fs]
+                        return i_b, fs, tmp_b_list
 
                     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
                         futs = [ex.submit(_build_b_cut, idx_b, s_t, s_c) for idx_b, (s_t, s_c) in enumerate(b_chunks)]
@@ -10525,41 +10558,67 @@ with tab4:
                 n_lines = len(raw_lfb_lines)
                 all_part_keys = list(bible_series_db.keys())
 
-                def _draw_lfb_board(line_idx, sub_phrase, part_idx_num, highlight_card_idx):
+                def _draw_lfb_board(line_idx, sub_phrase, part_idx_num, highlight_card_idx, is_mouth_open=False, sub_step=0):
                     img = Image.new("RGB", (W_LF, H_LF), color=(7, 10, 19))
                     draw = ImageDraw.Draw(img)
 
                     pk_cur = all_part_keys[min(max(0, part_idx_num), len(all_part_keys) - 1)]
                     meta_cur = bible_series_db[pk_cur]
                     cards_cur = meta_cur["cards"]
-                    theme_c = cards_cur[highlight_card_idx % len(cards_cur)][3]
+                    eff_hi_idx = (highlight_card_idx + sub_step) % len(cards_cur)
+                    theme_c = cards_cur[eff_hi_idx][3]
 
-                    draw.rectangle(_sc([0, 0, 1920, 115]), fill=(12, 18, 34))
-                    draw.rectangle(_sc([0, 112, 1920, 118]), fill=(28, 38, 58))
-                    draw.rectangle(_sc([0, 112, int(1920 * ((line_idx + 1) / max(1, n_lines))), 118]), fill=theme_c)
+                    # 1. 상단 마스터클래스 와이드 헤더
+                    draw.rectangle(_sc([0, 0, 1920, 110]), fill=(12, 18, 34))
+                    draw.rectangle(_sc([0, 107, 1920, 113]), fill=(28, 38, 58))
+                    draw.rectangle(_sc([0, 107, int(1920 * ((line_idx + 1) / max(1, n_lines))), 113]), fill=theme_c)
 
-                    draw.rounded_rectangle(_sc([40, 24, 460, 88]), radius=int(12*scale_f), fill=theme_c)
-                    _fit_lfb(draw, 250, 56, 390, meta_cur["badge"], start_sz=22, fill=(255,255,255), sw=2)
-                    _fit_lfb(draw, 1180, 56, 1280, f"PRINCIPLES OF VALUE INVESTING · {meta_cur['title']}", start_sz=38, fill=(255, 240, 0), sw=4)
+                    draw.rounded_rectangle(_sc([40, 22, 460, 86]), radius=int(12*scale_f), fill=theme_c)
+                    _fit_lfb(draw, 250, 54, 390, meta_cur["badge"], start_sz=22, fill=(255,255,255), sw=2)
+                    _fit_lfb(draw, 1180, 54, 1280, f"PRINCIPLES OF VALUE INVESTING · {meta_cur['title']}", start_sz=38, fill=(255, 240, 0), sw=4)
 
+                    # 2. 중앙 2x2 와이드 아카데미 카드 보드 (자막 호흡 sub_step에 따라 포커스 카드 팝업 이동!)
+                    target_card_cx, target_card_cy = 492, 460
                     for icd, (ct, cm, cs, cc) in enumerate(cards_cur):
                         bx1 = 40 if (icd % 2 == 0) else 975
-                        by1 = 145 if (icd < 2) else 505
-                        is_hi = (icd == highlight_card_idx)
-                        bg_col = (22, 36, 62) if is_hi else (13, 20, 36)
+                        by1 = 132 if (icd < 2) else 478
+                        is_hi = (icd == eff_hi_idx)
+                        if is_hi:
+                            target_card_cx = bx1 + 452
+                            target_card_cy = by1 + 310
+                        bg_col = (24, 38, 68) if is_hi else (13, 20, 36)
                         bd_col = (255, 240, 0) if is_hi else cc
                         bd_w = max(2, int((6 if is_hi else 2) * scale_f))
 
-                        draw.rounded_rectangle(_sc([bx1, by1, bx1 + 905, by1 + 335]), radius=int(20*scale_f), fill=bg_col, outline=bd_col, width=bd_w)
-                        draw.rounded_rectangle(_sc([bx1 + 28, by1 + 24, bx1 + 877, by1 + 88]), radius=int(12*scale_f), fill=cc)
-                        _fit_lfb(draw, bx1 + 452, by1 + 56, 820, ct, start_sz=27, fill=(255, 255, 255), sw=2)
-                        _fit_lfb(draw, bx1 + 452, by1 + 165, 840, cm, start_sz=29, fill=(255, 240, 0), sw=3)
-                        draw.rounded_rectangle(_sc([bx1 + 28, by1 + 235, bx1 + 877, by1 + 305]), radius=int(10*scale_f), fill=(18, 26, 44))
-                        _fit_lfb(draw, bx1 + 452, by1 + 270, 820, cs, start_sz=21, fill=(210, 225, 245))
+                        draw.rounded_rectangle(_sc([bx1, by1, bx1 + 905, by1 + 322]), radius=int(20*scale_f), fill=bg_col, outline=bd_col, width=bd_w)
+                        draw.rounded_rectangle(_sc([bx1 + 28, by1 + 20, bx1 + 877, by1 + 82]), radius=int(12*scale_f), fill=cc)
+                        _fit_lfb(draw, bx1 + 452, by1 + 51, 820, ("🔥 [FOCUS] " + ct) if is_hi else ct, start_sz=27, fill=(255, 255, 255), sw=2)
+                        _fit_lfb(draw, bx1 + 452, by1 + 155, 840, cm, start_sz=30 if is_hi else 27, fill=(255, 240, 0) if is_hi else (220, 230, 245), sw=3)
+                        draw.rounded_rectangle(_sc([bx1 + 28, by1 + 225, bx1 + 877, by1 + 295]), radius=int(10*scale_f), fill=(18, 26, 44))
+                        _fit_lfb(draw, bx1 + 452, by1 + 260, 820, cs, start_sz=22, fill=(0, 255, 136) if is_hi else (190, 205, 225))
 
-                    draw.rounded_rectangle(_sc([40, 875, 1880, 1015]), radius=int(18*scale_f), fill=(10, 14, 26), outline=theme_c, width=max(2, int(4*scale_f)))
-                    _fit_lfb(draw, 960, 945, 1760, sub_phrase, start_sz=40, min_sz=18, fill=(255, 240, 0), sw=5)
-                    _fit_lfb(draw, 960, 1048, 1800, f"워런 버핏 · 찰리 멍거 · 리루의 가치투자 헌장 마스터클래스 ({line_idx+1}/{n_lines})", start_sz=16, fill=(120, 135, 155))
+                    # 3. 버핏 교수의 황금 지시봉에서 현재 포커스 카드로 쏘아 올리는 홀로그램 레이저 빔!
+                    prof_cx, prof_cy, prof_r = int(150 * scale_f), int(935 * scale_f), int(84 * scale_f)
+                    tip_x = prof_cx + int(prof_r * 1.15) + (int(8*scale_f) if is_mouth_open else 0)
+                    tip_y = prof_cy - int(prof_r * 0.55) - (int(12*scale_f) if is_mouth_open else 0)
+                    tcx_s, tcy_s = int(target_card_cx * scale_f), int(target_card_cy * scale_f)
+                    draw.line([(tip_x, tip_y), (tcx_s, tcy_s)], fill=(255, 240, 0) if is_mouth_open else theme_c, width=max(2, int((4 if is_mouth_open else 2)*scale_f)))
+                    draw.ellipse([tcx_s - int(10*scale_f), tcy_s - int(10*scale_f), tcx_s + int(10*scale_f), tcy_s + int(10*scale_f)], fill=(255, 240, 0), outline=theme_c, width=max(2, int(3*scale_f)))
+
+                    # 4. 우측 와이드 말풍선 자막 박스 & 좌측 대형 버핏 교수 캐릭터
+                    draw.rounded_rectangle(_sc([310, 845, 1880, 1015]), radius=int(22*scale_f), fill=(12, 18, 34), outline=(255, 240, 0) if is_mouth_open else theme_c, width=max(2, int(4*scale_f)))
+                    draw.polygon([_sc([275, 935]), _sc([312, 912]), _sc([312, 958])], fill=(255, 240, 0) if is_mouth_open else theme_c)
+                    _fit_lfb(draw, 1095, 930, 1500, sub_phrase, start_sz=42, min_sz=20, fill=(255, 240, 0), sw=5)
+
+                    draw_talking_character_avatar(
+                        draw, img, cx=prof_cx, cy=prof_cy, radius=prof_r,
+                        is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
+                        accent_col=theme_c, is_presenter_stage=True, sub_step=sub_step
+                    )
+                    draw.rounded_rectangle(_sc([45, 1008, 255, 1046]), radius=int(8*scale_f), fill=theme_c, outline=(255, 240, 0), width=max(1, int(2*scale_f)))
+                    _fit_lfb(draw, 150, 1027, 195, "🎓 버핏 마스터클래스", start_sz=17, fill=(255, 255, 255), sw=2)
+
+                    _fit_lfb(draw, 1095, 1048, 1500, f"워런 버핏 · 찰리 멍거 · 리루의 가치투자 헌장 마스터클래스 ({line_idx+1}/{n_lines})", start_sz=16, fill=(120, 135, 155))
                     return img
 
                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -10568,7 +10627,7 @@ with tab4:
                 prog_bar = st.progress(0, text="⏳ 장편 바이블 롱폼 마스터클래스 렌더링 준비 중...")
 
                 for idx_l, raw_ln in enumerate(raw_lfb_lines):
-                    prog_bar.progress((idx_l) / max(1, n_lines), text=f"🎬 [{idx_l+1}/{n_lines} 문단] 심층 강의 음성 합성 및 인코딩 중... (누적 길이: {int(total_acc_seconds//60)}분 {int(total_acc_seconds%60)}초)")
+                    prog_bar.progress((idx_l) / max(1, n_lines), text=f"🎬 [{idx_l+1}/{n_lines} 문단] 버핏 교수 립싱크 & 홀로그램 보드 인코딩 중... (누적 길이: {int(total_acc_seconds//60)}분 {int(total_acc_seconds%60)}초)")
 
                     m_pt = re.match(r'^\[PART(\d+)\]', raw_ln)
                     p_num = (int(m_pt.group(1)) - 1) if m_pt else 0
@@ -10590,46 +10649,38 @@ with tab4:
                     finally:
                         loop.close()
 
-                    # 문단 끝에 0.45초의 자연스러운 강의 호흡(apad)을 넣어 여유 있고 깊이 있는 템포 유지
                     af_s = "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,volume=1.25,apad=pad_dur=0.45"
                     subprocess.run([ffmpeg_exe, "-y", "-threads", "2", "-i", f_raw, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                    exact_d = 10.0
-                    try:
-                        with wave.open(f_wav, 'rb') as w_c:
-                            exact_d = max(1.0, w_c.getnframes() / float(w_c.getframerate()))
-                    except Exception:
-                        pass
-                    total_acc_seconds += exact_d
-
                     phrases = split_subtitle_phrases(cl_line, max_len=34)
-                    weights = []
-                    for pt in phrases:
-                        sp_p = fix_global_tts_pronunciation(pt, is_en=False)
-                        weights.append(max(2.0, float(len(re.sub(r'\s+', '', sp_p)))))
-                    tot_w = sum(weights)
+                    weights = [max(2.0, float(len(re.sub(r'\s+', '', fix_global_tts_pronunciation(pt, is_en=False))))) for pt in phrases]
 
                     ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                     step_tmps.append(ic_txt)
+                    hi_card = (idx_l // 2) % 4
+                    img_pair_list = []
                     last_im = None
-                    hi_card = (idx_l // 3) % 4
+
+                    for pi, pt in enumerate(phrases):
+                        fim_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                        fim_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                        step_tmps.extend([fim_closed, fim_open])
+
+                        im_c = _draw_lfb_board(idx_l, pt, p_num, hi_card, is_mouth_open=False, sub_step=pi)
+                        im_c.save(fim_closed); im_c.close()
+                        im_o = _draw_lfb_board(idx_l, pt, p_num, hi_card, is_mouth_open=True, sub_step=pi)
+                        im_o.save(fim_open); im_o.close()
+
+                        img_pair_list.append((fim_closed, fim_open))
+                        last_im = fim_closed
+
+                    lipsync_entries, exact_d = build_lipsync_concat_entries(f_wav, phrases, weights, img_pair_list, step_sec=0.16)
+                    total_acc_seconds += exact_d
 
                     with open(ic_txt, "w", encoding="utf-8") as icf:
-                        acc_d = 0.0
-                        for pi, (pt, wv) in enumerate(zip(phrases, weights)):
-                            fim = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                            step_tmps.append(fim)
-                            im_obj = _draw_lfb_board(idx_l, pt, p_num, hi_card)
-                            im_obj.save(fim)
-                            im_obj.close()
-                            last_im = fim
-                            if pi < len(phrases) - 1:
-                                pdur = max(0.6, min(exact_d - acc_d - 0.4, round(exact_d * (wv / tot_w), 3)))
-                                acc_d += pdur
-                            else:
-                                pdur = max(0.4, round(exact_d - acc_d, 3))
-                            icf.write(f"file '{fim.replace(chr(92), '/')}'\n")
-                            icf.write(f"duration {pdur:.3f}\n")
+                        for im_p, dur_v in lipsync_entries:
+                            icf.write(f"file '{im_p.replace(chr(92), '/')}'\n")
+                            icf.write(f"duration {dur_v:.3f}\n")
                         if last_im:
                             icf.write(f"file '{last_im.replace(chr(92), '/')}'\n")
 
@@ -11545,7 +11596,7 @@ with tab_vs:
                                         return
 
                             n_vs = len(vs_pop_chunks)
-                            def _draw_vs_pop_frame(c_idx, sub_txt, sc_code):
+                            def _draw_vs_pop_frame(c_idx, sub_txt, sc_code, is_mouth_open=False, sub_step=0):
                                 W, H = 720, 1280
                                 sc_meta = {
                                     "VS_HOOK": ((220, 38, 38), "가치투자 헌장 4대 기준 1:1 맞대결"),
@@ -11559,67 +11610,75 @@ with tab_vs:
                                 img = Image.new("RGB", (W, H), color=(6, 9, 18))
                                 draw = ImageDraw.Draw(img)
 
-                                draw.rectangle([0, 75, W, 235], fill=(12, 18, 34))
-                                draw.rectangle([0, 230, W, 242], fill=(28, 38, 58))
-                                draw.rectangle([0, 230, int(W * ((c_idx + 1) / max(1, n_vs))), 242], fill=bc)
+                                # 1. 상단 헤더 (Y: 75 ~ 225)
+                                draw.rectangle([0, 75, W, 225], fill=(12, 18, 34))
+                                draw.rectangle([0, 220, W, 230], fill=(28, 38, 58))
+                                draw.rectangle([0, 220, int(W * ((c_idx + 1) / max(1, n_vs))), 230], fill=bc)
 
-                                draw.rounded_rectangle([110, 90, W-110, 136], radius=18, fill=bc)
-                                _fit_v(draw, W//2, 113, W-240, f"{r_title} · [{today_vs_str}]", start_sz=21, fill=(255, 255, 255), sw=2)
-                                _fit_v(draw, W//2, 185, W-60, f"{na} vs {nb}", start_sz=44, fill=(255, 240, 0), sw=4)
+                                draw.rounded_rectangle([100, 88, W-100, 132], radius=16, fill=bc)
+                                _fit_v(draw, W//2, 110, W-220, f"{r_title} · [{today_vs_str}]", start_sz=20, fill=(255, 255, 255), sw=2)
+                                _fit_v(draw, W//2, 176, W-50, f"{na} vs {nb}", start_sz=42, fill=(255, 240, 0), sw=4)
 
-                                draw.rounded_rectangle([32, 265, W-32, 795], radius=24, fill=(10, 15, 28), outline=bc, width=4)
+                                # 2. 중앙 다이나믹 홀로그램 맞대결 보드 (Y: 245 ~ 668)
+                                draw.rounded_rectangle([28, 245, W-28, 668], radius=24, fill=(10, 16, 32), outline=(255, 240, 0) if is_mouth_open else bc, width=4)
 
-                                base_vy = 645
+                                base_vy = 548
                                 if sc_code == "VS_MOAT":
                                     v1, v2, v_ref = cap_a, cap_b, 12.0
                                     lbl1, lbl2, lbl_ref = f"연 {cap_a:.1f}%", f"연 {cap_b:.1f}%", "자본비용 12%"
                                     sub1, sub2 = f"{int(cap_a*10):+,}만/년", f"{int(cap_b*10):+,}만/년"
-                                    badge_vs = f"복리 엔진(ROIC) 판정승 : {w_cap} ({abs(cap_a-cap_b):.1f}%p 우위!)"
+                                    badge_vs = f"🔥 복리 엔진(ROIC) 판정승 : {w_cap} ({abs(cap_a-cap_b):.1f}%p 우위!)"
                                 elif sc_code == "VS_BUFFETT":
                                     v1, v2, v_ref = res_a['fcf_g'], res_b['fcf_g'], max(res_a['req_g'], res_b['req_g'], 5.0)
                                     lbl1, lbl2, lbl_ref = f"주주이익 {v1:+.1f}%", f"주주이익 {v2:+.1f}%", "내포 요구성장"
                                     sub1, sub2 = f"마진 {res_a['g_margin']:+.1f}%p", f"마진 {res_b['g_margin']:+.1f}%p"
-                                    badge_vs = f"역산 가격 안전마진 승자 : {w_bft}!"
+                                    badge_vs = f"💡 역산 가격 안전마진 승자 : {w_bft}!"
                                 elif sc_code == "VS_MACRO":
                                     v1, v2, v_ref = res_a['ey'], res_b['ey'], ty_vs
                                     lbl1, lbl2, lbl_ref = f"연 {v1:.2f}%", f"연 {v2:.2f}%", f"미국채 {ty_vs:.1f}%"
                                     sub1, sub2 = f"PER {res_a['cur_pe']:.1f}배", f"PER {res_b['cur_pe']:.1f}배"
-                                    badge_vs = f"미국채 대비 기회비용 승자 : {w_erp}!"
+                                    badge_vs = f"⚡ 미국채 대비 기회비용 승자 : {w_erp}!"
                                 elif sc_code == "VS_DIV":
                                     v1, v2, v_ref = res_a['div'], res_b['div'], 2.0
                                     lbl1, lbl2, lbl_ref = f"배당 {v1:.2f}%", f"배당 {v2:.2f}%", "현금배당 비교"
                                     sub1, sub2 = f"연 {res_a['div']*10:.1f}만/천만", f"연 {res_b['div']*10:.1f}만/천만"
-                                    badge_vs = f"순수 현금배당 환원 우위 : {w_div}!"
+                                    badge_vs = f"🎁 순수 현금배당 환원 우위 : {w_div}!"
                                 else:
                                     v1, v2, v_ref = cap_a, cap_b, 12.0
                                     lbl1, lbl2, lbl_ref = f"ROIC {cap_a:.1f}%", f"ROIC {cap_b:.1f}%", "허들 12%"
                                     sub1, sub2 = f"마진 {res_a['g_margin']:+.1f}%p", f"마진 {res_b['g_margin']:+.1f}%p"
-                                    badge_vs = f"해자 우위: {w_cap} · 역산 안전마진 우위: {w_bft}"
+                                    badge_vs = f"🏆 해자 우위: {w_cap} · 안전마진 우위: {w_bft}"
 
                                 mx_vv = max(abs(v1), abs(v2), abs(v_ref), 10.0) * 1.25
-                                h1 = int(max(36, min(220, (max(0.5, abs(v1)) / mx_vv) * 220)))
-                                h2 = int(max(36, min(220, (max(0.5, abs(v2)) / mx_vv) * 220)))
-                                h_r = int(max(28, min(220, (max(0.5, abs(v_ref)) / mx_vv) * 220)))
+                                # sub_step에 따라 좌측 종목(0) -> 우측 종목(1) 순서로 막대가 솟아오르며 팝업 강조!
+                                pop_left = (sub_step == 0)
+                                pop_right = (sub_step >= 1)
+                                h1 = int(max(32, min(185, (max(0.5, abs(v1)) / mx_vv) * 185))) + (10 if pop_left else 0)
+                                h2 = int(max(32, min(185, (max(0.5, abs(v2)) / mx_vv) * 185))) + (10 if pop_right else 0)
+                                h_r = int(max(24, min(185, (max(0.5, abs(v_ref)) / mx_vv) * 185)))
 
                                 ref_y_line = base_vy - h_r
-                                draw.line([(65, ref_y_line), (W-65, ref_y_line)], fill=(148, 163, 184), width=2)
-                                _fit_v(draw, W//2, ref_y_line - 16, 180, f"기준선 ({lbl_ref})", start_sz=16, fill=(200, 215, 235), sw=2)
+                                draw.line([(60, ref_y_line), (W-60, ref_y_line)], fill=(148, 163, 184), width=2)
+                                _fit_v(draw, W//2, ref_y_line - 15, 180, f"기준선 ({lbl_ref})", start_sz=15, fill=(200, 215, 235), sw=2)
 
-                                draw.rounded_rectangle([110, base_vy - h1, 275, base_vy], radius=14, fill=(56, 189, 248), outline=(255, 240, 0) if v1 >= v2 else None, width=4 if v1 >= v2 else 0)
-                                _fit_v(draw, 192, base_vy - h1 - 28, 190, lbl1, start_sz=28, fill=(255, 240, 0) if v1 >= v2 else (255, 255, 255), sw=3)
-                                _fit_v(draw, 192, base_vy - max(20, h1 // 2), 155, sub1, start_sz=19, fill=(10, 15, 28), sw=0)
-                                _fit_v(draw, 192, base_vy + 26, 190, na, start_sz=24, fill=(56, 189, 248), sw=2)
+                                # 좌측 종목 A 바
+                                draw.rounded_rectangle([105, base_vy - h1, 275, base_vy], radius=14, fill=(56, 189, 248), outline=(255, 240, 0) if (pop_left or v1 >= v2) else None, width=5 if pop_left else (3 if v1 >= v2 else 0))
+                                _fit_v(draw, 190, base_vy - h1 - 24, 190, lbl1, start_sz=27 if pop_left else 24, fill=(255, 240, 0) if (pop_left or v1 >= v2) else (255, 255, 255), sw=3)
+                                _fit_v(draw, 190, base_vy - max(18, h1 // 2), 155, sub1, start_sz=18, fill=(10, 15, 28), sw=0)
+                                _fit_v(draw, 190, base_vy + 22, 190, na, start_sz=22, fill=(56, 189, 248), sw=2)
 
-                                draw.rounded_rectangle([445, base_vy - h2, 610, base_vy], radius=14, fill=(0, 230, 118), outline=(255, 240, 0) if v2 > v1 else None, width=4 if v2 > v1 else 0)
-                                _fit_v(draw, 527, base_vy - h2 - 28, 190, lbl2, start_sz=28, fill=(255, 240, 0) if v2 > v1 else (255, 255, 255), sw=3)
-                                _fit_v(draw, 527, base_vy - max(20, h2 // 2), 155, sub2, start_sz=19, fill=(10, 15, 28), sw=0)
-                                _fit_v(draw, 527, base_vy + 26, 190, nb, start_sz=24, fill=(0, 230, 118), sw=2)
+                                # 우측 종목 B 바
+                                draw.rounded_rectangle([445, base_vy - h2, 615, base_vy], radius=14, fill=(0, 230, 118), outline=(255, 240, 0) if (pop_right or v2 > v1) else None, width=5 if pop_right else (3 if v2 > v1 else 0))
+                                _fit_v(draw, 530, base_vy - h2 - 24, 190, lbl2, start_sz=27 if pop_right else 24, fill=(255, 240, 0) if (pop_right or v2 > v1) else (255, 255, 255), sw=3)
+                                _fit_v(draw, 530, base_vy - max(18, h2 // 2), 155, sub2, start_sz=18, fill=(10, 15, 28), sw=0)
+                                _fit_v(draw, 530, base_vy + 22, 190, nb, start_sz=22, fill=(0, 230, 118), sw=2)
 
-                                draw.rounded_rectangle([46, 708, W-46, 775], radius=14, fill=bc)
-                                _fit_v(draw, W//2, 741, W-110, badge_vs, start_sz=23, fill=(255, 255, 255), sw=2)
+                                draw.rounded_rectangle([46, 592, W-46, 652], radius=14, fill=(24, 38, 66) if pop_right else bc, outline=(255, 240, 0) if pop_right else None, width=3 if pop_right else 0)
+                                _fit_v(draw, W//2, 622, W-110, badge_vs, start_sz=21, fill=(255, 240, 0) if pop_right else (255, 255, 255), sw=2)
 
+                                # 3. 중앙 대형 말풍선 자막 보드 (Y: 682 ~ 822)
                                 words = sub_txt.split(" ")
-                                if len(sub_txt) > 16 and len(words) >= 2:
+                                if len(sub_txt) > 15 and len(words) >= 2:
                                     best_sp = len(words) // 2
                                     half_l = len(sub_txt) / 2.0
                                     min_d = 999
@@ -11632,13 +11691,30 @@ with tab_vs:
                                 else:
                                     sub_lns = [sub_txt]
 
-                                draw.rounded_rectangle([32, 815, W-32, 955], radius=20, fill=(10, 14, 26), outline=bc, width=4)
-                                sy0 = 860 if len(sub_lns) == 2 else 885
+                                draw.rounded_rectangle([32, 682, W-32, 822], radius=22, fill=(12, 18, 34), outline=(255, 240, 0) if is_mouth_open else bc, width=4)
+                                draw.polygon([(205, 822), (245, 822), (215, 852)], fill=(255, 240, 0) if is_mouth_open else bc)
+                                sy0 = 726 if len(sub_lns) == 2 else 752
                                 for idx_s, s_l in enumerate(sub_lns):
                                     scol = (255, 240, 0) if idx_s == len(sub_lns) - 1 else (255, 255, 255)
-                                    _fit_v(draw, W//2, sy0 + idx_s * 50, W-80, s_l, start_sz=34, fill=scol, sw=5)
+                                    _fit_v(draw, W//2, sy0 + idx_s * 48, W-90, s_l, start_sz=34, fill=scol, sw=5)
 
-                                _fit_v(draw, W//2, 1085, W-50, "[안내] 공시 데이터 기반 학술·교육용 비교이며 매수·매도 추천이 아닙니다", start_sz=14, fill=(115, 125, 140))
+                                # 4. 하단 대형 버핏 강사(심판) + 우측 맞대결 스코어 칠판 (Y: 860 ~ 1065)
+                                draw_talking_character_avatar(
+                                    draw, img, cx=155, cy=955, radius=86,
+                                    is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
+                                    accent_col=bc, is_presenter_stage=True, sub_step=sub_step
+                                )
+                                draw.rounded_rectangle([55, 1025, 255, 1062], radius=10, fill=bc, outline=(255, 240, 0), width=2)
+                                _fit_v(draw, 155, 1043, 185, "⚖️ 버핏의 1:1 판정", start_sz=17, fill=(255, 255, 255), sw=2)
+
+                                draw.rounded_rectangle([290, 865, W-32, 1055], radius=18, fill=(14, 22, 40), outline=bc, width=3)
+                                draw.rounded_rectangle([308, 880, W-50, 922], radius=8, fill=(24, 38, 66))
+                                _fit_v(draw, 489, 901, 350, "📌 4대 부문 실시간 우위 요약", start_sz=18, fill=(255, 240, 0), sw=2)
+                                _fit_v(draw, 489, 950, 360, f"1. 해자(ROIC) 우위 : {w_cap}", start_sz=20, fill=(255, 255, 255), sw=2)
+                                _fit_v(draw, 489, 988, 360, f"2. 역산 안전마진 : {w_bft}", start_sz=20, fill=(0, 255, 136), sw=2)
+                                _fit_v(draw, 489, 1025, 360, f"3. 국채대비 수익 : {w_erp}", start_sz=20, fill=(56, 189, 248), sw=2)
+
+                                _fit_v(draw, W//2, 1090, W-50, "[안내] 공시 데이터 기반 학술·교육용 비교이며 매수·매도 추천이 아닙니다", start_sz=14, fill=(115, 125, 140))
                                 return img
 
                             ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -11655,46 +11731,46 @@ with tab_vs:
                                 tts_v = fix_global_tts_pronunciation(stxt.replace("/", " "), is_en=False)
                                 import edge_tts, asyncio
                                 loop = asyncio.new_event_loop()
-                                try: loop.run_until_complete(edge_tts.Communicate(tts_v, voice=v_id, rate=f"+{int(vs_spd_pct)}%", pitch="+0Hz").save(fr))
+                                try: loop.run_until_complete(edge_tts.Communicate(str(tts_v), voice=v_id, rate=f"+{int(vs_spd_pct)}%", pitch="+0Hz").save(fr))
                                 finally: loop.close()
 
                                 is_last_v = (i_v == n_vs - 1)
                                 pad_v = "" if is_last_v else ",apad=pad_dur=0.04"
-                                af_v = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo=1.05,volume=1.24{pad_v}"
+                                af_v = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo=1.12,volume=1.24{pad_v}"
                                 subprocess.run([ffmpeg_exe, "-y", "-i", fr, "-af", af_v, "-ar", "24000", "-ac", "1", fw], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                                exact_d = 3.5
-                                try:
-                                    with wave.open(fw, 'rb') as w_chk:
-                                        exact_d = max(0.5, w_chk.getnframes() / float(w_chk.getframerate()))
-                                except Exception:
-                                    pass
+                                sub_phrases = split_subtitle_phrases(stxt, max_len=22)
+                                spoken_weights = []
+                                for p_t in sub_phrases:
+                                    sp_s = fix_global_tts_pronunciation(p_t, is_en=False).replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
+                                    d_c = sum(1 for ch in sp_s if ch.isdigit())
+                                    t_c = sum(1 for ch in re.sub(r'\s+', '', sp_s) if not ch.isdigit())
+                                    spoken_weights.append(max(2.0, t_c + d_c * 1.8 + 1.2))
 
-                                sub_phrases = split_subtitle_phrases(stxt, max_len=17)
-                                tot_len = max(1, sum(len(p) for p in sub_phrases))
                                 ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                 tmp_v_list.append(ic_txt)
+                                img_pair_list = []
                                 last_fi = None
+                                for p_i, p_t in enumerate(sub_phrases):
+                                    fi_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                    fi_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                    tmp_v_list.extend([fi_closed, fi_open])
+                                    _draw_vs_pop_frame(i_v, p_t, scd, is_mouth_open=False, sub_step=p_i).save(fi_closed)
+                                    _draw_vs_pop_frame(i_v, p_t, scd, is_mouth_open=True, sub_step=p_i).save(fi_open)
+                                    img_pair_list.append((fi_closed, fi_open))
+                                    last_fi = fi_closed
+
+                                lipsync_entries, exact_d = build_lipsync_concat_entries(fw, sub_phrases, spoken_weights, img_pair_list, step_sec=0.14)
                                 with open(ic_txt, "w", encoding="utf-8") as icf:
-                                    acc_d = 0.0
-                                    for p_i, p_t in enumerate(sub_phrases):
-                                        fi_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                                        tmp_v_list.append(fi_p)
-                                        _draw_vs_pop_frame(i_v, p_t, scd).save(fi_p)
-                                        last_fi = fi_p
-                                        if p_i < len(sub_phrases) - 1:
-                                            pdur = max(0.45, min(exact_d - acc_d - 0.3, round(exact_d * (len(p_t) / float(tot_len)), 3)))
-                                            acc_d += pdur
-                                        else:
-                                            pdur = max(0.3, round(exact_d - acc_d, 3))
-                                        icf.write(f"file '{fi_p.replace(chr(92), '/')}'\n")
-                                        icf.write(f"duration {pdur:.3f}\n")
+                                    for im_p, dur_v in lipsync_entries:
+                                        icf.write(f"file '{im_p.replace(chr(92), '/')}'\n")
+                                        icf.write(f"duration {dur_v:.3f}\n")
                                     if last_fi:
                                         icf.write(f"file '{last_fi.replace(chr(92), '/')}'\n")
 
                                 subprocess.run([
                                     ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", ic_txt, "-i", fw,
-                                    "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-r", "30",
+                                    "-vf", "scale=720:1280:flags=lanczos", "-r", "30", "-c:v", "libx264", "-preset", "fast", "-crf", "18",
                                     "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 return i_v, fs, tmp_v_list
