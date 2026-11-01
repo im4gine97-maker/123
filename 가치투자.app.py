@@ -4438,65 +4438,53 @@ def split_subtitle_phrases(text_line, max_len=45):
     return [str(p).strip() for p in final_phrases if str(p).strip()] or [clean_t]
 def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=False, char_style="버핏 할아버지", accent_col=(0, 230, 118), custom_pil_img=None, is_presenter_stage=False, sub_step=0):
     """
-    [머니치트키 칠판 강단 풀샷 캐릭터 엔진]
-    - 어색한 포인터 막대기와 레이저 선을 완전히 제거!
-    - is_presenter_stage=True 일 때 화면 정중앙 칠판 앞에 갈색 나무 강단(Podium)과 함께
-      거대한 캐릭터가 서서 자연스러운 손짓과 입모양(립싱크)으로 강의합니다!
+    [AGIE 오리지널 시그니처 캐릭터: 오마하의 현인 버핏 & 월스트리트 애널리스트]
+    - 타 채널(민머리+흰티)과 완벽히 차별화된 풍성한 은발 헤어 + 금테 안경 + 정장 베스트(조끼) + 로열 골드 강단 디자인!
     """
     from PIL import Image, ImageDraw
     r = int(radius)
 
     if is_presenter_stage:
-        # -----------------------------------------------------------------
-        # [머니치트키 스타일 (image_4340c8.png 완벽 재현): 화면 중앙 거대 캐릭터 + 강단]
-        # cx=360(정중앙), cy=520(머리 중심), r=145 기준
-        # -----------------------------------------------------------------
-        head_y = cy - (4 if is_mouth_open else 0)
-
-        # 1. 흰색 상의 몸통 (강단 뒤로 내려오는 심플하고 굵은 일러스트 라인)
-        torso_top = head_y + int(r * 0.78)
+        head_y = cy - (5 if is_mouth_open else 0)
+        torso_top = head_y + int(r * 0.76)
         torso_bot = 865
+
+        # 1. 클래식 월스트리트 쓰리피스 수트 (네이비 자켓 + 그레이 조끼 + 화이트 셔츠 + 레드 타이)
+        suit_c = (18, 30, 56) if "버핏" in str(char_style) else (28, 45, 78)
         draw.polygon(
             [
-                (cx - int(r * 0.58), torso_top),
-                (cx + int(r * 0.58), torso_top),
-                (cx + int(r * 0.85), torso_bot),
-                (cx - int(r * 0.85), torso_bot)
+                (cx - int(r * 0.65), torso_top),
+                (cx + int(r * 0.65), torso_top),
+                (cx + int(r * 0.92), torso_bot),
+                (cx - int(r * 0.92), torso_bot)
             ],
-            fill=(242, 245, 250), outline=(15, 15, 15), width=8
+            fill=suit_c, outline=(245, 208, 32), width=4
         )
+        # 정장 라펠(깃) 및 셔츠 V존
+        draw.polygon([(cx - 48, torso_top), (cx + 48, torso_top), (cx, torso_top + 145)], fill=(255, 255, 255), outline=(10, 15, 25), width=3)
+        # 시그니처 레드 스트라이프 넥타이 & 골드 타이핀
+        draw.polygon([(cx - 14, torso_top + 12), (cx + 14, torso_top + 12), (cx + 22, torso_top + 125), (cx, torso_top + 150), (cx - 22, torso_top + 125)], fill=(210, 30, 45))
+        draw.line([(cx - 16, torso_top + 75), (cx + 16, torso_top + 75)], fill=(255, 215, 0), width=5)
+        # 행커치프 포켓 디테일
+        draw.polygon([(cx + 45, torso_top + 85), (cx + 75, torso_top + 85), (cx + 62, torso_top + 65)], fill=(220, 38, 38))
 
-        # 버핏 스타일 선택 시 깔끔한 정장 V존과 빨간 넥타이 추가
-        if "버핏" in str(char_style) or "애널리스트" in str(char_style):
-            suit_c = (24, 36, 64) if "애널리스트" in str(char_style) else (30, 41, 59)
-            draw.polygon(
-                [
-                    (cx - int(r * 0.58), torso_top),
-                    (cx + int(r * 0.58), torso_top),
-                    (cx + int(r * 0.85), torso_bot),
-                    (cx - int(r * 0.85), torso_bot)
-                ],
-                fill=suit_c, outline=(15, 15, 15), width=8
-            )
-            draw.polygon([(cx - 42, torso_top), (cx + 42, torso_top), (cx, torso_top + 135)], fill=(255, 255, 255), outline=(15, 15, 15), width=4)
-            draw.polygon([(cx - 14, torso_top + 10), (cx + 14, torso_top + 10), (cx + 20, torso_top + 120), (cx, torso_top + 145), (cx - 20, torso_top + 120)], fill=(220, 38, 38))
+        # 2. 정장 소매 팔 제스처 (민무늬 검은 선이 아닌 입체 정장 소매 + 커프스 셔츠)
+        # 왼팔 (강단 위에 자연스럽게 얹은 자세)
+        draw.line([(cx - int(r * 0.62), torso_top + 24), (cx - int(r * 0.95), torso_top + 135), (cx - int(r * 0.65), 795)], fill=suit_c, width=28)
+        draw.ellipse([cx - int(r * 0.75), 775, cx - int(r * 0.50), 805], fill=(255, 228, 196), outline=(15, 23, 42), width=3)
 
-        # 2. 양팔 제스처 (참고 영상 0:03, 0:25처럼 설명할 때 한쪽 팔을 들어 손짓하는 모션!)
-        # 왼팔 (차분히 강단 쪽으로 내려온 팔)
-        draw.line([(cx - int(r * 0.58), torso_top + 20), (cx - int(r * 0.92), torso_top + 140), (cx - int(r * 0.78), 830)], fill=(15, 15, 15), width=10)
-        # 오른팔 (sub_step이나 말할 때 옆으로 자연스럽게 펼쳐 설명하는 손짓!)
+        # 오른팔 (말하거나 호흡이 바뀔 때 칠판 데이터를 가리키는 품격 있는 제스처)
         if is_mouth_open or (sub_step % 2 == 1):
-            elbow_x, elbow_y = cx + int(r * 0.82), torso_top + 110
-            hand_x, hand_y = cx + int(r * 1.48), torso_top + 55 - (12 if is_mouth_open else 0)
-            draw.line([(cx + int(r * 0.58), torso_top + 20), (elbow_x, elbow_y), (hand_x, hand_y)], fill=(15, 15, 15), width=10)
-            # 손가락 3개 표현 (머니치트키 특유의 심플 손짓)
-            draw.line([(hand_x, hand_y), (hand_x + 22, hand_y - 14)], fill=(15, 15, 15), width=6)
-            draw.line([(hand_x, hand_y), (hand_x + 26, hand_y - 2)], fill=(15, 15, 15), width=6)
-            draw.line([(hand_x, hand_y), (hand_x + 20, hand_y + 12)], fill=(15, 15, 15), width=6)
+            elbow_x, elbow_y = cx + int(r * 0.85), torso_top + 105
+            hand_x, hand_y = cx + int(r * 1.42), torso_top + 35 - (10 if is_mouth_open else 0)
+            draw.line([(cx + int(r * 0.62), torso_top + 24), (elbow_x, elbow_y), (hand_x, hand_y)], fill=suit_c, width=26)
+            # 흰색 셔츠 커프스 & 손
+            draw.ellipse([hand_x - 18, hand_y - 18, hand_x + 18, hand_y + 18], fill=(255, 228, 196), outline=(15, 23, 42), width=3)
         else:
-            draw.line([(cx + int(r * 0.58), torso_top + 20), (cx + int(r * 0.92), torso_top + 140), (cx + int(r * 0.78), 830)], fill=(15, 15, 15), width=10)
+            draw.line([(cx + int(r * 0.62), torso_top + 24), (cx + int(r * 0.95), torso_top + 135), (cx + int(r * 0.65), 795)], fill=suit_c, width=28)
+            draw.ellipse([cx + int(r * 0.50), 775, cx + int(r * 0.75), 805], fill=(255, 228, 196), outline=(15, 23, 42), width=3)
 
-        # 3. 거대한 원형 헤드 (두꺼운 블랙 아웃라인 + 입체 음영)
+        # 3. 캐릭터 헤드 (풍성한 은발 헤어스타일로 민머리 캐릭터와 100% 차별화!)
         if custom_pil_img is not None:
             try:
                 d_sz = r * 2
@@ -4504,61 +4492,58 @@ def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=
                 mask = Image.new("L", (d_sz, d_sz), 0)
                 ImageDraw.Draw(mask).ellipse([0, 0, d_sz, d_sz], fill=255)
                 base_img.paste(c_res, (int(cx - r), int(head_y - r)), mask)
-                draw.ellipse([cx - r, head_y - r, cx + r, head_y + r], outline=(15, 15, 15), width=8)
+                draw.ellipse([cx - r, head_y - r, cx + r, head_y + r], outline=(245, 208, 32), width=6)
             except Exception:
                 pass
         else:
-            # 버핏 백발 머리카락 (양옆 & 정수리)
-            if "버핏" in str(char_style):
-                draw.ellipse([cx - r - 12, head_y - int(r * 0.45), cx - int(r * 0.65), head_y + int(r * 0.25)], fill=(230, 236, 245), outline=(15, 15, 15), width=6)
-                draw.ellipse([cx + int(r * 0.65), head_y - int(r * 0.45), cx + r + 12, head_y + int(r * 0.25)], fill=(230, 236, 245), outline=(15, 15, 15), width=6)
+            hair_c = (235, 240, 248) if "버핏" in str(char_style) else (35, 48, 68)
+            # 정수리 & 양옆 풍성한 헤어 볼륨
+            draw.ellipse([cx - r - 10, head_y - r - 18, cx + r + 10, head_y + int(r * 0.35)], fill=hair_c, outline=(15, 23, 42), width=5)
+            # 양쪽 귀
+            draw.ellipse([cx - r - 14, head_y - 18, cx - r + 16, head_y + 28], fill=(255, 222, 188), outline=(15, 23, 42), width=4)
+            draw.ellipse([cx + r - 16, head_y - 18, cx + r + 14, head_y + 28], fill=(255, 222, 188), outline=(15, 23, 42), width=4)
+            # 얼굴 윤곽 (따뜻하고 밝은 피부톤)
+            draw.ellipse([cx - int(r * 0.92), head_y - int(r * 0.88), cx + int(r * 0.92), head_y + int(r * 0.95)], fill=(255, 226, 194), outline=(15, 23, 42), width=5)
+            # 이마 위 멋스러운 가르마 앞머리 컬 표현
+            draw.pieslice([cx - int(r * 0.92), head_y - int(r * 0.98), cx + int(r * 0.92), head_y - int(r * 0.25)], start=180, end=360, fill=hair_c, outline=(15, 23, 42), width=4)
 
-            # 피부색 얼굴 원 (머니치트키 특유의 따뜻한 살구 브라운 톤)
-            draw.ellipse([cx - r, head_y - r, cx + r, head_y + r], fill=(228, 178, 128), outline=(15, 15, 15), width=8)
+            # 눈썹 & 안경 & 눈동자
+            eye_y = head_y - int(r * 0.08)
+            eye_dx = int(r * 0.34)
+            eb_y = eye_y - int(r * 0.28) - (6 if is_mouth_open else 0)
+            draw.line([(cx - eye_dx - 28, eb_y + 4), (cx - eye_dx + 24, eb_y - 4)], fill=hair_c, width=9)
+            draw.line([(cx + eye_dx - 24, eb_y - 4), (cx + eye_dx + 28, eb_y + 4)], fill=hair_c, width=9)
 
-            # 눈썹 & 눈 (친근하고 또렷한 표정)
-            eye_y = head_y - int(r * 0.10)
-            eye_dx = int(r * 0.32)
-            eb_y = eye_y - int(r * 0.26) - (6 if is_mouth_open else 0)
-            eb_col = (240, 244, 248) if "버핏" in str(char_style) else (20, 20, 20)
-            draw.arc([cx - eye_dx - 26, eb_y - 10, cx - eye_dx + 26, eb_y + 14], start=190, end=350, fill=eb_col, width=7)
-            draw.arc([cx + eye_dx - 26, eb_y - 10, cx + eye_dx + 26, eb_y + 14], start=190, end=350, fill=eb_col, width=7)
+            # 시그니처 하프 프레임 금테 안경
+            gr = 36
+            draw.rounded_rectangle([cx - eye_dx - gr, eye_y - gr + 6, cx - eye_dx + gr, eye_y + gr - 4], radius=10, outline=(217, 119, 6), width=5)
+            draw.rounded_rectangle([cx + eye_dx - gr, eye_y - gr + 6, cx + eye_dx + gr, eye_y + gr - 4], radius=10, outline=(217, 119, 6), width=5)
+            draw.line([(cx - eye_dx + gr, eye_y), (cx + eye_dx - gr, eye_y)], fill=(217, 119, 6), width=5)
 
-            # 눈동자
-            draw.ellipse([cx - eye_dx - 12, eye_y - 14, cx - eye_dx + 12, eye_y + 14], fill=(15, 15, 15))
-            draw.ellipse([cx + eye_dx - 12, eye_y - 14, cx + eye_dx + 12, eye_y + 14], fill=(15, 15, 15))
-            # 눈 아래 잔주름 디테일
-            draw.line([(cx - eye_dx - 16, eye_y + 20), (cx - eye_dx + 16, eye_y + 20)], fill=(15, 15, 15), width=4)
-            draw.line([(cx + eye_dx - 16, eye_y + 20), (cx + eye_dx + 16, eye_y + 20)], fill=(15, 15, 15), width=4)
+            # 눈동자 & 하이라이트 안광
+            draw.ellipse([cx - eye_dx - 11, eye_y - 12, cx - eye_dx + 11, eye_y + 12], fill=(15, 23, 42))
+            draw.ellipse([cx + eye_dx - 11, eye_y - 12, cx + eye_dx + 11, eye_y + 12], fill=(15, 23, 42))
+            draw.ellipse([cx - eye_dx - 5, eye_y - 7, cx - eye_dx + 1, eye_y - 1], fill=(255, 255, 255))
+            draw.ellipse([cx + eye_dx - 5, eye_y - 7, cx + eye_dx + 1, eye_y - 1], fill=(255, 255, 255))
 
-            # 버핏 안경테
-            if "버핏" in str(char_style):
-                gr = 34
-                draw.ellipse([cx - eye_dx - gr, eye_y - gr + 4, cx - eye_dx + gr, eye_y + gr + 4], outline=(217, 119, 6), width=5)
-                draw.ellipse([cx + eye_dx - gr, eye_y - gr + 4, cx + eye_dx + gr, eye_y + gr + 4], outline=(217, 119, 6), width=5)
-                draw.line([(cx - eye_dx + gr, eye_y + 4), (cx + eye_dx - gr, eye_y + 4)], fill=(217, 119, 6), width=5)
-
-            # 입 모양 (머니치트키 스타일의 큼직하고 선명한 치아/립싱크 표현!)
-            mouth_y = head_y + int(r * 0.38)
+            # 인자한 미소 주름 & 립싱크 입 모양
+            mouth_y = head_y + int(r * 0.42)
             if is_mouth_open:
-                mw, mh = int(r * 0.34), int(r * 0.24)
-                draw.rounded_rectangle([cx - mw, mouth_y - mh // 2, cx + mw, mouth_y + mh], radius=18, fill=(255, 255, 255), outline=(15, 15, 15), width=6)
-                # 치아 세로선 디테일
-                for tx in range(cx - mw + 18, cx + mw - 10, 18):
-                    draw.line([(tx, mouth_y - mh // 2 + 4), (tx, mouth_y + mh - 4)], fill=(15, 15, 15), width=4)
+                mw, mh = int(r * 0.32), int(r * 0.22)
+                draw.chord([cx - mw, mouth_y - mh, cx + mw, mouth_y + mh], start=0, end=180, fill=(185, 28, 28), outline=(15, 23, 42), width=5)
+                draw.rectangle([cx - mw + 8, mouth_y - 2, cx + mw - 8, mouth_y + 8], fill=(255, 255, 255))
             else:
-                mw, mh = int(r * 0.24), int(r * 0.12)
-                draw.ellipse([cx - mw, mouth_y - mh // 2, cx + mw, mouth_y + mh], fill=(165, 42, 42), outline=(15, 15, 15), width=6)
+                mw = int(r * 0.28)
+                draw.arc([cx - mw, mouth_y - 10, cx + mw, mouth_y + 12], start=15, end=165, fill=(15, 23, 42), width=5)
 
-        # 4. 캐릭터 앞쪽 갈색 강단 (Podium - image_4340c8.png 하단 강단 완벽 재현!)
-        # 강단 상판 (사다리꼴 입체 형태)
-        draw.polygon([(175, 790), (545, 790), (575, 845), (145, 845)], fill=(92, 26, 18), outline=(45, 12, 8), width=4)
-        # 강단 기둥 몸체
-        draw.rectangle([185, 845, 535, 980], fill=(72, 18, 12), outline=(45, 12, 8), width=4)
+        # 4. 오마하 주주총회 스타일 네이비 & 로열 골드 강단 (Podium)
+        draw.polygon([(165, 790), (555, 790), (585, 842), (135, 842)], fill=(20, 32, 58), outline=(245, 208, 32), width=4)
+        draw.rectangle([180, 842, 540, 978], fill=(14, 22, 42), outline=(245, 208, 32), width=3)
+        # 강단 중앙 골드 엠블럼 포인트
+        draw.ellipse([cx - 26, 875, cx + 26, 927], fill=(245, 208, 32), outline=(255, 255, 255), width=2)
         return
 
-    # (기존 롱폼 하단 미니 아바타 호환용)
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(228, 178, 128), outline=(15, 15, 15), width=4)
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 226, 194), outline=(245, 208, 32), width=4)
     
 def build_lipsync_concat_entries(wav_path, sub_phrases, spoken_weights, img_pair_list, step_sec=0.13):
     import wave, struct, math
@@ -8009,15 +7994,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W // 2, 108, W - 50, top_yellow_title, get_font, start_sz=62, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
                         _fit_single_line(draw, W // 2, 192, W - 50, top_white_sub, get_font, start_sz=50, min_sz=24, fill=(255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
 
-                        # 2. 중앙 짙은 초록색 칠판 & 하단 나무 칠판틀
+                        # 2. 중앙 '월스트리트 딥 네이비 & 로열 골드 보드' (초록 칠판과 완벽히 차별화된 고급 금융 보드!)
                         board_top, board_bot = 250, 990
-                        draw.rectangle([0, board_top, W, board_bot], fill=(7, 66, 40))
-                        # 칠판 상단 은은한 분필 지우개 자국 곡선 디테일 (image_433dfb.png 상단 곡선 재현)
-                        draw.arc([90, 290, 630, 360], start=195, end=345, fill=(45, 105, 78), width=3)
-                        # 칠판 하단 갈색 나무 받침틀 (Y: 980 ~ 1035)
-                        draw.rectangle([0, 975, W, 1005], fill=(92, 48, 12))
-                        draw.rectangle([0, 1005, W, 1025], fill=(120, 145, 130))
-                        draw.rectangle([0, 1025, W, 1042], fill=(82, 105, 92))
+                        board_bg_col = (10, 22, 44)  # 짙은 로열 네이비 배경
+                        draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
+                        # 상단·하단 고급스러운 골드 메탈 몰딩 라인
+                        draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
+                        draw.rectangle([0, 978, W, 1002], fill=(30, 45, 75))
+                        draw.rectangle([0, 1002, W, 1014], fill=(217, 165, 32))
+                        draw.rectangle([0, 1014, W, 1038], fill=(16, 26, 48))
 
                         # 3. [핵심 연출 분기] 언제 '강사 풀샷'을 띄우고, 언제 '칠판 판서 다이어그램'을 띄울 것인가?
                         # - 도입부(SCENE_HOOK), 결론 마지막 컷, 또는 각 챕터의 첫 도입 질문 호흡(짝수 컷의 sub_step==0)에서는
