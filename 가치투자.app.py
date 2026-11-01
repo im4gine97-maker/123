@@ -8102,7 +8102,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 # 강단 앞쪽에 댓글/저장/팔로우 3대 행동 유도(CTA) 네온 버튼 배치!
                                 cta_boxes = [
                                     (40, 745, 345, 815, "댓글로 다음 종목 신청!", (220, 38, 68)),
-                                    (375, 745, 680, 815, "저장 & 팔로우", (0, 185, 95))
+                                    (375, 745, 680, 815, "저장 & 팔로우 클릭", (0, 185, 95))
                                 ]
                                 for bx1, by1, bx2, by2, btxt, bcol in cta_boxes:
                                     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=4)
