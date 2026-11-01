@@ -4436,7 +4436,133 @@ def split_subtitle_phrases(text_line, max_len=45):
                     final_phrases.append(cur)
 
     return [str(p).strip() for p in final_phrases if str(p).strip()] or [clean_t]
+# =========================================================================
+# [신규 탑재] 머니치트키 스타일 '말하는 캐릭터(Lip-Sync Avatar)' & WAV 파형 분석 엔진
+# =========================================================================
+def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=False, char_style="버핏 할아버지", accent_col=(0, 230, 118), custom_pil_img=None):
+    from PIL import Image, ImageDraw
+    r = int(radius)
 
+    if is_mouth_open:
+        draw.ellipse([cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10], outline=accent_col, width=4)
+        draw.ellipse([cx - r - 5, cy - r - 5, cx + r + 5, cy + r + 5], outline=(255, 240, 0), width=3)
+    else:
+        draw.ellipse([cx - r - 4, cy - r - 4, cx + r + 4, cy + r + 4], outline=accent_col, width=3)
+
+    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(18, 26, 46), outline=(255, 255, 255), width=3)
+
+    if custom_pil_img is not None:
+        try:
+            d_sz = r * 2 - 8
+            if is_mouth_open:
+                d_sz += 4
+            c_resized = custom_pil_img.convert("RGBA").resize((d_sz, d_sz))
+            mask = Image.new("L", (d_sz, d_sz), 0)
+            m_draw = ImageDraw.Draw(mask)
+            m_draw.ellipse([0, 0, d_sz, d_sz], fill=255)
+            base_img.paste(c_resized, (int(cx - d_sz // 2), int(cy - d_sz // 2)), mask)
+            eq_y = cy + r - 12
+            for idx_bar, bh in enumerate([10, 18, 14, 20, 10] if is_mouth_open else [4, 4, 4, 4, 4]):
+                bx = cx - 22 + idx_bar * 10
+                draw.rectangle([bx, eq_y - bh, bx + 6, eq_y], fill=(255, 240, 0) if is_mouth_open else (120, 135, 155))
+            return
+        except Exception:
+            pass
+
+    suit_col = (30, 58, 138) if "애널리스트" in str(char_style) else ((15, 23, 42) if "버핏" in str(char_style) else (16, 185, 129))
+    draw.pieslice([cx - int(r*0.82), cy + int(r*0.25), cx + int(r*0.82), cy + int(r*1.35)], start=180, end=360, fill=suit_col)
+    draw.polygon([(cx - int(r*0.22), cy + int(r*0.28)), (cx + int(r*0.22), cy + int(r*0.28)), (cx, cy + int(r*0.75))], fill=(255, 255, 255))
+    draw.polygon([(cx - int(r*0.08), cy + int(r*0.35)), (cx + int(r*0.08), cy + int(r*0.35)), (cx + int(r*0.11), cy + int(r*0.75)), (cx, cy + int(r*0.88)), (cx - int(r*0.11), cy + int(r*0.75))], fill=(220, 38, 38))
+
+    fy_off = -3 if is_mouth_open else 0
+    face_r = int(r * 0.52)
+    fy = cy - int(r * 0.14) + fy_off
+
+    hair_col = (226, 232, 240) if "버핏" in str(char_style) else (30, 41, 59)
+    draw.ellipse([cx - face_r - 4, fy - face_r - 8, cx + face_r + 4, fy + face_r - 6], fill=hair_col)
+    draw.ellipse([cx - face_r, fy - face_r + 4, cx + face_r, fy + face_r + 4], fill=(255, 224, 189), outline=(210, 170, 135), width=2)
+
+    eye_y = fy - int(face_r * 0.12)
+    eye_dx = int(face_r * 0.38)
+    g_col = (217, 119, 6) if "버핏" in str(char_style) else (15, 23, 42)
+    g_r = int(face_r * 0.28)
+    draw.ellipse([cx - eye_dx - g_r, eye_y - g_r, cx - eye_dx + g_r, eye_y + g_r], outline=g_col, width=3)
+    draw.ellipse([cx + eye_dx - g_r, eye_y - g_r, cx + eye_dx + g_r, eye_y + g_r], outline=g_col, width=3)
+    draw.line([(cx - eye_dx + g_r, eye_y), (cx + eye_dx - g_r, eye_y)], fill=g_col, width=3)
+
+    pup_r = max(3, int(face_r * 0.11))
+    draw.ellipse([cx - eye_dx - pup_r, eye_y - pup_r, cx - eye_dx + pup_r, eye_y + pup_r], fill=(15, 23, 42))
+    draw.ellipse([cx + eye_dx - pup_r, eye_y - pup_r, cx + eye_dx + pup_r, eye_y + pup_r], fill=(15, 23, 42))
+
+    eb_y = eye_y - g_r - (6 if is_mouth_open else 3)
+    draw.line([(cx - eye_dx - g_r, eb_y), (cx - eye_dx + g_r, eb_y - 2)], fill=hair_col, width=4)
+    draw.line([(cx + eye_dx - g_r, eb_y - 2), (cx + eye_dx + g_r, eb_y)], fill=hair_col, width=4)
+
+    mouth_y = fy + int(face_r * 0.48)
+    if is_mouth_open:
+        mw, mh = int(face_r * 0.42), int(face_r * 0.30)
+        draw.ellipse([cx - mw, mouth_y - mh//2, cx + mw, mouth_y + mh], fill=(185, 28, 28), outline=(15, 23, 42), width=2)
+        draw.chord([cx - mw + 3, mouth_y - mh//2, cx + mw - 3, mouth_y + mh//2], start=180, end=360, fill=(255, 255, 255))
+        draw.pieslice([cx - mw//2, mouth_y, cx + mw//2, mouth_y + mh], start=0, end=180, fill=(248, 113, 113))
+    else:
+        mw = int(face_r * 0.34)
+        draw.arc([cx - mw, mouth_y - 6, cx + mw, mouth_y + 8], start=10, end=170, fill=(15, 23, 42), width=4)
+
+
+def build_lipsync_concat_entries(wav_path, sub_phrases, spoken_weights, img_pair_list, step_sec=0.13):
+    import wave, struct, math
+    try:
+        with wave.open(wav_path, 'rb') as wf:
+            sr = wf.getframerate()
+            n_frames = wf.getnframes()
+            raw_bytes = wf.readframes(n_frames)
+            exact_dur = max(0.5, n_frames / float(sr))
+            samples = struct.unpack(f'<{n_frames}h', raw_bytes)
+    except Exception:
+        exact_dur = 3.5
+        sr = 24000
+        samples = []
+
+    tot_w = max(1.0, sum(spoken_weights))
+    entries = []
+    acc_dur = 0.0
+
+    for p_idx, ((img_closed, img_open), s_w) in enumerate(zip(img_pair_list, spoken_weights)):
+        if p_idx < len(img_pair_list) - 1:
+            p_dur = max(0.45, min(exact_dur - acc_dur - 0.35, round(exact_dur * (s_w / tot_w), 3)))
+        else:
+            p_dur = max(0.35, round(exact_dur - acc_dur, 3))
+
+        t_cur = 0.0
+        toggle_idx = 0
+        while t_cur < p_dur - 0.02:
+            dt = min(step_sec, round(p_dur - t_cur, 3))
+            if dt < 0.04:
+                break
+            abs_t = acc_dur + t_cur
+            is_speaking = (toggle_idx % 2 == 0)
+            if samples:
+                s_start = int(abs_t * sr)
+                s_end = min(len(samples), int((abs_t + dt) * sr))
+                if s_end > s_start:
+                    chunk_s = samples[s_start:s_end:8]
+                    if chunk_s:
+                        rms = math.sqrt(sum(float(x)*float(x) for x in chunk_s) / len(chunk_s))
+                        is_speaking = (rms > 1100.0) and (toggle_idx % 2 == 0 or rms > 3800.0)
+                        if toggle_idx % 3 == 2:
+                            is_speaking = False
+
+            chosen_img = img_open if is_speaking else img_closed
+            if entries and entries[-1][0] == chosen_img:
+                entries[-1] = (chosen_img, round(entries[-1][1] + dt, 3))
+            else:
+                entries.append((chosen_img, dt))
+            t_cur += dt
+            toggle_idx += 1
+
+        acc_dur += p_dur
+
+    return entries, exact_dur
     # 1. "투하자본수익률(ROIC)" 처럼 한글 뒤 괄호 안에 영문 약어가 있으면 중복 발음 방지를 위해 괄호 안 영문을 먼저 제거
     s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
     # 2. 특수 기호 및 이모지 제거
@@ -4477,6 +4603,7 @@ def split_subtitle_phrases(text_line, max_len=45):
     for eng_k, kor_v in pron_map:
         s = re.sub(re.escape(eng_k), kor_v, s, flags=re.IGNORECASE)
     return re.sub(r'\s+', ' ', s).strip()
+
 def get_safe_macro(key, is_currency=False, is_rate=False):
     data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
     p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
@@ -7491,6 +7618,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "⚔️ 4. [거시 기회비용 맞대결형] 안전한 10년물 미국 국채 이자보다 과연 이 기업이 돈을 더 잘 벌까요?"
                     ]
                     sel_hook_45 = st.selectbox("🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)", hook_options_45s, index=0, key=f"sh_hook_45s_v22_{tk}")
+                    char_c1, char_c2, char_c3 = st.columns([1.3, 1.3, 1.4])
+                    with char_c1:
+                        char_mode_sh = st.selectbox(
+                            "🎭 말하는 캐릭터(립싱크) 선택",
+                            [
+                                "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)",
+                                "🧑‍💼 월가 스마트 애널리스트 (입모양 립싱크 ON)",
+                                "🖼️ 내 캐릭터 이미지 직접 업로드 (립싱크 ON)",
+                                "🚫 캐릭터 없음 (깔끔한 차트 전용)"
+                            ],
+                            index=0,
+                            key=f"sh_char_mode_{tk}"
+                        )
+                    with char_c2:
+                        tone_mode_sh = st.selectbox(
+                            "🗣️ 대본 말투 스타일 (머니치트키 벤치마킹)",
+                            [
+                                "🔥 머니치트키식 친근한 반말 (469만뷰 스타일 · 초보 맞춤형)",
+                                "🎙️ 정통 애널리스트 존댓말 (신뢰감 브리핑 스타일)"
+                            ],
+                            index=0,
+                            key=f"sh_tone_mode_{tk}"
+                        )
+                    with char_c3:
+                        custom_char_file = st.file_uploader("내 캐릭터(PNG/JPG) 업로드 (선택)", type=["png", "jpg", "jpeg"], key=f"sh_char_up_{tk}")
+                        custom_char_pil = None
+                        if custom_char_file is not None:
+                            from PIL import Image
+                            custom_char_pil = Image.open(custom_char_file)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
                     hook_45_map = {
@@ -7550,6 +7706,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     sum_line1 = f"최종 점검입니다! / 과연 {comp_name}이 10년 후에도 독점 해자를 유지하며 / 내 자본을 복리로 불려줄 기업일까요?"
                     sum_line2 = "단기 주가 소음에 흔들리지 말고 / 동업 가치를 판단해 보세요!"
 
+                    # 1) 기본 정통 존댓말 대본
                     default_12cuts_script = [
                         f"[도입] {hk_line1}",
                         f"[도입] {hk_line2}",
@@ -7564,6 +7721,39 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[결론] {sum_line1}",
                         f"[결론] {sum_line2}"
                     ]
+
+                    # 2) 사용자가 상단에서 '🔥 머니치트키식 친근한 반말'을 선택했을 때만 반말 대본으로 자동 교체!
+                    if "반말" in tone_mode_sh:
+                        banmal_m = (
+                            f"첫째 돈 복사 속도야! / 보통 회사는 12% 버는데 여긴 무려 연 {cap_ret_val:.1f}%씩 돈을 쓸어담고 있어!"
+                            if cap_ret_val >= 15.0 else
+                            f"첫째 돈 복사 속도야! / 보통 회사가 연 12%를 버는데 여긴 연 {cap_ret_val:.1f}% 수준을 기록하고 있어."
+                        )
+                        banmal_b = (
+                            f"그런데 설비투자 다 빼고 남는 실제 주주이익이 / 매년 {actual_fcf_g_val:+.1f}%씩 커져서 안전마진이 {g_margin_val:+.1f}%p나 남거든!"
+                            if g_margin_val >= 0 else
+                            f"근데 실제 주주이익 성장은 연 {actual_fcf_g_val:+.1f}%라서 / 지금 주가엔 미래 기대감이 좀 비싸게 들어있는 거지."
+                        )
+                        banmal_mac = (
+                            f"국채 이자보다 연 {erp_val:+.2f}%p나 더 주니까 / 은행이나 채권에 돈 묶어둘 이유가 전혀 없는 거야!"
+                            if erp_val >= 0 else
+                            f"당장 이자는 국채가 {abs(erp_val):.2f}%p 더 높으니까 / 장기 복리 성장이 꼭 뒷받침돼야 해."
+                        )
+                        default_12cuts_script = [
+                            f"[도입] 주식 가격이 매일 바뀐다고 차트만 보고 사는 거 아니지? / {comp_name} 이거 안 보고 사면 진짜 큰 손해 본다!",
+                            f"[도입] 시장은 기분 따라 가격을 바꾸는 미스터 마켓일 뿐이야! / 워런 버핏의 4가지 치트키로 실제 장부를 까보자!",
+                            f"[해자] {banmal_m}",
+                            f"[해자] 1,000만 원 넣으면 1년에 {roic_10m_manwon:,}만 원을 버는 셈이고 / 영업마진도 {op_m:.1f}%라 가격결정력이 진짜 막강해!",
+                            f"[가격] 둘째 버핏의 역산 암산법이야! / 현재 PER {eff_cur_pe_sh:.1f}배 기준 매년 {req_g_val:+.1f}%만 커도 연 10% 수익인데,",
+                            f"[가격] {banmal_b}",
+                            f"[금리] 셋째 미국 국채 이자랑 비교해 볼까? / 안전한 10년물 미국채가 연 {ty:.2f}%인데 여긴 이익수익률이 연 {cur_ey_val:.2f}%야.",
+                            f"[금리] {banmal_mac}",
+                            f"[안전] 넷째 재무 안전판과 자본 배분이야! / {'유상증자 같은 주식 희석도 없고' if bb_yield >= -1.0 else '주식 수 변동을 체크해야 하고'} 유동비율도 {current_ratio:.2f}배로 튼튼해.",
+                            f"[안전] 번 돈을 본업에 다시 재투자하면서 / 순수 현금배당도 연 {safe_div:.2f}%씩 꼬박꼬박 챙겨주고 있어!",
+                            f"[결론] 장부 확인도 안 하고 최고가에 사면 속 터지잖아? / 과연 {comp_name}이 10년 뒤에도 독점력을 유지할지,",
+                            "[결론] 단기 주가 소음에 흔들리지 말고 / 처음부터 4대 핵심 그래프를 다시 돌려보며 직접 판단해 봐!"
+                        ]
+
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V22_BIBLE"
                     mode_tag_k = f"KO_{ov_sig}"
 
@@ -7740,7 +7930,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill)
                         _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
 
-                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font):
+                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False):
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         scene_theme_map = {
@@ -7918,11 +8108,38 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         else:
                             sub_lines = [clean_sub]
 
-                        draw.rounded_rectangle([box_x1, 815, box_x2, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
-                        sy_start = 860 if len(sub_lines) == 2 else 885
-                        for idx_l, ln_s in enumerate(sub_lines):
-                            l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
-                            _fit_single_line(draw, W//2, sy_start + idx_l * 50, safe_w, ln_s, get_font, start_sz=34, min_sz=16, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
+                        clean_sub = _clean_font_safe_text(sub_text)
+                        box_x1, box_x2 = 32, W - 32
+                        safe_w = (box_x2 - box_x1) - 44
+                        words = clean_sub.split(" ")
+                        if len(clean_sub) > 16 and len(words) >= 2:
+                            best_split = len(words) // 2
+                            half_len = len(clean_sub) / 2.0
+                            min_diff = 999
+                            for idx_w in range(1, len(words)):
+                                l_len = len(" ".join(words[:idx_w]))
+                                if abs(l_len - half_len) < min_diff:
+                                    min_diff = abs(l_len - half_len)
+                                    best_split = idx_w
+                            sub_lines = [" ".join(words[:best_split]), " ".join(words[best_split:])]
+                        else:
+                            sub_lines = [clean_sub]
+
+                        # [머니치트키 스타일: 말풍선 + 좌측 캐릭터 립싱크 아바타 배치]
+                        if "캐릭터 없음" not in char_mode_sh:
+                            draw.rounded_rectangle([172, 815, W - 28, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
+                            draw.polygon([(152, 885), (174, 870), (174, 900)], fill=theme_c)
+                            sy_start = 860 if len(sub_lines) == 2 else 885
+                            for idx_l, ln_s in enumerate(sub_lines):
+                                l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
+                                _fit_single_line(draw, 172 + (W - 200)//2, sy_start + idx_l * 50, W - 230, ln_s, get_font, start_sz=32, min_sz=15, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
+                            draw_talking_character_avatar(draw, img, cx=92, cy=885, radius=58, is_mouth_open=is_mouth_open, char_style=char_mode_sh, accent_col=theme_c, custom_pil_img=custom_char_pil)
+                        else:
+                            draw.rounded_rectangle([box_x1, 815, box_x2, 955], radius=20, fill=(10, 14, 26), outline=theme_c, width=4)
+                            sy_start = 860 if len(sub_lines) == 2 else 885
+                            for idx_l, ln_s in enumerate(sub_lines):
+                                l_col = (255, 240, 0) if idx_l == len(sub_lines) - 1 else (255, 255, 255)
+                                _fit_single_line(draw, W//2, sy_start + idx_l * 50, safe_w, ln_s, get_font, start_sz=34, min_sz=16, fill=l_col, stroke_w=5, stroke_c=(0, 0, 0))
 
                         _fit_single_line(draw, W//2, 1085, W - 60, "[안내] DART·SEC 공시 기반 학술·교육용 통계 자료이며 매수·매도 추천이 아닙니다", get_font, start_sz=14, min_sz=10, fill=(115, 125, 140))
                         return img
@@ -7954,44 +8171,44 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    # [싱크 정밀 보정] 숫자·소수점·기호를 성우가 실제 발음하는 한글 음절로 변환해 자막 전환 타이밍 계산!
+                                    # ✅ [교체] 숫자·기호 음절 계산 및 립싱크(입 닫음/열림) 타임라인 생성
                                     sub_phrases = split_subtitle_phrases(sub_t, max_len=24)
                                     spoken_weights = []
                                     for p_txt in sub_phrases:
                                         s_pron = fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts)
                                         s_pron = s_pron.replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
-                                        # 숫자 1글자는 한국어 발음 시 평균 1.8음절(예: 14 -> 십사, 31 -> 삼십일)을 차지함
                                         digit_cnt = sum(1 for ch in s_pron if ch.isdigit())
                                         text_cnt = sum(1 for ch in re.sub(r'\s+', '', s_pron) if not ch.isdigit())
                                         pause_w = 2.8 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
                                         spoken_weights.append(max(2.0, text_cnt + (digit_cnt * 1.8) + pause_w))
 
                                     total_weight = sum(spoken_weights)
+
                                     img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                     tmp_Created.append(img_concat_txt)
+                                    img_pair_list = []
                                     last_img_path = None
+                                    for p_txt in sub_phrases:
+                                        f_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                        tmp_Created.append(f_closed)
+                                        _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False).save(f_closed)
+                                        if "캐릭터 없음" not in char_mode_sh:
+                                            f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
+                                            tmp_Created.append(f_open)
+                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True).save(f_open)
+                                        else:
+                                            f_open = f_closed
+                                        img_pair_list.append((f_closed, f_open))
+                                        last_img_path = f_closed
 
+                                    lipsync_entries, exact_dur = build_lipsync_concat_entries(f_wav, sub_phrases, spoken_weights, img_pair_list, step_sec=0.14)
                                     with open(img_concat_txt, "w", encoding="utf-8") as icf:
-                                        acc_dur = 0.0
-                                        for p_idx, (p_txt, s_w) in enumerate(zip(sub_phrases, spoken_weights)):
-                                            f_img_p = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                                            tmp_Created.append(f_img_p)
-                                            _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font).save(f_img_p)
-                                            last_img_path = f_img_p
-
-                                            if p_idx < len(sub_phrases) - 1:
-                                                p_dur = round(exact_dur * (s_w / total_weight), 3)
-                                                p_dur = max(0.45, min(exact_dur - acc_dur - 0.35, p_dur))
-                                                acc_dur += p_dur
-                                            else:
-                                                p_dur = max(0.35, round(exact_dur - acc_dur, 3))
-
-                                            icf.write(f"file '{f_img_p.replace(chr(92), '/')}'\n")
-                                            icf.write(f"duration {p_dur:.3f}\n")
+                                        for im_p, dur_v in lipsync_entries:
+                                            icf.write(f"file '{im_p.replace(chr(92), '/')}'\n")
+                                            icf.write(f"duration {dur_v:.3f}\n")
                                         if last_img_path:
                                             icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
 
-                                    # concat demuxer가 duration을 100% 정확히 지키도록 -vsync cfr -r 30 명시!
                                     cmd_primary = [
                                         ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
                                         "-vf", vf_motion, "-fps_mode", "cfr", "-r", "30",
@@ -8610,7 +8827,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     except Exception:
                                         pass
 
-                                    phrases = split_subtitle_phrases(ch_text, max_len=36)
+                                    phrases = (ch_text, max_len=36)
                                     weights = []
                                     for p_t in phrases:
                                         sp_s = fix_global_tts_pronunciation(p_t, is_en=False).replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
@@ -10328,7 +10545,7 @@ with tab4:
                         pass
                     total_acc_seconds += exact_d
 
-                    phrases = split_subtitle_phrases(cl_line, max_len=34)
+                    phrases = (cl_line, max_len=34)
                     weights = []
                     for pt in phrases:
                         sp_p = fix_global_tts_pronunciation(pt, is_en=False)
@@ -11396,7 +11613,7 @@ with tab_vs:
                                 except Exception:
                                     pass
 
-                                sub_phrases = split_subtitle_phrases(stxt, max_len=17)
+                                sub_phrases = (stxt, max_len=17)
                                 tot_len = max(1, sum(len(p) for p in sub_phrases))
                                 ic_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
                                 tmp_v_list.append(ic_txt)
