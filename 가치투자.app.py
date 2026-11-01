@@ -7830,9 +7830,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # 2) 머니치트키식 반말 8컷 대본 (45초 칼각 · 주린이 비유 + TTM/10년 명시 + 강렬한 댓글/저장 CTA!)
                     if "반말" in tone_mode_sh:
                         erp_bm_str = (
-                            f"국채 대비 {erp_val:+.1f}%p나 더 벌어다 주고."
+                            f"국채 대비 {erp_val:+.1f}%p나 더 주고."
                             if erp_val >= 0 else
-                            f"국채 대비 {erp_val:+.1f}%p 차이가 나고."
+                            f"국채 대비 {erp_val:+.1f}%p 차이지만."
                         )
                         mgn_bm_str = (
                             f"안전마진이 {g_margin_val:+.1f}%p나 남거든!"
@@ -8343,7 +8343,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         s_pron = s_pron.replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
                                         digit_cnt = sum(1 for ch in s_pron if ch.isdigit())
                                         text_cnt = sum(1 for ch in re.sub(r'\s+', '', s_pron) if not ch.isdigit())
-                                        pause_w = 2.8 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
+                                        pause_w = 1.2 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
                                         spoken_weights.append(max(2.0, text_cnt + (digit_cnt * 1.8) + pause_w))
 
                                     img_concat_txt = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
@@ -10629,7 +10629,7 @@ with tab4:
                     finally:
                         loop.close()
 
-                    af_s = "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,volume=1.25,apad=pad_dur=0.45"
+                    af_s = "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,volume=1.25,apad=pad_dur=0.2"
                     subprocess.run([ffmpeg_exe, "-y", "-threads", "2", "-i", f_raw, "-af", af_s, "-ar", "24000", "-ac", "1", f_wav], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                     phrases = split_subtitle_phrases(cl_line, max_len=34)
