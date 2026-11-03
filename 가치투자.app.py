@@ -7790,7 +7790,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     fcf_int = int(round(actual_fcf_g_val))
                     roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
 
-                    moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
+                    moat_line = f"첫째 복리 속도야! / 보통 12% 정돈데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
 
                     if erp_val < 0:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
@@ -7913,15 +7913,47 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
                     # =========================================================================
-                    # [수정 2] 900만 원 하드코딩 버그 제거 -> roic_10m_manwon 변수 연동
+                    # [수리 완료] ROIC 규모 및 영업이익률 기반 moat_line 완전 동적 분기
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
-                    req_int = int(round(req_g_val))
-                    fcf_int = int(round(actual_fcf_g_val))
-                    roic_won_txt = f"{abs(roic_10m_manwon):,}만 원"
+                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
                     
-                    # 1) 해자 대본: 화면의 +989만 원과 음성을 1:1로 일치시킴
-                    moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
+                    # 1. 영업마진 및 가격결정력 팩트 체크 문구 (저마진 기업 왜곡 방지)
+                    if opm_int >= 25:
+                        margin_txt = f"영업마진 {opm_int}%로 가격결정력이 압도적이야!"
+                    elif opm_int >= 12:
+                        margin_txt = f"영업마진 {opm_int}%로 탄탄한 마진을 방어해!"
+                    elif opm_int >= 5:
+                        margin_txt = f"영업마진 {opm_int}%의 보통 수준 수익 구조야!"
+                    else:
+                        margin_txt = f"영업마진 {opm_int}%로 원가 압박을 심하게 받는 구조야!"
+                    
+                    # 2. ROIC 수준별 직관적 비유 분기 (애플/엔비디아 등 극단적 고ROIC 완벽 대응)
+                    if roic_int >= 60:
+                        # [극단적 자본경량/플랫폼형: 애플, 마스터카드, 엔비디아 등]
+                        moat_line = (
+                            f"첫째 복리 속도야! / 시장 평균 12%인데 여긴 연 {roic_int}%야! / "
+                            f"내 공장 안 짓고도 밑천 회수 속도가 압도적이야! / {margin_txt}"
+                        )
+                    elif roic_int >= 15:
+                        # [우량 제조업/프랜차이즈형: 코스트코, 현대차, 삼양식품 등]
+                        roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
+                        moat_line = (
+                            f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / "
+                            f"회사 밑천 1,000만 원당 연 {roic_won_txt}을 벌고 / {margin_txt}"
+                        )
+                    elif roic_int >= 8:
+                        # [일반 성숙/사이클형]
+                        moat_line = (
+                            f"첫째 복리 속도야! / 시장 자본비용 12% 대비 연 {roic_int}% 수준이야! / "
+                            f"밑천 대비 평범한 효율을 내고 있고 / {margin_txt}"
+                        )
+                    else:
+                        # [해자 파괴/자본잠식/적자형]
+                        moat_line = (
+                            f"첫째 복리 속도야! / 자본비용 12%에 한참 못 미치는 연 {roic_int}%야! / "
+                            f"장사할수록 밑천을 갉아먹는 구조라 / {margin_txt}"
+                        )
                     
                     # 2) 가격 대본
                     if erp_val < 0:
