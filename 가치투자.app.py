@@ -3941,6 +3941,117 @@ def analyze_business_diversification(stk, i, tk, kr):
     else:
         return f"<b style='color:#fdcb6e;'>[보통] 표준적 사업 분산</b> 동종 업계 평균 수준의 제품군 구색 유지 중"
 # =========================================================================
+# [신규 엔진 1] 가격결정력(Pricing Power) 정밀 진단기
+# =========================================================================
+def analyze_pricing_power(stk, i):
+    """
+    버핏의 가격결정력 기준:
+    1) 매출총이익률(Gross Margin) 40% 이상
+    2) 최근 3~4년 마진 훼손 없이 유지/상승하는가
+    """
+    try:
+        gm = safe_float(i.get('grossMargins')) * 100
+        opm = safe_float(i.get('operatingMargins')) * 100
+        
+        inc = stk.income_stmt if stk is not None else None
+        gm_trend = "유지"
+        if inc is not None and not inc.empty and 'Gross Profit' in inc.index and 'Total Revenue' in inc.index:
+            gps = inc.loc['Gross Profit'].dropna().values[:3][::-1]
+            revs = inc.loc['Total Revenue'].dropna().values[:3][::-1]
+            if len(gps) >= 2 and len(revs) >= 2:
+                margins = [(g / r) * 100 for g, r in zip(gps, revs) if r > 0]
+                if margins[-1] > margins[0] + 1.5:
+                    gm_trend = "상승 추세"
+                elif margins[-1] < margins[0] - 2.0:
+                    gm_trend = "압박/하락"
+
+        if gm >= 50.0:
+            return f"<b style='color:#2ecc71;'>[압도적 해자]</b> 매출총이익률 <b>{gm:.1f}%</b> ({gm_trend}) · 인플레이션 원가 전가력 최상"
+        elif gm >= 35.0:
+            return f"<b style='color:#74b9ff;'>[양호한 해자]</b> 매출총이익률 <b>{gm:.1f}%</b> ({gm_trend}) · 가격결정력 유지 중"
+        elif gm >= 20.0:
+            return f"<b style='color:#fdcb6e;'>[보통 수준]</b> 매출총이익률 <b>{gm:.1f}%</b> · 원자재/공급망 가격 전가력 제한적"
+        else:
+            return f"<b style='color:#ff7675;'>[가격결정력 부재]</b> 매출총이익률 <b>{gm:.1f}%</b> · 저마진 출혈경쟁 노출"
+    except Exception:
+        return "<span style='color:#8892b0;'>데이터 확인 필요</span>"
+
+
+# =========================================================================
+# [신규 엔진 2] CapEx(설비투자) 급증 및 현금 잠식 스캐너
+# =========================================================================
+def analyze_capex_surge(stk, base_fcf, kr):
+    """
+    최근 AI/인프라 설비투자가 과거 평균 대비 급증했는지 검증:
+    빅테크(빅4: MSFT, GOOGL, AMZN, META) 및 파운드리/반도체 과투자 판독
+    """
+    try:
+        cf = stk.cash_flow if stk is not None else None
+        if cf is None or cf.empty:
+            return "<span style='color:#8892b0;'>현금흐름 데이터 부족</span>"
+            
+        capex_vals = []
+        for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+            if ck in cf.index:
+                capex_vals = [abs(safe_float(v)) for v in cf.loc[ck].dropna().values[:4][::-1] if safe_float(v) != 0]
+                break
+                
+        if len(capex_vals) < 2:
+            return "<span style='color:#8892b0;'>비교 데이터 부족</span>"
+
+        curr_cx = capex_vals[-1]
+        prev_cx = capex_vals[-2]
+        avg_3y_cx = sum(capex_vals[:-1]) / len(capex_vals[:-1]) if len(capex_vals) >= 2 else prev_cx
+
+        surge_pct = ((curr_cx - avg_3y_cx) / avg_3y_cx) * 100.0 if avg_3y_cx > 0 else 0.0
+
+        scale = 1e12 if (kr and curr_cx >= 1e12) else (1e8 if kr else 1e9)
+        u_str = ("조 원" if scale == 1e12 else "억 원") if kr else "B$"
+
+        if surge_pct >= 40.0:
+            return f"<b style='color:#ff7675;'>[CapEx 급증 경고]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (과거 평균 대비 <b>+{surge_pct:.1f}%</b> 폭증) · FCF 잠식 주의"
+        elif surge_pct >= 15.0:
+            return f"<b style='color:#fdcb6e;'>[공격적 재투자]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (+{surge_pct:.1f}%) · 성장 투자 집행 중"
+        elif surge_pct <= -15.0:
+            return f"<b style='color:#74b9ff;'>[설비투자 긴축]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 ({surge_pct:.1f}%) · 현금 회수기 진입"
+        else:
+            return f"<b style='color:#2ecc71;'>[안정적 유지]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (변동률 {surge_pct:+.1f}%) · 현금흐름 훼손 없음"
+    except Exception:
+        return "<span style='color:#8892b0;'>데이터 확인 필요</span>"
+
+
+# =========================================================================
+# [신규 엔진 3] 시클리컬(반도체/해운/정유 등) 고점 저PER 착시 판독기
+# =========================================================================
+def analyze_cyclical_per_trap(tk, cur_pe, is_cyclical, roe, kr):
+    """
+    시클리컬(삼성전자, SK하이닉스, 마이크론, 샌디스크 등) 피크아웃 시
+    이익 폭증으로 PER이 4~7배로 극단적으로 낮아지는 '저PER 착시 함정' 방어
+    """
+    if not is_cyclical:
+        return None, "비시클리컬 기업"
+
+    # 반도체 및 시클리컬 핵심 기업 식별
+    semis = ["005930.KS", "000660.KS", "MU", "WDC", "SNDK", "INTC", "TSM"]
+    tk_clean = str(tk).upper().strip()
+    is_semi = any(s in tk_clean for s in semis)
+
+    # 시클리컬 정점: ROE가 25% 이상 폭등하면서 일시적 PER이 8배 이하로 내려간 경우
+    if cur_pe > 0 and cur_pe <= 8.5 and roe >= 22.0:
+        st_code = "fail"
+        msg = f"<b>피크아웃 주의:</b> 호황 정점 이익 폭증으로 인한 <b>'저PER 착시({cur_pe:.1f}배)'</b> 함정 위험 (ROE {roe:.1f}%)"
+    elif cur_pe > 0 and cur_pe <= 12.0 and roe >= 15.0:
+        st_code = "warn"
+        msg = f"<b>사이클 후반:</b> 이익 고점 부근 통과 중 (현재 PER {cur_pe:.1f}배 · 다운사이클 실적 급감 대비 필요)"
+    elif cur_pe > 25.0 or cur_pe <= 0:
+        st_code = "pass"
+        msg = f"<b>역발상 기회 구간:</b> 실적 악화/적자로 PER 왜곡 ({cur_pe:.1f}배) ➔ 사이클 바닥 통과 가능성"
+    else:
+        st_code = "warn"
+        msg = f"시클리컬 보통 사이클 (현재 PER {cur_pe:.1f}배 · ROE {roe:.1f}%)"
+
+    return st_code, msg
+# =========================================================================
 # [복원] 피오트로스키 F-Score (9점 만점 재무 건전성 판독기)
 # =========================================================================
 def calc_piotroski_f_score(stk, is_financial=False):
@@ -6861,6 +6972,11 @@ with tab1:
                     else: c5_st = "fail"
                     c5_sub = f"이익수익률 {ey:.1f}% (국채 {erp:+.1f}%p)" if f_pe > 0 else "산출 불가(적자)"
 
+                    # -------------------------------------------------------------
+                    # 기존 5대 체크리스트 판정 후, 6번째 시클리컬 함정 판정 추가
+                    # -------------------------------------------------------------
+                    cyc_st, cyc_sub = analyze_cyclical_per_trap(tk, eff_cur_pe, is_cyclical, roe, kr)
+
                     munger_items = [
                         (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
                         (t("2. 경영진·주주환원", "2. Mgmt & Return"), c2_st, c2_sub),
@@ -6869,13 +6985,15 @@ with tab1:
                         (t("5. 국채 대비 기회비용", "5. vs 10Y Treasury"), c5_st, c5_sub)
                     ]
 
+                    # 시클리컬 기업(반도체, 해운, 철강 등)일 경우 6번째 관문 자동 삽입
+                    if is_cyclical and cyc_st is not None:
+                        munger_items.append((t("6. 시클리컬 저PER 착시", "6. Cyclical PE Trap"), cyc_st, cyc_sub))
+
+                    tot_chk_cnt = len(munger_items)
                     pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
 
-                    # -------------------------------------------------------------
-                    # 2. 체크리스트 헤더 (점수 노출 없이 "5개 중 N개 충족"만 깔끔하게 표기)
-                    # -------------------------------------------------------------
-                    chk_header_ko = f"📋 <b>[찰리 멍거의 5대 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>5개 중 {pass_cnt}개 기준 충족</span>"
-                    chk_header_en = f"📋 <b>[Munger's 5-Point Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/5 Passed</span>"
+                    chk_header_ko = f"📋 <b>[찰리 멍거의 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{tot_chk_cnt}개 중 {pass_cnt}개 기준 충족</span>"
+                    chk_header_en = f"📋 <b>[Munger's Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/{tot_chk_cnt} Passed</span>"
                     
                     st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
 
@@ -7182,10 +7300,11 @@ with tab1:
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 
-                # 1. 사업 다각화 분석 실행 (HTML 렌더링 직전)
+               # 신규 분석 실행
                 diversification_html = analyze_business_diversification(stk, i, tk, kr)
+                pricing_power_html = analyze_pricing_power(stk, i)
+                capex_surge_html = analyze_capex_surge(stk, base_fcf, kr)
 
-                # 2. integrated_html 내부의 지표 카드 리스트에 카드 삽입
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 배당수익률</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
@@ -7204,8 +7323,12 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익의 질 (OCF/NI) & 실질 FCF</div><div style='{desc_style} margin-top:5px;'>{eq_sbc_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
                     
-                    # [신규 추가 카드] 사업 다각화 및 단일 실패 지점 차단
-                    f"<div style='{item_style}'><div style='{lbl_style}'>사업 다각화 (공학적 안전판)</div><div style='{desc_style} margin-top:5px;'>{diversification_html}</div></div>"
+                    # -------------------------------------------------------------
+                    # 다각화 카드 + 가격결정력 카드 + CapEx 급증 스캐너 나란히 배치
+                    # -------------------------------------------------------------
+                    f"<div style='{item_style}'><div style='{lbl_style}'>사업 다각화 (단일 실패지점 차단)</div><div style='{desc_style} margin-top:5px;'>{diversification_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>가격결정력 (원가 전가력)</div><div style='{desc_style} margin-top:5px;'>{pricing_power_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>CapEx(설비투자) 과투자 진단</div><div style='{desc_style} margin-top:5px;'>{capex_surge_html}</div></div>"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
