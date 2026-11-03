@@ -4987,7 +4987,50 @@ def normalize_split_eps(raw_eps, y_int, ref_eps, splits_data):
     if 0.35 * abs(ref_eps) <= abs(best_eps) <= 2.5 * abs(ref_eps):
         return best_eps
     return ref_eps
+# =========================================================================
+# [증권사 퀀트 방식] 과거 10년 연간 장부 + 최신 4분기 TTM(2026년) 자동 결합 엔진
+# =========================================================================
+def get_latest_fcf_series_with_ttm(stk, historical_fcf_dict):
+    """
+    과거 연간 FCF 딕셔너리 {2016: val, ..., 2025: val} 뒤에
+    최신 4개 분기(Quarterly)를 합산한 TTM FCF(2026 TTM)를 결합하여
+    가장 최근 발표 실적까지 100% 반영된 시계열을 완성합니다.
+    """
+    fcf_series = {int(k): safe_float(v) for k, v in historical_fcf_dict.items() if safe_float(v) != 0}
+    
+    ttm_fcf = None
+    try:
+        if stk is not None:
+            q_cf = stk.quarterly_cash_flow
+            if q_cf is not None and not q_cf.empty and len(q_cf.columns) >= 2:
+                q_cols = q_cf.columns[:4]
+                ann_factor = 4.0 / len(q_cols)
+                
+                if 'Free Cash Flow' in q_cf.index:
+                    ttm_fcf = sum(safe_float(q_cf.loc['Free Cash Flow', c]) for c in q_cols) * ann_factor
+                elif 'Operating Cash Flow' in q_cf.index:
+                    ocf_ttm = sum(safe_float(q_cf.loc['Operating Cash Flow', c]) for c in q_cols) * ann_factor
+                    capex_ttm = 0.0
+                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                        if ck in q_cf.index:
+                            capex_ttm = sum(abs(safe_float(q_cf.loc[ck, c])) for c in q_cols) * ann_factor
+                            break
+                    ttm_fcf = ocf_ttm - capex_ttm
+    except Exception:
+        pass
+        
+    current_year = datetime.now().year
+    if ttm_fcf is not None and ttm_fcf != 0:
+        fcf_series[current_year] = ttm_fcf
+        
+    sorted_years = sorted(fcf_series.keys())[-10:]
+    sorted_vals = [fcf_series[y] for y in sorted_years]
+    return sorted_years, sorted_vals
 
+
+# =========================================================================
+# 10년 커스텀 메트릭스 통합 연산 함수 (DART / SEC / TTM FCF 완전체)
+# =========================================================================
 def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY):
     a_pe_10y = 0.0
     a_pbr_10y = 0.0
@@ -5084,7 +5127,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         return annual_end_pe
 
     def get_kiwoom_ttm_pbr_for_year(y_int, bps_curr, bps_prev, fy_end_month=12):
-        """10년 평균 PER과 동일하게 연중 수정주가와 분기별 보간 BPS(액면분할 보정 완료)를 결합해 정확한 연평균 PBR 산출"""
         if bps_curr <= 0:
             return 0.0
         if hist_10y is None or hist_10y.empty or bps_prev <= 0:
@@ -5139,7 +5181,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         if sh_out <= 0:
             sh_out = safe_float(cached_i.get('sharesOutstanding', 1))
 
-    # 1. ADR 기업 (대만 TSMC, 중국 알리바바·핀둬둬, 유럽 ASML 등)
+    # -------------------------------------------------------------
+    # 1. ADR 기업 (대만 TSMC, 중국 알리바바/핀둬둬, 유럽 ASML 등)
+    # -------------------------------------------------------------
     if is_adr:
         base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
         try:
@@ -5147,20 +5191,21 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             bs = stk.balance_sheet
             cf_adr = stk.cash_flow
             pe_l, pbr_l = [], []
-            fcf_adr_chrono, fcf_adr_yrs = [], []
+            adr_fcf_dict = {}
 
             if cf_adr is not None and not cf_adr.empty:
-                for c_dt in cf_adr.columns[::-1]:
-                    y_s = str(c_dt)[:4]
+                for c_dt in cf_adr.columns:
+                    y_s = int(str(c_dt)[:4])
                     if 'Free Cash Flow' in cf_adr.index and pd.notna(cf_adr.loc['Free Cash Flow', c_dt]):
-                        fcf_adr_chrono.append(safe_float(cf_adr.loc['Free Cash Flow', c_dt]))
-                        fcf_adr_yrs.append(y_s)
-                if len(fcf_adr_chrono) >= 2:
-                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(fcf_adr_chrono, fcf_adr_yrs)
+                        adr_fcf_dict[y_s] = safe_float(cf_adr.loc['Free Cash Flow', c_dt])
+                
+                fcf_yrs_clean, fcf_vals_clean = get_latest_fcf_series_with_ttm(stk, adr_fcf_dict)
+                if len(fcf_vals_clean) >= 2:
+                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(fcf_vals_clean, fcf_yrs_clean)
                     st.session_state[f"fcf_meta_{tk}"] = {
                         "cagr": final_g_10y, "status": st_code, "span": sp_y, "desc": desc_s,
-                        "vals": fcf_adr_chrono, "years": fcf_adr_yrs,
-                        "neg_cnt": sum(1 for v in fcf_adr_chrono if v < 0)
+                        "vals": fcf_vals_clean, "years": [str(y) for y in fcf_yrs_clean],
+                        "neg_cnt": sum(1 for v in fcf_vals_clean if v < 0)
                     }
 
             if not hist_10y.empty and _inc is not None and not _inc.empty:
@@ -5206,15 +5251,16 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
             pass
         return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 
-    # 2. 한국 기업 (DART 10년 정통 FCF + 액면분할 보정 10년 PBR/PER)
+    # -------------------------------------------------------------
+    # 2. 한국 기업 (DART 10년 정통 FCF + 최신 4분기 TTM 결합)
+    # -------------------------------------------------------------
     elif kr:
-        pe_list, pbr_list, fcf_list = [], [], []
-        fcf_years_kr = []
+        pe_list, pbr_list = [], []
+        kr_fcf_raw_dict = {}
         try:
             dart_df, _ = get_10yr_dart_financials_v2(cd, DART_API_KEY)
             if not dart_df.empty:
                 data_len = len(dart_df.columns)
-                ni_positive_list = []
                 bps_map_kr, eps_map_kr = {}, {}
 
                 for y_str in dart_df.columns:
@@ -5236,7 +5282,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
 
                     ocf = safe_float(dart_df.loc['9. 영업현금흐름', y_str]) * 100000000 if '9. 영업현금흐름' in dart_df.index else 0
                     capex = abs(safe_float(dart_df.loc['10. 설비투자 (CAPEX)', y_str])) * 100000000 if '10. 설비투자 (CAPEX)' in dart_df.index else 0
-                    icf = safe_float(dart_df.loc['11. 투자현금흐름', y_str]) * 100000000 if '11. 투자현금흐름' in dart_df.index else (safe_float(dart_df.loc['10. 투자현금흐름', y_str]) * 100000000 if '10. 투자현금흐름' in dart_df.index else 0)
+                    icf = safe_float(dart_df.loc['11. 투자현금흐름', y_str]) * 100000000 if '11. 투자현금흐름' in dart_df.index else 0
                     fcf_direct = safe_float(dart_df.loc['12. 잉여현금흐름 (FCF)', y_str]) * 100000000 if '12. 잉여현금흐름 (FCF)' in dart_df.index else 0
                     _ni = safe_float(dart_df.loc['4. 당기순이익', y_str]) * 100000000 if '4. 당기순이익' in dart_df.index else 0
                     _eq = safe_float(dart_df.loc['8. 자본총계', y_str]) * 100000000 if '8. 자본총계' in dart_df.index else 0
@@ -5248,25 +5294,20 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     if _eq <= 0 and _ast > _liab and _liab > 0:
                         _eq = _ast - _liab
 
-                    # ▼▼▼ [수리 완료] CAPEX 설비투자로 인한 진짜 FCF 적자(예: 삼성전자 2023년 -16조)를 양수로 덮어쓰지 않음! ▼▼▼
+                    # 실제 CAPEX가 반영된 정통 FCF 산출
                     if fcf_direct != 0:
                         calc_fcf = fcf_direct
                     elif ocf != 0 and capex > 0:
                         calc_fcf = ocf - capex
                     elif ocf != 0 or icf != 0:
                         calc_fcf = ocf + icf
-                        # 단, CAPEX 세부 계정이 아예 누락된 금융/지주사가 단기금융상품 예치(icf<0) 때문에 착시 적자가 난 경우에만 보정
                         if capex == 0 and calc_fcf <= 0 and _ni > 0 and ocf > 0:
                             calc_fcf = min(ocf * 0.7, _ni * 0.85)
                     else:
                         calc_fcf = 0
 
                     if calc_fcf != 0:
-                        fcf_list.append(calc_fcf)
-                        fcf_years_kr.append(y_int)
-                    # ▲▲▲ [수리 완료] ▲▲▲
-                    if _ni > 0:
-                        ni_positive_list.append(_ni * 0.85)
+                        kr_fcf_raw_dict[y_int] = calc_fcf
 
                     if _eq > 0 and _ni != 0:
                         roe_y = (_ni / _eq) * 100
@@ -5283,7 +5324,6 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     else:
                         hist_roic_10y.append(0)
 
-                    # 10년 평균 PER & PBR (액면분할 보정 TTM 방식)
                     eps_c = eps_map_kr.get(y_int, 0)
                     eps_p = eps_map_kr.get(y_int - 1, eps_c)
                     yr_pe = get_kiwoom_ttm_pe_for_year(y_int, eps_c, eps_p)
@@ -5303,30 +5343,26 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 50.0)
                     st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 50.0)
 
-                yf_fcf, _, yf_g, _, _ = get_base_dcf_data(stk, cached_i)
-                if len(fcf_list) >= 2:
-                    if len(fcf_list) >= 3 and fcf_list[0] > 0:
-                        base_fcf_10y = (fcf_list[0] * 0.60) + (fcf_list[1] * 0.25) + (fcf_list[2] * 0.15)
-                    else:
-                        base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    if base_fcf_10y <= 0 and yf_fcf and yf_fcf > 0:
-                        base_fcf_10y = yf_fcf
+                # 최신 4분기 TTM(2026년) 자동 결합
+                fcf_years_clean, fcf_vals_clean = get_latest_fcf_series_with_ttm(stk, kr_fcf_raw_dict)
+                data_len = len(fcf_vals_clean)
 
-                    fcf_chrono = fcf_list[::-1]
-                    yrs_chrono = fcf_years_kr[::-1]
-                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(fcf_chrono, yrs_chrono)
+                if len(fcf_vals_clean) >= 2:
+                    if len(fcf_vals_clean) >= 3 and fcf_vals_clean[-1] > 0:
+                        base_fcf_10y = (fcf_vals_clean[-1] * 0.60) + (fcf_vals_clean[-2] * 0.25) + (fcf_vals_clean[-3] * 0.15)
+                    else:
+                        base_fcf_10y = sum(fcf_vals_clean[-3:]) / min(3, len(fcf_vals_clean))
+
+                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(fcf_vals_clean, fcf_years_clean)
                     st.session_state[f"fcf_meta_{tk}"] = {
                         "cagr": final_g_10y, "status": st_code, "span": sp_y, "desc": desc_s,
-                        "vals": fcf_chrono, "years": [str(y) for y in yrs_chrono],
-                        "neg_cnt": sum(1 for v in fcf_chrono if v < 0)
+                        "vals": fcf_vals_clean, "years": [str(y) for y in fcf_years_clean],
+                        "neg_cnt": sum(1 for v in fcf_vals_clean if v < 0)
                     }
 
-                    dirs = [1 if fcf_chrono[k] > fcf_chrono[k-1]*1.3 else (-1 if fcf_chrono[k] < fcf_chrono[k-1]*0.7 else 0) for k in range(1, len(fcf_chrono))]
+                    dirs = [1 if fcf_vals_clean[k] > fcf_vals_clean[k-1]*1.3 else (-1 if fcf_vals_clean[k] < fcf_vals_clean[k-1]*0.7 else 0) for k in range(1, len(fcf_vals_clean))]
                     if 1 in dirs and -1 in dirs and (not base_fcf_10y or base_fcf_10y <= 0):
                         is_zigzag_10y = True
-                else:
-                    base_fcf_10y = yf_fcf if (yf_fcf and yf_fcf > 0) else (sum(ni_positive_list[:3])/len(ni_positive_list[:3]) if ni_positive_list else 0)
-                    final_g_10y = yf_g
 
                 if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 10.0)
                 if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.0)
@@ -5335,7 +5371,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except Exception:
             pass
 
-    # 3. 미국 기업 (SEC EDGAR + 액면분할 보정 10년 PBR/PER + 양수 전환 시점 FCF 성장률)
+    # -------------------------------------------------------------
+    # 3. 미국 기업 (SEC EDGAR 10-K + 최신 4분기 TTM 결합)
+    # -------------------------------------------------------------
     else:
         try:
             facts = get_sec_company_facts_cached(cd)
@@ -5381,7 +5419,7 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 sec_eq = get_sec_fact(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', 'CommonStockholdersEquity', 'MembersEquity', 'PartnersCapital'], unit='USD', is_instant=True)
                 sec_ocf = get_sec_fact(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations', 'CashGeneratedFromOperations'], unit='USD', is_instant=False)
                 sec_capex = get_sec_fact(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets', 'PaymentsToAcquireOtherPropertyPlantAndEquipment', 'PaymentsForCapitalImprovements', 'AdditionsToNoncurrentAssets', 'PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets'], unit='USD', is_instant=False)
-                sec_op = get_sec_fact(['OperatingIncomeLoss', 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest', 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments', 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic'], unit='USD', is_instant=False, first_valid_tag_only=True)
+                sec_op = get_sec_fact(['OperatingIncomeLoss', 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest'], unit='USD', is_instant=False, first_valid_tag_only=True)
                 sec_assets = get_sec_fact(['Assets'], unit='USD', is_instant=True)
                 sec_liab = get_sec_fact(['Liabilities'], unit='USD', is_instant=True)
                 sec_ca = get_sec_fact(['AssetsCurrent'], unit='USD', is_instant=True)
@@ -5405,10 +5443,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                 except Exception:
                     pass
 
+                # 2026년 데이터를 강제 제외하지 않고 존재하는 최신 연도까지 포괄
                 all_avail_years = sorted(list(set(list(sec_ni.keys()) + list(sec_eq.keys()) + list(sec_assets.keys()))), reverse=True)
-                curr_cal_yr = datetime.now().year
-                completed_years = [y for y in all_avail_years if int(y) < curr_cal_yr]
-                sec_years = completed_years[:10] if len(completed_years) >= 10 else all_avail_years[:10]
+                sec_years = all_avail_years[:10]
 
                 adj_eps_map, adj_sh_map, adj_bps_map = {}, {}, {}
                 for y_s in all_avail_years[:12]:
@@ -5505,29 +5542,24 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     a_pbr_10y = _calc_robust_multiple_avg(pbr_list, 100.0)
                     st.session_state[f"pbr_5y_{tk}"] = _calc_robust_multiple_avg(pbr_list[:5], 100.0)
 
-                data_len = len(sec_years)
-                sorted_fcf_yrs_desc = sorted(fcf_by_year.keys(), reverse=True)[:10]
-                fcf_list = [fcf_by_year[k] for k in sorted_fcf_yrs_desc]
+                # SEC 10-K 과거 연간 데이터 뒤에 최신 4분기 TTM(2026년) 결합
+                fcf_years_clean, fcf_vals_clean = get_latest_fcf_series_with_ttm(stk, fcf_by_year)
+                data_len = len(fcf_vals_clean)
 
-                if len(fcf_list) >= 2:
-                    if len(fcf_list) >= 3 and fcf_list[0] > 0:
-                        base_fcf_10y = (fcf_list[0] * 0.60) + (fcf_list[1] * 0.25) + (fcf_list[2] * 0.15)
+                if len(fcf_vals_clean) >= 2:
+                    if len(fcf_vals_clean) >= 3 and fcf_vals_clean[-1] > 0:
+                        base_fcf_10y = (fcf_vals_clean[-1] * 0.60) + (fcf_vals_clean[-2] * 0.25) + (fcf_vals_clean[-3] * 0.15)
                     else:
-                        base_fcf_10y = sum(fcf_list[:3]) / min(3, len(fcf_list))
-                    ttm_fcf = safe_float(cached_i.get('freeCashflow'))
-                    if ttm_fcf > base_fcf_10y and base_fcf_10y > 0:
-                        base_fcf_10y = (base_fcf_10y * 0.5) + (ttm_fcf * 0.5)
+                        base_fcf_10y = sum(fcf_vals_clean[-3:]) / min(3, len(fcf_vals_clean))
 
-                    rev_fcf = fcf_list[::-1]
-                    rev_yrs = sorted_fcf_yrs_desc[::-1]
-                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(rev_fcf, rev_yrs)
+                    final_g_10y, st_code, sp_y, desc_s = calc_smart_cagr(fcf_vals_clean, fcf_years_clean)
                     st.session_state[f"fcf_meta_{tk}"] = {
                         "cagr": final_g_10y, "status": st_code, "span": sp_y, "desc": desc_s,
-                        "vals": rev_fcf, "years": [str(y) for y in rev_yrs],
-                        "neg_cnt": sum(1 for v in rev_fcf if v < 0)
+                        "vals": fcf_vals_clean, "years": [str(y) for y in fcf_years_clean],
+                        "neg_cnt": sum(1 for v in fcf_vals_clean if v < 0)
                     }
 
-                    dirs = [1 if rev_fcf[k] > rev_fcf[k-1]*1.3 else (-1 if rev_fcf[k] < rev_fcf[k-1]*0.7 else 0) for k in range(1, len(rev_fcf))]
+                    dirs = [1 if fcf_vals_clean[k] > fcf_vals_clean[k-1]*1.3 else (-1 if fcf_vals_clean[k] < fcf_vals_clean[k-1]*0.7 else 0) for k in range(1, len(fcf_vals_clean))]
                     if 1 in dirs and -1 in dirs: is_zigzag_10y = True
 
                 if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
@@ -5538,7 +5570,9 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
         except Exception:
             pass
 
+    # -------------------------------------------------------------
     # 4. 폴백: 공시 데이터 부재 시 yfinance 우회
+    # -------------------------------------------------------------
     base_fcf_10y, sh_dcf, final_g_10y, data_len, is_zigzag_10y = get_base_dcf_data(stk, cached_i)
     if a_pe_10y <= 0:
         a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
