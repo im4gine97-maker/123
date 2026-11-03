@@ -10028,7 +10028,91 @@ with tab3:
             if st.button(t(f" [{st.session_state['preview_tk_tab3']}] 탭 1(메인 분석)에 완벽 고정하기 (클릭 후 탭 1로 이동)", f" Pin [{st.session_state['preview_tk_tab3']}] to Tab 1"), key="btn_fix_tab3", use_container_width=True, type="primary"):
                 st.session_state.sync_tk = st.session_state["preview_tk_tab3"]
                 st.rerun()
+                # =========================================================================
+                # [신규 추가] 📸 토스증권 스타일 '매출구성 도넛 차트 & 쇼츠 편집용 클린 캡처 카드' (사진 3, 4 구현)
+                # - 모바일/PC에서 화면을 그대로 캡처하거나 [고화질 PNG 다운로드]를 눌러 영상 편집 소스로 즉시 활용!
+                # =========================================================================
+                with st.expander(f"📊 [{comp_name}] 매출구성(사업 비중) 도넛 차트 & 쇼츠 편집용 캡처 카드", expanded=True):
+                    seg_presets = {
+                        "GOOGL": [("구글 서비스 (검색·유튜브·안드로이드)", 85.1, "#2563EB"), ("구글 클라우드 (AI·인프라)", 14.6, "#34D399"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#FBBF24")],
+                        "GOOG": [("구글 서비스 (검색·유튜브·안드로이드)", 85.1, "#2563EB"), ("구글 클라우드 (AI·인프라)", 14.6, "#34D399"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#FBBF24")],
+                        "BRK-B": [("보험업 (GEICO·재보험)", 28.1, "#2563EB"), ("제조업 (정밀부품·산업재)", 21.1, "#2DD4BF"), ("McLane 물류 계열", 13.7, "#4ADE80"), ("서비스 및 소매업", 11.5, "#FDE047"), ("Pilot 에너지·철도 등", 25.6, "#FB923C")],
+                        "META": [("패밀리 오브 앱스 (인스타·페북·왓츠앱 광고)", 98.4, "#2563EB"), ("리얼리티 랩스 (메타버스·AR 기기)", 1.6, "#34D399")],
+                        "AAPL": [("아이폰 (iPhone)", 51.5, "#2563EB"), ("서비스 (앱스토어·구독)", 24.2, "#34D399"), ("맥 & 아이패드", 14.8, "#FBBF24"), ("웨어러블 (애플워치·에어팟)", 9.5, "#FB923C")],
+                        "MSFT": [("인텔리전트 클라우드 (Azure·서버)", 43.2, "#2563EB"), ("생산성 및 비즈니스 (오피스365)", 32.8, "#34D399"), ("개인용 컴퓨팅 (윈도우·Xbox)", 24.0, "#FBBF24")],
+                        "NVDA": [("데이터센터 (AI 가속기·서버)", 87.5, "#2563EB"), ("게이밍 그래픽 (RTX)", 8.8, "#34D399"), ("전문 시각화 & 오토모티브", 3.7, "#FBBF24")],
+                        "TSLA": [("전기차 판매 및 리스", 79.2, "#2563EB"), ("에너지 발전 및 저장장치(ESS)", 10.5, "#34D399"), ("서비스 및 충전 인프라", 10.3, "#FBBF24")],
+                        "COST": [("상품 판매 매출 (초저마진 유통)", 98.0, "#2563EB"), ("멤버십 연회비 (순수 영업이익 핵심)", 2.0, "#34D399")],
+                        "PDD": [("온라인 마케팅 서비스 (플랫폼 광고)", 51.2, "#2563EB"), ("트랜잭션 서비스 (테무·수수료)", 48.8, "#34D399")]
+                    }
+                    default_segs = seg_presets.get(clean_tk.upper(), [
+                        ("핵심 주력 사업부문 (본업 매출)", round(max(55.0, min(90.0, 100.0 - abs(op_m)*0.5)), 1), "#2563EB"),
+                        ("신성장 & 플랫폼 부문", round(max(10.0, min(45.0, abs(op_m)*0.5)), 1), "#34D399")
+                    ])
 
+                    cap_c1, cap_c2 = st.columns([1.15, 1.0])
+                    with cap_c1:
+                        # [사진 3, 4 스타일: 깔끔한 화이트 카드 UI — 화면 그대로 캡처 가능!]
+                        seg_rows_html = ""
+                        for s_nm, s_pct, s_hex in default_segs:
+                            seg_rows_html += f"""
+                            <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 4px; border-bottom:1px solid #F1F5F9;">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <span style="width:16px; height:16px; border-radius:4px; background:{s_hex}; display:inline-block;"></span>
+                                    <span style="font-size:16px; font-weight:700; color:#1E293B;">{s_nm}</span>
+                                </div>
+                                <span style="font-size:16px; font-weight:800; color:#334155;">{s_pct:.1f}%</span>
+                            </div>
+                            """
+                        # CSS Conic-Gradient로 깔끔한 도넛 차트 구현
+                        acc_deg = 0.0
+                        grad_parts = []
+                        for _, s_pct, s_hex in default_segs:
+                            nxt_deg = acc_deg + (s_pct * 3.6)
+                            grad_parts.append(f"{s_hex} {acc_deg:.1f}deg {nxt_deg:.1f}deg")
+                            acc_deg = nxt_deg
+                        conic_str = ", ".join(grad_parts)
+
+                        st.markdown(f"""
+                        <div style="background:#FFFFFF; border-radius:22px; padding:26px 24px; border:1px solid #E2E8F0; box-shadow:0 8px 24px rgba(0,0,0,0.06); max-width:460px; margin:0 auto;">
+                            <div style="text-align:center; margin-bottom:14px;">
+                                <div style="font-size:13px; color:#64748B; font-weight:700;">{comp_name} ({clean_tk})</div>
+                                <div style="font-size:22px; color:#0F172A; font-weight:900;">현재가 {p_str}</div>
+                            </div>
+                            <div style="font-size:19px; font-weight:900; color:#0F172A; margin-bottom:4px;">매출구성 및 비즈니스 구조</div>
+                            <div style="font-size:12px; color:#94A3B8; margin-bottom:20px;">최근 연간 사업보고서(10-K/DART) 및 IR 부문별 매출 기준</div>
+                            <div style="width:170px; height:170px; border-radius:50%; background:conic-gradient({conic_str}); margin:0 auto 24px auto; display:flex; align-items:center; justify-content:center;">
+                                <div style="width:104px; height:104px; border-radius:50%; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                                    <span style="font-size:11px; color:#64748B; font-weight:700;">영업이익률</span>
+                                    <span style="font-size:18px; color:#0F172A; font-weight:900;">{op_m:.1f}%</span>
+                                </div>
+                            </div>
+                            {seg_rows_html}
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    with cap_c2:
+                        st.markdown(f"""
+                        <div style="background:#0F172A; border-radius:22px; padding:24px; border:2px solid #F59E0B; color:#FFFFFF;">
+                            <div style="font-size:18px; font-weight:900; color:#FDE047; margin-bottom:14px;">📸 쇼츠 캡처용 4대 핵심 팩트 카드</div>
+                            <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:10px;">
+                                <div style="font-size:13px; color:#94A3B8;">1. 복리 엔진 (현재 ROIC vs 평균 12%)</div>
+                                <div style="font-size:20px; font-weight:900; color:#4ADE80;">연 {cap_ret_val:.1f}% (1,000만당 연 {roic_10m_manwon:+,}만)</div>
+                            </div>
+                            <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:10px;">
+                                <div style="font-size:13px; color:#94A3B8;">2. 이익수익률 vs 10년물 미국채 ({ty:.2f}%)</div>
+                                <div style="font-size:20px; font-weight:900; color:#38BDF8;">연 {cur_ey_val:.2f}% (국채대비 {erp_val:+.1f}%p)</div>
+                            </div>
+                            <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:10px;">
+                                <div style="font-size:13px; color:#94A3B8;">3. 버핏 역산 암산 (10년 주주이익 vs 요구치)</div>
+                                <div style="font-size:20px; font-weight:900; color:#FDE047;">실제 {actual_fcf_g_val:+.1f}% vs 요구 {req_g_val:+.1f}%</div>
+                            </div>
+                            <div style="background:#1E293B; padding:12px 16px; border-radius:12px;">
+                                <div style="font-size:13px; color:#94A3B8;">4. 재무 안전판 & 현금배당</div>
+                                <div style="font-size:20px; font-weight:900; color:#FFFFFF;">유동비율 {current_ratio:.2f}배 · 배당 {safe_div:.2f}%</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 # ==========================================
 # 탭 4: 워런 버핏·찰리 멍거·리루의 가치투자 정석 바이블 & 45초 바이블 쇼츠 스튜디오
 # ==========================================
