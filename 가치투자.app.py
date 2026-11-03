@@ -6657,12 +6657,10 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
-                    # 1. 세부 점수 합산 (내부 로직용 변수 유지)
-                    total_score_val = sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values())
-                    total_score_val = round(total_score_val)
-                    sign_tot = "+" if total_score_val > 0 else ""
-                
-                    # 2. 5대 체크리스트 판정 로직으로 바로 연결 (게이지 바 블록 없음)
+                    # -------------------------------------------------------------
+                    # 1. [찰리 멍거의 5대 정량 체크리스트] 판정 로직 (점수/게이지 바 완전 제거)
+                    # -------------------------------------------------------------
+                    
                     # ① 비즈니스 해자 (ROE / ROIC)
                     if is_financial:
                         if roe >= 10.0: c1_st, c1_sub = "pass", f"ROE {roe:.1f}%"
@@ -6674,7 +6672,7 @@ with tab1:
                         else: c1_st = "fail"
                         c1_sub = f"ROIC {roic_val:.1f}% · ROE {roe:.1f}%"
 
-                    # ② 경영진 & 주주환원 (거버넌스 점수 + 배당·자사주 총환원율)
+                    # ② 경영진 & 주주환원 (거버넌스 점수 + 배당·자사주 환원)
                     mgmt_sc = 0
                     for k_sb, v_sb in score_breakdown.items():
                         if "경영진" in k_sb or "Management" in k_sb:
@@ -6683,9 +6681,9 @@ with tab1:
                     if mgmt_sc >= 0 and (div >= 1.5 or mgmt_sc >= 7.0): c2_st = "pass"
                     elif mgmt_sc >= -5.0: c2_st = "warn"
                     else: c2_st = "fail"
-                    c2_sub = f"배당 {div:.1f}% · 거버넌스 {mgmt_sc:+.0f}점"
+                    c2_sub = f"배당 {div:.1f}% · 거버넌스 검증"
 
-                    # ③ 가격 안전마진 (버핏 10초 암산 역산: 1/현재PER + 요구성장률 = 10% vs 실제 FCF 성장률)
+                    # ③ 가격 안전마진 (버핏 10초 암산 역산: 1/현재PER + 요구성장률 = 10%)
                     if is_financial:
                         if 0 < pbr <= 1.0 and roe >= 9.0: c3_st = "pass"
                         elif 0 < pbr <= 1.3: c3_st = "warn"
@@ -6700,7 +6698,7 @@ with tab1:
                             c3_st = "fail"
                         c3_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF {actual_fcf_g_main:+.1f}%" if eff_cur_pe > 0 else "적자(역산불가)"
 
-                    # ④ 재무 생존력 (버핏·멍거식 주주이익 FCF 창출력 & 부채·유동성 방어력)
+                    # ④ 재무 생존력 (주주이익 FCF 창출력 & 부채·유동성 방어력)
                     if is_financial:
                         if roe >= 8.0 and pbr > 0: c4_st, c4_sub = "pass", "자본적정성 양호"
                         elif roe > 0: c4_st, c4_sub = "warn", "수익성 보통"
@@ -6733,10 +6731,19 @@ with tab1:
                     ]
 
                     pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
-                    warn_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "warn")
 
-                    # ▼▼▼ [수리 완료] 모바일/PC 뱃지 찌그러짐 및 '...' 글자 잘림 완벽 해결 ▼▼▼
-                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(205px, 1fr)); gap:10px; margin-top:22px; text-align:left; word-break:keep-all;'>"
+                    # -------------------------------------------------------------
+                    # 2. 체크리스트 헤더 (점수 노출 없이 "5개 중 N개 충족"만 깔끔하게 표기)
+                    # -------------------------------------------------------------
+                    chk_header_ko = f"📋 <b>[찰리 멍거의 5대 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>5개 중 {pass_cnt}개 기준 충족</span>"
+                    chk_header_en = f"📋 <b>[Munger's 5-Point Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/5 Passed</span>"
+                    
+                    st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
+
+                    # -------------------------------------------------------------
+                    # 3. 5대 체크리스트 카드 그리드 렌더링
+                    # -------------------------------------------------------------
+                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(205px, 1fr)); gap:10px; margin-top:10px; text-align:left; word-break:keep-all;'>"
                     for b_title, b_st, b_sub in munger_items:
                         if b_st == "pass":
                             ico, b_col, bg_c, bd_c, pill_bg = "✅", "#188038", "rgba(46, 204, 113, 0.10)", "rgba(46, 204, 113, 0.40)", "#2ecc71"
@@ -6758,6 +6765,7 @@ with tab1:
                             f"</div>"
                         )
                     badges_html += "</div>"
+                    st.markdown(badges_html, unsafe_allow_html=True)
 
                     op_clean_label = op_title.split("(")[0].strip()
                     chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트]<br><span style='font-size:1.18rem;'>5개 중 {pass_cnt}개 기준 충족</span>"
