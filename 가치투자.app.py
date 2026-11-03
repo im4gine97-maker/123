@@ -6654,6 +6654,12 @@ with tab1:
                     hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
                     buyback_yield_pct=bb_yield  # <--- 추가!
                 )
+
+                # ▼▼▼ 아래 3줄을 col_op1, col_op2 = st.columns(...) 바로 위에 꼭 넣어주세요 ▼▼▼
+                total_score_val = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
+                sign_tot = "+" if total_score_val > 0 else ""
+                # ▲▲▲ 여기까지 추가 ▲▲▲
+                
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
@@ -7042,26 +7048,7 @@ with tab1:
                         clean_p_txt += f"<br><span style='color:#74b9ff;'>[보조 DCF]</span> <span style='color:#8892b0;'>안전마진 {mos_val:+.1f}%</span>"
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
-                # ▼▼▼ 기존 easy_summary_msg 블록을 아래 코드로 교체하세요 ▼▼▼
-                easy_summary_msg = ""
-                if total_score_val >= 60:
-                    easy_summary_msg = " 정량 모델 분석 결과: 현금창출력 및 자본수익률 대비 현저한 안전마진(할인)이 산출되는 구간입니다."
-                elif total_score_val >= 40:
-                    easy_summary_msg = " 정량 모델 분석 결과: 역사적 평균 멀티플 및 추정 내재가치 대비 유의미하게 할인된 상태입니다."
-                elif total_score_val >= 20:
-                    easy_summary_msg = " 정량 모델 분석 결과: 비즈니스 해자 지표가 양호하며 모델상 적정가치 하단에 위치한 구간입니다."
-                elif total_score_val >= 0:
-                    easy_summary_msg = " 정량 모델 분석 결과: 현재 시장 가격과 모델상 추정 내재가치가 대체로 부합하는 중립 구간입니다."
-                elif total_score_val >= -20:
-                    easy_summary_msg = " 정량 모델 분석 결과: 기업 수익성은 양호하나 향후 성장 기대감이 현재 멀티플에 일부 선반영되어 있습니다."
-                elif total_score_val >= -40:
-                    easy_summary_msg = " 정량 모델 분석 결과: 과거 평균 및 DCF 모델 대비 할증되어 거래 중이므로 밸류에이션 부담 점검이 필요합니다."
-                elif total_score_val >= -60:
-                    easy_summary_msg = " 정량 모델 분석 결과: 실적 지표 대비 멀티플 할증 폭이 커서 모델상 안전마진이 확보되지 않는 구간입니다."
-                else:
-                    easy_summary_msg = " 정량 모델 분석 결과: 정량적 가치평가 모델의 설명 범위를 벗어난 극단적 할증 또는 펀더멘털 훼손 구간입니다."
-                # ▲▲▲ 여기까지 교체 ▲▲▲
-
+                
                 # 1. 사업 다각화 분석 실행 (HTML 렌더링 직전)
                 diversification_html = analyze_business_diversification(stk, i, tk, kr)
 
