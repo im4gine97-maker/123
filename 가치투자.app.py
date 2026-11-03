@@ -8042,7 +8042,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         # 1. 상단 블랙 헤더
                         header_sub_map = {
-                            "SCENE_HOOK": "🚨 10년 장부 팩트 & 기회비용 정밀 검증",
+                            "SCENE_HOOK": "10년 장부 팩트 & 기회비용 정밀 검증",
                             "SCENE_MOAT": "1. 본업 밑천 효율 vs 시장 자본비용",
                             "SCENE_BUFFETT": "2. 국채 금리 기회비용 & 주당 FCF 검증",
                             "SCENE_MACRO": "2. 국채 금리 기회비용 & 주당 FCF 검증",
@@ -8088,15 +8088,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             )
                             if scene_code == "SCENE_HOOK":
                                 draw.rounded_rectangle([38, 268, W - 38, 342], radius=14, fill=(195, 18, 32), outline=yellow_c, width=4)
-                                _fit_single_line(draw, W // 2, 305, W - 100, "⚠️ CAUTION : 장부와 가격의 괴리를 확인하라!", f_gothic, start_sz=30, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, W // 2, 305, W - 100, "CAUTION : 장부와 가격의 괴리를 확인하라!", f_gothic, start_sz=30, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
 
                             elif scene_code == "SCENE_SUMMARY":
                                 draw.rounded_rectangle([35, 265, W - 35, 335], radius=16, fill=(18, 38, 74), outline=yellow_c, width=3)
                                 _fit_single_line(draw, W // 2, 300, W - 100, f"★ {comp_name} : 밑천 ROIC {cap_ret_val:.1f}% · 주주 이익수익률 {cur_ey_val:.2f}%", f_gothic, start_sz=26, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
                                 # 버튼 위치를 Y: 680~745로 조정하여 강단 및 자막과 완전 분리
                                 cta_boxes = [
-                                    (40, 680, 345, 745, "💬 다음 종목 댓글 신청!", (220, 38, 68)),
-                                    (375, 680, 680, 745, "🔖 저장 & 팔로우 클릭", (0, 185, 95))
+                                    (40, 680, 345, 745, "다음 종목 댓글 신청!", (220, 38, 68)),
+                                    (375, 680, 680, 745, "저장 & 팔로우 클릭", (0, 185, 95))
                                 ]
                                 for bx1, by1, bx2, by2, btxt, bcol in cta_boxes:
                                     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=3)
