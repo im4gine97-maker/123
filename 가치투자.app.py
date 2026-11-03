@@ -6718,15 +6718,7 @@ with tab1:
                         f"</div>"
                     )
                     st.markdown(munger_banner_html, unsafe_allow_html=True)
-                    # ✅ [추가] 6703행 바로 윗줄에 삽입하여 NameError 해결
-                    if 'munger_banner_html' not in locals():
-                        munger_banner_html = """
-                        <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 14px 18px; border-radius: 12px; border-left: 5px solid #f59e0b; margin: 14px 0;">
-                            <div style="color: #fde047; font-weight: 800; font-size: 14px; margin-bottom: 4px;">💡 찰리 멍거의 격자틀 정신 모형 & 가치투자 철학</div>
-                            <div style="color: #e2e8f0; font-size: 12px; line-height: 1.5;">"역산하라, 언제나 역산하라(Invert, always invert). 비즈니스의 구조적 해자와 경영진의 정직성을 다학제적 멘탈 모델로 검증하십시오."</div>
-                        </div>
-                        """
-                    st.markdown(munger_banner_html, unsafe_allow_html=True)
+
 
                     # ▼▼▼ st.markdown(munger_banner_html, unsafe_allow_html=True) 바로 아래(약 2180행)에 추가 ▼▼▼
                     guru_holders = get_guru_holders_for_ticker(tk)
