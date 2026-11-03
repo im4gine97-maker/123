@@ -6299,92 +6299,92 @@ with tab1:
                             else:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
-        # =========================================================================
-        # [상시 노출] 📸 토스증권 스타일 매출구성 & 캡처 전용 요약 카드 (사진 3, 4 구현)
-        # =========================================================================
-        st.markdown("---")
-        toss_c1, toss_c2 = st.columns([1.15, 1.0])
-
-        seg_presets = {
-            "GOOGL": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
-            "GOOG": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
-            "META": [("패밀리 오브 앱스 (인스타·페북·광고)", 98.4, "#2563EB"), ("리얼리티 랩스 (메타버스·퀘스트)", 1.6, "#10B981")],
-            "BRK-B": [("보험업 (GEICO·재보험)", 28.1, "#2563EB"), ("제조업 (산업재·정밀부품)", 21.1, "#0EA5E9"), ("McLane 물류 계열", 13.7, "#10B981"), ("서비스 및 소매업", 11.5, "#F59E0B"), ("에너지 및 철도 등", 25.6, "#F97316")],
-            "AAPL": [("아이폰 (iPhone)", 51.5, "#2563EB"), ("서비스 (앱스토어·구독)", 24.2, "#10B981"), ("맥 & 아이패드", 14.8, "#F59E0B"), ("웨어러블 & 액세서리", 9.5, "#F97316")],
-            "MSFT": [("클라우드 (Azure·서버)", 43.2, "#2563EB"), ("생산성 비즈니스 (Office·LinkedIn)", 32.8, "#10B981"), ("개인 컴퓨팅 (Windows·Xbox)", 24.0, "#F59E0B")],
-            "NVDA": [("데이터센터 (AI 가속기·GPU)", 87.5, "#2563EB"), ("게이밍 그래픽 (GeForce)", 8.8, "#10B981"), ("전문 시각화 및 전장", 3.7, "#F59E0B")],
-            "TSLA": [("전기차 판매 및 리스", 79.2, "#2563EB"), ("에너지 저장장치(ESS) 및 태양광", 10.5, "#10B981"), ("서비스 및 슈퍼차저 인프라", 10.3, "#F59E0B")],
-            "COST": [("순수 상품 판매 (초저마진 유통)", 98.0, "#2563EB"), ("멤버십 연회비 (영업이익 핵심)", 2.0, "#10B981")],
-            "PDD": [("온라인 마케팅 (플랫폼 광고)", 51.2, "#2563EB"), ("거래 수수료 (테무·결제)", 48.8, "#10B981")]
-        }
-        active_segs = seg_presets.get(clean_tk.upper(), [
-            ("핵심 본업 주력 사업부문", round(max(55.0, 100.0 - abs(op_m)*0.5), 1), "#2563EB"),
-            ("신성장 플랫폼 및 기타 사업", round(min(45.0, abs(op_m)*0.5), 1), "#10B981")
-        ])
-
-        with toss_c1:
-            # 사진 3, 4 스타일의 클린 도넛 차트 카드 (모바일 캡처 최적화)
-            seg_list_html = ""
-            for s_nm, s_val, s_col in active_segs:
-                seg_list_html += f"""
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F1F5F9;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="width:14px; height:14px; border-radius:4px; background:{s_col}; display:inline-block;"></span>
-                        <span style="font-size:15px; font-weight:700; color:#1E293B;">{s_nm}</span>
+                # =========================================================================
+                # [상시 노출] 📸 토스증권 스타일 매출구성 & 캡처 전용 요약 카드 (사진 3, 4 구현)
+                # =========================================================================
+                st.markdown("---")
+                toss_c1, toss_c2 = st.columns([1.15, 1.0])
+            
+                seg_presets = {
+                    "GOOGL": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
+                    "GOOG": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
+                    "META": [("패밀리 오브 앱스 (인스타·페북·광고)", 98.4, "#2563EB"), ("리얼리티 랩스 (메타버스·퀘스트)", 1.6, "#10B981")],
+                    "BRK-B": [("보험업 (GEICO·재보험)", 28.1, "#2563EB"), ("제조업 (산업재·정밀부품)", 21.1, "#0EA5E9"), ("McLane 물류 계열", 13.7, "#10B981"), ("서비스 및 소매업", 11.5, "#F59E0B"), ("에너지 및 철도 등", 25.6, "#F97316")],
+                    "AAPL": [("아이폰 (iPhone)", 51.5, "#2563EB"), ("서비스 (앱스토어·구독)", 24.2, "#10B981"), ("맥 & 아이패드", 14.8, "#F59E0B"), ("웨어러블 & 액세서리", 9.5, "#F97316")],
+                    "MSFT": [("클라우드 (Azure·서버)", 43.2, "#2563EB"), ("생산성 비즈니스 (Office·LinkedIn)", 32.8, "#10B981"), ("개인 컴퓨팅 (Windows·Xbox)", 24.0, "#F59E0B")],
+                    "NVDA": [("데이터센터 (AI 가속기·GPU)", 87.5, "#2563EB"), ("게이밍 그래픽 (GeForce)", 8.8, "#10B981"), ("전문 시각화 및 전장", 3.7, "#F59E0B")],
+                    "TSLA": [("전기차 판매 및 리스", 79.2, "#2563EB"), ("에너지 저장장치(ESS) 및 태양광", 10.5, "#10B981"), ("서비스 및 슈퍼차저 인프라", 10.3, "#F59E0B")],
+                    "COST": [("순수 상품 판매 (초저마진 유통)", 98.0, "#2563EB"), ("멤버십 연회비 (영업이익 핵심)", 2.0, "#10B981")],
+                    "PDD": [("온라인 마케팅 (플랫폼 광고)", 51.2, "#2563EB"), ("거래 수수료 (테무·결제)", 48.8, "#10B981")]
+                }
+                active_segs = seg_presets.get(clean_tk.upper(), [
+                    ("핵심 본업 주력 사업부문", round(max(55.0, 100.0 - abs(op_m)*0.5), 1), "#2563EB"),
+                    ("신성장 플랫폼 및 기타 사업", round(min(45.0, abs(op_m)*0.5), 1), "#10B981")
+                ])
+            
+                with toss_c1:
+                    # 사진 3, 4 스타일의 클린 도넛 차트 카드 (모바일 캡처 최적화)
+                    seg_list_html = ""
+                    for s_nm, s_val, s_col in active_segs:
+                        seg_list_html += f"""
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F1F5F9;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="width:14px; height:14px; border-radius:4px; background:{s_col}; display:inline-block;"></span>
+                                <span style="font-size:15px; font-weight:700; color:#1E293B;">{s_nm}</span>
+                            </div>
+                            <span style="font-size:15px; font-weight:800; color:#334155;">{s_val:.1f}%</span>
+                        </div>
+                        """
+                    conic_acc = 0.0
+                    grad_tokens = []
+                    for _, s_val, s_col in active_segs:
+                        deg_next = conic_acc + (s_val * 3.6)
+                        grad_tokens.append(f"{s_col} {conic_acc:.1f}deg {deg_next:.1f}deg")
+                        conic_acc = deg_next
+                    conic_style = ", ".join(grad_tokens)
+            
+                    st.markdown(f"""
+                    <div style="background:#FFFFFF; border-radius:24px; padding:24px; border:1px solid #E2E8F0; box-shadow:0 8px 24px rgba(0,0,0,0.06); font-family:sans-serif;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <div>
+                                <div style="font-size:13px; color:#64748B; font-weight:700;">{comp_name} ({clean_tk})</div>
+                                <div style="font-size:22px; color:#0F172A; font-weight:900;">매출구성</div>
+                            </div>
+                            <div style="font-size:18px; color:#2563EB; font-weight:900;">{p_str}</div>
+                        </div>
+                        <div style="width:160px; height:160px; border-radius:50%; background:conic-gradient({conic_style}); margin:14px auto 20px auto; display:flex; align-items:center; justify-content:center;">
+                            <div style="width:100px; height:100px; border-radius:50%; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                                <span style="font-size:11px; color:#64748B; font-weight:700;">영업마진</span>
+                                <span style="font-size:18px; color:#0F172A; font-weight:900;">{op_m:.1f}%</span>
+                            </div>
+                        </div>
+                        {seg_list_html}
                     </div>
-                    <span style="font-size:15px; font-weight:800; color:#334155;">{s_val:.1f}%</span>
-                </div>
-                """
-            conic_acc = 0.0
-            grad_tokens = []
-            for _, s_val, s_col in active_segs:
-                deg_next = conic_acc + (s_val * 3.6)
-                grad_tokens.append(f"{s_col} {conic_acc:.1f}deg {deg_next:.1f}deg")
-                conic_acc = deg_next
-            conic_style = ", ".join(grad_tokens)
-
-            st.markdown(f"""
-            <div style="background:#FFFFFF; border-radius:24px; padding:24px; border:1px solid #E2E8F0; box-shadow:0 8px 24px rgba(0,0,0,0.06); font-family:sans-serif;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                    <div>
-                        <div style="font-size:13px; color:#64748B; font-weight:700;">{comp_name} ({clean_tk})</div>
-                        <div style="font-size:22px; color:#0F172A; font-weight:900;">매출구성</div>
+                    """, unsafe_allow_html=True)
+            
+                with toss_c2:
+                    st.markdown(f"""
+                    <div style="background:#0F172A; border-radius:24px; padding:24px; border:2px solid #F59E0B; color:#FFFFFF; font-family:sans-serif;">
+                        <div style="font-size:18px; font-weight:900; color:#FDE047; margin-bottom:14px;">📸 쇼츠 캡처 전용 4대 핵심 팩트</div>
+                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
+                            <div style="font-size:12px; color:#94A3B8;">1. 복리 속도 (현재 ROIC vs 자본비용 12%)</div>
+                            <div style="font-size:20px; font-weight:900; color:#4ADE80;">연 {cap_ret_val:.1f}% (1,000만당 연 {roic_10m_manwon:+,}만)</div>
+                        </div>
+                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
+                            <div style="font-size:12px; color:#94A3B8;">2. 이익수익률 vs 무위험 미국채 ({ty:.2f}%)</div>
+                            <div style="font-size:20px; font-weight:900; color:#38BDF8;">연 {cur_ey_val:.2f}% (국채대비 {erp_val:+.1f}%p)</div>
+                        </div>
+                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
+                            <div style="font-size:12px; color:#94A3B8;">3. 버핏 역산 안전마진 (10년 실제 vs 요구)</div>
+                            <div style="font-size:20px; font-weight:900; color:#FDE047;">실제 {actual_fcf_g_val:+.1f}% vs 요구 {req_g_val:+.1f}% ({g_margin_val:+.1f}%p)</div>
+                        </div>
+                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px;">
+                            <div style="font-size:12px; color:#94A3B8;">4. 재무 안전판 & 배당</div>
+                            <div style="font-size:20px; font-weight:900; color:#FFFFFF;">유동비율 {current_ratio:.2f}배 · 배당 {safe_div:.2f}%</div>
+                        </div>
                     </div>
-                    <div style="font-size:18px; color:#2563EB; font-weight:900;">{p_str}</div>
-                </div>
-                <div style="width:160px; height:160px; border-radius:50%; background:conic-gradient({conic_style}); margin:14px auto 20px auto; display:flex; align-items:center; justify-content:center;">
-                    <div style="width:100px; height:100px; border-radius:50%; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <span style="font-size:11px; color:#64748B; font-weight:700;">영업마진</span>
-                        <span style="font-size:18px; color:#0F172A; font-weight:900;">{op_m:.1f}%</span>
-                    </div>
-                </div>
-                {seg_list_html}
-            </div>
-            """, unsafe_allow_html=True)
-
-        with toss_c2:
-            st.markdown(f"""
-            <div style="background:#0F172A; border-radius:24px; padding:24px; border:2px solid #F59E0B; color:#FFFFFF; font-family:sans-serif;">
-                <div style="font-size:18px; font-weight:900; color:#FDE047; margin-bottom:14px;">📸 쇼츠 캡처 전용 4대 핵심 팩트</div>
-                <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                    <div style="font-size:12px; color:#94A3B8;">1. 복리 속도 (현재 ROIC vs 자본비용 12%)</div>
-                    <div style="font-size:20px; font-weight:900; color:#4ADE80;">연 {cap_ret_val:.1f}% (1,000만당 연 {roic_10m_manwon:+,}만)</div>
-                </div>
-                <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                    <div style="font-size:12px; color:#94A3B8;">2. 이익수익률 vs 무위험 미국채 ({ty:.2f}%)</div>
-                    <div style="font-size:20px; font-weight:900; color:#38BDF8;">연 {cur_ey_val:.2f}% (국채대비 {erp_val:+.1f}%p)</div>
-                </div>
-                <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                    <div style="font-size:12px; color:#94A3B8;">3. 버핏 역산 안전마진 (10년 실제 vs 요구)</div>
-                    <div style="font-size:20px; font-weight:900; color:#FDE047;">실제 {actual_fcf_g_val:+.1f}% vs 요구 {req_g_val:+.1f}% ({g_margin_val:+.1f}%p)</div>
-                </div>
-                <div style="background:#1E293B; padding:12px 16px; border-radius:12px;">
-                    <div style="font-size:12px; color:#94A3B8;">4. 재무 안전판 & 배당</div>
-                    <div style="font-size:20px; font-weight:900; color:#FFFFFF;">유동비율 {current_ratio:.2f}배 · 배당 {safe_div:.2f}%</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        st.markdown("---")
+                    """, unsafe_allow_html=True)
+                st.markdown("---")
                 # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
                 cd = tk.split('.')[0] if kr else tk  # <--- [수정] 에러 방지를 위해 cd 변수 정의 추가
                 a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
