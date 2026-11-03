@@ -7802,39 +7802,39 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
                     # =========================================================================
-                    # [V31 메타 템포 대본] 37초 칼각 + 화면 그래픽과 1:1 칼동기화 대본
+                    # [V31 메타 템포 대본] 메타 영상 스타일 숫자 압축 & 간소화 (말 치환 적용)
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
                     req_int = int(round(req_g_val))
                     fcf_int = int(round(actual_fcf_g_val))
 
-                    # 1) 해자 (밑천 효율 vs 주주 수익률)
+                    # 1) 해자 (보통 12% vs 기업 ROIC, 1,000만 원당 창출액만 살리고 부차적 수치 제외)
                     if cap_ret_val >= 50.0:
-                        moat_line1 = f"첫째 밑천 복리 속도야! / 보통 12% 버는데 / 여긴 사업 밑천 기준 연 {roic_int}%를 뽑아내!"
-                        moat_line2 = f"회사 밑천 1,000만 원당 900만 원을 벌지만 / 주가가 비싸서 내 실제 주주 수익률은 연 {cur_ey_val:.1f}%에 불과해!"
+                        moat_line1 = f"첫째 복리 속도야! / 보통 12% 버는데 / 여긴 연 {roic_int}%를 뽑아내!"
+                        moat_line2 = f"밑천 1,000만 원당 {roic_10m_manwon:,}만 원을 벌 만큼 / 가격결정력이 막강해!"
                     else:
                         moat_line1 = f"첫째 복리 속도야! / 보통 12% 버는데 / 여긴 현재 연 {roic_int}%를 벌어!"
-                        moat_line2 = f"1,000만 원이면 연에 {roic_10m_manwon:,}만 원이고 / 영업마진도 {op_m:.1f}%라 가격결정력이 막강해!"
+                        moat_line2 = f"1,000만 원이면 연에 {roic_10m_manwon:,}만 원이고 / 영업마진도 높아 가격결정력이 막강해!"
 
-                    # 2) 가격 (국채 비교 & 10년 FCF 역산 - 화면 등장 순서와 100% 일치!)
+                    # 2) 가격 (소수점 이익수익률/국채금리 제거 -> '국채보다 낮다/높다'로 치환, 필수 성장률만 유지)
                     if erp_val < 0:
-                        price_line1 = f"둘째 버핏의 역산법이야! / 이익수익률은 연 {cur_ey_val:.1f}%로 국채({ty:.1f}%)보다 낮아."
-                        price_line2 = f"채권보다 나으려면 주당 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 / 미래 기대감이 꽤 들어있어!"
+                        price_line1 = "둘째 버핏의 역산법이야! / 이익수익률은 국채 대비 낮지만"
+                        price_line2 = f"현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 그만큼만 자라서 / 미래 기대감이 들어있어!"
                     else:
-                        price_line1 = f"둘째 버핏의 역산법이야! / 이익수익률이 연 {cur_ey_val:.1f}%로 국채({ty:.1f}%)보다 높아."
-                        price_line2 = f"현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 커져서 / 안전마진이 확실히 남아!"
+                        price_line1 = "둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아서"
+                        price_line2 = f"현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 커져서 / 안전마진이 남아!"
 
-                    # 3) 안전판 (공급망 체력 & 자사주 소각)
+                    # 3) 안전판 (유동비율 0.89배, 배당 0.31% 등 소수점 제거 -> 말로 압축)
                     if cap_ret_val >= 50.0 or abs(bb_yield) >= 2.0:
-                        saf_line1 = f"셋째 재무 안전판이야! / 유동비율은 1배 안팎이지만 막강한 공급망으로 버텨."
-                        saf_line2 = f"배당은 연 {safe_div:.1f}%로 적지만 / 대규모 자사주 소각으로 주당 가치를 끌어올리는 구조야!"
+                        saf_line1 = "셋째 재무 안전판이야! / 공급망 체력이 워낙 막강하고"
+                        saf_line2 = f"{'배당은 적지만 / ' if safe_div < 1.0 else '배당도 챙겨주며 / '}대규모 자사주 소각으로 주당 가치를 올려줘!"
                     else:
-                        saf_line1 = f"셋째 재무 안전판이야! / 유동비율이 {current_ratio:.2f}배로 튼튼하고 배당도 조금 챙겨줘."
-                        saf_line2 = f"번 돈을 본업에 재투자해서 스스로 굴리는 복리 구조야!"
+                        saf_line1 = f"셋째 재무 안전판이야! / 유동비율이 튼튼하고 {'배당도 챙겨줘.' if safe_div > 0 else '부채 관리가 철저해.'}"
+                        saf_line2 = "번 돈을 본업에 재투자해서 / 굴리는 복리 구조야!"
 
-                    # 37초 초밀착 8컷 구성 (초반 훅 1컷 압축!)
+                    # 35~40초 완독 초압축 8컷 구성 (메타 영상 구조 100% 일치)
                     default_12cuts_script = [
-                        f"[도입] 주식이 싸다고 무조건 사면 큰일 나! / {comp_name} 10년 장부 팩트로 기회비용을 까보자!",
+                        f"[도입] 주식이 싸다고 무조건 사면 큰일 나! / {comp_name}에 안전마진이 있는지 10년 장부로 검증해 보자!",
                         f"[해자] {moat_line1}",
                         f"[해자] {moat_line2}",
                         f"[가격] {price_line1}",
@@ -7843,7 +7843,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[안전] {saf_line2}",
                         f"[결론] 너라면 지금 가격에 {comp_name} 살래? / 다음 종목을 댓글로 남겨줘!"
                     ]
-
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V31_PERFECT_SYNC"
                     mode_tag_k = f"KO_{ov_sig}"
                     
@@ -7981,7 +7980,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         chalk_font_path = os.path.join(font_dir, "NanumPenScript-Regular.ttf")
                         gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                     
-                        # 분필체 자동 다운로드
+                        # 1. 칠판 분필체 자동 다운로드
                         if not os.path.exists(chalk_font_path):
                             try:
                                 url_chalk = "https://github.com/google/fonts/raw/main/ofl/nanumpenscript/NanumPenScript-Regular.ttf"
@@ -7989,7 +7988,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             except Exception:
                                 chalk_font_path = None
                     
-                        # 고딕 볼드체 자동 다운로드 (이 부분이 누락되어 한글이 깨졌음)
+                        # 2. 자막/헤더용 고딕 볼드체 자동 다운로드 (글자 깨짐 방지 핵심)
                         if not os.path.exists(gothic_font_path):
                             try:
                                 url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
@@ -8011,7 +8010,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             return ImageFont.load_default()
                     
                         return get_font
-
                     def _clean_font_safe_text(txt):
                         if txt is None:
                             return ""
