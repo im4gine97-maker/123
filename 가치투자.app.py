@@ -7973,40 +7973,29 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     @st.cache_resource
                     def _load_korean_pil_fonts():
-                        """
-                        [고딕 & 분필체 완전 분리 폰트 로더]
-                        - is_chalk=True  : 칠판 판서 전용 나눔손글씨 펜체 (Chalk Font)
-                        - is_chalk=False : 자막/헤더/안내문 전용 볼드 고딕체 (절대 손글씨로 폴백되지 않음!)
-                        """
-                        import urllib.request, os
+                        import os, urllib.request
                         from PIL import ImageFont
                     
                         font_dir = "/tmp/agie_fonts"
                         os.makedirs(font_dir, exist_ok=True)
                         chalk_font_path = os.path.join(font_dir, "NanumPenScript-Regular.ttf")
+                        gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
                     
+                        # 분필체 자동 다운로드
                         if not os.path.exists(chalk_font_path):
                             try:
-                                url = "https://github.com/google/fonts/raw/main/ofl/nanumpenscript/NanumPenScript-Regular.ttf"
-                                urllib.request.urlretrieve(url, chalk_font_path)
+                                url_chalk = "https://github.com/google/fonts/raw/main/ofl/nanumpenscript/NanumPenScript-Regular.ttf"
+                                urllib.request.urlretrieve(url_chalk, chalk_font_path)
                             except Exception:
                                 chalk_font_path = None
                     
-                        # 순수 시스템 고딕 폰트만 탐색 (여기에 chalk_font_path를 절대 넣지 않음!)
-                        gothic_candidates = [
-                            "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
-                            "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
-                            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-                            "/usr/share/fonts/truetype/noto/NotoSansKR-Bold.otf",
-                            "C:\\Windows\\Fonts\\malgunbd.ttf",
-                            "C:\\Windows\\Fonts\\malgun.ttf",
-                            "/System/Library/Fonts/AppleSDGothicNeo.ttc"
-                        ]
-                        primary_gothic = None
-                        for gp in gothic_candidates:
-                            if os.path.exists(gp):
-                                primary_gothic = gp
-                                break
+                        # 고딕 볼드체 자동 다운로드 (이 부분이 누락되어 한글이 깨졌음)
+                        if not os.path.exists(gothic_font_path):
+                            try:
+                                url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
+                                urllib.request.urlretrieve(url_gothic, gothic_font_path)
+                            except Exception:
+                                gothic_font_path = None
                     
                         def get_font(size, is_chalk=True):
                             if is_chalk and chalk_font_path and os.path.exists(chalk_font_path):
@@ -8014,9 +8003,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     return ImageFont.truetype(chalk_font_path, int(size * 1.15))
                                 except Exception:
                                     pass
-                            if primary_gothic and os.path.exists(primary_gothic):
+                            if gothic_font_path and os.path.exists(gothic_font_path):
                                 try:
-                                    return ImageFont.truetype(primary_gothic, int(size))
+                                    return ImageFont.truetype(gothic_font_path, int(size))
                                 except Exception:
                                     pass
                             return ImageFont.load_default()
