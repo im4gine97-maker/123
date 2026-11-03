@@ -4256,25 +4256,25 @@ def get_comprehensive_investment_opinion(mos, pmos, roe_current, roic_current, e
     score = round(final_score)
 
     if score >= 65:
-        title, color = t(f"극단적 안전마진 구간 ({score}점)", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
+        title, color = t(f"극단적 안전마진 구간", f"Extreme Margin of Safety ({score} pts)"), "#0050b3"
         reason = t("강력한 경제적 해자와 정직한 경영진을 갖춘 기업이 버핏의 10초 암산 역산 기준에서도 명백한 염가에 거래되는 구간입니다.", "Great moat business trading at an obvious bargain on Buffett's mental math.")
     elif score >= 45:
-        title, color = t(f"높은 안전마진 구간 ({score}점)", f"High Margin of Safety ({score} pts)"), "#0097e6"
+        title, color = t(f"높은 안전마진 구간", f"High Margin of Safety ({score} pts)"), "#0097e6"
         reason = t("복리의 바퀴(ROIC)가 견고하게 작동 중이며, 암산 요구 성장률 대비 실제 현금창출 성장률이 훨씬 높아 안전마진이 충분합니다.", "Solid ROIC compounding engine with actual FCF growth well above implied expectations.")
     elif score >= 25:
-        title, color = t(f"합리적 가치 구간 ({score}점)", f"Fair Value Buy Zone ({score} pts)"), "#2ecc71"
+        title, color = t(f"합리적 가치 구간", f"Fair Value Buy Zone ({score} pts)"), "#2ecc71"
         reason = t("버핏의 원칙('위대한 기업을 적당한 가격에 산다')에 부합하며, 현재 이익수익률과 FCF 성장률이 10% 허들을 넘어서는 구간입니다.", "Aligned with Buffett's principle: 'A wonderful company at a fair price.'")
     elif score >= 5:
-        title, color = t(f"내재가치 부합 / 관망 ({score}점)", f"Fair Value Hold ({score} pts)"), "#f1c40f"
+        title, color = t(f"내재가치 부합 / 관망", f"Fair Value Hold ({score} pts)"), "#f1c40f"
         reason = t("비즈니스 해자는 양호하나 현재 주가에 이미 적정 수준의 성장이 반영되어 있습니다. 미스터 마켓의 일시적 패닉을 기다리십시오.", "Fairly priced. Moat is intact but lacks an obvious discount cushion.")
     elif score >= -15:
-        title, color = t(f"미래 성장 선반영 주의 ({score}점)", f"Growth Priced In ({score} pts)"), "#fa8231"
+        title, color = t(f"미래 성장 선반영 주의", f"Growth Priced In ({score} pts)"), "#fa8231"
         reason = t("버핏의 10% 암산 허들을 맞추기 위해 상당히 높은 미래 성장이 요구되는 구간입니다. 실적 둔화 시 멀티플 수축 위험이 있습니다.", "High future growth is already priced in.")
     elif score >= -35:
-        title, color = t(f"밸류에이션 과열 경고 ({score}점)", f"Valuation Warning ({score} pts)"), "#ff4757"
+        title, color = t(f"밸류에이션 과열 경고", f"Valuation Warning ({score} pts)"), "#ff4757"
         reason = t("거시 기회비용(국채 금리) 및 실제 FCF 성장률 대비 주가가 과도하게 할증되어 있어 영구적 자본 손실 위험이 존재합니다.", "Unfavorable risk-reward compared to Treasury yield and actual FCF growth.")
     else:
-        title, color = t(f"자본파괴 / 심각한 거버넌스 훼손 ({score}점)", f"Capital Destroyer / Severe Risk ({score} pts)"), "#8c14fc"
+        title, color = t(f"자본파괴 / 심각한 거버넌스 훼손", f"Capital Destroyer / Severe Risk ({score} pts)"), "#8c14fc"
         reason = t("최고경영진의 진실성이 결여되었거나, 자본비용을 지속 훼손하는 가치 함정(Value Trap) 상태입니다. 즉각 검토를 중단하십시오.", "Integrity compromised or structural value trap.")
 
     return title, color, reason, score_details
@@ -6594,11 +6594,6 @@ with tab1:
                     total_score_val = round(total_score_val)
                     sign_tot = "+" if total_score_val > 0 else ""
                     
-                    gauge_score = max(-100, min(100, total_score_val))
-                    marker_pos = ((gauge_score + 100) / 200) * 100
-                    if marker_pos < 2: marker_pos = 2
-                    if marker_pos > 98: marker_pos = 98
-
                     # 2. [찰리 멍거의 5대 정량 체크리스트] 개별 관문 판정 로직 (F-Score 완전 제거 버전)
                     # ① 비즈니스 해자 (ROE / ROIC)
                     if is_financial:
@@ -6697,8 +6692,8 @@ with tab1:
                     badges_html += "</div>"
 
                     op_clean_label = op_title.split("(")[0].strip()
-                    chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트]<br><span style='font-size:1.18rem;'>5개 중 {pass_cnt}개 기준 충족 ({sign_tot}{total_score_val}점)</span>"
-                    chk_header_en = f"📋 [Munger's 5-Point Quantitative Checklist]<br><span style='font-size:1.18rem;'>{pass_cnt}/5 Passed ({sign_tot}{total_score_val} pts)</span>"
+                    chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트]<br><span style='font-size:1.18rem;'>5개 중 {pass_cnt}개 기준 충족</span>"
+                    chk_header_en = f"📋 [Munger's 5-Point Quantitative Checklist]<br><span style='font-size:1.18rem;'>{pass_cnt}/5 Passed</span>"
                     munger_banner_html = (
                         f"<div style='padding: 25px 20px; border-radius: 16px; border: 1.5px solid {op_color}; background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color: var(--text-color); margin-bottom: 15px; margin-top: 15px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.12); word-break: keep-all;'>"
                         f"<h3 style='margin: 0 0 8px 0; color: {op_color}; font-size: 1.35rem; line-height: 1.4; letter-spacing: -0.5px; word-break: keep-all;'>{t(chk_header_ko, chk_header_en)}</h3>"
@@ -7012,11 +7007,8 @@ with tab1:
 
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
-                    
-                    # 1. 최상단: 직관적 결론
-                    f"<div style='grid-column: 1 / -1; font-weight: 800; font-size: 1.2rem; color: #fff; background: {op_color}; padding: 15px 20px; border-radius: 12px; text-align: center; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>"
-                    f"{easy_summary_msg}</div>"
-
+    
+                # 바로 첫 번째 지표 카드(현재 주가)로 시작
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 배당수익률</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
