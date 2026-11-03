@@ -3774,6 +3774,74 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
     except:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # =========================================================================
+# [신규 엔진] 사업 다각화 & 단일 실패 지점(SPOF) 차단 검증기
+# =========================================================================
+def analyze_business_diversification(stk, i, tk, kr):
+"""
+공학적 다중화 모델 검증:
+1) 단일 제품/고객사 의존도(Single Point of Failure)
+2) 매출 포트폴리오 다각화(하드웨어+소프트웨어/서비스, 다변화된 제품군)
+3) 글로벌 지역별 매출 분산도
+"""
+if stk is None or not isinstance(i, dict):
+    return "<span style='color:#8892b0;'>데이터 부족 (확인 불가)</span>"
+
+tk_u = str(tk).upper().strip()
+summary = str(i.get('longBusinessSummary', i.get('kr_sum', ''))).lower()
+sector = str(i.get('sector', '')).lower()
+industry = str(i.get('industry', '')).lower()
+
+# 1. 대표 기업별 고유 사업 다각화 DB (공시 기반 팩트 체크)
+diversification_db = {
+    # 빅테크 / 글로벌
+    "AAPL": ("최상 (다각화 우수)", "#2ecc71", "아이폰(50%) + 서비스/구독(25%) + 웨어러블/Mac(25%) 및 글로벌 고른 분산으로 단일 실패 지점 차단 완료"),
+    "MSFT": ("최상 (다각화 완벽)", "#2ecc71", "클라우드(Azure), 생산성(오피스), 개인컴퓨팅(Windows/게임) 3대 축이 균등 분할된 교과서적 포트폴리오"),
+    "GOOGL": ("양호 (수익원 다변화 진행)", "#74b9ff", "검색 광고 의존도(70%)가 높으나 유튜브 구독 및 클라우드(GCP) 고속 성장으로 다중화 확장 중"),
+    "GOOG": ("양호 (수익원 다변화 진행)", "#74b9ff", "검색 광고 의존도(70%)가 높으나 유튜브 구독 및 클라우드(GCP) 고속 성장으로 다중화 확장 중"),
+    "AMZN": ("최상 (다각화 완벽)", "#2ecc71", "이커머스 유통 + 고마진 클라우드(AWS) + 리테일 미디어 광고의 삼각편대로 현금흐름 다중 백업"),
+    "NVDA": ("보통 (AI 칩 집중)", "#fdcb6e", "데이터센터 GPU 매출 비중 85% 이상 집중. 압도적 독점이나 AI 인프라 단일 사이클 의존도 상존"),
+    "TSLA": ("보통 (자동차 집중)", "#fdcb6e", "전기차 매출 비중 80% 이상. 에너지 스토리지와 FSD 구독 매출로 다각화 추진 중이나 차량 판매 의존"),
+    "BRK-B": ("최상 (지주사 다각화 종결자)", "#2ecc71", "보험, 철도, 에너지, 소비재, 금융 투자가 결합된 전 세계 최강의 다중 백업 안전판 구축"),
+    "BRK-A": ("최상 (지주사 다각화 종결자)", "#2ecc71", "보험, 철도, 에너지, 소비재, 금융 투자가 결합된 전 세계 최강의 다중 백업 안전판 구축"),
+    
+    # 한국 주요 대형주
+    "005930.KS": ("최상 (다각화 우수)", "#2ecc71", "메모리 반도체(DS) + 스마트폰(MX) + 가전(VD) + 디스플레이(SDC) 4대 포트폴리오 상호 보완"),
+    "000660.KS": ("주의 (메모리 단일 집중)", "#ff7675", "D램 및 낸드 플래시 메모리 단일 사업 비중 95% 이상. 메모리 다운사이클 시 현금흐름 취약"),
+    "005380.KS": ("양호 (차종 및 지역 다각화)", "#74b9ff", "세단, SUV, 제네시스(고마진), 하이브리드 라인업 및 북미·인도·유럽 글로벌 판매망 분산"),
+    "000270.KS": ("양호 (RV 중심 글로벌 다각화)", "#74b9ff", "레저용 차량(RV)과 하이브리드 중심의 고마진 믹스 및 북미·유럽 시장 분산"),
+    "035420.KS": ("양호 (포트폴리오 분산)", "#74b9ff", "서치플랫폼, 커머스, 핀테크, 콘텐츠(웹툰), 클라우드 5대 사업부 균형 성장"),
+    "051910.KS": ("보통 (석화+소재)", "#fdcb6e", "석유화학 업황 부진을 첨단소재 및 양극재로 보완 중이나 배터리 분할 후 모회사 디스카운트 존재")
+}
+
+if tk_u in diversification_db:
+    grade, col, desc = diversification_db[tk_u]
+    return f"<b style='color:{col};'>[{grade}]</b> {desc}"
+
+# 2. 일반 기업 자동 판별 알고리즘
+# (A) 단일 품목/원자재 시클리컬 또는 특정 부품사 판별
+single_risk_keywords = [
+    'single customer', 'sole supplier', 'concentrated', 'oem', 'foundry dependency',
+    '특정 고객사', '단일 납품', '외주 가공', '하청', '단일 품목'
+]
+if any(k in summary for k in single_risk_keywords):
+    return f"<b style='color:#ff7675;'>[주의] 단일 의존 리스크</b> 특정 고객사 또는 단일 품목 의존도가 높아 공급망 충격 시 단일 실패 지점(SPOF) 위험 노출"
+
+# (B) 지주회사, 복합기업(Conglomerate), 다각화 소비재
+conglom_keywords = ['holding company', 'conglomerate', 'diversified', 'subsidiaries', '지주회사', '복합기업', '다각화']
+if any(k in sector or k in industry or k in summary for k in conglom_keywords):
+    return f"<b style='color:#2ecc71;'>[합격] 다각화 포트폴리오</b> 복수 사업 자회사 및 분산된 사업 부문 보유로 단일 실패 리스크 격리"
+
+# (C) 매출총이익률 및 마진 기반 간접 판정
+gross_m = safe_float(i.get('grossMargins')) * 100
+op_m = safe_float(i.get('operatingMargins')) * 100
+
+if gross_m >= 45.0 and op_m >= 18.0:
+    return f"<b style='color:#2ecc71;'>[양호] 고부가가치 독점력</b> 마진율({op_m:.1f}%)로 볼 때 복수 제품군에 걸쳐 강력한 브랜드 및 전환비용 해자 보유"
+elif op_m < 5.0:
+    return f"<b style='color:#ff7675;'>[경고] 저마진 집중 구조</b> 영업이익률({op_m:.1f}%)이 낮아 전방 산업 수요 둔화 시 실적 방어력 취약"
+else:
+    return f"<b style='color:#fdcb6e;'>[보통] 표준적 사업 분산</b> 동종 업계 평균 수준의 제품군 구색 유지 중"
+# =========================================================================
 # [신규 추가 엔진 3] 피오트로스키 F-Score (9점 만점 재무 건전성 판독기)
 # =========================================================================
 def calc_piotroski_f_score(stk, is_financial=False):
@@ -6589,12 +6657,12 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
-                    # 1. 세부 점수 합산 및 게이지 마커 위치 계산 (-100 ~ +100)
+                    # 1. 세부 점수 합산 (내부 로직용 변수 유지)
                     total_score_val = sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values())
                     total_score_val = round(total_score_val)
                     sign_tot = "+" if total_score_val > 0 else ""
-                    
-                    # 2. [찰리 멍거의 5대 정량 체크리스트] 개별 관문 판정 로직 (F-Score 완전 제거 버전)
+                
+                    # 2. 5대 체크리스트 판정 로직으로 바로 연결 (게이지 바 블록 없음)
                     # ① 비즈니스 해자 (ROE / ROIC)
                     if is_financial:
                         if roe >= 10.0: c1_st, c1_sub = "pass", f"ROE {roe:.1f}%"
@@ -7005,28 +7073,30 @@ with tab1:
                     easy_summary_msg = " 정량 모델 분석 결과: 정량적 가치평가 모델의 설명 범위를 벗어난 극단적 할증 또는 펀더멘털 훼손 구간입니다."
                 # ▲▲▲ 여기까지 교체 ▲▲▲
 
+                # 1. 사업 다각화 분석 실행 (HTML 렌더링 직전)
+                diversification_html = analyze_business_diversification(stk, i, tk, kr)
+
+                # 2. integrated_html 내부의 지표 카드 리스트에 카드 삽입
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
-    
-                # 바로 첫 번째 지표 카드(현재 주가)로 시작
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 배당수익률</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE/ROIC)</div><div style='{val_style}' style='font-size:1.0rem;'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE/ROIC)</div><div style='{val_style}'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>기본 마진율 (매출총이익률)</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>실제 장사 이익률 (영업이익)</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>비즈니스 경쟁력 종합</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
-
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익 성장 추세 (EPS/자본)</div><div style='{desc_style}'>이익: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>위기 대처 현금력 (유동비율)</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
                     f"{rnd_block}"
-
-                    # ▼▼▼ [버핏·멍거 핵심 카드 3종] 이익수익률(vs 국채) / 이익의 질 & 실질 FCF / 주식 희석 vs 소각 판독기 ▼▼▼
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익수익률 (vs 10년물 미국채)</div><div style='{desc_style} margin-top:5px;'>{ey_str if not is_financial else f'<b style=\"color:#74b9ff;\">{ey:.1f}%</b> (국채 {erp:+.1f}%p)'}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익의 질 (OCF/NI) & 실질 FCF</div><div style='{desc_style} margin-top:5px;'>{eq_sbc_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
+                    
+                    # [신규 추가 카드] 사업 다각화 및 단일 실패 지점 차단
+                    f"<div style='{item_style}'><div style='{lbl_style}'>사업 다각화 (공학적 안전판)</div><div style='{desc_style} margin-top:5px;'>{diversification_html}</div></div>"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
