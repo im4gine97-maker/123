@@ -7940,7 +7940,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         voice_id = "ko-KR-SunHiNeural" if "여성" in str(voice_choice) else "ko-KR-InJoonNeural"
                         eq_str = "equalizer=f=180:width_type=h:width=100:g=2.5,equalizer=f=3200:width_type=h:width=1200:g=2.8"
                         rate_str = f"+{int(voice_speed)}%"
-                        # _generate_chunk_voice 함수 안쪽에서 af_chain을 만들기 직전에 아래 줄을 넣어줍니다:
+                        # ✅ [추가] af_chain 바로 윗줄에 삽입하여 pad_filter 정의
+                        is_last = is_final_cut if 'is_final_cut' in locals() else False
+                        pad_filter = "" if is_last else ",apad=pad_dur=0.04"
+                        
+                        # 기존 줄:
                         atempo_f = float(phys_speed) if 'phys_speed' in locals() and phys_speed else 1.12
                         af_chain = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo={atempo_f:.2f},volume=1.25{pad_filter}"
                         try:
