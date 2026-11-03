@@ -8054,14 +8054,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     ]
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_idx}_V31_PERFECT_SYNC"
                     mode_tag_k = f"KO_{ov_sig}"
-                    
-                    st.success("🎬 **[V22 PDF 바이블 헌장 100% 동기화 & 59초 이내 안전가드 탑재]** ① SK하이닉스 '슥' 오발음 완벽 교정, ② 단순 저PBR 찬양을 빼고 **가격결정력·주주이익·역산 밸류에이션·주주희석 배제·자본배분 원칙** 반영, ③ **무조건 45~54초(59초 이내)**로 렌더링됩니다!")
-                    editable_script_text = st.text_area(
-                        "✏️ 바이블 기준 12컷 완결형 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
-                        value="\n".join(default_12cuts_script),
-                        height=260,
-                        key=f"custom_script_v22_{tk}_{mode_tag_k}"
-                    )
 
                     raw_lines_v21 = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not raw_lines_v21:
