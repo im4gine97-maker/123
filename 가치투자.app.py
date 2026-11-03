@@ -6299,92 +6299,7 @@ with tab1:
                             else:
                                 div_trend = "배당 없음" if is_ko else "No Dividend"
                 except: pass
-                # =========================================================================
-                # [상시 노출] 📸 토스증권 스타일 매출구성 & 캡처 전용 요약 카드 (사진 3, 4 구현)
-                # =========================================================================
-                st.markdown("---")
-                toss_c1, toss_c2 = st.columns([1.15, 1.0])
-            
-                seg_presets = {
-                    "GOOGL": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
-                    "GOOG": [("구글 서비스 (검색·유튜브·광고)", 85.1, "#2563EB"), ("구글 클라우드 (인프라·AI)", 14.6, "#10B981"), ("기타 혁신 사업 (Waymo 등)", 0.3, "#F59E0B")],
-                    "META": [("패밀리 오브 앱스 (인스타·페북·광고)", 98.4, "#2563EB"), ("리얼리티 랩스 (메타버스·퀘스트)", 1.6, "#10B981")],
-                    "BRK-B": [("보험업 (GEICO·재보험)", 28.1, "#2563EB"), ("제조업 (산업재·정밀부품)", 21.1, "#0EA5E9"), ("McLane 물류 계열", 13.7, "#10B981"), ("서비스 및 소매업", 11.5, "#F59E0B"), ("에너지 및 철도 등", 25.6, "#F97316")],
-                    "AAPL": [("아이폰 (iPhone)", 51.5, "#2563EB"), ("서비스 (앱스토어·구독)", 24.2, "#10B981"), ("맥 & 아이패드", 14.8, "#F59E0B"), ("웨어러블 & 액세서리", 9.5, "#F97316")],
-                    "MSFT": [("클라우드 (Azure·서버)", 43.2, "#2563EB"), ("생산성 비즈니스 (Office·LinkedIn)", 32.8, "#10B981"), ("개인 컴퓨팅 (Windows·Xbox)", 24.0, "#F59E0B")],
-                    "NVDA": [("데이터센터 (AI 가속기·GPU)", 87.5, "#2563EB"), ("게이밍 그래픽 (GeForce)", 8.8, "#10B981"), ("전문 시각화 및 전장", 3.7, "#F59E0B")],
-                    "TSLA": [("전기차 판매 및 리스", 79.2, "#2563EB"), ("에너지 저장장치(ESS) 및 태양광", 10.5, "#10B981"), ("서비스 및 슈퍼차저 인프라", 10.3, "#F59E0B")],
-                    "COST": [("순수 상품 판매 (초저마진 유통)", 98.0, "#2563EB"), ("멤버십 연회비 (영업이익 핵심)", 2.0, "#10B981")],
-                    "PDD": [("온라인 마케팅 (플랫폼 광고)", 51.2, "#2563EB"), ("거래 수수료 (테무·결제)", 48.8, "#10B981")]
-                }
-                active_segs = seg_presets.get(clean_tk.upper(), [
-                    ("핵심 본업 주력 사업부문", round(max(55.0, 100.0 - abs(op_m)*0.5), 1), "#2563EB"),
-                    ("신성장 플랫폼 및 기타 사업", round(min(45.0, abs(op_m)*0.5), 1), "#10B981")
-                ])
-            
-                with toss_c1:
-                    # 사진 3, 4 스타일의 클린 도넛 차트 카드 (모바일 캡처 최적화)
-                    seg_list_html = ""
-                    for s_nm, s_val, s_col in active_segs:
-                        seg_list_html += f"""
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F1F5F9;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="width:14px; height:14px; border-radius:4px; background:{s_col}; display:inline-block;"></span>
-                                <span style="font-size:15px; font-weight:700; color:#1E293B;">{s_nm}</span>
-                            </div>
-                            <span style="font-size:15px; font-weight:800; color:#334155;">{s_val:.1f}%</span>
-                        </div>
-                        """
-                    conic_acc = 0.0
-                    grad_tokens = []
-                    for _, s_val, s_col in active_segs:
-                        deg_next = conic_acc + (s_val * 3.6)
-                        grad_tokens.append(f"{s_col} {conic_acc:.1f}deg {deg_next:.1f}deg")
-                        conic_acc = deg_next
-                    conic_style = ", ".join(grad_tokens)
-            
-                    st.markdown(f"""
-                    <div style="background:#FFFFFF; border-radius:24px; padding:24px; border:1px solid #E2E8F0; box-shadow:0 8px 24px rgba(0,0,0,0.06); font-family:sans-serif;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                            <div>
-                                <div style="font-size:13px; color:#64748B; font-weight:700;">{comp_name} ({clean_tk})</div>
-                                <div style="font-size:22px; color:#0F172A; font-weight:900;">매출구성</div>
-                            </div>
-                            <div style="font-size:18px; color:#2563EB; font-weight:900;">{p_str}</div>
-                        </div>
-                        <div style="width:160px; height:160px; border-radius:50%; background:conic-gradient({conic_style}); margin:14px auto 20px auto; display:flex; align-items:center; justify-content:center;">
-                            <div style="width:100px; height:100px; border-radius:50%; background:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                                <span style="font-size:11px; color:#64748B; font-weight:700;">영업마진</span>
-                                <span style="font-size:18px; color:#0F172A; font-weight:900;">{op_m:.1f}%</span>
-                            </div>
-                        </div>
-                        {seg_list_html}
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-                with toss_c2:
-                    st.markdown(f"""
-                    <div style="background:#0F172A; border-radius:24px; padding:24px; border:2px solid #F59E0B; color:#FFFFFF; font-family:sans-serif;">
-                        <div style="font-size:18px; font-weight:900; color:#FDE047; margin-bottom:14px;">📸 쇼츠 캡처 전용 4대 핵심 팩트</div>
-                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                            <div style="font-size:12px; color:#94A3B8;">1. 복리 속도 (현재 ROIC vs 자본비용 12%)</div>
-                            <div style="font-size:20px; font-weight:900; color:#4ADE80;">연 {cap_ret_val:.1f}% (1,000만당 연 {roic_10m_manwon:+,}만)</div>
-                        </div>
-                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                            <div style="font-size:12px; color:#94A3B8;">2. 이익수익률 vs 무위험 미국채 ({ty:.2f}%)</div>
-                            <div style="font-size:20px; font-weight:900; color:#38BDF8;">연 {cur_ey_val:.2f}% (국채대비 {erp_val:+.1f}%p)</div>
-                        </div>
-                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px; margin-bottom:8px;">
-                            <div style="font-size:12px; color:#94A3B8;">3. 버핏 역산 안전마진 (10년 실제 vs 요구)</div>
-                            <div style="font-size:20px; font-weight:900; color:#FDE047;">실제 {actual_fcf_g_val:+.1f}% vs 요구 {req_g_val:+.1f}% ({g_margin_val:+.1f}%p)</div>
-                        </div>
-                        <div style="background:#1E293B; padding:12px 16px; border-radius:12px;">
-                            <div style="font-size:12px; color:#94A3B8;">4. 재무 안전판 & 배당</div>
-                            <div style="font-size:20px; font-weight:900; color:#FFFFFF;">유동비율 {current_ratio:.2f}배 · 배당 {safe_div:.2f}%</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                st.markdown("---")
+                
                 # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
                 cd = tk.split('.')[0] if kr else tk  # <--- [수정] 에러 방지를 위해 cd 변수 정의 추가
                 a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
@@ -8197,7 +8112,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     _fit_single_line(draw, 525, 395, 280, f"{comp_name} (현재)", get_font, start_sz=30, fill=yellow_c)
                                     _fit_single_line(draw, 525, 465, 280, f"연 {cap_ret_val:.1f}%", get_font, start_sz=68, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
                                     # 핵심 숫자에 빨간 분필 동그라미 ⭕ + 별표 ★★!
-                                    draw_chalk_lecture_marks(draw, 525, 465, 290, 95, mark_type="red_circle", get_font=get_font, accent_label="압도적!" if cap_ret_val >= 15 else "체크!")
+                                    draw_chalk_lecture_marks(draw, cx=525, cy=465, w_box=240, h_box=80, mark_type="red_circle")
 
                                 # 2줄: 1,000만 원 넣었을 때 연 수익 (step 3)
                                 if step_in_scene >= 3:
@@ -8211,8 +8126,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     draw.rounded_rectangle([65, 650, W - 65, 765], radius=18, fill=(18, 42, 68), outline=green_c, width=3)
                                     _fit_single_line(draw, 250, 708, 320, "가격결정력 (영업마진)", get_font, start_sz=32, fill=white_c)
                                     _fit_single_line(draw, 535, 708, 220, f"{op_m:.1f}%!", get_font, start_sz=58, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 535, 708, 210, 82, mark_type="red_circle", get_font=get_font)
-
+                                    draw_chalk_lecture_marks(draw, cx=535, cy=708, w_box=180, h_box=70, mark_type="red_circle")
+                                    
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
                                 _fit_single_line(draw, W // 2, 295, W - 60, "📋 칠판 판서 2 : 버핏의 역산 암산법 (10년 장부)", get_font, start_sz=28, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
@@ -8237,7 +8152,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     draw.rounded_rectangle([55, 635, W - 55, 768], radius=20, fill=(18, 45, 58) if g_margin_val >= 0 else (58, 22, 32), outline=yellow_c, width=4)
                                     _fit_single_line(draw, 235, 702, 310, "버핏 역산 안전마진", get_font, start_sz=34, fill=yellow_c, stroke_w=2)
                                     _fit_single_line(draw, 525, 702, 240, f"{g_margin_val:+.1f}%p!", get_font, start_sz=62, fill=green_c if g_margin_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 525, 702, 235, 92, mark_type="red_circle", get_font=get_font, accent_label="핵심!")
+                                    draw_chalk_lecture_marks(draw, cx=525, cy=702, w_box=220, h_box=80, mark_type="red_circle")
 
                             else:
                                 # [SCENE_SAFETY: 유동비율 + 현금배당 + 본업 재투자 복리 한눈에 판서!]
@@ -8247,7 +8162,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 405, 280, "위기대응 유동비율", get_font, start_sz=28, fill=chalk_dim)
                                 _fit_single_line(draw, 195, 475, 280, f"{current_ratio:.2f}배", get_font, start_sz=60, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 if step_in_scene == 1:
-                                    draw_chalk_lecture_marks(draw, 195, 475, 240, 85, mark_type="red_circle", get_font=get_font, accent_label="튼튼!")
+                                    draw_chalk_lecture_marks(draw, cx=195, cy=475, w_box=200, h_box=75, mark_type="red_circle")
 
                                 if step_in_scene >= 2:
                                     _fit_single_line(draw, 525, 405, 280, f"현금배당 ({div_10y_cnt}년 지급)", get_font, start_sz=28, fill=chalk_dim)
@@ -8541,7 +8456,33 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             use_container_width=True,
                             key=f"dl_btn_v21_{clean_tk}"
                         )
+# =========================================================================
+                    # [캡컷·유튜브 편집기용 원클릭 에셋 ZIP 팩 생성기]
+                    # =========================================================================
+                    import zipfile, io
 
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                        # 1. 칠판 슬라이드 원본 이미지들 (자막 없는 클린 고화질 PNG 캡처본)
+                        for idx_s, (p_txt, sc_cd) in enumerate(pop_chunks):
+                            clean_im = _draw_core_frame(idx_s, len(pop_chunks), p_txt, sc_cd, get_font, is_mouth_open=False, sub_step=1, hide_subtitles=True)
+                            img_byte_arr = io.BytesIO()
+                            clean_im.save(img_byte_arr, format='PNG')
+                            zf.writestr(f"slides/slide_{idx_s+1:02d}_{sc_cd}.png", img_byte_arr.getvalue())
+
+                        # 2. 대본 텍스트 파일 (.txt)
+                        zf.writestr("script.txt", "\n".join([f"[{sc}] {t}" for t, sc in pop_chunks]))
+
+                    zip_buffer.seek(0)
+
+                    # 캡컷 에셋 팩 다운로드 버튼 표시
+                    st.download_button(
+                        label="📦 [캡컷·외부 편집기용] 칠판 슬라이드 원본(PNG ZIP) 다운로드",
+                        data=zip_buffer.getvalue(),
+                        file_name=f"{comp_name}_CapCut_Assets.zip",
+                        mime="application/zip",
+                        use_container_width=True
+                    )
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
