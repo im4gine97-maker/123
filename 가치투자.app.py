@@ -7773,28 +7773,30 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "🏰 9. [해자 안전마진형] 해자 없는 싼 주식은 지옥 가는 가치 함정입니다!",
                         "⚔️ 10. [미국채 맞대결형] 무위험 미국채 이자보다 돈을 더 잘 벌까요?"
                     ]
-                    sel_hook_45 = st.selectbox("🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)", hook_options_45s, index=1, key=f"sh_hook_45s_v22_{tk}")
+                    sel_hook_45 = st.selectbox(
+                        "🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)",
+                        hook_options_45s,
+                        index=1,
+                        key=f"sh_hook_45s_v22_{tk}"
+                    )
 
                     char_c1, char_c2, char_c3 = st.columns([1.3, 1.3, 1.4])
 
                     # =========================================================================
-                    # 2. [필수] moat_line, price_line, saf_line 변수를 먼저 계산 및 정의!
+                    # 2. 본문 4대 라운드 대본 변수 사전 생성
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
                     req_int = int(round(req_g_val))
                     fcf_int = int(round(actual_fcf_g_val))
                     roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
 
-                    # (1) 해자 대본 정의
                     moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
 
-                    # (2) 가격 대본 정의
                     if erp_val < 0:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
                     else:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
 
-                    # (3) 안전판 대본 동적 분기 정의
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
                     div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
                     
@@ -7818,7 +7820,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
 
                     # =========================================================================
-                    # 3. 훅 번호 판별 및 1번 컷 도입부 문장 결정
+                    # 3. 선택된 훅 번호(h_num)에 맞춰 도입부 첫 줄 자동 매칭
                     # =========================================================================
                     h_num = 1
                     if not sel_hook_45.startswith("🎲 0."):
@@ -7843,9 +7845,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     }
                     intro_first_line = hook_opening_dict.get(h_num, hook_opening_dict[1])
 
-                    # =========================================================================
-                    # 4. 모든 변수가 준비된 후 최종 default_12cuts_script 조립 (오류 해결 지점)
-                    # =========================================================================
+                    # 5컷 완성형 대본 리스트
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
                         f"[해자] {moat_line}",
@@ -7853,6 +7853,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[안전] {saf_line}",
                         f"[결론] 너라면 지금 가격에 {comp_name} 살래? / 다음 종목을 댓글로 남겨줘!"
                     ]
+
+                    # =========================================================================
+                    # 4. [핵심 해결] key에 h_num을 바인딩하여 훅 선택 시 대본 즉시 갱신
+                    # =========================================================================
+                    script_area_key = f"script_v22_{tk}_H{h_num}"
+
+                    st.success("🎬 **[대본 자동 동기화 활성화]** 위에서 훅 번호를 바꾸면 아래 대본의 도입부 첫 문장이 즉시 변경됩니다.")
+                    editable_script_text = st.text_area(
+                        "✏️ 바이블 기준 5컷 완결형 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
+                        value="\n".join(default_12cuts_script),
+                        height=260,
+                        key=script_area_key
+                    )
                     # =========================================================================
                     # [신규 탑재] 🎙️ 내 목소리 녹음/보이스 클로닝 적용 & ✂️ 외부 쇼츠 편집기(캡컷·유튜브) 에셋 추출기
                     # =========================================================================
