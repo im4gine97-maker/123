@@ -3941,116 +3941,194 @@ def analyze_business_diversification(stk, i, tk, kr):
     else:
         return f"<b style='color:#fdcb6e;'>[보통] 표준적 사업 분산</b> 동종 업계 평균 수준의 제품군 구색 유지 중"
 # =========================================================================
-# [신규 엔진 1] 가격결정력(Pricing Power) 정밀 진단기
+# [엔진 1] 가격결정력 (Pricing Power & 원가 전가력) 마스터 DB & 정성 분석기
 # =========================================================================
-def analyze_pricing_power(stk, i):
+def analyze_pricing_power(stk, i, tk, kr):
     """
-    버핏의 가격결정력 기준:
-    1) 매출총이익률(Gross Margin) 40% 이상
-    2) 최근 3~4년 마진 훼손 없이 유지/상승하는가
+    버핏의 1순위 해자 기준:
+    가격을 올려도 고객이 이탈하지 않고, 인플레이션 원가 상승을 고객에게 100% 전가 가능한가?
     """
-    try:
-        gm = safe_float(i.get('grossMargins')) * 100
-        opm = safe_float(i.get('operatingMargins')) * 100
-        
-        inc = stk.income_stmt if stk is not None else None
-        gm_trend = "유지"
-        if inc is not None and not inc.empty and 'Gross Profit' in inc.index and 'Total Revenue' in inc.index:
-            gps = inc.loc['Gross Profit'].dropna().values[:3][::-1]
-            revs = inc.loc['Total Revenue'].dropna().values[:3][::-1]
-            if len(gps) >= 2 and len(revs) >= 2:
-                margins = [(g / r) * 100 for g, r in zip(gps, revs) if r > 0]
-                if margins[-1] > margins[0] + 1.5:
-                    gm_trend = "상승 추세"
-                elif margins[-1] < margins[0] - 2.0:
-                    gm_trend = "압박/하락"
+    tk_u = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
+    cd = tk_u.split('.')[0]
 
-        if gm >= 50.0:
-            return f"<b style='color:#2ecc71;'>[압도적 해자]</b> 매출총이익률 <b>{gm:.1f}%</b> ({gm_trend}) · 인플레이션 원가 전가력 최상"
-        elif gm >= 35.0:
-            return f"<b style='color:#74b9ff;'>[양호한 해자]</b> 매출총이익률 <b>{gm:.1f}%</b> ({gm_trend}) · 가격결정력 유지 중"
-        elif gm >= 20.0:
-            return f"<b style='color:#fdcb6e;'>[보통 수준]</b> 매출총이익률 <b>{gm:.1f}%</b> · 원자재/공급망 가격 전가력 제한적"
-        else:
-            return f"<b style='color:#ff7675;'>[가격결정력 부재]</b> 매출총이익률 <b>{gm:.1f}%</b> · 저마진 출혈경쟁 노출"
-    except Exception:
-        return "<span style='color:#8892b0;'>데이터 확인 필요</span>"
+    # 1. 글로벌 거장 포트 & 미국/한국/글로벌 시총 상위 전수 팩트 DB
+    pricing_db = {
+        # --- 미국 빅테크 & 메가캡 ---
+        "AAPL": ("최상 (독점적 가격결정력)", "#2ecc71", "iOS 생태계 락인과 독보적 브랜드 프리미엄으로 부품 원가 상승을 출고가에 100% 즉시 전가 가능"),
+        "MSFT": ("최상 (기업용 인프라 독점)", "#2ecc71", "윈도우, 오피스365, Azure 클라우드의 극단적인 전환비용으로 일방적인 구독료 인상에도 고객 이탈 제로"),
+        "GOOGL": ("최상 (검색·동영상 독점)", "#2ecc71", "글로벌 검색 광고 점유율 90% 및 유튜브 독점으로 광고주 대상 압도적인 단가 결정권 행사"),
+        "GOOG": ("최상 (검색·동영상 독점)", "#2ecc71", "글로벌 검색 광고 점유율 90% 및 유튜브 독점으로 광고주 대상 압도적인 단가 결정권 행사"),
+        "AMZN": ("최상 (플랫폼 통행세)", "#2ecc71", "북미 이커머스 독점력과 AWS 클라우드 의존도를 바탕으로 프라임 멤버십 및 입점 수수료 인상 관철"),
+        "META": ("양호 (광고 단가 회복력)", "#74b9ff", "전 세계 30억 명 유저 풀의 관심사를 독점하여 AI 타겟팅 고도화로 광고 단가(Ad Pricing) 인상 주도"),
+        "NVDA": ("최상 (AI 칩 절대 독점)", "#2ecc71", "CUDA 소프트웨어 해자와 블랙웰 GPU 품귀 현상으로 마진율 75%를 유지하며 부르는 게 값인 공급자 우위"),
+        "TSLA": ("보통 (전기차 가격 인하 경쟁)", "#fdcb6e", "과거 압도적 가격결정력을 누렸으나 글로벌 전기차 치킨게임으로 인해 마진율 방어와 가격 인하 사이 줄다리기"),
+        "BRK-B": ("최상 (인플레 방어 종결자)", "#2ecc71", "가이코 보험의 요율 인상 권한, BNSF 철도 운임 전가력, 독점 유틸리티의 물가 연동 요금제 확보"),
+        "BRK-A": ("최상 (인플레 방어 종결자)", "#2ecc71", "가이코 보험의 요율 인상 권한, BNSF 철도 운임 전가력, 독점 유틸리티의 물가 연동 요금제 확보"),
+        "AVGO": ("최상 (기업 소프트웨어 과점)", "#2ecc71", "통신 맞춤형 반도체 독점 및 VMware 인수 후 영구 라이선스를 고가 구독제로 일방 전환하는 무자비한 결정력"),
+
+        # --- 필수소비재 / 헬스케어 / 결제 (버핏·멍거의 최애 해자) ---
+        "KO": ("최상 (브랜드 정서적 락인)", "#2ecc71", "인플레이션으로 원당과 캔 원가가 뛰어도 소비자가 거부감 없이 매년 몇 퍼센트씩 오르는 콜라를 구매"),
+        "PEP": ("최상 (스낵·음료 듀얼 결정력)", "#2ecc71", "프리토레이 스낵의 압도적 시장 점유율로 대형 마트와의 납품가 협상에서 절대 우위 유지"),
+        "COST": ("특수 (회원제 가격 우위)", "#2ecc71", "마진을 15% 이하로 극도로 낮추는 대신 멤버십 연회비 인상(100% 순이익)으로 막강한 주주가치 창출"),
+        "WMT": ("양호 (바잉 파워 및 광고)", "#74b9ff", "미국 최대 유통망의 바잉 파워로 공급업체 원가를 쥐어짜고 자체 PB 상품과 매장 광고로 마진 방어"),
+        "PG": ("최상 (필수소비재 과점)", "#2ecc71", "기저귀(팸퍼스), 면도기(질레트), 세제 등 대체 불가 브랜드력으로 매년 소비자가격 인상 지속"),
+        "V": ("최상 (글로벌 결제망 통행세)", "#2ecc71", "결제 금액의 일정 비율을 수수료로 수취하므로 전 세계 물가가 오르면 가만히 앉아서 매출이 함께 급증"),
+        "MA": ("최상 (글로벌 결제망 통행세)", "#2ecc71", "비자와 함께 전 세계 카드 결제망을 복점하여 가맹점 수수료율 인상 압박에도 독점력 수성"),
+        "MCO": ("최상 (법적 진입장벽 과점)", "#2ecc71", "채권 발행 시 무디스 등급 인증이 필수적이므로 수수료 인상에 발행사들이 저항 불가능"),
+        "SPGI": ("최상 (금융 데이터 독점)", "#2ecc71", "S&P 500 지수 라이선스와 신용평가 과점으로 금융시장 확장 시 지수 사용료 자동 인상"),
+        "LLY": ("최상 (비만치료제 공급 부족)", "#2ecc71", "마운자로/젭바운드 등 GLP-1 비만치료제의 전 세계적 품귀로 보험사 및 환자 대상 최고 약가 유지"),
+        "NVO": ("최상 (비만치료제 선점)", "#2ecc71", "위고비/오젬픽의 압도적 선점 효과와 공급 부족으로 고마진 프리미엄 가격대 장악"),
+
+        # --- 시클리컬 / 반도체 / 플랫폼 (리 루, 드러켄밀러, 막스 포트 등) ---
+        "TSM": ("양호 (선단 공정 독점)", "#74b9ff", "3나노/2나노 초미세 공정을 100% 독점하여 애플, 엔비디아 등 빅테크에 매년 웨이퍼 단가 5~10% 인상 요구"),
+        "ASML": ("최상 (EUV 독점 공급자)", "#2ecc71", "대당 수천억 원에 달하는 노광장비를 전 세계에서 유일하게 제조하여 반도체 제조사 줄 세우기 가능"),
+        "PDD": ("특수 (극단적 원가 통제)", "#74b9ff", "소비자 가격결정력 대신 공장 직거래(C2M)로 제조 하청업체를 쥐어짜 초저가를 유지하는 플랫폼 우위"),
+        "BABA": ("보통 (이커머스 경쟁 심화)", "#fdcb6e", "과거 독점력을 누렸으나 핀둬둬, 틱톡(도우인)과의 치킨게임으로 인해 상인 수수료 인상력 약화"),
+        "CROX": ("양호 (고유 폼 카테고리 락인)", "#74b9ff", "저렴한 제조 원가 대비 지비츠 장식과 콜라보 마케팅으로 높은 소비자 권장가격 유지"),
+        "NTRA": ("보통 (건보 수가 규제 연동)", "#fdcb6e", "기술력은 우수하나 미국 정부 메디케어 및 민간 보험사의 진단 수가 정책에 가격이 크게 종속"),
+        "TRMD": ("주의 (시황 종속 가격수용자)", "#ff7675", "탱커 운임은 글로벌 원유 물동량과 지정학 분쟁에 의해 결정되며 선사가 가격을 임의로 결정 불가"),
+        "HCC": ("주의 (원자재 가격수용자)", "#ff7675", "제철용 석탄 단가는 글로벌 시황에 100% 연동되는 원자재 특성상 가격결정력 부재"),
+
+        # --- 한국 대표 기업 ---
+        "005930.KS": ("주의 (메모리 시황 가격수용자)", "#ff7675", "스마트폰은 브랜드력이 있으나 핵심 이익을 내는 D램/낸드는 시황에 따라 단가가 결정되는 가격 수용자"),
+        "005930": ("주의 (메모리 시황 가격수용자)", "#ff7675", "스마트폰은 브랜드력이 있으나 핵심 이익을 내는 D램/낸드는 시황에 따라 단가가 결정되는 가격 수용자"),
+        "000660.KS": ("보통 (HBM 맞춤형 과점 / 레거시는 수용자)", "#fdcb6e", "엔비디아 납품 HBM은 고마진 맞춤형 가격을 받으나, 범용 D램/낸드는 글로벌 메모리 시황에 종속"),
+        "000660": ("보통 (HBM 맞춤형 과점 / 레거시는 수용자)", "#fdcb6e", "엔비디아 납품 HBM은 고마진 맞춤형 가격을 받으나, 범용 D램/낸드는 글로벌 메모리 시황에 종속"),
+        "005380.KS": ("양호 (제네시스·SUV 믹스 개선)", "#74b9ff", "과거 가성비 브랜드에서 벗어나 고마진 제네시스 및 하이브리드 비중 확대로 미국·인도 시장 제값 받기 정착"),
+        "005380": ("양호 (제네시스·SUV 믹스 개선)", "#74b9ff", "과거 가성비 브랜드에서 벗어나 고마진 제네시스 및 하이브리드 비중 확대로 미국·인도 시장 제값 받기 정착"),
+        "000270.KS": ("양호 (RV 중심 가격 방어력)", "#74b9ff", "카니발, 쏘렌토 등 고마진 레저용 차량의 압도적 상품성으로 인센티브 할인 없이 높은 실판매가 유지"),
+        "000270": ("양호 (RV 중심 가격 방어력)", "#74b9ff", "카니발, 쏘렌토 등 고마진 레저용 차량의 압도적 상품성으로 인센티브 할인 없이 높은 실판매가 유지"),
+        "035420.KS": ("양호 (포털 검색광고 과점)", "#74b9ff", "국내 검색 점유율 1위와 스마트스토어 생태계를 바탕으로 검색 클릭 단가(CPC) 및 수수료 방어"),
+        "035420": ("양호 (포털 검색광고 과점)", "#74b9ff", "국내 검색 점유율 1위와 스마트스토어 생태계를 바탕으로 검색 클릭 단가(CPC) 및 수수료 방어"),
+        "033780.KS": ("최상 (담배 독점 가격 전가)", "#2ecc71", "담배 원가(잎담배) 상승이나 세금 인상분을 소비자가격에 100% 반영해도 흡연자들의 이탈이 극히 미미"),
+        "033780": ("최상 (담배 독점 가격 전가)", "#2ecc71", "담배 원가(잎담배) 상승이나 세금 인상분을 소비자가격에 100% 반영해도 흡연자들의 이탈이 극히 미미"),
+        "015760.KS": ("최악 (정치적 가격 통제 피해자)", "#ff7675", "국내 전기 송배전 독점이나 전기요금이 정부의 물가안정 포퓰리즘에 묶여 원가 폭등을 전가 불가능"),
+        "015760": ("최악 (정치적 가격 통제 피해자)", "#ff7675", "국내 전기 송배전 독점이나 전기요금이 정부의 물가안정 포퓰리즘에 묶여 원가 폭등을 전가 불가능"),
+        "005490.KS": ("주의 (철강 시황 가격수용자)", "#ff7675", "글로벌 조강 생산 과잉 및 중국산 저가 철강 유입으로 원자재(철광석) 인상분을 자동차·조선사에 전가 난항"),
+        "005490": ("주의 (철강 시황 가격수용자)", "#ff7675", "글로벌 조강 생산 과잉 및 중국산 저가 철강 유입으로 원자재(철광석) 인상분을 자동차·조선사에 전가 난항"),
+        "012450.KS": ("최상 (K-방산 수출 단가 우위)", "#2ecc71", "유럽/중동의 안보 위기 속에서 신속한 납기 경쟁력을 무기로 K9 자주포 및 천무의 고마진 수출 단가 장악"),
+        "012450": ("최상 (K-방산 수출 단가 우위)", "#2ecc71", "유럽/중동의 안보 위기 속에서 신속한 납기 경쟁력을 무기로 K9 자주포 및 천무의 고마진 수출 단가 장악")
+    }
+
+    if tk_u in pricing_db:
+        grd, col, dsc = pricing_db[tk_u]
+        return f"<b style='color:{col};'>[{grd}]</b> {dsc}"
+    if cd in pricing_db:
+        grd, col, dsc = pricing_db[cd]
+        return f"<b style='color:{col};'>[{grd}]</b> {dsc}"
+
+    # 2. 미등록 종목 마진 및 업종 기반 자동 판별
+    gm = safe_float(i.get('grossMargins')) * 100
+    opm = safe_float(i.get('operatingMargins')) * 100
+    if gm >= 55.0:
+        return f"<b style='color:#2ecc71;'>[최상 (독점적 마진)]</b> 마진율 {gm:.1f}%를 바탕으로 원가 상승분을 고객에게 전가 가능한 우량 해자 보유"
+    elif gm >= 35.0:
+        return f"<b style='color:#74b9ff;'>[양호 (원가 전가 가능)]</b> 마진율 {gm:.1f}%로 가격 인상 시 고객 이탈 방어력이 준수한 수준"
+    elif gm >= 18.0:
+        return f"<b style='color:#fdcb6e;'>[보통 (가격 경쟁 노출)]</b> 마진율 {gm:.1f}%로 공급망 원가 급등 시 영업이익률 훼손 위험 존재"
+    else:
+        return f"<b style='color:#ff7675;'>[주의 (가격 수용자 구조)]</b> 마진율 {gm:.1f}%로 경쟁이 치열해 원가 상승분을 판매가에 전가하기 어려운 체질"
 
 
 # =========================================================================
-# [신규 엔진 2] CapEx(설비투자) 급증 및 현금 잠식 스캐너
+# [엔진 2] CapEx(설비투자) 성격 판독기 (과거 아마존 식 선제 기회 vs 출혈 과투자)
 # =========================================================================
-def analyze_capex_surge(stk, base_fcf, kr):
+def analyze_capex_nature(stk, i, tk, base_fcf, kr):
     """
-    최근 AI/인프라 설비투자가 과거 평균 대비 급증했는지 검증:
-    빅테크(빅4: MSFT, GOOGL, AMZN, META) 및 파운드리/반도체 과투자 판독
+    설비투자 급증을 무조건 경고하지 않고,
+    과거 아마존 AWS나 구글·MS처럼 '미래 독점 패권을 위한 선제적 기회 투자'인지
+    단순 감가상각 부담 출혈인지 정성적으로 판독
     """
+    tk_u = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
+    cd = tk_u.split('.')[0]
+
+    capex_db = {
+        # --- 빅테크 AI 공격 재투자 (아마존식 기회) ---
+        "MSFT": ("공격적 선제투자 (미래 클라우드 해자)", "#2ecc71", "AI 데이터센터 및 OpenAI 인프라에 천문학적 CapEx를 집행 중이나, 이는 과거 AWS를 세운 아마존처럼 차세대 AI 클라우드 패권을 장악할 강력한 기회의 성격"),
+        "GOOGL": ("공격적 선제투자 (자체 TPU·인프라 구축)", "#2ecc71", "자체 AI 칩(TPU)과 글로벌 데이터센터 확충에 투자를 폭증시키고 있으나, 검색 독점 현금흐름으로 감당 가능하며 미래 컴퓨팅 원가를 낮추는 필수 투자"),
+        "GOOG": ("공격적 선제투자 (자체 TPU·인프라 구축)", "#2ecc71", "자체 AI 칩(TPU)과 글로벌 데이터센터 확충에 투자를 폭증시키고 있으나, 검색 독점 현금흐름으로 감당 가능하며 미래 컴퓨팅 원가를 낮추는 필수 투자"),
+        "META": ("공격적 선제투자 (오픈소스 라마 생태계)", "#2ecc71", "수십만 장의 H100/H200 GPU 구매로 설비투자가 급증했으나, 오픈소스 AI 생태계 장악 및 추천 광고 단가 폭증으로 이어져 회수 가시성이 매우 높음"),
+        "AMZN": ("공격적 선제투자 (AWS AI 서버 인프라)", "#2ecc71", "과거 전자상거래 풀필먼트 센터와 AWS 데이터센터를 공격적으로 증설해 독점 해자를 팠던 성공 방정식을 AI 인프라 영역에 그대로 재현 중"),
+        "NVDA": ("자본 경량형 (설비투자 부담 제로)", "#2ecc71", "제조를 TSMC에 100% 외주 주는 팹리스 모델로 자체 공장 증설 CapEx가 거의 들지 않아 번 돈이 순수 FCF로 고스란히 꽂히는 극강의 구조"),
+        "AAPL": ("자본 경량형 (OEM 외주 생산 체제)", "#2ecc71", "폭스콘 등 위탁 생산업체를 활용하므로 매출 대비 CapEx가 3% 미만에 불과. 거대한 설비투자 리스크를 협력사에 분산시키는 최고의 자본 효율성"),
+
+        # --- 반도체/파운드리/시클리컬 설비투자 ---
+        "TSM": ("사이클형 대규모 증설 (치킨게임 승자)", "#74b9ff", "미국, 일본, 독일 등 글로벌 팹 증설로 조 단위 투자가 지속되나, 선단 공정을 독점하고 있어 막대한 감가상각비를 웨이퍼 고가 판매로 온전히 상쇄"),
+        "005930.KS": ("대규모 설비투자 (HBM 추격 및 P4 증설)", "#fdcb6e", "평택 팹 및 첨단 패키징에 연 50조 원 안팎의 막대한 투자를 집행 중. 다운사이클 시 FCF를 크게 잠식하나 차세대 메모리 주도권 수성을 위한 필수 출혈"),
+        "005930": ("대규모 설비투자 (HBM 추격 및 P4 증설)", "#fdcb6e", "평택 팹 및 첨단 패키징에 연 50조 원 안팎의 막대한 투자를 집행 중. 다운사이클 시 FCF를 크게 잠식하나 차세대 메모리 주도권 수성을 위한 필수 출혈"),
+        "000660.KS": ("선별적 집중 투자 (HBM TC본더 및 청주 팹)", "#74b9ff", "과거의 방만한 설비투자를 지양하고 고마진 HBM 라인 및 M15X 팹에 정밀 집중하여 투자 대비 현금 회수 속도(ROI)를 극대화하는 선순환 달성"),
+        "000660": ("선별적 집중 투자 (HBM TC본더 및 청주 팹)", "#74b9ff", "과거의 방만한 설비투자를 지양하고 고마진 HBM 라인 및 M15X 팹에 정밀 집중하여 투자 대비 현금 회수 속도(ROI)를 극대화하는 선순환 달성"),
+        "MU": ("사이클형 설비투자 (정부 보조금 수혜)", "#fdcb6e", "미국 내 신규 메가팹 증설로 설비투자가 크게 늘었으나 미국 반도체법 보조금으로 충당하며 HBM3E 캐파 확장에 사활"),
+        "INTC": ("출혈성 과투자 위험 (파운드리 캐즘)", "#ff7675", "18A/14A 공정 부활을 위해 천문학적 CapEx를 쏟아붓고 있으나 외부 파운드리 대형 고객 수주 부재로 FCF 대규모 적자를 기록하는 위험 구간"),
+
+        # --- 자본 경량형 우량주 (CapEx 부담이 없는 비즈니스) ---
+        "V": ("자본 경량형 (소프트웨어 결제망)", "#2ecc71", "글로벌 금융망 소프트웨어만 유지보수하면 되므로 매출의 2% 미만만 재투자하고 나머지 98%는 주주환원으로 귀속"),
+        "MA": ("자본 경량형 (소프트웨어 결제망)", "#2ecc71", "물리적 인프라 추가 없이 트랜잭션 증가를 처리할 수 있어 CapEx 스트레스가 영구히 없는 교과서적 비즈니스"),
+        "KO": ("보틀링 외주 (자본 경량형 브랜드)", "#2ecc71", "병입(Bottling) 공장은 현지 보틀러사에 외주를 주고 본사는 농축액 원액과 브랜드만 공급하여 고정자산 감가상각 위험 차단"),
+        "COST": ("안정적 매장 증설 (현금흐름 내 투자)", "#2ecc71", "연간 신규 창고형 매장 25~30개 증설에 필요한 CapEx를 회원권 갱신 현금흐름 내에서 100% 감당하는 모범적 자본배분"),
+        "BRK-B": ("에너지·철도 자체 조달 (자본 배분 완충)", "#2ecc71", "BNSF 철도와 에너지의 대규모 설비투자가 발생하지만 보험 플로트와 제조 계열사의 방대한 현금으로 사내 완벽 헷지")
+    }
+
+    if tk_u in capex_db:
+        grd, col, dsc = capex_db[tk_u]
+        return f"<b style='color:{col};'>[{grd}]</b> {dsc}"
+    if cd in capex_db:
+        grd, col, dsc = capex_db[cd]
+        return f"<b style='color:{col};'>[{grd}]</b> {dsc}"
+
+    # 2. 미등록 종목 FCF 및 CapEx 비율 기반 자동 판정
     try:
         cf = stk.cash_flow if stk is not None else None
-        if cf is None or cf.empty:
-            return "<span style='color:#8892b0;'>현금흐름 데이터 부족</span>"
-            
-        capex_vals = []
-        for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
-            if ck in cf.index:
-                capex_vals = [abs(safe_float(v)) for v in cf.loc[ck].dropna().values[:4][::-1] if safe_float(v) != 0]
-                break
-                
-        if len(capex_vals) < 2:
-            return "<span style='color:#8892b0;'>비교 데이터 부족</span>"
-
-        curr_cx = capex_vals[-1]
-        prev_cx = capex_vals[-2]
-        avg_3y_cx = sum(capex_vals[:-1]) / len(capex_vals[:-1]) if len(capex_vals) >= 2 else prev_cx
-
-        surge_pct = ((curr_cx - avg_3y_cx) / avg_3y_cx) * 100.0 if avg_3y_cx > 0 else 0.0
-
-        scale = 1e12 if (kr and curr_cx >= 1e12) else (1e8 if kr else 1e9)
-        u_str = ("조 원" if scale == 1e12 else "억 원") if kr else "B$"
-
-        if surge_pct >= 40.0:
-            return f"<b style='color:#ff7675;'>[CapEx 급증 경고]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (과거 평균 대비 <b>+{surge_pct:.1f}%</b> 폭증) · FCF 잠식 주의"
-        elif surge_pct >= 15.0:
-            return f"<b style='color:#fdcb6e;'>[공격적 재투자]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (+{surge_pct:.1f}%) · 성장 투자 집행 중"
-        elif surge_pct <= -15.0:
-            return f"<b style='color:#74b9ff;'>[설비투자 긴축]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 ({surge_pct:.1f}%) · 현금 회수기 진입"
-        else:
-            return f"<b style='color:#2ecc71;'>[안정적 유지]</b> 최근 <b>{curr_cx/scale:.1f}{u_str}</b> 지출 (변동률 {surge_pct:+.1f}%) · 현금흐름 훼손 없음"
+        if cf is not None and not cf.empty:
+            for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                if ck in cf.index:
+                    cx_vals = [abs(safe_float(v)) for v in cf.loc[ck].dropna().values[:3] if safe_float(v) != 0]
+                    if len(cx_vals) >= 2 and cx_vals[-1] > cx_vals[-2] * 1.4:
+                        return f"<b style='color:#fdcb6e;'>[공격적 설비 확장]</b> 최근 설비투자가 40% 이상 급증. 차세대 먹거리를 위한 선제 투자 기회인지 FCF 잠식인지 지속 추적 필요"
+                    elif len(cx_vals) >= 1 and base_fcf and base_fcf > cx_vals[-1] * 2.0:
+                        return f"<b style='color:#2ecc71;'>[안정적 잉여현금 창출]</b> 설비투자 규모를 현금흐름으로 충분히 감당하여 주주이익 훼손 없이 본업 재투자 진행"
     except Exception:
-        return "<span style='color:#8892b0;'>데이터 확인 필요</span>"
+        pass
+    return f"<b style='color:#74b9ff;'>[표준 재투자]</b> 사업 유지를 위한 적정 수준의 경상 설비투자 집행 중"
 
 
 # =========================================================================
-# [신규 엔진 3] 시클리컬(반도체/해운/정유 등) 고점 저PER 착시 판독기
+# [엔진 3] 시클리컬(반도체/해운/정유 등) 고점 저PER 착시 정밀 판독기
 # =========================================================================
 def analyze_cyclical_per_trap(tk, cur_pe, is_cyclical, roe, kr):
     """
-    시클리컬(삼성전자, SK하이닉스, 마이크론, 샌디스크 등) 피크아웃 시
-    이익 폭증으로 PER이 4~7배로 극단적으로 낮아지는 '저PER 착시 함정' 방어
+    삼성전자, SK하이닉스, 마이크론, 샌디스크 등 경기민감주 피크아웃 시
+    실적 폭증으로 PER이 4~7배로 극단적으로 낮아지는 '저PER 착시 함정'을 정확히 탐지
     """
-    if not is_cyclical:
-        return None, "비시클리컬 기업"
+    tk_clean = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
 
-    # 반도체 및 시클리컬 핵심 기업 식별
-    semis = ["005930.KS", "000660.KS", "MU", "WDC", "SNDK", "INTC", "TSM"]
-    tk_clean = str(tk).upper().strip()
-    is_semi = any(s in tk_clean for s in semis)
+    # 반도체 및 핵심 시클리컬 목록 명시적 확장
+    semi_cyclicals = [
+        "005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "AMAT", "LRCX", "KLAC",
+        "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"
+    ]
+    is_target_cyclical = is_cyclical or (tk_clean in semi_cyclicals)
 
-    # 시클리컬 정점: ROE가 25% 이상 폭등하면서 일시적 PER이 8배 이하로 내려간 경우
-    if cur_pe > 0 and cur_pe <= 8.5 and roe >= 22.0:
-        st_code = "fail"
-        msg = f"<b>피크아웃 주의:</b> 호황 정점 이익 폭증으로 인한 <b>'저PER 착시({cur_pe:.1f}배)'</b> 함정 위험 (ROE {roe:.1f}%)"
-    elif cur_pe > 0 and cur_pe <= 12.0 and roe >= 15.0:
-        st_code = "warn"
-        msg = f"<b>사이클 후반:</b> 이익 고점 부근 통과 중 (현재 PER {cur_pe:.1f}배 · 다운사이클 실적 급감 대비 필요)"
-    elif cur_pe > 25.0 or cur_pe <= 0:
-        st_code = "pass"
-        msg = f"<b>역발상 기회 구간:</b> 실적 악화/적자로 PER 왜곡 ({cur_pe:.1f}배) ➔ 사이클 바닥 통과 가능성"
+    if not is_target_cyclical:
+        return None, "비시클리컬(안정형) 비즈니스"
+
+    # 1. 사이클 정점 피크아웃 (저PER 착시 위험)
+    # 호황 정점에서 순이익이 폭증하여 PER이 8배 이하로 내려가나 ROE는 20%를 초과하는 전형적인 함정
+    if 0 < cur_pe <= 8.5 and roe >= 20.0:
+        return "fail", f"<b>피크아웃 주의:</b> 호황 정점 이익 폭증에 따른 <b>'저PER 착시({cur_pe:.1f}배)'</b> 함정 (다운사이클 시 실적 급감 위험)"
+
+    # 2. 사이클 후반부 (경계 구간)
+    elif 0 < cur_pe <= 12.0 and roe >= 14.0:
+        return "warn", f"<b>사이클 후반부:</b> 호황기 고점 부근 통과 중 (현재 PER {cur_pe:.1f}배 · 공급 과잉 전환 여부 감시)"
+
+    # 3. 사이클 바닥 / 역발상 매수 기회 (고PER 또는 적자)
+    # 불황 바닥에서는 순이익이 급감하거나 적자가 나서 PER이 30~50배로 치솟거나 산출 불가
+    elif cur_pe >= 25.0 or cur_pe <= 0:
+        return "pass", f"<b>역발상 기회 구간:</b> 업황 바닥으로 실적 급감/적자 (PER {cur_pe:.1f}배 착시) ➔ 차기 회복 사이클 선취매 가능"
+
+    # 4. 보통 수준의 경기 사이클
     else:
-        st_code = "warn"
-        msg = f"시클리컬 보통 사이클 (현재 PER {cur_pe:.1f}배 · ROE {roe:.1f}%)"
-
-    return st_code, msg
+        return "warn", f"경기 사이클 중간 국면 (현재 PER {cur_pe:.1f}배 · ROE {roe:.1f}%)"
 # =========================================================================
 # [복원] 피오트로스키 F-Score (9점 만점 재무 건전성 판독기)
 # =========================================================================
@@ -6973,7 +7051,7 @@ with tab1:
                     c5_sub = f"이익수익률 {ey:.1f}% (국채 {erp:+.1f}%p)" if f_pe > 0 else "산출 불가(적자)"
 
                     # -------------------------------------------------------------
-                    # 기존 5대 체크리스트 판정 후, 6번째 시클리컬 함정 판정 추가
+                    # 시클리컬(삼전, 하이닉스 등) 저PER 착시 판독 실행
                     # -------------------------------------------------------------
                     cyc_st, cyc_sub = analyze_cyclical_per_trap(tk, eff_cur_pe, is_cyclical, roe, kr)
 
@@ -6985,8 +7063,8 @@ with tab1:
                         (t("5. 국채 대비 기회비용", "5. vs 10Y Treasury"), c5_st, c5_sub)
                     ]
 
-                    # 시클리컬 기업(반도체, 해운, 철강 등)일 경우 6번째 관문 자동 삽입
-                    if is_cyclical and cyc_st is not None:
+                    # 시클리컬 종목(삼전, 하이닉스, 마이크론, 포스코 등)이면 무조건 6번째 관문 자동 추가!
+                    if cyc_st is not None:
                         munger_items.append((t("6. 시클리컬 저PER 착시", "6. Cyclical PE Trap"), cyc_st, cyc_sub))
 
                     tot_chk_cnt = len(munger_items)
@@ -7300,10 +7378,10 @@ with tab1:
 
                # ▼▼▼ 기존 '# ---------------- [직관적인 한 줄 요약 로직 (대중적 버전)] ----------------' 아래를 교체 ▼▼▼
                 
-               # 신규 분석 실행
+               # 정성 분석 엔진 일괄 실행 (인자 tk 추가)
                 diversification_html = analyze_business_diversification(stk, i, tk, kr)
-                pricing_power_html = analyze_pricing_power(stk, i)
-                capex_surge_html = analyze_capex_surge(stk, base_fcf, kr)
+                pricing_power_html = analyze_pricing_power(stk, i, tk, kr)
+                capex_nature_html = analyze_capex_nature(stk, i, tk, base_fcf, kr)
 
                 integrated_html = (
                     f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 0 auto 30px auto; width: 100%;'>"
@@ -7324,11 +7402,11 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
                     
                     # -------------------------------------------------------------
-                    # 다각화 카드 + 가격결정력 카드 + CapEx 급증 스캐너 나란히 배치
+                    # 다각화 + 가격결정력 + CapEx 기회/과투자 정성 진단 카드 3종
                     # -------------------------------------------------------------
                     f"<div style='{item_style}'><div style='{lbl_style}'>사업 다각화 (단일 실패지점 차단)</div><div style='{desc_style} margin-top:5px;'>{diversification_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>가격결정력 (원가 전가력)</div><div style='{desc_style} margin-top:5px;'>{pricing_power_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>CapEx(설비투자) 과투자 진단</div><div style='{desc_style} margin-top:5px;'>{capex_surge_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>가격결정력 (원가 전가 해자)</div><div style='{desc_style} margin-top:5px;'>{pricing_power_html}</div></div>"
+                    f"<div style='{item_style}'><div style='{lbl_style}'>CapEx(설비투자) 성격 진단</div><div style='{desc_style} margin-top:5px;'>{capex_nature_html}</div></div>"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
