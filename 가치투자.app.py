@@ -7777,39 +7777,79 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)",
                         hook_options_45s,
                         index=1,
-                        key=f"sh_hook_45s_v22_{tk}"
+                        key=f"sh_hook_45s_v23_{tk}"
                     )
 
                     char_c1, char_c2, char_c3 = st.columns([1.3, 1.3, 1.4])
 
                     # =========================================================================
-                    # 2. 본문 4대 라운드 대본 변수 사전 생성
+                    # 2. [완전 해결] ROIC 구간별 맞춤형 비유 (애플 1,000만 원 비유 원천 박멸)
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
+                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
                     req_int = int(round(req_g_val))
                     fcf_int = int(round(actual_fcf_g_val))
                     roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
 
-                    moat_line = f"첫째 복리 속도야! / 보통 12% 정돈데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
+                    # (A) 영업이익률 마진 방어 문구
+                    if opm_int >= 25:
+                        opm_txt = f"영업마진 {opm_int}%로 가격결정력이 막강해!"
+                    elif opm_int >= 12:
+                        opm_txt = f"영업마진 {opm_int}%로 탄탄한 마진을 지켜내!"
+                    elif opm_int >= 5:
+                        opm_txt = f"영업마진 {opm_int}%의 보통 수준 수익성이야!"
+                    else:
+                        opm_txt = f"영업마진 {opm_int}%로 원가 압박을 심하게 받아!"
 
+                    # (B) ROIC 구간별 비유 (60% 이상이면 공장 없는 플랫폼 레버리지로 즉시 전환!)
+                    if roic_int >= 60:
+                        # 애플, 엔비디아, 마스터카드, 비자 전용
+                        moat_line = (
+                            f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%야! / "
+                            f"내 공장 거의 안 짓고도 밑천 회수 속도가 사기급이야! / {opm_txt}"
+                        )
+                    elif roic_int >= 20:
+                        # 우량 소비재/제조업 (코스트코, 삼양식품, TSMC 등)
+                        moat_line = (
+                            f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / "
+                            f"1,000만 원당 {roic_won_txt}을 벌 만큼 / {opm_txt}"
+                        )
+                    elif roic_int >= 10:
+                        # 일반 성숙형/사이클 기업
+                        moat_line = (
+                            f"첫째 복리 속도야! / 시장 기준선 12% 대비 연 {roic_int}% 수준이야! / "
+                            f"밑천 대비 평범한 효율을 내고 있고 / {opm_txt}"
+                        )
+                    else:
+                        # 자본잠식/저수익 가치함정
+                        moat_line = (
+                            f"첫째 복리 속도야! / 자본비용 12%에 한참 못 미치는 연 {roic_int}%야! / "
+                            f"장사할수록 밑천을 갉아먹는 구조라 / {opm_txt}"
+                        )
+
+                    # (C) 둘째 가격(역산 밸류에이션) 대본
                     if erp_val < 0:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
                     else:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
 
+                    # (D) 셋째 안전판 및 자본배분 대본 (기업 특성 100% 동적 반영)
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
                     div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
-                    
-                    if current_ratio >= 1.2:
-                        liq_txt = "공급망 체력과 유동성으로 버티고"
+
+                    # 유동성 문구: 애플 같은 음의 운전자본/빅테크는 공급망 체력으로 우대
+                    if current_ratio >= 1.2 or (opm_int >= 25 and roic_int >= 60):
+                        liq_txt = "압도적인 공급망 체력과 유동성으로 버티고"
+                    elif current_ratio >= 0.9:
+                        liq_txt = "안정적인 운전자본 흐름으로 버티고"
                     else:
-                        liq_txt = "단기 유동성을 보수적으로 버티고"
+                        liq_txt = "단기 유동성을 보수적으로 관리하면서"
 
                     if div_val >= 3.0:
                         return_txt = f"연 {div_val:.1f}%의 쏠쏠한 현금배당으로 확실히 보답해!"
                     elif bb_val >= 1.0:
                         div_prefix = "배당은 적지만" if div_val > 0.3 else "배당은 없지만"
-                        return_txt = f"{div_prefix} 대규모 자사주 소각으로 주당 가치를 올려줘!"
+                        return_txt = f"{div_prefix} 공격적인 자사주 소각으로 주당 가치를 쥐어짜 올려줘!"
                     elif bb_val <= -1.5:
                         return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
                     elif cap_ret_val >= 15.0:
@@ -7820,7 +7860,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
 
                     # =========================================================================
-                    # 3. 선택된 훅 번호(h_num)에 맞춰 도입부 첫 줄 자동 매칭
+                    # 3. 선택된 훅 테마에 맞춘 1번 컷 첫 문장 매칭
                     # =========================================================================
                     h_num = 1
                     if not sel_hook_45.startswith("🎲 0."):
@@ -7845,7 +7885,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     }
                     intro_first_line = hook_opening_dict.get(h_num, hook_opening_dict[1])
 
-                    # 5컷 완성형 대본 리스트
+                    # 5컷 최종 대본
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
                         f"[해자] {moat_line}",
@@ -7855,11 +7895,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     ]
 
                     # =========================================================================
-                    # 4. [핵심 해결] key에 h_num을 바인딩하여 훅 선택 시 대본 즉시 갱신
+                    # 4. [캐시 강제 초기화] key 버전을 v24로 변경하여 이전 대본 기억을 완전히 밀어버림!
                     # =========================================================================
-                    script_area_key = f"script_v22_{tk}_H{h_num}"
+                    script_area_key = f"script_v24_forced_{tk}_H{h_num}"
 
-                    st.success("🎬 **[대본 자동 동기화 활성화]** 위에서 훅 번호를 바꾸면 아래 대본의 도입부 첫 문장이 즉시 변경됩니다.")
+                    st.success("🎬 **[대본 동기화 완료]** ROIC 60% 이상 플랫폼 비유와 선택된 공포 훅이 대본에 실시간 반영됩니다.")
                     editable_script_text = st.text_area(
                         "✏️ 바이블 기준 5컷 완결형 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
                         value="\n".join(default_12cuts_script),
