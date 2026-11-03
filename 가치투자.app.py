@@ -7957,22 +7957,26 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         with wave.open(out_wav_path, 'wb') as wf:
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
-                    # -------------------------------------------------------------
-                    # [수정] 저작권 문제 없는 '버핏 노신사 페르소나' 내장 음성 엔진
-                    # -------------------------------------------------------------
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_chapter_start=False, is_final_cut=False):
-                        import subprocess
+                        import subprocess, os
                         tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip()
                         if not tts_ready_text:
                             tts_ready_text = "핵심 지표 확인"
                     
-                        # 1. 목소리 선택: 봉진(BongJin)은 중후하고 차분한 50~60대 중년/노신사 톤입니다.
-                        #    여기에 피치를 -4Hz~-6Hz 낮추면 70~80대 버핏 특유의 나이 든 울림이 자연스럽게 완성됩니다.
-                        voice_id = "ko-KR-BongJinNeural" if "남성" in str(voice_choice) or "버핏" in str(voice_choice) else "ko-KR-SunHiNeural"
+                        # -----------------------------------------------------------------
+                        # [설정] 할아버지 톤 선택:
+                        # BongJin은 기본 속도가 매우 느리므로 rate를 최소 +45% 이상 강하게 줍니다.
+                        # -----------------------------------------------------------------
+                        voice_id = "ko-KR-BongJinNeural" if ("남성" in str(voice_choice) or "버핏" in str(voice_choice)) else "ko-KR-SunHiNeural"
                         
-                        # 2. 속도 및 피치(음조) 설정: 나이 든 느낌을 위해 피치를 낮춤
-                        rate_str = f"+{int(voice_speed)}%"
-                        pitch_str = "-5Hz" if voice_id == "ko-KR-BongJinNeural" else "+0Hz"
+                        # BongJin일 때는 기본 속도가 느리므로 기본 배속을 대폭 부스트 (+48%)
+                        if voice_id == "ko-KR-BongJinNeural":
+                            boosted_speed = max(45, int(voice_speed) + 20)
+                            rate_str = f"+{boosted_speed}%"
+                            pitch_str = "-4Hz"
+                        else:
+                            rate_str = f"+{int(voice_speed)}%"
+                            pitch_str = "+0Hz"
                     
                         try:
                             import edge_tts, asyncio
@@ -7993,18 +7997,44 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             from gtts import gTTS
                             gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
                     
-                        # 3. FFmpeg 음향 필터: 버핏 특유의 쉰 듯하면서도 부드러운 저음 강조 EQ
-                        #    - 저음역대(150Hz) 부스트: 나이 든 사람 특유의 흉성 울림
-                        #    - 고음역대(4000Hz) 살짝 감쇄: 젊은 아나운서 특유의 쨍쨍한 쇳소리 제거
-                        eq_str = "equalizer=f=150:width_type=h:width=80:g=3.5,equalizer=f=4000:width_type=h:width=1000:g=-2.0"
-                        atempo_part = f"atempo={float(atempo_mult):.2f}," if abs(float(atempo_mult) - 1.0) > 0.02 else ""
-                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
-                        af_filter = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,{atempo_part}{eq_str},volume=1.20{pad_part}"
+                        # -----------------------------------------------------------------
+                        # [핵심] FFmpeg 물리 가속 + 문장 내부 묵음(공백) 0.05초 단위 초정밀 커팅
+                        # atempo=1.20으로 오디오 재생 시간을 강제로 20% 더 단축시킵니다.
+                        # -----------------------------------------------------------------
+                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.03"
                         
-                        try:
-                            subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-af", af_filter, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                        except Exception:
-                            subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                        # 1) silenceremove: 말 시작 전 묵음 제거 + 말 끝난 뒤 0.05초 이상 쉬는 구간 칼삭제
+                        # 2) atempo: 1.2배속 추가 물리 가속 (음정 변화 없이 속도만 빨라짐)
+                        # 3) volume: 1.3배 부스트 (휴대폰 스피커에서 또렷하게 꽂힘)
+                        af_filter = (
+                            "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.02:"
+                            "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
+                            "atempo=1.20,"
+                            f"volume=1.30{pad_part}"
+                        )
+                        
+                        cmd = [
+                            ffmpeg_exe, "-y",
+                            "-i", raw_mp3_path,
+                            "-af", af_filter,
+                            "-ar", "24000",
+                            "-ac", "1",
+                            tuned_wav_path
+                        ]
+                        
+                        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        
+                        # 만약 필터 오류가 나더라도 최소한 atempo는 먹히도록 2차 안전망 구축
+                        if res.returncode != 0:
+                            cmd_fallback = [
+                                ffmpeg_exe, "-y",
+                                "-i", raw_mp3_path,
+                                "-af", "atempo=1.25,volume=1.2",
+                                "-ar", "24000",
+                                "-ac", "1",
+                                tuned_wav_path
+                            ]
+                            subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                     
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
 
