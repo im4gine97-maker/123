@@ -7818,9 +7818,50 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
                     
-                    # 3) 안전판 대본
-                    saf_line = f"셋째 재무 안전판이야! / 공급망 체력으로 유동성을 버티고 / 배당은 적지만 대규모 자사주 소각으로 주당 가치를 올려줘!"
+                    # =========================================================================
+                    # [수리 완료] 기업별 실제 재무/환원 데이터 기반 4대 분기 로직
+                    # =========================================================================
+                    # 1. 유동성 및 재무 안정판 문구 판별
+                    if current_ratio >= 1.2:
+                        liq_txt = "탄탄한 유동성 체력으로 불황을 버티고"
+                    elif current_ratio >= 0.9:
+                        liq_txt = "안정적인 운전자본 흐름으로 버티고"
+                    else:
+                        liq_txt = "단기 유동성과 부채 관리에 집중하면서"
                     
+                    # 2. 주주환원(배당/자사주) vs 미래 재투자 vs 희석 판별
+                    bb_val = bb_yield if 'bb_yield' in locals() else 0.0
+                    div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
+                    
+                    if div_val >= 3.0:
+                        # [고배당형: 금융, 통신, 전통 소비재]
+                        return_txt = f"연 {div_val:.1f}%의 쏠쏠한 현금배당으로 확실히 보답해!"
+                        alloc_board_t1 = f"연 {div_val:.2f}% 고배당 환원 ({div_10y_cnt}년 연속 지급)"
+                        alloc_board_t2 = "★ 안정적인 현금배당 중심의 주주가치 제고 ★"
+                    elif bb_val >= 1.0:
+                        # [애플형: 자사주 소각 중심 환원]
+                        div_prefix = "배당은 적지만" if div_val > 0.3 else "배당은 없지만"
+                        return_txt = f"{div_prefix} 공격적인 자사주 소각으로 주당 가치를 올려줘!"
+                        alloc_board_t1 = f"연 {abs(bb_val):.1f}% 자사주 순매입 및 전량 소각!"
+                        alloc_board_t2 = "★ 주식 수를 줄여 1주당 가치를 압축하는 자본 환원 ★"
+                    elif bb_val <= -1.5:
+                        # [주주 희석형: 유상증자, CB/BW, 과도한 주식보상]
+                        return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
+                        alloc_board_t1 = f"주의: 주식 수 연 {abs(bb_val):.1f}% 증가 (주주가치 희석)"
+                        alloc_board_t2 = "⚠️ 유상증자 및 전환사채 발행 여부 지속 점검 필요 ⚠️"
+                    elif cap_ret_val >= 15.0:
+                        # [빅테크/성장형: 배당·소각 대신 고수익 본업 재투자]
+                        return_txt = f"배당보단 밑천 {int(round(cap_ret_val))}%의 고수익 본업에 공격적으로 재투자해!"
+                        alloc_board_t1 = f"벌어들인 FCF를 고수익 본업({cap_ret_val:.1f}%)에 집중 재투자!"
+                        alloc_board_t2 = "★ 사내 유보를 통한 장기 복리 성장 극대화 ★"
+                    else:
+                        # [일반 성숙형]
+                        return_txt = "적정 배당과 사내 유보금으로 내부 체력을 다지고 있어!"
+                        alloc_board_t1 = f"배당 {div_val:.2f}% 및 사내 현금 유보를 통한 재무 방어"
+                        alloc_board_t2 = "★ 경기 변동 대응을 위한 내부 유보 우선 정책 ★"
+                    
+                    # 최종 대본 조립
+                    saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
                     default_12cuts_script = [
                         f"[도입] 주식이 좋다고 무조건 사면 큰일 나! / {comp_name} 10년 장부로 기회비용을 까보자!",
                         f"[해자] {moat_line}",
@@ -8184,25 +8225,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 525, 395, 280, f"현금배당 ({div_10y_cnt}년 연속)", f_chalk, start_sz=28, fill=chalk_dim)
                                 _fit_single_line(draw, 525, 465, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=chalk_dim, stroke_w=3, stroke_c=(0, 0, 0))
 
-                                # 2줄: 자사주 소각 박스 (성우가 자사주 소각을 말할 때 하단에 크게 강조)
                                 # -------------------------------------------------------------
-                                # 칠판 Step 3 자사주 소각 박스 (국내/해외 통화 및 FCF 규모 자동 적응)
+                                # [수정] 칠판 Step 3 자사주/배당/재투자 동적 그래픽 연동
                                 # -------------------------------------------------------------
                                 if sub_step >= 2:
                                     draw.rounded_rectangle([55, 580, W - 55, 760], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
-                                    # 종목별 FCF 규모 표시
-                                    if base_fcf and base_fcf > 0:
-                                        if kr:
-                                            fcf_disp = f"연 {base_fcf/1e12:.1f}조 원 FCF 창출" if base_fcf >= 1e12 else f"연 {base_fcf/1e8:,.0f}억 원 FCF 창출"
-                                        else:
-                                            fcf_disp = f"연 {base_fcf/1e9:.1f}B 달러 FCF 창출" if base_fcf >= 1e9 else f"연 {base_fcf/1e6:,.0f}M 달러 FCF 창출"
-                                    else:
-                                        fcf_disp = "강력한 주주이익 창출"
-                                
-                                    alloc_t1 = f"{fcf_disp} ➔ 대규모 자사주 매입·소각!"
-                                    alloc_t2 = "★ 주식 수를 줄여 주당 가치를 압축하는 자본 환원 ★"
-                                    _fit_single_line(draw, W // 2, 635, W - 140, alloc_t1, f_chalk, start_sz=28, fill=white_c)
-                                    _fit_single_line(draw, W // 2, 702, W - 140, alloc_t2, f_chalk, start_sz=36, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                    # 고정된 "1,000억 달러 FCF" 대신 위에서 기업별로 산출된 alloc_board_t1, t2 표출
+                                    _fit_single_line(draw, W // 2, 635, W - 140, alloc_board_t1, f_chalk, start_sz=28, fill=white_c)
+                                    _fit_single_line(draw, W // 2, 702, W - 140, alloc_board_t2, f_chalk, start_sz=34, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
                                     draw_chalk_lecture_marks(draw, W // 2, 725, 540, 35, mark_type="underline")
 
                         # 4. 하단 자막 (Y: 825 ~ 945, 강단 및 버튼과 겹침 없는 완벽한 가독 영역)
