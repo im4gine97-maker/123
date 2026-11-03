@@ -7802,25 +7802,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
 
                     # =========================================================================
-                    # [V32 메타 템포 대본] 화면 그래픽과 1:1 칼동기화 (소수점 치환 & 5컷 완결)
+                    # [수정 2] 900만 원 하드코딩 버그 제거 -> roic_10m_manwon 변수 연동
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
                     req_int = int(round(req_g_val))
                     fcf_int = int(round(actual_fcf_g_val))
-
-                    # 1) 해자 (ROIC 99%와 1,000만 원당 900만 원 창출에 집중)
-                    moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 900만 원을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
-
-                    # 2) 가격 (국채 비교 & FCF 성장률)
+                    roic_won_txt = f"{abs(roic_10m_manwon):,}만 원"
+                    
+                    # 1) 해자 대본: 화면의 +989만 원과 음성을 1:1로 일치시킴
+                    moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
+                    
+                    # 2) 가격 대본
                     if erp_val < 0:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
                     else:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
-
-                    # 3) 안전판 (공급망 체력 & 자사주 소각)
+                    
+                    # 3) 안전판 대본
                     saf_line = f"셋째 재무 안전판이야! / 공급망 체력으로 유동성을 버티고 / 배당은 적지만 대규모 자사주 소각으로 주당 가치를 올려줘!"
-
-                    # 35초 완독 5컷 정예 구성 (메타 영상 구조 100% 일치)
+                    
                     default_12cuts_script = [
                         f"[도입] 주식이 좋다고 무조건 사면 큰일 나! / {comp_name} 10년 장부로 기회비용을 까보자!",
                         f"[해자] {moat_line}",
@@ -8173,9 +8173,21 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 525, 465, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=chalk_dim, stroke_w=3, stroke_c=(0, 0, 0))
 
                                 # 2줄: 자사주 소각 박스 (성우가 자사주 소각을 말할 때 하단에 크게 강조)
+                                # -------------------------------------------------------------
+                                # 칠판 Step 3 자사주 소각 박스 (국내/해외 통화 및 FCF 규모 자동 적응)
+                                # -------------------------------------------------------------
                                 if sub_step >= 2:
                                     draw.rounded_rectangle([55, 580, W - 55, 760], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
-                                    alloc_t1 = f"연 1,000억 달러 FCF 창출 ➔ 대규모 자사주 매입·소각!"
+                                    # 종목별 FCF 규모 표시
+                                    if base_fcf and base_fcf > 0:
+                                        if kr:
+                                            fcf_disp = f"연 {base_fcf/1e12:.1f}조 원 FCF 창출" if base_fcf >= 1e12 else f"연 {base_fcf/1e8:,.0f}억 원 FCF 창출"
+                                        else:
+                                            fcf_disp = f"연 {base_fcf/1e9:.1f}B 달러 FCF 창출" if base_fcf >= 1e9 else f"연 {base_fcf/1e6:,.0f}M 달러 FCF 창출"
+                                    else:
+                                        fcf_disp = "강력한 주주이익 창출"
+                                
+                                    alloc_t1 = f"{fcf_disp} ➔ 대규모 자사주 매입·소각!"
                                     alloc_t2 = "★ 주식 수를 줄여 주당 가치를 압축하는 자본 환원 ★"
                                     _fit_single_line(draw, W // 2, 635, W - 140, alloc_t1, f_chalk, start_sz=28, fill=white_c)
                                     _fit_single_line(draw, W // 2, 702, W - 140, alloc_t2, f_chalk, start_sz=36, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
