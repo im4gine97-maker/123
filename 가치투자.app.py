@@ -7758,7 +7758,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pass
 
                     # =========================================================================
-                    # [수정] 초반 1~2초 이탈 방지 짧은 공포·경고형 훅 대거 추가
+                    # 1. 초반 2초 공포 훅 옵션 정의 및 선택
                     # =========================================================================
                     hook_options_45s = [
                         "🎲 0. [AI 자동 매칭] 바이블 헌장 기준 최적 훅 자동 선택 (추천)",
@@ -7773,28 +7773,62 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         "🏰 9. [해자 안전마진형] 해자 없는 싼 주식은 지옥 가는 가치 함정입니다!",
                         "⚔️ 10. [미국채 맞대결형] 무위험 미국채 이자보다 돈을 더 잘 벌까요?"
                     ]
+                    sel_hook_45 = st.selectbox("🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)", hook_options_45s, index=1, key=f"sh_hook_45s_v22_{tk}")
+
+                    char_c1, char_c2, char_c3 = st.columns([1.3, 1.3, 1.4])
+
+                    # =========================================================================
+                    # 2. [필수] moat_line, price_line, saf_line 변수를 먼저 계산 및 정의!
+                    # =========================================================================
+                    roic_int = int(round(cap_ret_val))
+                    req_int = int(round(req_g_val))
+                    fcf_int = int(round(actual_fcf_g_val))
+                    roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
+
+                    # (1) 해자 대본 정의
+                    moat_line = f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / 1,000만 원당 {roic_won_txt}을 벌 만큼 / 영업마진과 가격결정력이 막강해!"
+
+                    # (2) 가격 대본 정의
+                    if erp_val < 0:
+                        price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
+                    else:
+                        price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
+
+                    # (3) 안전판 대본 동적 분기 정의
+                    bb_val = bb_yield if 'bb_yield' in locals() else 0.0
+                    div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
                     
-                    sel_hook_45 = st.selectbox(
-                        "🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)",
-                        hook_options_45s,
-                        index=1,  # 기본값을 1번(계좌 파탄 경고)으로 설정
-                        key=f"sh_hook_45s_v22_{tk}"
-                    )
-                    
-                    # -------------------------------------------------------------
-                    # 선택된 훅 번호에 맞춰 [도입] 첫 문장 자동 교체 로직
-                    # -------------------------------------------------------------
-                    h_num = 0
+                    if current_ratio >= 1.2:
+                        liq_txt = "공급망 체력과 유동성으로 버티고"
+                    else:
+                        liq_txt = "단기 유동성을 보수적으로 버티고"
+
+                    if div_val >= 3.0:
+                        return_txt = f"연 {div_val:.1f}%의 쏠쏠한 현금배당으로 확실히 보답해!"
+                    elif bb_val >= 1.0:
+                        div_prefix = "배당은 적지만" if div_val > 0.3 else "배당은 없지만"
+                        return_txt = f"{div_prefix} 대규모 자사주 소각으로 주당 가치를 올려줘!"
+                    elif bb_val <= -1.5:
+                        return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
+                    elif cap_ret_val >= 15.0:
+                        return_txt = f"배당보단 밑천 {roic_int}%의 고수익 본업에 공격적으로 재투자해!"
+                    else:
+                        return_txt = "적정 배당과 사내 유보금으로 내부 체력을 다지고 있어!"
+
+                    saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
+
+                    # =========================================================================
+                    # 3. 훅 번호 판별 및 1번 컷 도입부 문장 결정
+                    # =========================================================================
+                    h_num = 1
                     if not sel_hook_45.startswith("🎲 0."):
                         try:
                             h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
                         except Exception:
                             h_num = 1
                     else:
-                        # 0번 자동 매칭 시 1~6번 공포 훅 중 무작위 순환
                         h_num = (sum(ord(c) for c in clean_tk) % 6) + 1
-                    
-                    # 선택된 훅 테마별 도입부 첫 문장 정의 (1.5초 컷 단문)
+
                     hook_opening_dict = {
                         1: f"이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부 팩트 까보자!",
                         2: f"지금 사면 남들 설거지해 주는 호구 돼! / {comp_name} 10년 장부 팩트 까보자!",
@@ -7807,10 +7841,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         9: f"해자 없는 싼 주식은 지옥 가는 가치 함정이야! / {comp_name} 진짜 주주이익 까보자!",
                         10: f"무위험 미국채 이자보다 돈을 더 잘 벌까? / {comp_name} 10년 장부 까보자!"
                     }
-                    
                     intro_first_line = hook_opening_dict.get(h_num, hook_opening_dict[1])
-                    
-                    # 35초 완독 5컷 대본 조립
+
+                    # =========================================================================
+                    # 4. 모든 변수가 준비된 후 최종 default_12cuts_script 조립 (오류 해결 지점)
+                    # =========================================================================
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
                         f"[해자] {moat_line}",
