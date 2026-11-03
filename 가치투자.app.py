@@ -8067,9 +8067,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 1. 상단 블랙 헤더 (헤더는 가독성을 위해 단정한 폰트 사용)
+                        # 폰트 이원화: 칠판 판서는 분필체(f_chalk), 자막/헤더/안내문은 깔끔한 볼드 고딕(f_gothic)
+                        f_chalk = lambda s: get_font(s, is_chalk=True)
+                        f_gothic = lambda s: get_font(s, is_chalk=False)
+
+                        # 1. 상단 블랙 헤더 (고딕체로 선명하게 표시)
                         header_sub_map = {
-                            "SCENE_HOOK": "🚨 10년 장부 & 안전마진 긴급 검증",
+                            "SCENE_HOOK": "10년 장부 & 안전마진 긴급 검증",
                             "SCENE_MOAT": "칠판 강의 1 · 복리 속도 & 영업마진",
                             "SCENE_BUFFETT": "칠판 강의 2 · 국채 비교 & 역산 안전마진",
                             "SCENE_MACRO": "칠판 강의 2 · 국채 비교 & 역산 안전마진",
@@ -8079,10 +8083,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         top_yellow_title = f"{comp_name} 장부 치트키"
                         top_white_sub = header_sub_map.get(scene_code, "워런 버핏 10년 장부 해부")
 
-                        _fit_single_line(draw, W // 2, 102, W - 40, top_yellow_title, lambda s: get_font(s, is_chalk=False), start_sz=62, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
-                        _fit_single_line(draw, W // 2, 188, W - 40, top_white_sub, lambda s: get_font(s, is_chalk=False), start_sz=42, min_sz=22, fill=(255, 100, 100) if scene_code == "SCENE_HOOK" else (255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 102, W - 40, top_yellow_title, f_gothic, start_sz=60, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 188, W - 40, top_white_sub, f_gothic, start_sz=38, min_sz=22, fill=(255, 100, 100) if scene_code == "SCENE_HOOK" else (255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
 
-                        # 2. 중앙 칠판 보드 (분필 질감의 다크 슬레이트 네이비)
+                        # 2. 중앙 칠판 보드 (Y: 245 ~ 995)
                         board_top, board_bot = 245, 995
                         board_bg_col = (14, 28, 42)
                         draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
@@ -8097,11 +8101,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         prev_cuts_in_scene = sum(1 for ic in range(chunk_idx) if pop_chunks[ic][1] == scene_code)
                         step_in_scene = sub_step if prev_cuts_in_scene == 0 else (3 + sub_step)
 
+                        # 초반 이탈 방지: 도입부 0번 컷만 캐릭터 풀샷을 보여주고, 1번 컷부터는 빠르게 칠판으로 유도!
                         show_character_fullshot = (
                             "캐릭터 없음" not in char_mode_sh and (
-                                scene_code == "SCENE_HOOK" or
+                                (scene_code == "SCENE_HOOK" and chunk_idx == 0) or
                                 scene_code == "SCENE_SUMMARY" or
-                                (prev_cuts_in_scene == 0 and sub_step == 0)
+                                (prev_cuts_in_scene == 0 and sub_step == 0 and chunk_idx > 0)
                             )
                         )
 
@@ -8111,9 +8116,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         red_c = (255, 75, 85)
                         chalk_dim = (180, 200, 215)
 
-                        # 칠판 전용 폰트 로더 클로저
-                        f_chalk = lambda s: get_font(s, is_chalk=True)
-
                         if show_character_fullshot:
                             char_cy = 485 if scene_code == "SCENE_SUMMARY" else 515
                             draw_talking_character_avatar(
@@ -8122,30 +8124,26 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 custom_pil_img=custom_char_pil, is_presenter_stage=True, sub_step=sub_step + chunk_idx
                             )
                             if scene_code == "SCENE_HOOK":
-                                if sub_step == 0:
-                                    draw.rounded_rectangle([38, 268, W - 38, 342], radius=14, fill=(195, 18, 32), outline=yellow_c, width=4)
-                                    _fit_single_line(draw, W // 2, 305, W - 100, "DANGER : 장부 안 보고 사면 큰일 납니다!", f_chalk, start_sz=32, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
-                                else:
-                                    draw.rounded_rectangle([45, 268, W - 45, 336], radius=14, fill=(20, 42, 78), outline=yellow_c, width=3)
-                                    _fit_single_line(draw, W // 2, 302, W - 110, f"{comp_name} 10년 장부 3대 핵심 팩트체크", f_chalk, start_sz=30, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
+                                draw.rounded_rectangle([38, 268, W - 38, 342], radius=14, fill=(195, 18, 32), outline=yellow_c, width=4)
+                                _fit_single_line(draw, W // 2, 305, W - 100, "DANGER : 장부 안 보고 사면 큰일 납니다!", f_gothic, start_sz=30, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
 
                             elif scene_code == "SCENE_SUMMARY":
                                 draw.rounded_rectangle([35, 265, W - 35, 335], radius=16, fill=(18, 38, 74), outline=yellow_c, width=3)
-                                _fit_single_line(draw, W // 2, 300, W - 100, f"★ {comp_name} : 복리 {cap_ret_val:.1f}% · 안전마진 {g_margin_val:+.1f}%p", f_chalk, start_sz=30, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, W // 2, 300, W - 100, f"★ {comp_name} : 복리 {cap_ret_val:.1f}% · 안전마진 {g_margin_val:+.1f}%p", f_gothic, start_sz=28, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
                                 cta_boxes = [
                                     (40, 745, 345, 815, "다음 종목 댓글 신청!", (220, 38, 68)),
                                     (375, 745, 680, 815, "저장 & 팔로우 클릭", (0, 185, 95))
                                 ]
                                 for bx1, by1, bx2, by2, btxt, bcol in cta_boxes:
                                     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=4)
-                                    _fit_single_line(draw, (bx1 + bx2) // 2, (by1 + by2) // 2, (bx2 - bx1) - 24, btxt, f_chalk, start_sz=28, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, (bx1 + bx2) // 2, (by1 + by2) // 2, (bx2 - bx1) - 24, btxt, f_gothic, start_sz=26, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
 
                         else:
                             # =================================================================
-                            # [칠판 분필 판서 엔진: 분필체 + 빨간 동그라미 유지 기능 장착!]
+                            # [칠판 내부 판서: 분필 손글씨 폰트 + 여백 충돌 방지 좌표]
                             # =================================================================
                             if scene_code == "SCENE_MOAT":
-                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 1 : 내 돈이 일하는 복리 속도 (TTM)", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 1 : 내 돈이 일하는 복리 속도 (TTM)", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
                                 # 1줄: 보통 12% vs 기업 ROIC
@@ -8155,72 +8153,70 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 if step_in_scene >= 2:
                                     _fit_single_line(draw, 525, 395, 280, f"{comp_name} (현재)", f_chalk, start_sz=32, fill=yellow_c)
                                     _fit_single_line(draw, 525, 465, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=72, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    # ✅ step_in_scene >= 2 동안 계속 빨간 동그라미 유지!
-                                    draw_chalk_lecture_marks(draw, 525, 465, 270, 95, mark_type="red_circle")
+                                    draw_chalk_lecture_marks(draw, 525, 465, 250, 90, mark_type="red_circle")
 
-                                # 2줄: 1,000만 원당 연 수익
+                                # 2줄: 1,000만 원당 연 수익 (글자와 밑줄 간격을 18px 띄워 겹침 해결!)
                                 if step_in_scene >= 3:
-                                    draw.line([(55, 540), (W - 55, 540)], fill=(50, 75, 100), width=2)
-                                    _fit_single_line(draw, W // 2, 595, W - 80, f"1,000만 원 넣으면 ➔ 1년에 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=40, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, W // 2, 595, 580, 60, mark_type="underline")
+                                    draw.line([(55, 535), (W - 55, 535)], fill=(50, 75, 100), width=2)
+                                    _fit_single_line(draw, W // 2, 585, W - 80, f"1,000만 원 넣으면 ➔ 1년에 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=38, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                    draw_chalk_lecture_marks(draw, W // 2, 605, 580, 50, mark_type="underline")
 
-                                # 3줄: 영업마진
+                                # 3줄: 영업마진 (박스 높이를 130px로 키워 동그라미가 박스를 뚫고 나가지 않음!)
                                 if step_in_scene >= 4:
-                                    draw.rounded_rectangle([65, 650, W - 65, 765], radius=18, fill=(18, 42, 68), outline=green_c, width=3)
-                                    _fit_single_line(draw, 250, 708, 320, "가격결정력 (영업마진)", f_chalk, start_sz=34, fill=white_c)
-                                    _fit_single_line(draw, 535, 708, 220, f"{op_m:.1f}%!", f_chalk, start_sz=62, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 535, 708, 200, 85, mark_type="red_circle")
+                                    draw.rounded_rectangle([55, 645, W - 55, 775], radius=18, fill=(18, 42, 68), outline=green_c, width=3)
+                                    _fit_single_line(draw, 240, 710, 300, "가격결정력 (영업마진)", f_chalk, start_sz=34, fill=white_c)
+                                    _fit_single_line(draw, 530, 710, 200, f"{op_m:.1f}%!", f_chalk, start_sz=60, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                    # 동그라미 크기를 박스 패딩 안쪽(180x70)으로 맞춰 테두리 침범 방지!
+                                    draw_chalk_lecture_marks(draw, 530, 710, 180, 70, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
-                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 2 : 버핏의 역산 암산법 (10년 장부)", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 2 : 버핏의 역산 암산법 (10년 장부)", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
                                 # 1줄: 이익수익률 vs 국채
-                                _fit_single_line(draw, W // 2, 390, W - 70, f"① 이익수익률 {cur_ey_val:.2f}%  vs  미국채 {ty:.2f}% ({erp_val:+.1f}%p)", f_chalk, start_sz=35, fill=white_c if erp_val < 0 else green_c)
+                                _fit_single_line(draw, W // 2, 385, W - 70, f"① 이익수익률 {cur_ey_val:.2f}%  vs  미국채 {ty:.2f}% ({erp_val:+.1f}%p)", f_chalk, start_sz=34, fill=white_c if erp_val < 0 else green_c)
 
                                 # 2줄: 요구성장률 vs 10년 실제 주주이익
                                 if step_in_scene >= 2:
-                                    draw.line([(55, 435), (W - 55, 435)], fill=(50, 75, 100), width=2)
-                                    _fit_single_line(draw, 195, 485, 280, "필요한 성장 속도", f_chalk, start_sz=30, fill=chalk_dim)
-                                    _fit_single_line(draw, 195, 550, 280, f"연 {req_g_val:+.1f}%", f_chalk, start_sz=56, fill=white_c)
+                                    draw.line([(55, 430), (W - 55, 430)], fill=(50, 75, 100), width=2)
+                                    _fit_single_line(draw, 195, 480, 280, "필요한 성장 속도", f_chalk, start_sz=30, fill=chalk_dim)
+                                    _fit_single_line(draw, 195, 545, 280, f"연 {req_g_val:+.1f}%", f_chalk, start_sz=56, fill=white_c)
 
                                 if step_in_scene >= 3:
-                                    _fit_single_line(draw, 525, 485, 280, "최근 10년 실제 성장", f_chalk, start_sz=30, fill=yellow_c)
-                                    _fit_single_line(draw, 525, 550, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=66, fill=green_c if g_margin_val >= 0 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    # ✅ step_in_scene >= 3 동안 계속 빨간 동그라미 유지!
-                                    draw_chalk_lecture_marks(draw, 525, 550, 260, 90, mark_type="red_circle")
+                                    _fit_single_line(draw, 525, 480, 280, "최근 10년 실제 성장", f_chalk, start_sz=30, fill=yellow_c)
+                                    _fit_single_line(draw, 525, 545, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=66, fill=green_c if g_margin_val >= 0 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                    draw_chalk_lecture_marks(draw, 525, 545, 250, 85, mark_type="red_circle")
 
-                                # 3줄: 역산 안전마진
+                                # 3줄: 역산 안전마진 (박스 높이 130px로 안정적 패딩 확보)
                                 if step_in_scene >= 4:
-                                    draw.rounded_rectangle([55, 635, W - 55, 768], radius=20, fill=(18, 45, 58) if g_margin_val >= 0 else (58, 22, 32), outline=yellow_c, width=4)
-                                    _fit_single_line(draw, 235, 702, 310, "버핏 역산 안전마진", f_chalk, start_sz=36, fill=yellow_c, stroke_w=2)
-                                    _fit_single_line(draw, 525, 702, 240, f"{g_margin_val:+.1f}%p!", f_chalk, start_sz=66, fill=green_c if g_margin_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 525, 702, 230, 92, mark_type="red_circle")
+                                    box_bg = (18, 45, 58) if g_margin_val >= 0 else (58, 22, 32)
+                                    draw.rounded_rectangle([55, 640, W - 55, 775], radius=20, fill=box_bg, outline=yellow_c, width=4)
+                                    _fit_single_line(draw, 235, 708, 300, "버핏 역산 안전마진", f_chalk, start_sz=36, fill=yellow_c, stroke_w=2)
+                                    _fit_single_line(draw, 525, 708, 220, f"{g_margin_val:+.1f}%p!", f_chalk, start_sz=64, fill=green_c if g_margin_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
+                                    draw_chalk_lecture_marks(draw, 525, 708, 200, 75, mark_type="red_circle")
 
                             else:
-                                # [SCENE_SAFETY: 유동비율 동그라미가 다음 컷에서 사라지지 않게 step_in_scene >= 1로 유지!]
-                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 3 : 재무 안전판 & 복리 구조", f_chalk, start_sz=30, fill=yellow_c)
+                                # [SCENE_SAFETY: 유동비율 + 배당 + 재투자]
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 3 : 재무 안전판 & 복리 구조", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 405, 280, "위기대응 유동비율", f_chalk, start_sz=30, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 475, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=64, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                # ✅ 다음 단계(step 2, 3)가 나와도 유동비율 동그라미가 깜빡이며 지워지지 않고 계속 유지됨!
+                                _fit_single_line(draw, 195, 400, 280, "위기대응 유동비율", f_chalk, start_sz=30, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 470, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=64, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 if step_in_scene >= 1:
-                                    draw_chalk_lecture_marks(draw, 195, 475, 230, 88, mark_type="red_circle")
+                                    draw_chalk_lecture_marks(draw, 195, 470, 220, 80, mark_type="red_circle")
 
                                 if step_in_scene >= 2:
-                                    _fit_single_line(draw, 525, 405, 280, f"현금배당 ({div_10y_cnt}년 지급)", f_chalk, start_sz=30, fill=chalk_dim)
-                                    _fit_single_line(draw, 525, 475, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    # 배당 동그라미도 유지
-                                    draw_chalk_lecture_marks(draw, 525, 475, 240, 88, mark_type="red_circle")
+                                    _fit_single_line(draw, 525, 400, 280, f"현금배당 ({div_10y_cnt}년 지급)", f_chalk, start_sz=30, fill=chalk_dim)
+                                    _fit_single_line(draw, 525, 470, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                    draw_chalk_lecture_marks(draw, 525, 470, 230, 80, mark_type="red_circle")
 
                                 if step_in_scene >= 3:
                                     draw.rounded_rectangle([55, 585, W - 55, 755], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
                                     _fit_single_line(draw, W // 2, 635, W - 140, f"번 돈을 고수익 본업(ROIC {cap_ret_val:.1f}%)에 재투자!", f_chalk, start_sz=30, fill=white_c)
                                     _fit_single_line(draw, W // 2, 702, W - 140, "★ 스스로 눈덩이 굴리는 복리 엔진 ★", f_chalk, start_sz=40, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, W // 2, 702, 540, 60, mark_type="underline")
+                                    draw_chalk_lecture_marks(draw, W // 2, 720, 540, 50, mark_type="underline")
 
-                        # 4. 하단 자막 (가운뎃점 '·' 제거 및 자연스러운 띄어쓰기 복원!)
+                        # 4. 하단 자막 (볼드 고딕체 f_gothic 적용으로 가독성 100% 확보!)
                         if not hide_subtitles:
                             clean_sub = str(sub_text).replace("·", " ").replace("•", " ").strip()
                             clean_sub = _clean_font_safe_text(clean_sub)
@@ -8243,14 +8239,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 is_accent_line = any(kw in ln_s for kw in ["큰일", "막강", "안전마진", "복리", "살래", "댓글"])
                                 _fit_single_line(
                                     draw, W // 2, sy_start + idx_l * 64, W - 50, ln_s,
-                                    lambda s: get_font(s, is_chalk=False), start_sz=50, min_sz=24,
+                                    f_gothic, start_sz=48, min_sz=24,
                                     fill=yellow_c if is_accent_line else white_c,
                                     stroke_w=9, stroke_c=(0, 0, 0)
                                 )
 
-                        # 5. 하단 푸터
-                        _fit_single_line(draw, W // 2, 1102, W - 60, "@15초장부팩트체크 · 다음 분석 종목을 댓글로 신청하세요!", lambda s: get_font(s, is_chalk=False), start_sz=25, fill=yellow_c)
-                        _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시(TTM·10년 장부) 기반 교육용 통계이며 특정 종목 매수·매도 권유가 아닙니다", lambda s: get_font(s, is_chalk=False), start_sz=13, fill=(120, 130, 145))
+                        # 5. 하단 푸터 및 법적 고지 (고딕체 f_gothic 적용으로 선명하게 복원!)
+                        _fit_single_line(draw, W // 2, 1102, W - 60, "▶ @15초장부팩트체크 · 다음 분석 종목을 댓글로 신청하세요!", f_gothic, start_sz=25, fill=yellow_c)
+                        _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시(TTM·10년 장부) 기반 교육용 통계이며 특정 종목 매수·매도 권유가 아닙니다", f_gothic, start_sz=13, fill=(140, 150, 165))
                         return img
                         
                     if st.button("1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
