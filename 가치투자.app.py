@@ -8124,17 +8124,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             if scene_code == "SCENE_HOOK":
                                 if sub_step == 0:
                                     draw.rounded_rectangle([38, 268, W - 38, 342], radius=14, fill=(195, 18, 32), outline=yellow_c, width=4)
-                                    _fit_single_line(draw, W // 2, 305, W - 100, "⚠️ DANGER : 장부 안 보고 사면 큰일 납니다!", f_chalk, start_sz=32, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 305, W - 100, "DANGER : 장부 안 보고 사면 큰일 납니다!", f_chalk, start_sz=32, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
                                 else:
                                     draw.rounded_rectangle([45, 268, W - 45, 336], radius=14, fill=(20, 42, 78), outline=yellow_c, width=3)
-                                    _fit_single_line(draw, W // 2, 302, W - 110, f"🔍 {comp_name} 10년 장부 3대 핵심 팩트체크", f_chalk, start_sz=30, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 302, W - 110, f"{comp_name} 10년 장부 3대 핵심 팩트체크", f_chalk, start_sz=30, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
 
                             elif scene_code == "SCENE_SUMMARY":
                                 draw.rounded_rectangle([35, 265, W - 35, 335], radius=16, fill=(18, 38, 74), outline=yellow_c, width=3)
                                 _fit_single_line(draw, W // 2, 300, W - 100, f"★ {comp_name} : 복리 {cap_ret_val:.1f}% · 안전마진 {g_margin_val:+.1f}%p", f_chalk, start_sz=30, fill=yellow_c, stroke_w=2, stroke_c=(0, 0, 0))
                                 cta_boxes = [
-                                    (40, 745, 345, 815, "💬 다음 종목 댓글 신청!", (220, 38, 68)),
-                                    (375, 745, 680, 815, "🔖 저장 & 팔로우 클릭", (0, 185, 95))
+                                    (40, 745, 345, 815, "다음 종목 댓글 신청!", (220, 38, 68)),
+                                    (375, 745, 680, 815, "저장 & 팔로우 클릭", (0, 185, 95))
                                 ]
                                 for bx1, by1, bx2, by2, btxt, bcol in cta_boxes:
                                     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=4)
@@ -8145,7 +8145,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             # [칠판 분필 판서 엔진: 분필체 + 빨간 동그라미 유지 기능 장착!]
                             # =================================================================
                             if scene_code == "SCENE_MOAT":
-                                _fit_single_line(draw, W // 2, 295, W - 60, "📋 칠판 판서 1 : 내 돈이 일하는 복리 속도 (TTM)", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 1 : 내 돈이 일하는 복리 속도 (TTM)", f_chalk, start_sz=30, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
                                 # 1줄: 보통 12% vs 기업 ROIC
@@ -8161,7 +8161,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 # 2줄: 1,000만 원당 연 수익
                                 if step_in_scene >= 3:
                                     draw.line([(55, 540), (W - 55, 540)], fill=(50, 75, 100), width=2)
-                                    _fit_single_line(draw, W // 2, 595, W - 80, f"💰 1,000만 원 넣으면 ➔ 1년에 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=40, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                    _fit_single_line(draw, W // 2, 595, W - 80, f"1,000만 원 넣으면 ➔ 1년에 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=40, fill=yellow_c, stroke_w=3, stroke_c=(0, 0, 0))
                                     draw_chalk_lecture_marks(draw, W // 2, 595, 580, 60, mark_type="underline")
 
                                 # 3줄: 영업마진
@@ -8172,7 +8172,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     draw_chalk_lecture_marks(draw, 535, 708, 200, 85, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
-                                _fit_single_line(draw, W // 2, 295, W - 60, "📋 칠판 판서 2 : 버핏의 역산 암산법 (10년 장부)", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 2 : 버핏의 역산 암산법 (10년 장부)", f_chalk, start_sz=30, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
                                 # 1줄: 이익수익률 vs 국채
@@ -8199,7 +8199,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                             else:
                                 # [SCENE_SAFETY: 유동비율 동그라미가 다음 컷에서 사라지지 않게 step_in_scene >= 1로 유지!]
-                                _fit_single_line(draw, W // 2, 295, W - 60, "📋 칠판 판서 3 : 재무 안전판 & 복리 구조", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 295, W - 60, "칠판 판서 3 : 재무 안전판 & 복리 구조", f_chalk, start_sz=30, fill=yellow_c)
                                 draw.line([(45, 330), (W - 45, 330)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 405, 280, "위기대응 유동비율", f_chalk, start_sz=30, fill=chalk_dim)
@@ -8249,11 +8249,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 )
 
                         # 5. 하단 푸터
-                        _fit_single_line(draw, W // 2, 1102, W - 60, "▶ @15초장부팩트체크 · 다음 분석 종목을 댓글로 신청하세요!", lambda s: get_font(s, is_chalk=False), start_sz=25, fill=yellow_c)
+                        _fit_single_line(draw, W // 2, 1102, W - 60, "@15초장부팩트체크 · 다음 분석 종목을 댓글로 신청하세요!", lambda s: get_font(s, is_chalk=False), start_sz=25, fill=yellow_c)
                         _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시(TTM·10년 장부) 기반 교육용 통계이며 특정 종목 매수·매도 권유가 아닙니다", lambda s: get_font(s, is_chalk=False), start_sz=13, fill=(120, 130, 145))
                         return img
                         
-                    if st.button("💥 1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
+                    if st.button("1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
                         try:
                             import imageio_ffmpeg, subprocess, tempfile, os, re, wave
                             with st.spinner("PDF 바이블 4대 기준 · SK 발음 완벽 교정 · 59초 이내 자동 안전가드 쇼츠(.mp4)를 렌더링 중입니다..."):
@@ -8420,22 +8420,22 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning(f"MP4 렌더링 오류: {e}")
 
                     st.markdown("---")
-                    st.markdown("#### 🚀 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
+                    st.markdown("#### 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
 
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
                     clean_tag_name = re.sub(r'[^가-힣A-Za-z0-9]', '', comp_name)
 
-                    # ✅ [추가] 8417행 바로 윗줄에 삽입하여 NameError 해결
+                    # [추가] 8417행 바로 윗줄에 삽입하여 NameError 해결
                     _safe_h_idx = h_idx if 'h_idx' in locals() else 0
                     yt_title_prefix_45 = f"[{clean_tk}] {comp_name} 10년 장부 팩트체크"
-                    default_yt_title = f"{yt_title_prefix_45} 📊 #shorts #가치투자 #{clean_tag_name}"
+                    default_yt_title = f"{yt_title_prefix_45} #shorts #가치투자 #{clean_tag_name}"
                     default_yt_desc = (
-                        f"📊 [{today_short}] {comp_name} ({clean_tk}) 워런 버핏 기준 10년 장부 4대 팩트체크\n\n"
-                        f"1️⃣ 비즈니스 해자 (현재 {cap_ret_label}): 연 {cap_ret_val:.1f}% (S&P500 우량주 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p · 1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출)\n"
-                        f"2️⃣ 버핏의 10초 암산 가격: 이익수익률(1/PER) 연 {cur_ey_val:.1f}% + 암산 요구성장률 연 {req_g_val:+.1f}% = 10.0% 허들 vs 실제 잉여현금(FCF) 성장률 연 {actual_fcf_g_val:+.1f}% ({g_margin_val:+.1f}%p 마진)\n"
-                        f"3️⃣ 미국채 10년물 기회비용: 주식 이익수익률 연 {cur_ey_val:.2f}% vs 미국채 금리 연 {ty:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
-                        f"4️⃣ 재무 안전판 & 순수 배당: 현재 PBR {sh_cur_pbr:.2f}배 · 순수 현금배당 연 {safe_div:.2f}% (최근 10년 중 {div_10y_cnt}회 지급)\n\n"
-                        f"⚖️ [안내] 본 영상은 DART 및 SEC 10-K 공시 데이터를 바탕으로 작성된 학술·교육용 통계 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
+                        f"[{today_short}] {comp_name} ({clean_tk}) 워런 버핏 기준 10년 장부 4대 팩트체크\n\n"
+                        f"비즈니스 해자 (현재 {cap_ret_label}): 연 {cap_ret_val:.1f}% (S&P500 우량주 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p · 1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출)\n"
+                        f"버핏의 10초 암산 가격: 이익수익률(1/PER) 연 {cur_ey_val:.1f}% + 암산 요구성장률 연 {req_g_val:+.1f}% = 10.0% 허들 vs 실제 잉여현금(FCF) 성장률 연 {actual_fcf_g_val:+.1f}% ({g_margin_val:+.1f}%p 마진)\n"
+                        f"미국채 10년물 기회비용: 주식 이익수익률 연 {cur_ey_val:.2f}% vs 미국채 금리 연 {ty:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
+                        f"재무 안전판 & 순수 배당: 현재 PBR {sh_cur_pbr:.2f}배 · 순수 현금배당 연 {safe_div:.2f}% (최근 10년 중 {div_10y_cnt}회 지급)\n\n"
+                        f"[안내] 본 영상은 DART 및 SEC 10-K 공시 데이터를 바탕으로 작성된 학술·교육용 통계 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
                         f"#shorts #{clean_tag_name} #가치투자 #재무제표 #주식공부 #배당주"
                     )
 
@@ -8451,7 +8451,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         yt_up_priv = st.selectbox(
                             "공개 방식 선택",
                             [
-                                "scheduled (⏰ 원하는 날짜·시간에 예약 공개 - 추천)",
+                                "scheduled (원하는 날짜·시간에 예약 공개 - 추천)",
                                 "public (즉시 전체 공개)",
                                 "unlisted (일부 공개 - 링크 소지자만)",
                                 "private (비공개 전용)"
@@ -8462,17 +8462,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     default_sched_dt = (now_kst + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
                     with pub_col2:
-                        sched_date = st.date_input("📅 예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v21_{clean_tk}")
+                        sched_date = st.date_input("예약 날짜 (KST)", value=default_sched_dt.date(), min_value=now_kst.date(), disabled=not is_scheduled_mode, key=f"yt_sdate_v21_{clean_tk}")
                     with pub_col3:
                         golden_hours = ["07:30 (출근길 황금시간)", "12:00 (점심시간 피크)", "17:30 (퇴근길 피크)", "19:00 (저녁 프라임)", "21:00 (야간 미증시 개장 전)", "직접 시간 입력"]
-                        slot_choice = st.selectbox("⏰ 예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v21_{clean_tk}")
+                        slot_choice = st.selectbox("예약 시간대 선택", golden_hours, index=3, disabled=not is_scheduled_mode, key=f"yt_sslot_v21_{clean_tk}")
                         if slot_choice == "직접 시간 입력":
                             sched_time = st.time_input("시간 직접 지정", value=default_sched_dt.time(), disabled=not is_scheduled_mode, key=f"yt_stime_v21_{clean_tk}")
                         else:
                             hh_mm = slot_choice.split(" ")[0].split(":")
                             sched_time = datetime.strptime(f"{hh_mm[0]}:{hh_mm[1]}", "%H:%M").time()
 
-                    use_jitter = st.checkbox("🛡️ 스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v21_{clean_tk}")
+                    use_jitter = st.checkbox("스팸 방지용 '미세 시간 난수화(+1~4분)' 적용", value=True, disabled=not is_scheduled_mode, key=f"yt_jit_v21_{clean_tk}")
 
                     publish_at_iso_str = None
                     if is_scheduled_mode:
