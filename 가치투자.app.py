@@ -7916,43 +7916,55 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         with wave.open(out_wav_path, 'wb') as wf:
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
+                    # -------------------------------------------------------------
+                    # [수정] 저작권 문제 없는 '버핏 노신사 페르소나' 내장 음성 엔진
+                    # -------------------------------------------------------------
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_chapter_start=False, is_final_cut=False):
+                        import subprocess
                         tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip()
                         if not tts_ready_text:
                             tts_ready_text = "핵심 지표 확인"
-                        voice_id = "ko-KR-SunHiNeural" if "여성" in str(voice_choice) else "ko-KR-InJoonNeural"
-                        eq_str = "equalizer=f=180:width_type=h:width=100:g=2.5,equalizer=f=3200:width_type=h:width=1200:g=2.8"
-                        rate_str = f"+{int(voice_speed)}%"
-                        # ✅ [추가] af_chain 바로 윗줄에 삽입하여 pad_filter 정의
-                        is_last = is_final_cut if 'is_final_cut' in locals() else False
-                        pad_filter = "" if is_last else ",apad=pad_dur=0.04"
+                    
+                        # 1. 목소리 선택: 봉진(BongJin)은 중후하고 차분한 50~60대 중년/노신사 톤입니다.
+                        #    여기에 피치를 -4Hz~-6Hz 낮추면 70~80대 버핏 특유의 나이 든 울림이 자연스럽게 완성됩니다.
+                        voice_id = "ko-KR-BongJinNeural" if "남성" in str(voice_choice) or "버핏" in str(voice_choice) else "ko-KR-SunHiNeural"
                         
-                        # 기존 줄:
-                        atempo_f = float(phys_speed) if 'phys_speed' in locals() and phys_speed else 1.12
-                        af_chain = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,atempo={atempo_f:.2f},volume=1.25{pad_filter}"
+                        # 2. 속도 및 피치(음조) 설정: 나이 든 느낌을 위해 피치를 낮춤
+                        rate_str = f"+{int(voice_speed)}%"
+                        pitch_str = "-5Hz" if voice_id == "ko-KR-BongJinNeural" else "+0Hz"
+                    
                         try:
                             import edge_tts, asyncio
                             async def _run():
-                                await edge_tts.Communicate(str(tts_ready_text), voice=str(voice_id), rate=str(rate_str), pitch="+0Hz").save(str(raw_mp3_path))
+                                await edge_tts.Communicate(
+                                    str(tts_ready_text),
+                                    voice=str(voice_id),
+                                    rate=str(rate_str),
+                                    pitch=str(pitch_str)
+                                ).save(str(raw_mp3_path))
+                            
                             loop = asyncio.new_event_loop()
-                            try: loop.run_until_complete(_run())
-                            finally: loop.close()
+                            try:
+                                loop.run_until_complete(_run())
+                            finally:
+                                loop.close()
                         except Exception:
                             from gtts import gTTS
                             gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
-
-                        import subprocess
+                    
+                        # 3. FFmpeg 음향 필터: 버핏 특유의 쉰 듯하면서도 부드러운 저음 강조 EQ
+                        #    - 저음역대(150Hz) 부스트: 나이 든 사람 특유의 흉성 울림
+                        #    - 고음역대(4000Hz) 살짝 감쇄: 젊은 아나운서 특유의 쨍쨍한 쇳소리 제거
+                        eq_str = "equalizer=f=150:width_type=h:width=80:g=3.5,equalizer=f=4000:width_type=h:width=1000:g=-2.0"
                         atempo_part = f"atempo={float(atempo_mult):.2f}," if abs(float(atempo_mult) - 1.0) > 0.02 else ""
                         pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
-                        af_filter = (
-                            "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,"
-                            f"{atempo_part}{eq_str},volume=1.25{pad_part}"
-                        )
+                        af_filter = f"silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04,{atempo_part}{eq_str},volume=1.20{pad_part}"
+                        
                         try:
                             subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-af", af_filter, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                         except Exception:
                             subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-
+                    
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
 
                     @st.cache_resource
