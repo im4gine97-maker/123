@@ -3424,9 +3424,7 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
     return rnd_trend
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
     """
-    [배당 0% 누락 및 75% 뻥튀기 버그 원천 차단 엔진]
-    - 미국 메가캡(마소 0.75%, 애플 0.5% 등)이 75%나 0%로 오표기되는 에러 완벽 해결
-    - 실제 배당금 합계 / 현재 주가를 최우선 기준으로 산출
+    [미국 신규 배당주(구글·메타 등) 누락 및 0.00% 방지 엔진]
     """
     if p <= 0 or not isinstance(i, dict):
         return 0.0
@@ -3437,23 +3435,29 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
     trailing_y = safe_float(i.get('trailingAnnualDividendYield'))
     fv_y = safe_float(i.get('finviz_div_pct'))
 
-    # 1순위: 최근 1년 실제 배당금 시계열(stk.dividends) 직접 합산 (가장 정확함!)
+    # 1순위: 최근 1년 배당금 내역 직접 스캔 (최근 신설 분기배당은 × 4로 연환산 보정)
     try:
         if stk is not None:
             divs = stk.dividends
             if divs is not None and not divs.empty:
                 cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=375)
-                recent_1y_divs = divs[divs.index >= cutoff]
-                if not recent_1y_divs.empty:
-                    dps_1y = float(recent_1y_divs.sum())
-                    if dps_1y > 0 and p > 0:
-                        calc_y = (dps_1y / p) * 100.0
+                recent_1y = divs[divs.index >= cutoff]
+                if not recent_1y.empty:
+                    # 구글 등 최근 배당을 신설해 1~3회만 있는 경우: 최근 지급액 * 4 연환산!
+                    if len(recent_1y) < 4 and len(recent_1y) >= 1:
+                        last_payout = float(recent_1y.iloc[-1])
+                        dps_ann = last_payout * 4.0
+                    else:
+                        dps_ann = float(recent_1y.sum())
+                    
+                    if dps_ann > 0:
+                        calc_y = (dps_ann / p) * 100.0
                         if 0.01 <= calc_y <= 25.0:
                             return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
     except Exception:
         pass
 
-    # 2순위: 주당 배당금(dividendRate) ÷ 주가 직접 계산
+    # 2순위: dividendRate ÷ 주가
     if raw_d > 0 and p > 0:
         calc_y = (raw_d / p) * 100.0
         if 0.01 <= calc_y <= 25.0:
@@ -3464,16 +3468,16 @@ def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
         if 0.01 <= calc_y <= 25.0:
             return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
 
-    # 3순위: Finviz 백업 데이터 (퍼센트 단위 검증)
+    # 3순위: Finviz 배당률 백업
     if 0.01 <= fv_y <= 25.0:
         return fv_y / multiplier if (sim_pct != 0 and multiplier != 0) else fv_y
 
-    # 4순위: 소수점 비율 정규화 (0.0075 -> 0.75% / 75.0 -> 0.75% 오표기 교정)
+    # 4순위: 비율 정규화 (0.0045 -> 0.45% 등)
     target_y = trailing_y if trailing_y > 0 else raw_y
     if target_y > 0:
-        if target_y < 0.25: # 0.0075 처럼 소수점으로 들어온 경우
+        if target_y < 0.25:
             res_y = target_y * 100.0
-        elif target_y >= 25.0 and not kr: # 75.0% 처럼 100배 뻥튀기되어 들어온 경우
+        elif target_y >= 25.0 and not kr:
             res_y = target_y / 100.0
         else:
             res_y = target_y
@@ -8977,16 +8981,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 525, 535, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=64, fill=green_c if actual_fcf_g_val >= req_g_val else red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 525, 535, 250, 85, mark_type="red_circle")
 
-                                # 하단 안전마진 캡슐 (공백 방지 상시 표출)
-                                box_bg = (18, 45, 58) if erp_val >= 0 else (58, 22, 32)
-                                draw.rounded_rectangle([50, 630, W - 50, 765], radius=20, fill=box_bg, outline=yellow_c, width=4)
-                                v_label = "안전마진 확보 구간" if erp_val >= 0 else "미래 성장 기대감 반영 구간"
-                                _fit_single_line(draw, 240, 698, 300, v_label, f_chalk, start_sz=32, fill=yellow_c, stroke_w=2)
-                                _fit_single_line(draw, 520, 698, 220, f"PER {eff_cur_pe_sh:.1f}배", f_chalk, start_sz=60, fill=green_c if erp_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
+                                # [핵심 수정: 대본과 100% 일치하도록 g_margin_val 기반 동적 판정 박스]
+                                if g_margin_val >= 3.0:
+                                    box_bg = (18, 48, 38)
+                                    box_outline = green_c
+                                    box_text_col = green_c
+                                    v_label = "안전마진 확보 구간 (합격)"
+                                elif g_margin_val >= -2.0:
+                                    box_bg = (22, 38, 58)
+                                    box_outline = yellow_c
+                                    box_text_col = yellow_c
+                                    v_label = "현재 주가 적정 가치 수준"
+                                else:
+                                    # 구글처럼 실제 FCF 성장이 부족한 경우 -> 대본과 완벽 일치!
+                                    box_bg = (58, 20, 28)
+                                    box_outline = red_c
+                                    box_text_col = red_c
+                                    v_label = "미래 성장 기대감 과열 (주의)"
+
+                                draw.rounded_rectangle([50, 630, W - 50, 765], radius=20, fill=box_bg, outline=box_outline, width=4)
+                                _fit_single_line(draw, 240, 698, 300, v_label, f_chalk, start_sz=30, fill=box_text_col, stroke_w=2)
+                                _fit_single_line(draw, 520, 698, 220, f"PER {eff_cur_pe_sh:.1f}배", f_chalk, start_sz=60, fill=box_text_col, stroke_w=5, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 520, 698, 195, 72, mark_type="red_circle")
 
                             else:
-                                # [SCENE_SAFETY] 빅테크 CapEx 분석과 현금배당이 함께 들어간 완성형 보드
+                                # [SCENE_SAFETY 컷: 배당이 0%일 때 '무배당 (사내유보)'로 정확히 표기]
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 3. CapEx 성격 & 재무 안전판", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
@@ -8994,15 +9013,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 455, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
-                                _fit_single_line(draw, 525, 385, 280, f"순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 525, 455, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=green_c if safe_div >= 1.5 else white_c, stroke_w=3, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
+                                div_disp_str = f"연 {safe_div:.2f}%" if safe_div > 0.05 else "무배당 (사내유보)"
+                                div_disp_sz = 62 if safe_div > 0.05 else 42
+                                _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
-                                # 화면 중앙 빅테크 CapEx 핵심 진단 캡슐 (상시 고정)
                                 draw.rounded_rectangle([50, 560, W - 50, 755], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
                                 _fit_single_line(draw, W // 2, 615, W - 120, capex_board_title, f_chalk, start_sz=30, fill=yellow_c, stroke_w=2)
                                 _fit_single_line(draw, W // 2, 685, W - 120, capex_board_sub, f_chalk, start_sz=24, fill=white_c)
                                 draw_chalk_lecture_marks(draw, W // 2, 715, 560, 32, mark_type="underline")
-
                         # 4. 하단 자막
                         if not hide_subtitles:
                             clean_sub = str(sub_text).replace("·", " ").replace("•", " ").strip()
