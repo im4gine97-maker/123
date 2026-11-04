@@ -8691,36 +8691,28 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if not tts_ready_text:
                             tts_ready_text = "핵심 지표 확인"
 
-                        # [타격감 튜닝 1] 불필요하게 늘어지는 문장부호 쉼(pause) 제거 -> 속사포 호흡 유도
-                        # 마침표/느낌표 뒤의 공백을 최소화하여 TTS가 숨을 길게 쉬지 못하게 방지
-                        tts_ready_text = re.sub(r'[\!\?\.]\s*', ' ', tts_ready_text).strip()
-
-                        # [성우 및 텐션 튜닝]
-                        # 숏폼 타격감 1순위: 현수(Hyunsu - 도파민 펀치) / 인준(InJoon - 아나운서 펀치)
+                        # [성우 및 음정 튜닝]
                         if "현수" in str(voice_choice) or "속사포" in str(voice_choice):
                             voice_id = "ko-KR-HyunsuNeural"
-                            pitch_str = "+8Hz"
+                            pitch_str = "+4Hz"
                         elif "여성" in str(voice_choice) or "선희" in str(voice_choice):
                             voice_id = "ko-KR-SunHiNeural"
-                            pitch_str = "+4Hz"
+                            pitch_str = "+2Hz"
                         elif "봉진" in str(voice_choice) or "버핏" in str(voice_choice):
                             voice_id = "ko-KR-BongJinNeural"
                             pitch_str = "+0Hz"
                         else:
                             voice_id = "ko-KR-InJoonNeural"
-                            pitch_str = "+3Hz"
+                            pitch_str = "+2Hz"
 
-                        # [배속 연동 1] 슬라이더의 1차 성우 배속(voice_speed) 100% 동적 반영
-                        user_spd = int(voice_speed) if 'voice_speed' in locals() and voice_speed is not None else 28
-                        rate_str = f"+{user_spd}%"
-
+                        # 1차 TTS 생성: 원본 속도(+0%)로 깨끗하게 추출 (이중 배속 방지!)
                         try:
                             import edge_tts, asyncio
                             async def _run():
                                 await edge_tts.Communicate(
                                     str(tts_ready_text),
                                     voice=str(voice_id),
-                                    rate=str(rate_str),
+                                    rate="+0%",
                                     pitch=str(pitch_str)
                                 ).save(str(raw_mp3_path))
                             
@@ -8733,27 +8725,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             from gtts import gTTS
                             gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
 
-                        # [배속 연동 2 & 타격감 튜닝 2] 슬라이더의 atempo_mult를 실시간 동적 적용 + 쇼츠 컴프레서 필터
-                        # 1) atempo: 사용자가 조절한 배속(1.10x ~ 1.35x)이 그대로 적용되어 오디오 길이가 즉시 단축됨!
-                        # 2) silenceremove: 문장 앞뒤 및 중간의 0.03초 이상 묵음을 모조리 잘라 랩하듯 속사포 전개
-                        # 3) acompressor + equalizer: 목소리 음량을 꽉 채우고 타격감(어택 5ms, 릴리즈 50ms)을 주어 귀에 탁 꽂히게 처리
-                        user_atempo = float(atempo_mult) if 'atempo_mult' in locals() and atempo_mult is not None else 1.15
-                        user_atempo = max(0.90, min(1.50, user_atempo))
+                        # 2차 배속 반영: 슬라이더 값에 따라 atempo 단일 제어 (1.00x ~ 1.35x 동적 반영)
+                        # voice_speed 슬라이더(+0% ~ +60%)를 배율(1.0 ~ 1.6)로 환산
+                        u_spd = int(voice_speed) if 'voice_speed' in locals() and voice_speed is not None else 20
+                        calc_tempo = max(0.95, min(1.45, 1.0 + (u_spd / 100.0)))
 
-                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.02"
+                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
 
+                        # 자연스러운 쇼츠 템포 필터 (묵음은 정리하되 말이 씹히지 않도록 안전 마진 부여)
                         af_filter = (
-                            # 문장 시작/중간/끝 묵음 칼커팅 (숨소리 제거)
-                            "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.01:"
-                            "stop_periods=-1:stop_threshold=-35dB:stop_duration=0.03,"
-                            # 슬라이더 물리 가속 반영
-                            f"atempo={user_atempo:.3f},"
-                            # 숏폼 전용 펀치력 EQ (명료도 및 타격감)
-                            "equalizer=f=160:width_type=o:width=1.5:g=3.0,"
-                            "equalizer=f=3200:width_type=o:width=1.2:g=3.5,"
-                            # 라디오 컴프레서 (목소리를 앞으로 바짝 당겨 타격감 극대화)
-                            "acompressor=threshold=-14dB:ratio=4:attack=5:release=50:makeup=2.5,"
-                            f"volume=1.25{pad_part}"
+                            "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.02:"
+                            "stop_periods=-1:stop_threshold=-36dB:stop_duration=0.04,"
+                            f"atempo={calc_tempo:.3f},"
+                            "volume=1.25"
+                            f"{pad_part}"
                         )
 
                         cmd = [
@@ -8767,18 +8752,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         if res.returncode != 0:
-                            # 폴백
+                            # 폴백 시에도 계산된 단일 배속만 적용
                             subprocess.run([
                                 ffmpeg_exe, "-y",
                                 "-i", raw_mp3_path,
-                                "-af", f"atempo={user_atempo:.3f},volume=1.2",
+                                "-af", f"atempo={calc_tempo:.3f},volume=1.2",
                                 "-ar", "24000",
                                 "-ac", "1",
                                 tuned_wav_path
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
-
                     @st.cache_resource
                     def _load_korean_pil_fonts():
                         import os, urllib.request
@@ -9374,6 +9358,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     )
                     up_col1, up_col2, up_col3 = st.columns(3)
                     with up_col1:
+                        
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
                         if st.button(btn_yt_label, key=f"btn_yt_up_v21_{clean_tk}", use_container_width=True, disabled=not has_video_ready, type="primary"):
                             priv_code = "private" if is_scheduled_mode else yt_up_priv.split(" ")[0]
