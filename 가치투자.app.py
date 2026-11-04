@@ -9031,7 +9031,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         # 4. MP4 렌더링 오류 방어: cur_ey_val 안전 바인딩 (이익수익률 ey 연동)
                         _raw_ey = locals().get('ey', locals().get('cur_ey_val', 0.0))
                         cur_ey_val = safe_float(_raw_ey)
-                    summary_text = (
                         f"비즈니스 해자 (현재 {cap_ret_label}): 연 {cap_ret_val:.1f}% (S&P500 우량주 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p · 1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출)\n"
                         f"버핏의 10초 암산 가격: 이익수익률(1/PER) 연 {cur_ey_val:.1f}% + 암산 요구성장률 연 {req_g_val:+.1f}% = 10.0% 허들 vs 실제 잉여현금(FCF) 성장률 연 {actual_fcf_g_val:+.1f}% ({g_margin_val:+.1f}%p 마진)\n"
                         f"미국채 10년물 기회비용: 주식 이익수익률 연 {cur_ey_val:.2f}% vs 미국채 금리 연 {ty:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
