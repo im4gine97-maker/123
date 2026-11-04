@@ -8247,7 +8247,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if custom_char_file is not None:
                             from PIL import Image
                             custom_char_pil = Image.open(custom_char_file)
-                    h_idx = ((sum(ord(c) for c in clean_tk) % 4) + 1) if sel_hook_45.startswith("🎲 0.") else int(sel_hook_45.split(".")[0].split(" ")[1])
+                    # sel_hook_45 미선언 및 문자열 분할 에러 완벽 방어
+                    _sel_hk = locals().get('sel_hook_45', '')
+                    _clean_tk_str = str(locals().get('clean_tk', tk))
+                    
+                    if _sel_hk and not _sel_hk.startswith("🎲 0."):
+                        try:
+                            h_idx = int(_sel_hk.split(".")[0].split(" ")[-1])
+                        except Exception:
+                            h_idx = 1
+                    else:
+                        h_idx = ((sum(ord(c) for c in _clean_tk_str) % 4) + 1)
 
                     # =========================================================================
                     # [수리 완료] ROIC 규모 및 영업이익률 기반 moat_line 완전 동적 분기
