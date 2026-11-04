@@ -8262,8 +8262,37 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # =========================================================================
                     # [수리 완료] ROIC 규모 및 영업이익률 기반 moat_line 완전 동적 분기
                     # =========================================================================
-                    roic_int = int(round(cap_ret_val))
-                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
+                    # =========================================================================
+                    # [안전 바인딩] 기존 계산 변수 자동 매핑 및 NameError 원천 차단
+                    # =========================================================================
+                    _raw_cap = locals().get('roic_val', locals().get('cap_ret_val', locals().get('roe', 0.0)))
+                    if _raw_cap is None or (isinstance(_raw_cap, float) and pd.isna(_raw_cap)) or _raw_cap == 0:
+                        _raw_cap = locals().get('roe', 0.0)
+                    roic_int = int(round(safe_float(_raw_cap)))
+                    
+                    _raw_req = locals().get('buffett_req_g_main', locals().get('req_g_val', locals().get('req_g', 0.0)))
+                    req_int = int(round(safe_float(_raw_req)))
+                    
+                    _raw_fcf_g = locals().get('actual_fcf_g_main', locals().get('actual_fcf_g_val', locals().get('final_g_10y', 0.0)))
+                    fcf_int = int(round(safe_float(_raw_fcf_g)))
+                    
+                    _raw_pmos = locals().get('pmos_val', locals().get('g_margin_val', 0.0))
+                    g_margin_val = safe_float(_raw_pmos)
+                    
+                    _raw_ey = locals().get('ey', locals().get('cur_ey_val', 0.0))
+                    ey_int = int(round(safe_float(_raw_ey)))
+                    
+                    _raw_ty = locals().get('ty', 4.5)
+                    tnx_int = int(round(safe_float(_raw_ty)))
+                    
+                    _raw_opm = locals().get('op_m', 0.0)
+                    opm_int = int(round(safe_float(_raw_opm)))
+                    
+                    _raw_pe = locals().get('eff_cur_pe', locals().get('eff_cur_pe_sh', locals().get('cur_pe', 0.0)))
+                    eff_cur_pe_sh = safe_float(_raw_pe)
+                    
+                    bb_val = safe_float(locals().get('bb_yield', 0.0))
+                    div_val = safe_float(locals().get('safe_div', locals().get('div', 0.0)))
                     
                     # 1. 영업마진 및 가격결정력 팩트 체크 문구 (저마진 기업 왜곡 방지)
                     if opm_int >= 25:
