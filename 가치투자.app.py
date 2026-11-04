@@ -9011,6 +9011,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     default_yt_title = f"{yt_title_prefix_45} #shorts #가치투자 #{clean_tag_name}"
                     default_yt_desc = (
                         f"[{today_short}] {comp_name} ({clean_tk}) 워런 버핏 기준 10년 장부 4대 팩트체크\n\n"
+                        # =========================================================================
+                        # [통합 안전 바인딩] 9014번 텍스트 및 MP4 렌더링 필수 변수 자동 선언
+                        # =========================================================================
+                        # 1. 금융주 여부 및 자본수익률 라벨 설정
+                        _is_fin = locals().get('is_financial', False)
+                        cap_ret_label = "ROE" if _is_fin else "ROIC"
+                        
+                        # 2. ROIC / ROE 값 안전 추출 (cap_ret_val)
+                        _cap_ret = locals().get('cap_ret_val', None)
+                        if _cap_ret is None:
+                            _cap_ret = locals().get('roe', 0.0) if _is_fin else locals().get('roic_val', locals().get('roe', 0.0))
+                        cap_ret_val = safe_float(_cap_ret)
+                        
+                        # 3. 12% 대비 격차 및 1,000만 원당 창출액 계산
+                        roic_vs_spy_gap = cap_ret_val - 12.0
+                        roic_10m_manwon = int(round(1000 * (cap_ret_val / 100.0)))
+                        
+                        # 4. MP4 렌더링 오류 방어: cur_ey_val 안전 바인딩 (이익수익률 ey 연동)
+                        _raw_ey = locals().get('ey', locals().get('cur_ey_val', 0.0))
+                        cur_ey_val = safe_float(_raw_ey)
+                    summary_text = (
                         f"비즈니스 해자 (현재 {cap_ret_label}): 연 {cap_ret_val:.1f}% (S&P500 우량주 평균 12.0% 대비 {roic_vs_spy_gap:+.1f}%p · 1,000만 원당 연 {roic_10m_manwon:+,}만 원 창출)\n"
                         f"버핏의 10초 암산 가격: 이익수익률(1/PER) 연 {cur_ey_val:.1f}% + 암산 요구성장률 연 {req_g_val:+.1f}% = 10.0% 허들 vs 실제 잉여현금(FCF) 성장률 연 {actual_fcf_g_val:+.1f}% ({g_margin_val:+.1f}%p 마진)\n"
                         f"미국채 10년물 기회비용: 주식 이익수익률 연 {cur_ey_val:.2f}% vs 미국채 금리 연 {ty:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
