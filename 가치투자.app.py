@@ -8686,26 +8686,34 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
 
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_chapter_start=False, is_final_cut=False):
-                        import subprocess, os
+                        import subprocess, os, re
                         tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip()
                         if not tts_ready_text:
                             tts_ready_text = "핵심 지표 확인"
-                    
-                        # -----------------------------------------------------------------
-                        # [설정] 할아버지 톤 선택:
-                        # BongJin은 기본 속도가 매우 느리므로 rate를 최소 +45% 이상 강하게 줍니다.
-                        # -----------------------------------------------------------------
-                        voice_id = "ko-KR-BongJinNeural" if ("남성" in str(voice_choice) or "버핏" in str(voice_choice)) else "ko-KR-SunHiNeural"
-                        
-                        # BongJin일 때는 기본 속도가 느리므로 기본 배속을 대폭 부스트 (+48%)
-                        if voice_id == "ko-KR-BongJinNeural":
-                            boosted_speed = max(45, int(voice_speed) + 20)
-                            rate_str = f"+{boosted_speed}%"
-                            pitch_str = "-4Hz"
-                        else:
-                            rate_str = f"+{int(voice_speed)}%"
+
+                        # [타격감 튜닝 1] 불필요하게 늘어지는 문장부호 쉼(pause) 제거 -> 속사포 호흡 유도
+                        # 마침표/느낌표 뒤의 공백을 최소화하여 TTS가 숨을 길게 쉬지 못하게 방지
+                        tts_ready_text = re.sub(r'[\!\?\.]\s*', ' ', tts_ready_text).strip()
+
+                        # [성우 및 텐션 튜닝]
+                        # 숏폼 타격감 1순위: 현수(Hyunsu - 도파민 펀치) / 인준(InJoon - 아나운서 펀치)
+                        if "현수" in str(voice_choice) or "속사포" in str(voice_choice):
+                            voice_id = "ko-KR-HyunsuNeural"
+                            pitch_str = "+8Hz"
+                        elif "여성" in str(voice_choice) or "선희" in str(voice_choice):
+                            voice_id = "ko-KR-SunHiNeural"
+                            pitch_str = "+4Hz"
+                        elif "봉진" in str(voice_choice) or "버핏" in str(voice_choice):
+                            voice_id = "ko-KR-BongJinNeural"
                             pitch_str = "+0Hz"
-                    
+                        else:
+                            voice_id = "ko-KR-InJoonNeural"
+                            pitch_str = "+3Hz"
+
+                        # [배속 연동 1] 슬라이더의 1차 성우 배속(voice_speed) 100% 동적 반영
+                        user_spd = int(voice_speed) if 'voice_speed' in locals() and voice_speed is not None else 28
+                        rate_str = f"+{user_spd}%"
+
                         try:
                             import edge_tts, asyncio
                             async def _run():
@@ -8724,23 +8732,30 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         except Exception:
                             from gtts import gTTS
                             gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
-                    
-                        # -----------------------------------------------------------------
-                        # [핵심] FFmpeg 물리 가속 + 문장 내부 묵음(공백) 0.05초 단위 초정밀 커팅
-                        # atempo=1.20으로 오디오 재생 시간을 강제로 20% 더 단축시킵니다.
-                        # -----------------------------------------------------------------
-                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.03"
-                        
-                        # 1) silenceremove: 말 시작 전 묵음 제거 + 말 끝난 뒤 0.05초 이상 쉬는 구간 칼삭제
-                        # 2) atempo: 1.2배속 추가 물리 가속 (음정 변화 없이 속도만 빨라짐)
-                        # 3) volume: 1.3배 부스트 (휴대폰 스피커에서 또렷하게 꽂힘)
+
+                        # [배속 연동 2 & 타격감 튜닝 2] 슬라이더의 atempo_mult를 실시간 동적 적용 + 쇼츠 컴프레서 필터
+                        # 1) atempo: 사용자가 조절한 배속(1.10x ~ 1.35x)이 그대로 적용되어 오디오 길이가 즉시 단축됨!
+                        # 2) silenceremove: 문장 앞뒤 및 중간의 0.03초 이상 묵음을 모조리 잘라 랩하듯 속사포 전개
+                        # 3) acompressor + equalizer: 목소리 음량을 꽉 채우고 타격감(어택 5ms, 릴리즈 50ms)을 주어 귀에 탁 꽂히게 처리
+                        user_atempo = float(atempo_mult) if 'atempo_mult' in locals() and atempo_mult is not None else 1.15
+                        user_atempo = max(0.90, min(1.50, user_atempo))
+
+                        pad_part = "" if is_final_cut else ",apad=pad_dur=0.02"
+
                         af_filter = (
-                            "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.02:"
-                            "stop_periods=-1:stop_threshold=-38dB:stop_duration=0.05,"
-                            "atempo=1.20,"
-                            f"volume=1.30{pad_part}"
+                            # 문장 시작/중간/끝 묵음 칼커팅 (숨소리 제거)
+                            "silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.01:"
+                            "stop_periods=-1:stop_threshold=-35dB:stop_duration=0.03,"
+                            # 슬라이더 물리 가속 반영
+                            f"atempo={user_atempo:.3f},"
+                            # 숏폼 전용 펀치력 EQ (명료도 및 타격감)
+                            "equalizer=f=160:width_type=o:width=1.5:g=3.0,"
+                            "equalizer=f=3200:width_type=o:width=1.2:g=3.5,"
+                            # 라디오 컴프레서 (목소리를 앞으로 바짝 당겨 타격감 극대화)
+                            "acompressor=threshold=-14dB:ratio=4:attack=5:release=50:makeup=2.5,"
+                            f"volume=1.25{pad_part}"
                         )
-                        
+
                         cmd = [
                             ffmpeg_exe, "-y",
                             "-i", raw_mp3_path,
@@ -8749,21 +8764,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "-ac", "1",
                             tuned_wav_path
                         ]
-                        
+
                         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        
-                        # 만약 필터 오류가 나더라도 최소한 atempo는 먹히도록 2차 안전망 구축
                         if res.returncode != 0:
-                            cmd_fallback = [
+                            # 폴백
+                            subprocess.run([
                                 ffmpeg_exe, "-y",
                                 "-i", raw_mp3_path,
-                                "-af", "atempo=1.25,volume=1.2",
+                                "-af", f"atempo={user_atempo:.3f},volume=1.2",
                                 "-ar", "24000",
                                 "-ac", "1",
                                 tuned_wav_path
-                            ]
-                            subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                    
+                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
 
                     @st.cache_resource
