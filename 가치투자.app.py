@@ -3422,107 +3422,62 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         pass
         
     return rnd_trend
-# =========================================================================
-# [배당 0% 누락 & 뻥튀기 동시 방어] 한국/미국/ETF 4중 백업 배당수익률 산출 엔진
-# =========================================================================
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
+    """
+    [배당 0% 누락 및 75% 뻥튀기 버그 원천 차단 엔진]
+    - 미국 메가캡(마소 0.75%, 애플 0.5% 등)이 75%나 0%로 오표기되는 에러 완벽 해결
+    - 실제 배당금 합계 / 현재 주가를 최우선 기준으로 산출
+    """
     if p <= 0 or not isinstance(i, dict):
         return 0.0
 
-    div_yield = safe_float(i.get('dividendYield'))
-    div_rate = safe_float(i.get('dividendRate'))
-    trailing_rate = safe_float(i.get('trailingAnnualDividendRate'))
-    trailing_yield = safe_float(i.get('trailingAnnualDividendYield'))
-    fv_div_pct = safe_float(i.get('finviz_div_pct'))
+    raw_y = safe_float(i.get('dividendYield'))
+    raw_d = safe_float(i.get('dividendRate'))
+    trailing_d = safe_float(i.get('trailingAnnualDividendRate'))
+    trailing_y = safe_float(i.get('trailingAnnualDividendYield'))
+    fv_y = safe_float(i.get('finviz_div_pct'))
 
-    # 1. 한국 주식 (네이버 금융 연동 + stk.dividends 백업)
-    if kr:
-        if div_rate > 0:
-            calc_d = (div_rate / p) * 100
-            if calc_d < 30.0:
-                return calc_d
-        if div_yield > 0:
-            base_d = div_yield if div_yield > 1.0 else div_yield * 100
-            return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
-        try:
-            if stk is not None:
-                divs = stk.dividends
-                if divs is not None and not divs.empty:
-                    cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=370)
-                    recent_div = safe_float(divs[divs.index >= cutoff].sum())
-                    if recent_div > 0 and (recent_div / p) * 100 < 30.0:
-                        return (recent_div / p) * 100
-        except Exception:
-            pass
-        return 0.0
-
-    # 2. 미국 및 글로벌 주식
-    currency_trade = str(i.get('currency', 'USD')).upper()
-    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-    same_currency = (currency_trade == currency_fin)
-
-    # (1순위) 주당 배당금(달러) ÷ 현재 주가(달러) 직접 계산
-    if div_rate > 0:
-        calc_d = (div_rate / p) * 100
-        if calc_d < 30.0:
-            return calc_d
-    if same_currency and trailing_rate > 0:
-        calc_d = (trailing_rate / p) * 100
-        if calc_d < 30.0:
-            return calc_d
-
-    # (2순위) trailingAnnualDividendYield (순수 소수점 비율: 0.0075 -> 0.75%)
-    if 0 < trailing_yield < 0.30:
-        base_d = trailing_yield * 100
-        return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
-
-    # (3순위) dividendYield
-    if div_yield > 0:
-        etf_y = safe_float(i.get('yield'))
-        if etf_y > 0 and div_yield == etf_y and div_yield < 0.50:
-            base_d = div_yield * 100
-        elif div_yield < 0.15 and trailing_yield > 0 and abs(div_yield - trailing_yield) < 0.005:
-            base_d = div_yield * 100
-        else:
-            base_d = div_yield
-        return (base_d / multiplier) if (sim_pct != 0 and multiplier != 0) else base_d
-
-    # (4순위 - 핵심 백업 A) Finviz에서 추출한 배당수익률
-    if 0 < fv_div_pct < 30.0:
-        return (fv_div_pct / multiplier) if (sim_pct != 0 and multiplier != 0) else fv_div_pct
-
-    # (5순위 - 핵심 백업 B) 비자(V) 등 stk.info 누락 시 stk.dividends 시계열에서 최근 1년 실제 배당합계 직접 계산!
+    # 1순위: 최근 1년 실제 배당금 시계열(stk.dividends) 직접 합산 (가장 정확함!)
     try:
         if stk is not None:
             divs = stk.dividends
             if divs is not None and not divs.empty:
-                cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=370)
-                recent_divs = divs[divs.index >= cutoff]
-                if not recent_divs.empty:
-                    ttm_div_per_share = safe_float(recent_divs.sum())
-                    if ttm_div_per_share > 0:
-                        calc_d = (ttm_div_per_share / p) * 100
-                        if 0 < calc_d < 30.0:
-                            return calc_d
+                cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=375)
+                recent_1y_divs = divs[divs.index >= cutoff]
+                if not recent_1y_divs.empty:
+                    dps_1y = float(recent_1y_divs.sum())
+                    if dps_1y > 0 and p > 0:
+                        calc_y = (dps_1y / p) * 100.0
+                        if 0.01 <= calc_y <= 25.0:
+                            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
     except Exception:
         pass
 
-    # (6순위 - 핵심 백업 C) 재무제표 현금흐름표(Cash Dividends Paid) ÷ 시가총액 역산
-    try:
-        if stk is not None and same_currency:
-            cf = stk.cash_flow
-            if cf is not None and not cf.empty:
-                for dk in ['Cash Dividends Paid', 'Common Stock Dividend Paid']:
-                    if dk in cf.index and pd.notna(cf.loc[dk].iloc[0]):
-                        div_paid_total = abs(safe_float(cf.loc[dk].iloc[0]))
-                        sh = safe_float(i.get('sharesOutstanding', i.get('impliedSharesOutstanding')))
-                        mcap = (p * sh) if sh > 0 else safe_float(i.get('marketCap'))
-                        if div_paid_total > 0 and mcap > 0:
-                            calc_d = (div_paid_total / mcap) * 100
-                            if 0 < calc_d < 25.0:
-                                return calc_d
-    except Exception:
-        pass
+    # 2순위: 주당 배당금(dividendRate) ÷ 주가 직접 계산
+    if raw_d > 0 and p > 0:
+        calc_y = (raw_d / p) * 100.0
+        if 0.01 <= calc_y <= 25.0:
+            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
+
+    if trailing_d > 0 and p > 0:
+        calc_y = (trailing_d / p) * 100.0
+        if 0.01 <= calc_y <= 25.0:
+            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
+
+    # 3순위: Finviz 백업 데이터 (퍼센트 단위 검증)
+    if 0.01 <= fv_y <= 25.0:
+        return fv_y / multiplier if (sim_pct != 0 and multiplier != 0) else fv_y
+
+    # 4순위: 소수점 비율 정규화 (0.0075 -> 0.75% / 75.0 -> 0.75% 오표기 교정)
+    target_y = trailing_y if trailing_y > 0 else raw_y
+    if target_y > 0:
+        if target_y < 0.25: # 0.0075 처럼 소수점으로 들어온 경우
+            res_y = target_y * 100.0
+        elif target_y >= 25.0 and not kr: # 75.0% 처럼 100배 뻥튀기되어 들어온 경우
+            res_y = target_y / 100.0
+        else:
+            res_y = target_y
+        return res_y / multiplier if (sim_pct != 0 and multiplier != 0) else res_y
 
     return 0.0
 
@@ -8293,7 +8248,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         intro_first_line = sel_hook_45.split("] ", 1)[-1]
 
                     # -------------------------------------------------------------
-                    # 1. [해자] 컷: "첫째" 삭제 + 버핏의 ROIC(장기 성장 한계선) 철학 + 초고ROIC 오해 방지 + 영업마진 숫자 제거
+                    # 1. [해자] 컷: 군더더기 없는 2줄 타격형 문장
                     # -------------------------------------------------------------
                     if opm_int >= 20:
                         margin_phrase = "영업마진도 높아서 가격결정력까지 탄탄해!"
@@ -8305,115 +8260,98 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         margin_phrase = "영업적자 상태라 가격결정력이 무너졌어!"
 
                     if roic_int >= 50:
-                        # 애플·엔비디아·마스터카드 등 ROIC 50~100%+ 기업: 시청자가 '연 99% 주가 복리'로 오해하지 않도록 자본경량 본질 설명!
                         moat_line = (
-                            f"버핏은 주가 장기 수익률이 결국 사업 밑천 수익률에 수렴한다고 했어! / "
-                            f"여긴 적은 설비로 큰돈을 버는 독점 구조라 밑천 효율이 연 {roic_int}%에 달하고 / {margin_phrase}"
+                            f"버핏은 주가의 장기 복리 속도가 밑천 효율에 수렴한다고 했어! / "
+                            f"여긴 밑천 효율이 무려 연 {roic_int}%에다 / {margin_phrase}"
                         )
                     elif roic_int >= 15:
                         moat_line = (
-                            f"버핏은 주가 장기 성장률이 결국 밑천 수익률인 ROIC를 따라간다고 했어! / "
-                            f"시장 평균은 12%인데 여긴 연 {roic_int}%를 뽑아내고 / {margin_phrase}"
-                        )
-                    elif roic_int >= 8:
-                        moat_line = (
-                            f"버핏은 주가 장기 성장률이 결국 밑천 수익률인 ROIC를 따라간다고 했어! / "
-                            f"여긴 시장 기준선 부근인 연 {roic_int}%로 평범하고 / {margin_phrase}"
+                            f"버핏은 주가의 장기 성장률이 결국 밑천 효율을 따라간다고 했어! / "
+                            f"시장 기준 12%를 훌쩍 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
                         )
                     else:
                         moat_line = (
-                            f"버핏은 밑천 수익률인 ROIC가 장기 주가의 한계선이라고 했어! / "
-                            f"여긴 기준선 12%에 못 미치는 연 {roic_int}%라 밑천 효율이 아쉽고 / {margin_phrase}"
+                            f"버핏은 밑천 효율이 낮으면 장기 주가도 갇힌다고 했어! / "
+                            f"여긴 기준선 12%에 못 미치는 연 {roic_int}% 수준이라 / {margin_phrase}"
                         )
 
                     # -------------------------------------------------------------
-                    # 2. [가격] 컷: "둘째" 삭제 + 버핏의 역산법(채권보다 못 버는 주식 배제) + 시클리컬 저PER 착시 반영
+                    # 2. [가격] 컷: 버핏 역산법 핵심만 직관적으로 전달
                     # -------------------------------------------------------------
-                    semi_cyclicals = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "005490", "010950", "011200", "051910"]
-                    is_cyc_stock = locals().get('is_cyclical', False) or (clean_tk_for_hash in semi_cyclicals)
-
                     if is_cyc_stock:
                         if 0 < eff_cur_pe_sh <= 11.0 or (ey_int >= 9 and fcf_int >= 20):
                             price_line = (
-                                f"버핏의 역산법은 국채 이자보다 못 버는 주식을 거르는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%지만 / 시클리컬 업종이라 호황 정점의 저PER 착시를 조심해야 해!"
-                            )
-                        elif eff_cur_pe_sh >= 25.0 or eff_cur_pe_sh <= 0:
-                            price_line = (
                                 f"버핏의 역산법은 국채보다 못 버는 주식을 거르는 건데 / "
-                                f"지금은 업황 바닥이라 이익수익률이 낮지만 / 시클리컬은 고PER 바닥에서 사서 저PER 고점에 파는 게 핵심이야!"
+                                f"지금 숫자는 싸 보여도 시클리컬 호황 고점의 저PER 착시를 조심해야 해!"
                             )
                         else:
                             price_line = (
                                 f"버핏의 역산법은 국채보다 현금을 더 버는지 보는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%로 / 사이클 중간 국면이라 업황 꺾임을 체크해야 해!"
+                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%라 사이클 꺾임을 체크해야 해!"
                             )
                     else:
                         if g_margin_val >= 3.0:
                             price_line = (
                                 f"버핏의 역산법은 채권보다 못 버는 주식을 거르는 거야! / "
-                                f"이익수익률 {ey_int}%에 실제 현금도 연 {fcf_int:+d}%씩 커져서 / 채권보다 훨씬 나은 안전마진 합격이야!"
+                                f"이익수익률 {ey_int}%에 현금도 연 {fcf_int:+d}%씩 자라 안전마진 합격이야!"
                             )
                         elif g_margin_val >= -3.0:
                             price_line = (
                                 f"버핏의 역산법은 채권보다 현금을 더 버는지 따지는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금은 연 {fcf_int:+d}% 성장이라 / 지금 주가는 딱 적정 가치 수준이야!"
+                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%라 주가는 딱 적정 수준이야!"
                             )
                         else:
                             price_line = (
                                 f"버핏의 역산법으로 보면 채권보다 불리한 가격은 피해야 해! / "
-                                f"이익수익률 {ey_int}% 대비 실제 현금 성장이 연 {fcf_int:+d}%라 / 주가에 미래 기대감이 너무 높게 끼어있어!"
+                                f"이익수익률 {ey_int}% 대비 현금 성장이 부족해 주가에 기대감이 너무 꼈어!"
                             )
 
                     # -------------------------------------------------------------
-                    # 3. [안전] 컷: "셋째" 삭제 + 버핏의 CapEx(돈 먹는 하마 vs 자본경량) 철학 + 기업별 맞춤 다각화 & 환원
+                    # 3. [안전] 컷: 모순 없는 자연스러운 문맥 조합 (단일 의존 vs 다각화 분리)
                     # -------------------------------------------------------------
                     clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
                     clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
 
-                    if "자본 경량형" in clean_capex_txt:
-                        capex_part = "설비 재투자 없이도 현금이 쌓이는 알짜 구조에다"
+                    # 설비투자 부담 여부
+                    if "자본 경량형" in clean_capex_txt or "안정적" in clean_capex_txt:
+                        capex_part = "설비 재투자 부담 없이 현금이 남는 알짜 구조야!"
                     elif "선제투자" in clean_capex_txt or "선별적" in clean_capex_txt:
-                        capex_part = "미래 해자를 위한 선제 투자를 현금흐름으로 감당하고"
-                    elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt or "대규모 설비투자" in clean_capex_txt:
-                        capex_part = "공장 증설에 막대한 현금이 묶이는 부담은 있지만"
+                        capex_part = "미래 투자를 자체 현금흐름으로 거뜬히 감당하고 있어!"
                     else:
-                        capex_part = "번 돈 안에서 안정적으로 설비를 유지하고"
+                        capex_part = "공장 증설과 설비투자에 묶이는 현금 부담이 꽤 커!"
 
-                    if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt or "주의" in clean_div_txt:
-                        div_part = "단일 사업 의존도가 높아서"
-                    elif "최상" in clean_div_txt or "완벽" in clean_div_txt:
-                        div_part = "사업 다각화로 위기를 방어하면서"
+                    # 사업 구조 및 주주환원 (문맥 모순 완전 해결!)
+                    if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
+                        if div_val >= 2.5:
+                            safe_tail = f"단일 사업 집중도는 높지만 연 {div_val:.1f}% 현금배당으로 주주에게 보답해!"
+                        elif bb_val >= 1.0:
+                            safe_tail = "단일 사업 의존도는 있지만 꾸준한 자사주 소각으로 주당 가치를 올려줘!"
+                        else:
+                            safe_tail = "단일 사업 의존도가 높은 만큼 업황 불황에 대비해야 해!"
                     else:
-                        div_part = "주력 사업군을 고르게 분산하면서"
-
-                    if bb_val >= 1.0 and div_val >= 2.0:
-                        ret_part = f"자사주 소각과 연 {div_val:.1f}% 배당으로 주주에게 보답해!"
-                    elif bb_val >= 1.0:
-                        ret_part = "자사주 소각으로 1주당 가치를 높여줘!"
-                    elif div_val >= 2.5:
-                        ret_part = f"연 {div_val:.1f}% 현금배당으로 주주에게 돌려줘!"
-                    elif bb_val <= -1.5:
-                        ret_part = "주식 수가 늘어나는 희석 리스크는 조심해야 해!"
-                    elif roic_int >= 18:
-                        ret_part = "번 돈을 고수익 본업에 재투자해 복리를 키우고 있어!"
-                    else:
-                        ret_part = "현금을 사내에 유보하며 불황을 대비하고 있어!"
+                        if bb_val >= 1.0 and div_val >= 2.0:
+                            safe_tail = f"탄탄한 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
+                        elif bb_val >= 1.0:
+                            safe_tail = "탄탄한 사업 다각화에 자사주 소각으로 주당 가치를 높여줘!"
+                        elif div_val >= 2.5:
+                            safe_tail = f"안정적인 사업 분산에다 연 {div_val:.1f}% 현금배당으로 안전판을 받쳐줘!"
+                        else:
+                            safe_tail = "탄탄한 사업 다각화로 불황기 리스크를 든든하게 막았어!"
 
                     saf_line = (
-                        f"버핏은 끝없이 설비투자만 먹는 기업보다 주주에게 현금이 남는 기업을 최고로 쳐! / "
-                        f"{capex_part} / {div_part} {ret_part}"
+                        f"버핏은 설비투자만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / "
+                        f"{capex_part} / {safe_tail}"
                     )
 
                     # -------------------------------------------------------------
-                    # 4. [결론] 컷: 기업 특성에 맞춘 한 줄 핵심 요약 + 댓글 유도
+                    # 4. [결론] 컷: 군더더기 없는 2줄 마무리
                     # -------------------------------------------------------------
                     if is_cyc_stock and (0 < eff_cur_pe_sh <= 11.0 or roic_int >= 20):
-                        end_line = f"호황 정점의 저PER 착시인지 꼭 확인하고 진입해! / 너라면 지금 {comp_name} 살래? 다음 종목을 댓글로 남겨줘!"
+                        end_line = f"호황 정점의 착시인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
                     elif g_margin_val < -3.0:
-                        end_line = f"성장이 높은 주가를 증명할지 꼭 확인하고 진입해! / 너라면 지금 {comp_name} 살래? 다음 종목을 댓글로 남겨줘!"
+                        end_line = f"주가에 낀 기대감을 증명할지 꼭 확인하고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
                     else:
-                        end_line = f"장부와 가격의 안전마진이 탄탄한지 꼭 확인해 봐! / 너라면 지금 {comp_name} 살래? 다음 종목을 댓글로 남겨줘!"
+                        end_line = f"장부와 가격의 안전마진이 탄탄한지 꼭 확인해 봐! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
 
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
@@ -8422,7 +8360,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[안전] {saf_line}",
                         f"[결론] {end_line}"
                     ]
-
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_num}_V33_CUSTOM"
                     mode_tag_k = f"KO_{ov_sig}"
                     script_area_key = f"script_v33_buffett_{tk}_{ov_sig}"
@@ -8932,13 +8869,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f_chalk = lambda s: get_font(s, is_chalk=True)
                         f_gothic = lambda s: get_font(s, is_chalk=False)
 
-                        # 1. 상단 블랙 헤더
+                        # 칠판 상단 소제목 텍스트 자동 교정
+                        step3_header = "3. 공급망 체력 & 자사주 소각" if bb_val >= 1.0 else f"3. 재무 안전판 & 현금 배당(연 {safe_div:.1f}%)"
                         header_sub_map = {
                             "SCENE_HOOK": "10년 장부 팩트 & 기회비용 정밀 검증",
-                            "SCENE_MOAT": "1. 본업 밑천 효율 vs 시장 자본비용",
+                            "SCENE_MOAT": "1. 본업 밑천 효율(ROIC) & 가격결정력",
                             "SCENE_BUFFETT": "2. 국채 금리 기회비용 & 주당 FCF 검증",
                             "SCENE_MACRO": "2. 국채 금리 기회비용 & 주당 FCF 검증",
-                            "SCENE_SAFETY": "3. 공급망 체력 & 자사주 소각",
+                            "SCENE_SAFETY": step3_header,
                             "SCENE_SUMMARY": "과연 지금 가격에 살까? (최종 판정)"
                         }
                         top_yellow_title = f"{comp_name} 장부 치트키"
