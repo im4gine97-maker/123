@@ -3774,11 +3774,11 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
     except:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # =========================================================================
-# [엔진 복원] 사업 다각화 및 단일 실패 지점(SPOF) 차단 정밀 진단기
+# [1] 사업 다각화 및 단일 실패 지점(SPOF) 차단 마스터 엔진
 # =========================================================================
 def analyze_business_diversification(stk, i, tk, kr):
     if stk is None or not isinstance(i, dict):
-        return "<span style='color:#8892b0;'>데이터 부족 (확인 불가)</span>"
+        return "<span style='color:#8892b0;'>데이터 확인 필요</span>"
 
     tk_u = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
     cd = tk_u.split('.')[0]
@@ -3786,9 +3786,9 @@ def analyze_business_diversification(stk, i, tk, kr):
     sector = str(i.get('sector', '')).lower()
     industry = str(i.get('industry', '')).lower()
 
-    # 1. 글로벌 거장 포트 & 주요 대표주 팩트 데이터베이스
+    # 거장 포트폴리오 + 미국/한국/글로벌 시총 상위 기업 전수 팩트 DB
     diversification_db = {
-        # --- 미국 빅테크 & 메가캡 ---
+        # --- 미국 메가테크 & 성장주 ---
         "AAPL": ("최상 (다각화 우수)", "#2ecc71", "아이폰(50%) + 서비스/구독(25%) + 웨어러블/Mac(25%) 및 글로벌 고른 분산으로 단일 실패 지점 차단 완료"),
         "MSFT": ("최상 (다각화 완벽)", "#2ecc71", "클라우드(Azure), 기업 생산성(Office), 개인컴퓨팅(Windows/Gaming) 3대 축이 완벽히 균형 잡힌 다중 백업"),
         "GOOGL": ("양호 (수익원 다변화 진행)", "#74b9ff", "검색 및 유튜브 광고(75%) 중심이나 클라우드(GCP)와 하드웨어/구독 성장으로 수익원 다중화 순항"),
@@ -3797,22 +3797,32 @@ def analyze_business_diversification(stk, i, tk, kr):
         "META": ("보통 (광고 단일 의존)", "#fdcb6e", "인스타그램/페이스북 패밀리앱 독점력이 있으나 매출의 97% 이상이 디지털 광고 단일 모델에 집중"),
         "NVDA": ("보통 (AI 칩 집중)", "#fdcb6e", "데이터센터 가속기 매출 비중 85% 이상. 하드웨어+CUDA 독점이나 AI 데이터센터 설비투자 단일 사이클 의존"),
         "TSLA": ("보통 (차량 단일 의존)", "#fdcb6e", "매출의 80% 이상이 전기차 단일 믹스. 에너지 스토리지와 FSD 구독 매출로 다각화 추진 중이나 차량 의존도 상존"),
+        "AVGO": ("최상 (다각화 우수)", "#2ecc71", "통신/AI 맞춤형 실리콘 반도체 하드웨어와 엔터프라이즈 인프라 소프트웨어(VMware 등)의 유기적 분산"),
+        "ORCL": ("양호 (클라우드 인프라 확장)", "#74b9ff", "레거시 데이터베이스 ERP 유지보수 캐시카우 위에 OCI 클라우드 및 AI 인프라 수주 다각화"),
+        "CRM": ("양호 (SaaS 플랫폼 분산)", "#74b9ff", "영업(Sales), 서비스, 마케팅 클라우드와 데이터 분석(Tableau), 협업 툴(Slack) 포트폴리오 구축"),
+        "NOW": ("양호 (워크플로우 독점)", "#74b9ff", "IT 서비스 관리(ITSM)를 넘어 인사, 고객 지원, 엔터프라이즈 생성형 AI 워크플로우로 전방위 확장"),
+        "ADBE": ("양호 (크리에이티브 과점)", "#74b9ff", "포토샵·프리미어 크리에이티브 클라우드와 전자문서(Acrobat), 마케팅 클라우드의 탄탄한 포트폴리오"),
+        "PLTR": ("양호 (정부+민간 듀얼)", "#74b9ff", "미 국방부/정부 기관용 고담(Gotham) 플랫폼과 민간 대기업용 파운드리(Foundry)/AIP 균형 성장"),
+        "UBER": ("최상 (모빌리티+배달+화물)", "#2ecc71", "차량 호출(Mobility), 배달 플랫폼(Eats), 화물(Freight) 및 고마진 앱 내 광고 수익의 다각화"),
+
+        # --- 버핏 / 멍거 / 가치투자 거장 핵심주 ---
         "BRK-B": ("최상 (다각화 종결자)", "#2ecc71", "보험 플로트, BNSF 철도, BHE 에너지 인프라, 제조업, 소매업, 초대형 주식 포트폴리오가 결합된 무결점 다중화"),
         "BRK-A": ("최상 (다각화 종결자)", "#2ecc71", "보험 플로트, BNSF 철도, BHE 에너지 인프라, 제조업, 소매업, 초대형 주식 포트폴리오가 결합된 무결점 다중화"),
-        "AVGO": ("최상 (다각화 우수)", "#2ecc71", "통신/AI 맞춤형 실리콘 반도체 하드웨어와 엔터프라이즈 인프라 소프트웨어(VMware 등)의 유기적 분산"),
-
-        # --- 소비재 / 금융 / 산업재 ---
         "COST": ("양호 (글로벌 옴니채널)", "#74b9ff", "식음료, 잡화, 가전 전 카테고리 분산 및 전 세계 회원권 갱신 수수료(순수익원) 기반 안전판"),
         "WMT": ("최상 (소매 인프라 다각화)", "#2ecc71", "오프라인 유통망 + 이커머스 고속 성장 + 고수익 리테일 미디어 광고(월마트 커넥트) 결합"),
         "PG": ("최상 (글로벌 필수재 분산)", "#2ecc71", "베이비, 패브릭, 뷰티, 헬스케어 등 10대 핵심 필수소비 카테고리 65개 메가 브랜드 전 세계 분산"),
-        "KO": ("보통 (음료 카테고리 집중)", "#fdcb6e", "탄산음료, 주스, 커피, 생수 등 음료 내에서는 다각화되었으나 순수 음료 단일 모델에 집중"),
+        "KO": ("보통 (음료 단일 집중)", "#fdcb6e", "탄산, 주스, 생수, 커피 등 음료 내에서는 분산되었으나 순수 음료 비즈니스 단일 모델에 집중"),
         "PEP": ("최상 (음료+스낵 다각화)", "#2ecc71", "펩시 음료 라인업과 프리토레이(Frito-Lay) 짭짤한 스낵 포트폴리오의 완벽한 50:50 상호 보완"),
         "JNJ": ("최상 (헬스케어 다각화)", "#2ecc71", "소비자 부문 분사 후에도 혁신 의약품(면역/항암)과 메디텍(의료기기)의 탄탄한 양대 엔진 유지"),
         "LLY": ("보통 (GLP-1 집중)", "#fdcb6e", "비만/당뇨 치료제 파이프라인의 폭발적 성장이나 특정 블록버스터 약물 집중도 심화"),
         "UNH": ("최상 (의료 통합 다각화)", "#2ecc71", "유나이티드헬스케어(건강보험)와 옵텀(진료 데이터, 약국 관리, PBM)의 완벽한 수직 계열화"),
+        "ABBV": ("양호 (신약 세대교체)", "#74b9ff", "휴미라 특허 만료 충격을 스카이리치/린버크 및 보톡스(에스테틱), 혈액암 파이프라인으로 흡수 다각화"),
+        "MRK": ("보통 (키트루다 단일 의존)", "#fdcb6e", "항암제 키트루다 단일 품목의 매출 비중이 절대적이어서 2028년 전후 특허 만료 대응 집중 필요"),
         "CAT": ("양호 (산업재 다각화)", "#74b9ff", "건설 기계, 자원 채굴, 에너지 및 운송 3대 사업부 및 고수익 유지보수 부품 서비스 매출 결합"),
+        "DE": ("양호 (농기계+정밀소프트웨어)", "#74b9ff", "대형 농기계, 소형 건설장비 라인업과 자율주행 정밀 농업 소프트웨어 구독 모델 결합"),
         "XOM": ("양호 (에너지 밸류체인)", "#74b9ff", "원유 탐사/시추(상공정)와 정유/석유화학(하공정)의 완벽한 수직 통합으로 유가 변동성 자연 헷지"),
         "CVX": ("양호 (에너지 밸류체인)", "#74b9ff", "퍼미안 분지 등 저원가 업스트림 자산과 글로벌 정유/다운스트림 마케팅의 균형 포트폴리오"),
+        "OXY": ("주의 (원유 시추 집중)", "#ff7675", "업스트림 셰일 원유 채굴 비중이 압도적이며 유가 급락 시 현금흐름 방어선이 상대적으로 취약"),
         "V": ("양호 (글로벌 결제망)", "#74b9ff", "소비자 신용, 체크, B2B 송금, 부가 가치 서비스(사기 방지/데이터) 등 전 세계 결제망 분산"),
         "MA": ("양호 (글로벌 결제망)", "#74b9ff", "글로벌 전자결제 트랜잭션 수수료와 사이버 보안/컨설팅 고마진 서비스 매출의 조합"),
         "JPM": ("최상 (종합금융 종결자)", "#2ecc71", "소매금융(리테일), 기업금융(IB), 트레이딩, 자산관리(AWM) 4대 축이 위기 시 서로를 지탱하는 안전판"),
@@ -3820,10 +3830,38 @@ def analyze_business_diversification(stk, i, tk, kr):
         "AXP": ("양호 (프리미엄 핀테크)", "#74b9ff", "가맹점 결제 수수료(네트워크)와 카드 연회비, 순이자마진(NII)의 균형 잡힌 수익 다중화"),
         "MCO": ("양호 (과점 인프라)", "#74b9ff", "신용평가 부문(Moody's)과 금융 데이터/애널리틱스(MA)의 듀얼 캐시카우"),
         "SPGI": ("최상 (금융 정보 다각화)", "#2ecc71", "S&P 신용평가, 지수 라이선스(Dow Jones), 플래츠(원자재), 마켓 인텔리전스 4대 독점 인프라 결합"),
+        "CB": ("양호 (특수보험 분산)", "#74b9ff", "글로벌 상업용 손해보험, 개인 재산보험, 농업보험, 해외 재보험의 정밀한 리스크 분산"),
+        "KHC": ("양호 (글로벌 소비재 믹스)", "#74b9ff", "케첩, 소스, 치즈, 가공육 등 전 세계 식탁을 점유하는 다변화된 필수 식료품 포트폴리오"),
+        "KR": ("양호 (식료품 유통망)", "#74b9ff", "미국 최대 슈퍼마켓 체인으로 식료품, 약국, 주유소 등 서민 필수 소비재 카테고리 분산"),
+
+        # --- 거장 집중 편입주 (리루, 드러켄밀러, 막스, 테퍼 등) ---
+        "PDD": ("양호 (국내외 이커머스)", "#74b9ff", "중국 본토 핀둬둬의 식료품/생필품 락인과 글로벌 테무(Temu)의 북미·유럽 크로스보더 다변화"),
+        "BABA": ("최상 (커머스+클라우드)", "#2ecc71", "타오바오/티몰 커머스, 알리바바 클라우드, 차이냐오 물류망, 앤트그룹 핀테크가 결합된 거대 생태계"),
+        "EWBC": ("양호 (미중 무역금융 특화)", "#74b9ff", "미국 서부 한인·화교 리테일 뱅킹, 상업용 부동산, 아시아-미국 크로스보더 무역금융 특화 분산"),
+        "CROX": ("주의 (신발 단일 의존)", "#ff7675", "폼 클로그(Clogs) 단일 브랜드 의존도 절대적. 헤이듀드(HeyDude) 인수했으나 단일 패션 유행 이탈 취약"),
+        "NTRA": ("주의 (진단 단일 집중)", "#ff7675", "비침습 산전 검사(NIPT) 및 종양 진단 단일 플랫폼에 집중되어 보험 수가 및 규제 변동에 민감"),
+        "INSM": ("주의 (희귀 폐질환 단일군)", "#ff7675", "희귀 폐질환 치료제 단일 파이프라인 R&D 의존도가 높아 임상 결과 및 FDA 승인 여부에 명운 종속"),
+        "VRT": ("보통 (데이터센터 전력/열관리)", "#fdcb6e", "AI 데이터센터 액체 냉각/전력 인프라 수주를 독점 중이나 단일 인프라 설비투자 사이클 의존"),
+        "SE": ("최상 (동남아 3대 생태계)", "#2ecc71", "동남아 1위 이커머스(Shopee) + 게임/엔터(Garena) + 디지털 금융(SeaMoney) 3대 축 완벽 다중화"),
+        "TRMD": ("주의 (제품선 탱커 집중)", "#ff7675", "정유 제품 운반선(탱커) 단일 선대 운용에 100% 의존하여 글로벌 해운 용선료 사이클에 직격탄"),
+        "HCC": ("주의 (제철 석탄 단일 집중)", "#ff7675", "제철용 점결탄 채굴 단일 광산 사업에 집중되어 글로벌 조강 생산량 및 석탄 가격에 100% 종속"),
+        "RIG": ("주의 (심해 시추선 집중)", "#ff7675", "초심해 시추선(Drillship) 장비 리스 단일 모델로 유가 급락 및 오일 메이저 시추 축소 시 치명적"),
+        "AMR": ("주의 (원료탄 채굴 집중)", "#ff7675", "제철용 석탄 채굴 단일 비즈니스로 환경 규제 및 다운사이클 시 급격한 흑자 축소 위험"),
+        "DJCO": ("보통 (소프트웨어+투자)", "#fdcb6e", "법원 행정 저널 소프트웨어 사업과 찰리 멍거의 유지를 잇는 은행/빅테크 주식 포트폴리오 보유"),
+        "RACE": ("보통 (슈퍼카 단일 믹스)", "#fdcb6e", "한정판 슈퍼카 단일 품목이나 럭셔리 컬렉터 락인과 강력한 가격결정력으로 경기 침체 자연 방어"),
+
+        # --- 글로벌 시총 최상위 (유럽 / 일본 / 대만) ---
         "TSM": ("양호 (파운드리 전방위 분산)", "#74b9ff", "순수 파운드리 모델이나 스마트폰(애플), AI(엔비디아), PC(AMD), 전장 등 전 세계 빅테크 분산"),
         "ASML": ("보통 (노광장비 독점)", "#fdcb6e", "EUV/DUV 노광장비 시장 독점이나 반도체 제조사들의 설비투자(CapEx) 사이클 단일 의존"),
+        "NVO": ("보통 (GLP-1 의존도 심화)", "#fdcb6e", "당뇨(오젬픽)와 비만(위고비) 펩타이드에 매출 80% 이상 집중되어 후속 경쟁 약물 출현에 민감"),
+        "LVMUY": ("최상 (럭셔리 제국 다각화)", "#2ecc71", "루이비통·디올(패션) + 불가리·티파니(보석) + 세포라(유통) + 모엣샹동(주류) 75개 명품 브랜드 분산"),
+        "TM": ("양호 (글로벌 차종 분산)", "#74b9ff", "하이브리드(HEV), 내연기관, 상용차, 렉서스(프리미엄) 및 북미·아시아·신흥국 고른 글로벌 판매망"),
+        "SONY": ("최상 (엔터+하드웨어 다각화)", "#2ecc71", "플레이스테이션(게임) + 음악/영화 IP + 이미지센서 반도체 + 금융이 결합된 종합 콘텐츠 제국"),
+        "BHP": ("양호 (자원 다각화)", "#74b9ff", "철광석, 구리(AI 전력망), 야금탄, 니켈, 칼륨 등 글로벌 핵심 산업 원자재 고른 포트폴리오"),
+        "RIO": ("양호 (자원 다각화)", "#74b9ff", "세계 최대 철광석 광산과 알루미늄, 구리 등 필수 금속 밸류체인 다각화"),
+        "ITOCY": ("최상 (종합상사 다각화)", "#2ecc71", "버핏이 인수한 일본 5대 상사로 에너지, 식량, 섬유, 화학, 편의점(패밀리마트) 전방위 분산"),
 
-        # --- 한국 주요 대표주 ---
+        # --- 한국 KOSPI / KOSDAQ 시가총액 최상위 ---
         "005930.KS": ("최상 (다각화 우수)", "#2ecc71", "메모리 반도체(DS) + 스마트폰(MX) + TV/가전(VD) + 디스플레이(SDC) 4대 포트폴리오 상호 보완"),
         "005930": ("최상 (다각화 우수)", "#2ecc71", "메모리 반도체(DS) + 스마트폰(MX) + TV/가전(VD) + 디스플레이(SDC) 4대 포트폴리오 상호 보완"),
         "000660.KS": ("주의 (메모리 단일 집중)", "#ff7675", "DRAM(HBM) 및 NAND 메모리 반도체 단일 매출 비중 95% 이상으로 반도체 다운사이클 시 변동성 극심"),
@@ -3855,7 +3893,7 @@ def analyze_business_diversification(stk, i, tk, kr):
         grade, col, desc = diversification_db[cd]
         return f"<b style='color:{col};'>[{grade}]</b> {desc}"
 
-    # 2. 미등록 종목 자동 정량 판정
+    # 미등록 종목 자동 정량 판정
     single_risk_keywords = ['single customer', 'sole supplier', 'concentrated', 'oem', '특정 고객사', '단일 납품', '외주 가공', '단일 품목']
     if any(k in summary for k in single_risk_keywords):
         return "<b style='color:#ff7675;'>[주의] 단일 의존 리스크</b> 특정 고객사나 단일 품목 의존도가 높아 공급망 충격 시 단일 실패 지점(SPOF) 위험 노출"
@@ -3872,8 +3910,10 @@ def analyze_business_diversification(stk, i, tk, kr):
         return f"<b style='color:#ff7675;'>[경고] 저마진 집중 구조</b> 영업이익률({op_m:.1f}%)이 낮아 전방 산업 수요 둔화 시 실적 방어력 취약"
     else:
         return f"<b style='color:#fdcb6e;'>[보통] 표준적 사업 분산</b> 동종 업계 평균 수준의 제품군 구색 유지 중"
+
+
 # =========================================================================
-# [복원] 가격결정력 (Pricing Power) 팩트 기반 정밀 진단기
+# [2] 가격결정력 (Pricing Power & 원가 전가력) 마스터 엔진
 # =========================================================================
 def analyze_pricing_power(stk, i, tk, kr):
     if stk is None or not isinstance(i, dict):
@@ -3882,9 +3922,8 @@ def analyze_pricing_power(stk, i, tk, kr):
     tk_u = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
     cd = tk_u.split('.')[0]
 
-    # 글로벌 거장 포트 및 국내외 대표 기업 팩트 DB
     pricing_db = {
-        # 미국 빅테크 & 메가캡
+        # --- 미국 빅테크 & 메가캡 ---
         "AAPL": ("최상 (독점적 가격결정력)", "#2ecc71", "iOS 생태계 락인과 독보적 브랜드 프리미엄으로 부품 원가 상승을 출고가에 100% 즉시 전가 가능"),
         "MSFT": ("최상 (기업 인프라 독점)", "#2ecc71", "윈도우, 오피스365, Azure의 극단적 전환비용으로 구독료 인상에도 고객 이탈 제로"),
         "GOOGL": ("최상 (검색·광고 독점)", "#2ecc71", "글로벌 검색(90%) 및 유튜브 독점으로 광고주 대상 압도적인 단가 결정권 행사"),
@@ -3896,11 +3935,14 @@ def analyze_pricing_power(stk, i, tk, kr):
         "BRK-B": ("최상 (인플레 방어 종결자)", "#2ecc71", "가이코 보험 요율 인상, BNSF 철도 운임 전가력, 독점 유틸리티의 물가 연동 요금제 확보"),
         "BRK-A": ("최상 (인플레 방어 종결자)", "#2ecc71", "가이코 보험 요율 인상, BNSF 철도 운임 전가력, 독점 유틸리티의 물가 연동 요금제 확보"),
         "AVGO": ("최상 (엔터프라이즈 과점)", "#2ecc71", "통신 맞춤형 반도체 독점 및 VMware 인수 후 고가 구독제 전환을 통한 마진 극대화"),
-        
-        # 소비재 / 결제 / 헬스케어
+        "ORCL": ("최상 (데이터베이스 락인)", "#2ecc71", "미션 크리티컬 DB 교체 비용이 천문학적이어서 일방적인 라이선스/클라우드 비용 인상에도 고객 유지"),
+        "CRM": ("양호 (기업용 SaaS 독점)", "#74b9ff", "영업 인프라 데이터 종속성으로 매년 6~9%의 정기적인 구독료 인상을 무리 없이 관철"),
+
+        # --- 소비재 / 결제 / 헬스케어 (버핏의 해자) ---
         "KO": ("최상 (브랜드 락인)", "#2ecc71", "원당·캔 원가 폭등을 제품가에 전가해도 소비자가 거부감 없이 매수"),
         "PEP": ("최상 (스낵·음료 과점)", "#2ecc71", "프리토레이 스낵의 압도적 점유율로 대형 마트 납품가 협상 절대 우위 유지"),
         "COST": ("특수 (회원제 가격 우위)", "#2ecc71", "마진을 15%로 제한하되 순이익 원천인 멤버십 연회비 인상으로 안정적 주주가치 창출"),
+        "WMT": ("양호 (바잉 파워 및 광고)", "#74b9ff", "미국 최대 유통망의 바잉 파워로 공급업체 원가를 통제하고 매장 미디어 광고로 마진 방어"),
         "PG": ("최상 (필수소비재 과점)", "#2ecc71", "기저귀, 면도기, 세제 등 대체 불가 브랜드력으로 매년 소비자가격 인상 지속"),
         "V": ("최상 (결제망 통행세)", "#2ecc71", "물가가 오르면 결제 수수료 매출이 자동으로 동반 증가하는 통행세 모델"),
         "MA": ("최상 (결제망 통행세)", "#2ecc71", "비자와 함께 글로벌 결제망을 복점하여 가맹점 수수료 인상 저항 무력화"),
@@ -3911,7 +3953,7 @@ def analyze_pricing_power(stk, i, tk, kr):
         "TSM": ("양호 (선단 공정 독점)", "#74b9ff", "3나노/2나노 공정 독점으로 글로벌 빅테크 대상 매년 웨이퍼 단가 인상 관철"),
         "ASML": ("최상 (EUV 독점 공급)", "#2ecc71", "EUV 노광장비를 전 세계에서 유일하게 제조하여 반도체 제조사 대상 가격 결정권 행사"),
 
-        # 한국 대표주
+        # --- 한국 대표 기업 ---
         "005930.KS": ("주의 (메모리 시황 가격수용자)", "#ff7675", "스마트폰은 브랜드력이 있으나 핵심 이익인 D램/낸드는 시황에 따라 단가가 결정되는 가격 수용자"),
         "005930": ("주의 (메모리 시황 가격수용자)", "#ff7675", "스마트폰은 브랜드력이 있으나 핵심 이익인 D램/낸드는 시황에 따라 단가가 결정되는 가격 수용자"),
         "000660.KS": ("보통 (HBM 맞춤형 과점)", "#fdcb6e", "엔비디아 납품 HBM은 고마진 맞춤형 가격을 받으나 범용 D램/낸드는 글로벌 메모리 시황에 종속"),
@@ -3935,7 +3977,6 @@ def analyze_pricing_power(stk, i, tk, kr):
         grd, col, dsc = pricing_db[cd]
         return f"<b style='color:{col};'>[{grd}]</b> {dsc}"
 
-    # 미등록 종목 마진율 기반 정량 판정
     gm = safe_float(i.get('grossMargins')) * 100
     if gm >= 55.0:
         return f"<b style='color:#2ecc71;'>[최상 (독점적 마진)]</b> 마진율 {gm:.1f}%를 바탕으로 원가 상승분을 고객에게 전가 가능한 우량 해자 보유"
@@ -3948,14 +3989,14 @@ def analyze_pricing_power(stk, i, tk, kr):
 
 
 # =========================================================================
-# [복원] CapEx(설비투자) 성격 판독기 (선제적 기회 vs 출혈 과투자)
+# [3] CapEx 성격 판독기 (선제적 기회 vs 출혈 과투자) 마스터 엔진
 # =========================================================================
 def analyze_capex_nature(stk, i, tk, base_fcf, kr):
     tk_u = str(tk).upper().strip().replace('.B', '-B').replace('.A', '-A')
     cd = tk_u.split('.')[0]
 
     capex_db = {
-        # 빅테크 AI 선제투자
+        # --- 빅테크 AI 공격 재투자 (아마존식 기회 투자) ---
         "MSFT": ("공격적 선제투자 (미래 클라우드 해자)", "#2ecc71", "AI 데이터센터 공격 투자: 과거 AWS를 구축한 아마존처럼 차세대 AI 클라우드 패권을 장악할 선제적 기회"),
         "GOOGL": ("공격적 선제투자 (자체 TPU·인프라 구축)", "#2ecc71", "자체 AI 칩(TPU)과 데이터센터 확충: 검색 독점 현금으로 감당하며 미래 컴퓨팅 원가를 낮추는 필수 투자"),
         "GOOG": ("공격적 선제투자 (자체 TPU·인프라 구축)", "#2ecc71", "자체 AI 칩(TPU)과 데이터센터 확충: 검색 독점 현금으로 감당하며 미래 컴퓨팅 원가를 낮추는 필수 투자"),
@@ -3986,67 +4027,6 @@ def analyze_capex_nature(stk, i, tk, base_fcf, kr):
     if fcf_ok:
         return f"<b style='color:#2ecc71;'>[안정적 잉여현금 창출]</b> 설비투자 규모를 현금흐름으로 충분히 감당하여 주주이익 훼손 없이 본업 재투자 진행"
     return f"<b style='color:#fdcb6e;'>[설비투자 지속 추적 필요]</b> 미래 먹거리를 위한 선제 투자 집행 여부 및 FCF 잠식 수준 확인 필요"
-# =========================================================================
-# [바이블 정밀 분석기] 가격결정력 / CapEx 성격 / 시클리컬 저PER 착시 통합 엔진
-# =========================================================================
-def evaluate_munger_master_metrics(stk, i, tk, base_fcf, cur_pe, roe, roic_val, op_m, current_ratio, is_cyclical, kr):
-    tk_u = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '').replace('.B', '-B').replace('.A', '-A')
-
-    # 1. 가격결정력 팩트 DB 및 마진 기반 판정 (PDF Part 1-2B, Part 2-5)
-    pricing_power_db = {
-        "AAPL": ("pass", "iOS 생태계 락인과 브랜드 프리미엄으로 부품 원가 상승을 출고가에 100% 즉시 전가 가능"),
-        "MSFT": ("pass", "윈도우·오피스365·Azure의 극단적 전환비용으로 구독료 인상에도 이탈 제로"),
-        "GOOGL": ("pass", "글로벌 검색(90%) 및 유튜브 독점으로 광고주 대상 압도적인 단가 결정권"),
-        "GOOG": ("pass", "글로벌 검색(90%) 및 유튜브 독점으로 광고주 대상 압도적인 단가 결정권"),
-        "AMZN": ("pass", "이커머스 독점력과 AWS 의존도를 바탕으로 입점 수수료 및 멤버십 인상 관철"),
-        "META": ("pass", "30억 명 유저 풀 독점으로 AI 추천 고도화를 통한 디지털 광고 단가 인상 주도"),
-        "NVDA": ("pass", "CUDA 소프트웨어 해자와 블랙웰 GPU 품귀로 마진율 75%를 유지하는 공급자 우위"),
-        "KO": ("pass", "원당·캔 원가 폭등을 제품가에 전가해도 소비자가 거부감 없이 매수"),
-        "PEP": ("pass", "프리토레이 스낵의 압도적 시장 점유율로 유통 채널 납품가 협상 절대 우위"),
-        "COST": ("pass", "마진을 15%로 제한하되 순이익 원천인 멤버십 연회비 인상 관철"),
-        "V": ("pass", "물가가 오르면 결제 수수료 매출이 가만히 앉아서 동반 증가하는 통행세 구조"),
-        "MA": ("pass", "비자와 함께 전 세계 결제망 복점으로 수수료율 인상 저항 제로"),
-        "MCO": ("pass", "채권 발행 시 필수 등급 인증 독점으로 발행사 대상 가격결정력 행사"),
-        "SPGI": ("pass", "S&P 500 지수 라이선스와 신용평가 과점으로 금융시장 확장 수혜"),
-        "TSM": ("pass", "3나노/2나노 선단 공정 100% 독점으로 빅테크 대상 매년 웨이퍼 단가 인상"),
-        "ASML": ("pass", "EUV 노광장비를 전 세계에서 유일하게 제조하여 반도체 제조사 줄 세우기"),
-        "005930": ("warn", "스마트폰은 브랜드력이 있으나 핵심 이익인 D램/낸드는 시황 가격 수용자"),
-        "000660": ("warn", "HBM은 고마진 맞춤형이나 범용 D램/낸드는 글로벌 메모리 시황에 종속"),
-        "005380": ("pass", "제네시스·하이브리드 믹스 개선으로 미국·인도 시장 제값 받기 정착"),
-        "000270": ("pass", "고마진 레저용 차량(RV) 중심의 강력한 상품성으로 높은 실판매가 유지"),
-        "033780": ("pass", "담배 원가 및 세금 인상분을 소비자가격에 100% 전가 가능"),
-        "015760": ("fail", "전기 송배전 독점이나 정부의 요금 통제 포퓰리즘으로 원가 전가 불가능"),
-        "005490": ("warn", "글로벌 조강 과잉 및 중국산 저가 철강 유입으로 원자재 인상분 전가 난항")
-    }
-
-    if tk_u in pricing_power_db:
-        pricing_st, pricing_sub = pricing_power_db[tk_u]
-    else:
-        if op_m >= 20.0: pricing_st, pricing_sub = "pass", f"영업마진 {op_m:.1f}% · 원가 상승분 전가력 우수"
-        elif op_m >= 10.0: pricing_st, pricing_sub = "warn", f"영업마진 {op_m:.1f}% · 표준적 원가 방어력"
-        else: pricing_st, pricing_sub = "fail", f"영업마진 {op_m:.1f}% · 저마진 출혈경쟁 노출"
-
-    # 2. CapEx 성격 판독 (과거 아마존식 선제 기회 vs 출혈 과투자, PDF Part 4-6)
-    capex_db = {
-        "MSFT": ("pass", "AI 데이터센터 공격 투자: 과거 AWS를 구축한 아마존식 미래 클라우드 해자 선점"),
-        "GOOGL": ("pass", "자체 TPU 및 서버 인프라 구축: 검색 독점 현금으로 감당하는 차세대 컴퓨팅 투자"),
-        "GOOG": ("pass", "자체 TPU 및 서버 인프라 구축: 검색 독점 현금으로 감당하는 차세대 컴퓨팅 투자"),
-        "META": ("pass", "오픈소스 라마 및 추천 인프라: 추천 광고 단가 폭증으로 이어지는 선제 기회"),
-        "AMZN": ("pass", "AWS AI 서버 증설: 전자상거래와 클라우드 독점을 다졌던 성공 방정식 재현"),
-        "NVDA": ("pass", "자본 경량형: 제조를 TSMC에 100% 외주하여 CapEx 부담 없이 순수 FCF 창출"),
-        "AAPL": ("pass", "자본 경량형: 외주 생산 체제로 매출 대비 CapEx 3% 미만 유지 (최고의 자본효율)"),
-        "TSM": ("pass", "선단 공정 대규모 증설: 압도적 독점으로 막대한 감가상각비를 고가 판매로 상쇄"),
-        "005930": ("warn", "평택 P4 및 패키징 대규모 투자: 다운사이클 시 FCF 잠식하나 주도권 수성 필수 출혈"),
-        "000660": ("pass", "HBM 맞춤형 선별 투자: 고마진 라인에 정밀 집중하여 투자 회수 속도(ROI) 극대화"),
-        "INTC": ("fail", "파운드리 출혈 과투자 위험: 대형 수주 부재로 대규모 FCF 적자를 유발하는 위험 구간")
-    }
-
-    if tk_u in capex_db:
-        capex_st, capex_sub = capex_db[tk_u]
-    else:
-        fcf_ok = (base_fcf is not None and base_fcf > 0)
-        if fcf_ok: capex_st, capex_sub = "pass", "설비투자(CapEx)를 잉여현금흐름 내에서 충분히 감당"
-        else: capex_st, capex_sub = "fail", "과도한 설비투자로 인한 주주이익(FCF) 적자 잠식 상태"
 
     # 3. 시클리컬 저PER 착시 판정 (PDF Part 1-원칙 3, Part 4-7B)
     semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
@@ -6925,10 +6905,10 @@ with tab1:
                 
                 with col_op1:
                     # -------------------------------------------------------------
-                    # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 정량 체크리스트
+                    # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 가치투자 정량 체크리스트
                     # -------------------------------------------------------------
                     
-                    # 1. 해자 & 복리엔진 (Part 1-2B, Part 4-4 수학)
+                    # 1. 비즈니스 해자 & 복리엔진 (PDF Part 1-2B, Part 4-4 수학)
                     if is_financial:
                         c1_st = "pass" if roe >= 10.0 else ("warn" if roe >= 7.0 else "fail")
                         c1_sub = f"자기자본수익률(ROE) {roe:.1f}% (자본비용 충족)"
@@ -6936,12 +6916,13 @@ with tab1:
                         c1_st = "pass" if (roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0)) else ("warn" if (roic_val >= 6.0 or roe >= 8.0) else "fail")
                         c1_sub = f"투하자본수익률(ROIC) {roic_val:.1f}% · ROE {roe:.1f}% (자본비용 12% 대비 {roic_val-12.0:+.1f}%p)"
 
-                    # 2. 가격결정력 & 마진 방어 (Part 1-2B, Part 3-5)
-                    pricing_st, pricing_sub, capex_st, capex_sub, cyc_st, cyc_sub = evaluate_munger_master_metrics(
-                        stk, i, tk, base_fcf, eff_cur_pe, roe, roic_val, op_m, current_ratio, is_cyclical, kr
-                    )
+                    # 2. 가격결정력 & 마진 방어 (PDF Part 1-2B, Part 3-5)
+                    pricing_raw = analyze_pricing_power(stk, i, tk, kr)
+                    c2_st = "pass" if ("최상" in pricing_raw or "양호" in pricing_raw) else ("warn" if "보통" in pricing_raw else "fail")
+                    clean_pricing_sub = re.sub(r'<[^>]+>', '', pricing_raw).strip()
+                    c2_sub = clean_pricing_sub[:70] + "..." if len(clean_pricing_sub) > 70 else clean_pricing_sub
 
-                    # 3. 경영진 도덕성 & 주식희석 배제 (Part 1-2C, Part 2-13,15, Part 4-6)
+                    # 3. 경영진 도덕성 & 주식희석 배제 (PDF Part 1-2C, Part 2-13,15, Part 4-6)
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
                     div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
                     mgmt_sc = 0
@@ -6960,21 +6941,19 @@ with tab1:
                         c3_st = "warn"
                         c3_sub = f"주식 희석 없음 · 배당 {div_val:.1f}% (사내 현금 유보 기조)"
 
-                    # 4. 공학적 다중화 & 단일실패 차단 (Part 3-4 공학)
-                    div_analysis_raw = analyze_business_diversification(stk, i, tk, kr)
-                    if "최상" in div_analysis_raw or "완벽" in div_analysis_raw: c4_st = "pass"
-                    elif "양호" in div_analysis_raw: c4_st = "pass"
-                    elif "보통" in div_analysis_raw: c4_st = "warn"
-                    else: c4_st = "fail"
-                    # HTML 태그 제거 후 깔끔한 한 줄 요약 추출
-                    clean_div_sub = re.sub(r'<[^>]+>', '', div_analysis_raw).strip()
-                    c4_sub = clean_div_sub[:65] + "..." if len(clean_div_sub) > 65 else clean_div_sub
+                    # 4. 공학적 다중화 & 단일실패 차단 (PDF Part 3-4 공학)
+                    div_raw = analyze_business_diversification(stk, i, tk, kr)
+                    c4_st = "pass" if ("최상" in div_raw or "완벽" in div_raw or "양호" in div_raw) else ("warn" if "보통" in div_raw else "fail")
+                    clean_div_sub = re.sub(r'<[^>]+>', '', div_raw).strip()
+                    c4_sub = clean_div_sub[:70] + "..." if len(clean_div_sub) > 70 else clean_div_sub
 
-                    # 5. 주주이익 & CapEx 성격 진단 (Part 4-6 주주이익)
-                    c5_st = capex_st
-                    c5_sub = capex_sub
+                    # 5. 주주이익 & CapEx 성격 진단 (PDF Part 4-6 주주이익)
+                    capex_raw = analyze_capex_nature(stk, i, tk, base_fcf, kr)
+                    c5_st = "pass" if ("선제투자" in capex_raw or "자본 경량형" in capex_raw or "안정적" in capex_raw or "선별적" in capex_raw) else ("warn" if "지속 추적" in capex_raw else "fail")
+                    clean_capex_sub = re.sub(r'<[^>]+>', '', capex_raw).strip()
+                    c5_sub = clean_capex_sub[:70] + "..." if len(clean_capex_sub) > 70 else clean_capex_sub
 
-                    # 6. 버핏 10초 암산 역산 안전마진 (Part 4-7A 역산)
+                    # 6. 버핏 10초 암산 역산 안전마진 (PDF Part 4-7A 역산)
                     if is_financial:
                         c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if 0 < pbr <= 1.3 else "fail")
                         c6_sub = f"현재 PBR {pbr:.2f}배 (청산가치 안전마진 검증)"
@@ -6987,16 +6966,16 @@ with tab1:
                             c6_st = "fail"
                         c6_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF성장 {actual_fcf_g_main:+.1f}% (마진 {pmos_val:+.1f}%p)" if eff_cur_pe > 0 else "이익 적자로 역산 불가"
 
-                    # 7. 거시 기회비용 vs 미국채 10년물 (Part 4-7C 기회비용)
+                    # 7. 거시 기회비용 vs 미국채 10년물 (PDF Part 4-7C 기회비용)
                     if eff_cur_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c7_st = "pass"
                     elif eff_cur_pe > 0 and erp >= -1.5: c7_st = "warn"
                     else: c7_st = "fail"
                     c7_sub = f"주식 이익수익률 {ey:.1f}% vs 10년물 미국채 {ty:.1f}% (스프레드 {erp:+.1f}%p)" if eff_cur_pe > 0 else "순이익 적자로 산출 불가"
 
-                    # 8. 찰리 멍거 체크리스트 목록 조립
+                    # 멍거 체크리스트 목록 조립
                     munger_items = [
                         (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
-                        (t("2. 가격결정력", "2. Pricing Power"), pricing_st, pricing_sub),
+                        (t("2. 가격결정력", "2. Pricing Power"), c2_st, c2_sub),
                         (t("3. 경영진·주주희석 배제", "3. Mgmt & Anti-Dilution"), c3_st, c3_sub),
                         (t("4. 공학적 다중화", "4. Business Redundancy"), c4_st, c4_sub),
                         (t("5. 주주이익 & CapEx 성격", "5. Owner Earnings & CapEx"), c5_st, c5_sub),
@@ -7004,8 +6983,22 @@ with tab1:
                         (t("7. 국채 대비 기회비용", "7. vs 10Y Treasury"), c7_st, c7_sub)
                     ]
 
-                    # 시클리컬(삼성전자, SK하이닉스, 마이크론 등) 종목일 때 8번째 피크아웃 관문 자동 추가!
-                    if cyc_st is not None:
+                    # 시클리컬(반도체, 철강, 정유, 해운 등) 종목일 때 8번째 피크아웃 관문 자동 추가
+                    semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
+                    clean_tk_check = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
+                    if is_cyclical or (clean_tk_check in semis):
+                        if 0 < eff_cur_pe <= 8.5 and roe >= 20.0:
+                            cyc_st = "fail"
+                            cyc_sub = f"피크아웃 주의: 호황 정점 이익 폭증에 따른 '저PER 착시({eff_cur_pe:.1f}배)' 함정"
+                        elif 0 < eff_cur_pe <= 12.0 and roe >= 14.0:
+                            cyc_st = "warn"
+                            cyc_sub = f"사이클 후반부: 이익 고점 부근 통과 중 (현재 PER {eff_cur_pe:.1f}배 · 공급과잉 대비 필요)"
+                        elif eff_cur_pe >= 25.0 or eff_cur_pe <= 0:
+                            cyc_st = "pass"
+                            cyc_sub = f"역발상 기회 구간: 업황 바닥 실적 급감/적자 (PER {eff_cur_pe:.1f}배 착시) ➔ 차기 회복 선취매 가능"
+                        else:
+                            cyc_st = "warn"
+                            cyc_sub = f"경기 사이클 중간 국면 (현재 PER {eff_cur_pe:.1f}배 · ROE {roe:.1f}%)"
                         munger_items.append((t("8. 시클리컬 저PER 착시", "8. Cyclical PE Trap"), cyc_st, cyc_sub))
 
                     tot_chk_cnt = len(munger_items)
