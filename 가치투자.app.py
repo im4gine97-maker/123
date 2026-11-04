@@ -8660,55 +8660,81 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
 
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
-                        from PIL import Image, ImageDraw
-                        W, H = 720, 1280
-
-                        img = Image.new("RGB", (W, H), color=(0, 0, 0))
-                        draw = ImageDraw.Draw(img)
-
-                        f_chalk = lambda s: get_font(s, is_chalk=True)
-                        f_gothic = lambda s: get_font(s, is_chalk=False)
-
-                        # 1. 상단 블랙 헤더
-                        header_sub_map = {
-                            "SCENE_HOOK": "10년 장부 팩트 & 기회비용 정밀 검증",
-                            "SCENE_MOAT": "1. 본업 밑천 효율 vs 시장 자본비용",
-                            "SCENE_BUFFETT": "2. 국채 금리 기회비용 & 주당 FCF 검증",
-                            "SCENE_MACRO": "2. 국채 금리 기회비용 & 주당 FCF 검증",
-                            "SCENE_SAFETY": "3. 공급망 체력 & 자사주 소각",
-                            "SCENE_SUMMARY": "과연 지금 가격에 살까? (최종 판정)"
-                        }
-                        top_yellow_title = f"{comp_name} 장부 치트키"
-                        top_white_sub = header_sub_map.get(scene_code, "워런 버핏 10년 장부 팩트체크")
-
-                        _fit_single_line(draw, W // 2, 102, W - 40, top_yellow_title, f_gothic, start_sz=58, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
-                        _fit_single_line(draw, W // 2, 188, W - 40, top_white_sub, f_gothic, start_sz=36, min_sz=22, fill=(255, 100, 100) if scene_code == "SCENE_HOOK" else (255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
-
-                        # 2. 중앙 칠판 보드 (Y: 245 ~ 995)
-                        board_top, board_bot = 245, 995
-                        board_bg_col = (14, 28, 42)
-                        draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
-                        draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
-                        draw.rectangle([0, 978, W, 1002], fill=(45, 34, 24))
-                        draw.rectangle([0, 1002, W, 1014], fill=(217, 165, 32))
-                        draw.rectangle([0, 1014, W, 1038], fill=(16, 26, 48))
-
-                        yellow_c = (255, 235, 45)
-                        white_c = (250, 252, 255)
-                        green_c = (80, 255, 160)
-                        red_c = (255, 75, 85)
-                        chalk_dim = (180, 200, 215)
-
-                        show_character_fullshot = (
-                            "캐릭터 없음" not in char_mode_sh and (
-                                (scene_code == "SCENE_HOOK" and chunk_idx == 0) or
-                                scene_code == "SCENE_SUMMARY" or
-                                (sub_step == 0 and chunk_idx > 0)
-                            )
+                    # =========================================================================
+                    # [위치: def 바로 아래] MP4 프레임 렌더링 필수 변수 안전 바인딩
+                    # =========================================================================
+                    # 1. safe_div 및 배당 변수 방어 (8802행 safe_div 오류 차단)
+                    _safe_div_val = globals().get('safe_div', locals().get('safe_div', None))
+                    if _safe_div_val is None:
+                        _safe_div_val = globals().get('div', locals().get('div', 0.0))
+                    safe_div = float(_safe_div_val) if _safe_div_val is not None else 0.0
+                
+                    # 2. cap_ret_val (ROIC / ROE) 방어 (9138행 cap_ret_val 오류 차단)
+                    _cap_ret = globals().get('cap_ret_val', locals().get('cap_ret_val', None))
+                    if _cap_ret is None:
+                        _cap_ret = globals().get('roic_val', globals().get('roe', locals().get('roic_val', 0.0)))
+                    cap_ret_val = float(_cap_ret) if _cap_ret is not None else 0.0
+                
+                    # 3. 추가 연관 변수 연쇄 오류 방어
+                    cur_ey_val = float(globals().get('cur_ey_val', globals().get('ey', locals().get('ey', 0.0))))
+                    ty = float(globals().get('ty', locals().get('ty', 4.5)))
+                    req_g_val = float(globals().get('req_g_val', globals().get('buffett_req_g_main', 0.0)))
+                    actual_fcf_g_val = float(globals().get('actual_fcf_g_val', globals().get('actual_fcf_g_main', 0.0)))
+                    g_margin_val = float(globals().get('g_margin_val', globals().get('pmos_val', 0.0)))
+                    comp_name = str(globals().get('comp_name', locals().get('comp_name', '종목')))
+                    clean_tk = str(globals().get('clean_tk', locals().get('clean_tk', '')))
+                    char_mode_sh = str(globals().get('char_mode_sh', locals().get('char_mode_sh', '캐릭터 없음')))
+                    # =========================================================================
+                
+                    from PIL import Image, ImageDraw
+                    W, H = 720, 1280
+                
+                    img = Image.new("RGB", (W, H), color=(0, 0, 0))
+                    draw = ImageDraw.Draw(img)
+                
+                    f_chalk = lambda s: get_font(s, is_chalk=True)
+                    f_gothic = lambda s: get_font(s, is_chalk=False)
+                
+                    # 1. 상단 블랙 헤더
+                    header_sub_map = {
+                        "SCENE_HOOK": "10년 장부 팩트 & 기회비용 정밀 검증",
+                        "SCENE_MOAT": "1. 본업 밑천 효율 vs 시장 자본비용",
+                        "SCENE_BUFFETT": "2. 국채 금리 기회비용 & 주당 FCF 검증",
+                        "SCENE_MACRO": "2. 국채 금리 기회비용 & 주당 FCF 검증",
+                        "SCENE_SAFETY": "3. 공급망 체력 & 자사주 소각",
+                        "SCENE_SUMMARY": "과연 지금 가격에 살까? (최종 판정)"
+                    }
+                    top_yellow_title = f"{comp_name} 장부 치트키"
+                    top_white_sub = header_sub_map.get(scene_code, "워런 버핏 10년 장부 팩트체크")
+                
+                    _fit_single_line(draw, W // 2, 102, W - 40, top_yellow_title, f_gothic, start_sz=58, min_sz=30, fill=(245, 208, 32), stroke_w=3, stroke_c=(0, 0, 0))
+                    _fit_single_line(draw, W // 2, 188, W - 40, top_white_sub, f_gothic, start_sz=36, min_sz=22, fill=(255, 100, 100) if scene_code == "SCENE_HOOK" else (255, 255, 255), stroke_w=2, stroke_c=(0, 0, 0))
+                
+                    # 2. 중앙 칠판 보드 (Y: 245 ~ 995)
+                    board_top, board_bot = 245, 995
+                    board_bg_col = (14, 28, 42)
+                    draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
+                    draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
+                    draw.rectangle([0, 978, W, 1002], fill=(45, 34, 24))
+                    draw.rectangle([0, 1002, W, 1014], fill=(217, 165, 32))
+                    draw.rectangle([0, 1014, W, 1038], fill=(16, 26, 48))
+                
+                    yellow_c = (255, 235, 45)
+                    white_c = (250, 252, 255)
+                    green_c = (80, 255, 160)
+                    red_c = (255, 75, 85)
+                    chalk_dim = (180, 200, 215)
+                
+                    show_character_fullshot = (
+                        "캐릭터 없음" not in char_mode_sh and (
+                            (scene_code == "SCENE_HOOK" and chunk_idx == 0) or
+                            scene_code == "SCENE_SUMMARY" or
+                            (sub_step == 0 and chunk_idx > 0)
                         )
-
-                        if show_character_fullshot:
-                            # 결론 씬: 캐릭터와 강단을 살짝 올려 자막과 절대 안 겹치게 배치
+                    )
+                
+                    if show_character_fullshot:
+                        # (기존 아래 코드 그대로 유지)려 자막과 절대 안 겹치게 배치
                             char_cy = 445 if scene_code == "SCENE_SUMMARY" else 485
                             draw_talking_character_avatar(
                                 draw, img, cx=W // 2, cy=char_cy, radius=132,
