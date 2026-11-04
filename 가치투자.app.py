@@ -8247,41 +8247,34 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
                         intro_first_line = sel_hook_45.split("] ", 1)[-1]
 
-                    # -------------------------------------------------------------
-                    # 1. [해자] 컷: 군더더기 없는 2줄 타격형 문장
-                    # -------------------------------------------------------------
-                    if opm_int >= 20:
-                        margin_phrase = "영업마진도 높아서 가격결정력까지 탄탄해!"
-                    elif opm_int >= 10:
-                        margin_phrase = "영업마진도 적당해서 제값 받기를 방어해!"
-                    elif opm_int > 0:
-                        margin_phrase = "영업마진은 낮아서 원가 상승에 취약해!"
-                    else:
-                        margin_phrase = "영업적자 상태라 가격결정력이 무너졌어!"
+                    # =========================================================================
+                    # [V34 쾌속 타격판] 빅테크 CapEx 기회 분석 반영 + 시청자 눈높이 2줄 초압축 대본
+                    # =========================================================================
+                    clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
+                    clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
 
-                    if roic_int >= 50:
+                    # 1. [해자] 컷: 밑천 효율 + 영업마진 (직관적 단문)
+                    if roic_int >= 40:
                         moat_line = (
-                            f"버핏은 주가의 장기 복리 속도가 밑천 효율에 수렴한다고 했어! / "
-                            f"여긴 밑천 효율이 무려 연 {roic_int}%에다 / {margin_phrase}"
+                            f"버핏은 주가가 결국 밑천 효율을 따라간다고 했어! / "
+                            f"여긴 밑천 효율이 무려 연 {roic_int}%에 달하고 / {margin_phrase}"
                         )
                     elif roic_int >= 15:
                         moat_line = (
-                            f"버핏은 주가의 장기 성장률이 결국 밑천 효율을 따라간다고 했어! / "
-                            f"시장 기준 12%를 훌쩍 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
+                            f"버핏은 주가가 결국 밑천 수익률에 수렴한다고 했어! / "
+                            f"시장 기준 12%를 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
                         )
                     else:
                         moat_line = (
-                            f"버핏은 밑천 효율이 낮으면 장기 주가도 갇힌다고 했어! / "
+                            f"버핏은 밑천 효율이 낮으면 주가도 갇힌다고 했어! / "
                             f"여긴 기준선 12%에 못 미치는 연 {roic_int}% 수준이라 / {margin_phrase}"
                         )
 
-                    # -------------------------------------------------------------
-                    # 2. [가격] 컷: 버핏 역산법 핵심만 직관적으로 전달
-                    # -------------------------------------------------------------
+                    # 2. [가격] 컷: 역산 안전마진 vs 시클리컬 저PER 착시 (직관적 단문)
                     if is_cyc_stock:
                         if 0 < eff_cur_pe_sh <= 11.0 or (ey_int >= 9 and fcf_int >= 20):
                             price_line = (
-                                f"버핏의 역산법은 국채보다 못 버는 주식을 거르는 건데 / "
+                                f"버핏의 역산법은 채권보다 못 버는 주식을 거르는 건데 / "
                                 f"지금 숫자는 싸 보여도 시클리컬 호황 고점의 저PER 착시를 조심해야 해!"
                             )
                         else:
@@ -8306,46 +8299,49 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 f"이익수익률 {ey_int}% 대비 현금 성장이 부족해 주가에 기대감이 너무 꼈어!"
                             )
 
-                    # -------------------------------------------------------------
-                    # 3. [안전] 컷: 모순 없는 자연스러운 문맥 조합 (단일 의존 vs 다각화 분리)
-                    # -------------------------------------------------------------
-                    clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
-                    clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
+                    # 3. [안전 & CapEx] 컷: 빅테크 대규모 AI 투자 vs 일반 기업 정밀 분기!
+                    is_bigtech_capex = any(bt in tk.upper() for bt in ["MSFT", "GOOGL", "GOOG", "AMZN", "META"]) or ("선제투자" in clean_capex_txt)
 
-                    # 설비투자 부담 여부
-                    if "자본 경량형" in clean_capex_txt or "안정적" in clean_capex_txt:
-                        capex_part = "설비 재투자 부담 없이 현금이 남는 알짜 구조야!"
-                    elif "선제투자" in clean_capex_txt or "선별적" in clean_capex_txt:
-                        capex_part = "미래 투자를 자체 현금흐름으로 거뜬히 감당하고 있어!"
+                    if is_bigtech_capex:
+                        capex_speech = "AI 설비투자로 일시적 현금은 줄었지만 미래 독점 해자를 파는 기회고!"
+                        capex_board_title = "AI CapEx 집중 ➔ 미래 독점 해자 선점!"
+                        capex_board_sub = "단기 FCF 둔화는 거대한 미래 클라우드 장악을 위한 선제 기회!"
+                    elif "자본 경량형" in clean_capex_txt:
+                        capex_speech = "설비 재투자 부담 없이 현금이 고스란히 남는 알짜 구조에다!"
+                        capex_board_title = "자본 경량형 (Asset-Light) 고효율 모델"
+                        capex_board_sub = "공장 증설 부담 없이 번 돈이 순수 현금으로 남는 구조!"
+                    elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt or "대규모 설비투자" in clean_capex_txt:
+                        capex_speech = "공장 증설에 막대한 현금이 묶여 FCF 출혈 부담이 큰 편이고!"
+                        capex_board_title = "대규모 설비투자(CapEx) 출혈 주의"
+                        capex_board_sub = "다운사이클 진입 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
-                        capex_part = "공장 증설과 설비투자에 묶이는 현금 부담이 꽤 커!"
+                        capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
+                        capex_board_title = "안정적 잉여현금(FCF) 창출 구조"
+                        capex_board_sub = "현금흐름 범위 내에서 건전하게 재투자를 진행 중!"
 
-                    # 사업 구조 및 주주환원 (문맥 모순 완전 해결!)
                     if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
                         if div_val >= 2.5:
-                            safe_tail = f"단일 사업 집중도는 높지만 연 {div_val:.1f}% 현금배당으로 주주에게 보답해!"
+                            share_speech = f"단일 사업 의존도는 있지만 연 {div_val:.1f}% 현금배당으로 보답해!"
                         elif bb_val >= 1.0:
-                            safe_tail = "단일 사업 의존도는 있지만 꾸준한 자사주 소각으로 주당 가치를 올려줘!"
+                            share_speech = "단일 사업 의존도는 있지만 자사주 소각으로 주당 가치를 올려줘!"
                         else:
-                            safe_tail = "단일 사업 의존도가 높은 만큼 업황 불황에 대비해야 해!"
+                            share_speech = "단일 사업 집중도가 높아 불황기 방어 체력을 꼭 봐야 해!"
                     else:
                         if bb_val >= 1.0 and div_val >= 2.0:
-                            safe_tail = f"탄탄한 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
+                            share_speech = f"사업 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
                         elif bb_val >= 1.0:
-                            safe_tail = "탄탄한 사업 다각화에 자사주 소각으로 주당 가치를 높여줘!"
+                            share_speech = "사업 다각화에 적극적인 자사주 소각으로 주당 가치를 높여줘!"
                         elif div_val >= 2.5:
-                            safe_tail = f"안정적인 사업 분산에다 연 {div_val:.1f}% 현금배당으로 안전판을 받쳐줘!"
+                            share_speech = f"사업 다각화에 연 {div_val:.1f}% 쏠쏠한 현금배당으로 안전판을 받쳐줘!"
                         else:
-                            safe_tail = "탄탄한 사업 다각화로 불황기 리스크를 든든하게 막았어!"
+                            share_speech = "탄탄한 사업 다각화로 불황기 리스크를 든든하게 막았어!"
 
                     saf_line = (
-                        f"버핏은 설비투자만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / "
-                        f"{capex_part} / {safe_tail}"
+                        f"버핏은 끝없이 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / "
+                        f"{capex_speech} / {share_speech}"
                     )
 
-                    # -------------------------------------------------------------
-                    # 4. [결론] 컷: 군더더기 없는 2줄 마무리
-                    # -------------------------------------------------------------
+                    # 4. [결론] 컷: 직관적인 한 줄 권유
                     if is_cyc_stock and (0 < eff_cur_pe_sh <= 11.0 or roic_int >= 20):
                         end_line = f"호황 정점의 착시인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
                     elif g_margin_val < -3.0:
@@ -8360,12 +8356,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"[안전] {saf_line}",
                         f"[결론] {end_line}"
                     ]
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_num}_V33_CUSTOM"
+
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_num}_V34_CAPEX_PRO"
                     mode_tag_k = f"KO_{ov_sig}"
-                    script_area_key = f"script_v33_buffett_{tk}_{ov_sig}"
+                    script_area_key = f"script_v34_buffett_{tk}_{ov_sig}"
 
                     editable_script_text = st.text_area(
-                        "✏️ 버핏의 3대 잣대 맞춤형 초압축 쇼츠 대본 편집창 (첫째·둘째·셋째 제거 · 기업별 동적 생성)",
+                        "✏️ 버핏의 3대 잣대 맞춤형 초압축 쇼츠 대본 편집창 (빅테크 CapEx 기회 분석 반영)",
                         value="\n".join(default_12cuts_script),
                         height=220,
                         key=script_area_key
@@ -8929,69 +8926,71 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     draw.rounded_rectangle([bx1, by1, bx2, by2], radius=16, fill=bcol, outline=yellow_c if is_mouth_open else white_c, width=3)
                                     _fit_single_line(draw, (bx1 + bx2) // 2, (by1 + by2) // 2, (bx2 - bx1) - 24, btxt, f_gothic, start_sz=25, fill=white_c, stroke_w=2, stroke_c=(0, 0, 0))
                         else:
+                            # =========================================================================
+                            # [V34 칠판 렌더링] 화면 중앙 공백 완전 제거 & 캡슐 상시 고정
+                            # =========================================================================
                             if scene_code == "SCENE_MOAT":
-                                _fit_single_line(draw, W // 2, 290, W - 60, "STEP 1. 본업 밑천 효율 (ROIC) & 가격결정력", f_chalk, start_sz=32, fill=yellow_c)
-                                draw.line([(45, 325), (W - 45, 325)], fill=(70, 100, 130), width=3)
+                                _fit_single_line(draw, W // 2, 285, W - 60, "STEP 1. 본업 밑천 효율 (ROIC) & 가격결정력", f_chalk, start_sz=32, fill=yellow_c)
+                                draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 395, 280, "시장 평균 자본수익률", f_chalk, start_sz=30, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 465, 280, "연 12.0%", f_chalk, start_sz=62, fill=white_c)
+                                _fit_single_line(draw, 195, 385, 280, "시장 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 455, 280, "연 12.0%", f_chalk, start_sz=60, fill=white_c)
 
-                                _fit_single_line(draw, 525, 395, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=30, fill=yellow_c)
-                                _fit_single_line(draw, 525, 465, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=72, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                if sub_step >= 1:
-                                    draw_chalk_lecture_marks(draw, 525, 465, 250, 85, mark_type="red_circle")
+                                _fit_single_line(draw, 525, 385, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, 525, 455, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 525, 455, 250, 85, mark_type="red_circle")
 
-                                if sub_step >= 2:
-                                    draw.line([(55, 535), (W - 55, 535)], fill=(50, 75, 100), width=2)
-                                    _fit_single_line(draw, W // 2, 582, W - 80, f"회사 밑천 1,000만 원당 ➔ 연 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=38, fill=white_c)
-                                    draw_chalk_lecture_marks(draw, W // 2, 615, 580, 35, mark_type="underline")
+                                # 중앙 상시 팩트 캡슐 (공백 방지)
+                                draw.line([(55, 525), (W - 55, 525)], fill=(50, 75, 100), width=2)
+                                _fit_single_line(draw, W // 2, 570, W - 80, f"회사 밑천 1,000만 원당 ➔ 연 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=36, fill=white_c)
+                                draw_chalk_lecture_marks(draw, W // 2, 600, 560, 32, mark_type="underline")
 
-                                if sub_step >= 3:
-                                    draw.rounded_rectangle([50, 650, W - 50, 780], radius=18, fill=(18, 45, 68), outline=green_c, width=4)
-                                    _fit_single_line(draw, 240, 715, 300, "본업 영업이익률(마진)", f_chalk, start_sz=34, fill=yellow_c)
-                                    _fit_single_line(draw, 525, 715, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=62, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 525, 715, 195, 72, mark_type="red_circle")
+                                # 하단 영업마진 캡슐
+                                draw.rounded_rectangle([50, 640, W - 50, 770], radius=18, fill=(18, 45, 68), outline=green_c, width=4)
+                                _fit_single_line(draw, 240, 705, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=32, fill=yellow_c)
+                                _fit_single_line(draw, 525, 705, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=62, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 525, 705, 195, 72, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
-                                _fit_single_line(draw, W // 2, 290, W - 60, "STEP 2. 국채 금리 기회비용 & 주당 FCF 검증", f_chalk, start_sz=32, fill=yellow_c)
-                                draw.line([(45, 325), (W - 45, 325)], fill=(70, 100, 130), width=3)
+                                _fit_single_line(draw, W // 2, 285, W - 60, "STEP 2. 국채 금리 기회비용 & 주당 FCF 검증", f_chalk, start_sz=32, fill=yellow_c)
+                                draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 bond_gap_txt = f"국채 대비 {erp_val:+.2f}%p"
-                                _fit_single_line(draw, W // 2, 385, W - 70, f"주식 이익수익률 {cur_ey_val:.2f}%  vs  무위험 미국채 {ty:.2f}% ({bond_gap_txt})", f_chalk, start_sz=34, fill=white_c if erp_val < 0 else green_c)
+                                _fit_single_line(draw, W // 2, 375, W - 70, f"주식 이익수익률 {cur_ey_val:.2f}%  vs  무위험 미국채 {ty:.2f}% ({bond_gap_txt})", f_chalk, start_sz=32, fill=white_c if erp_val < 0 else green_c)
 
-                                draw.line([(55, 430), (W - 55, 430)], fill=(50, 75, 100), width=2)
-                                _fit_single_line(draw, 195, 480, 280, "채권 대비 필요 성장률", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 545, 280, f"연 {req_g_val:+.1f}% 이상", f_chalk, start_sz=54, fill=white_c)
+                                draw.line([(55, 420), (W - 55, 420)], fill=(50, 75, 100), width=2)
+                                _fit_single_line(draw, 195, 470, 280, "채권 대비 필요 성장률", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 535, 280, f"연 {req_g_val:+.1f}% 이상", f_chalk, start_sz=52, fill=white_c)
 
-                                _fit_single_line(draw, 525, 480, 280, "최근 10년 주당 FCF 성장", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 545, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=66, fill=green_c if actual_fcf_g_val >= req_g_val else red_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                if sub_step >= 2:
-                                    draw_chalk_lecture_marks(draw, 525, 545, 250, 85, mark_type="red_circle")
+                                _fit_single_line(draw, 525, 470, 280, "최근 10년 주당 FCF 성장", f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, 525, 535, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=64, fill=green_c if actual_fcf_g_val >= req_g_val else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 525, 535, 250, 85, mark_type="red_circle")
 
-                                if sub_step >= 3:
-                                    box_bg = (18, 45, 58) if erp_val >= 0 else (58, 22, 32)
-                                    draw.rounded_rectangle([50, 640, W - 50, 775], radius=20, fill=box_bg, outline=yellow_c, width=4)
-                                    v_label = "안전마진 확보 구간" if erp_val >= 0 else "미래 성장 기대감 반영 구간"
-                                    _fit_single_line(draw, 240, 708, 300, v_label, f_chalk, start_sz=34, fill=yellow_c, stroke_w=2)
-                                    _fit_single_line(draw, 520, 708, 220, f"PER {eff_cur_pe_sh:.1f}배", f_chalk, start_sz=62, fill=green_c if erp_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, 520, 708, 195, 72, mark_type="red_circle")
+                                # 하단 안전마진 캡슐 (공백 방지 상시 표출)
+                                box_bg = (18, 45, 58) if erp_val >= 0 else (58, 22, 32)
+                                draw.rounded_rectangle([50, 630, W - 50, 765], radius=20, fill=box_bg, outline=yellow_c, width=4)
+                                v_label = "안전마진 확보 구간" if erp_val >= 0 else "미래 성장 기대감 반영 구간"
+                                _fit_single_line(draw, 240, 698, 300, v_label, f_chalk, start_sz=32, fill=yellow_c, stroke_w=2)
+                                _fit_single_line(draw, 520, 698, 220, f"PER {eff_cur_pe_sh:.1f}배", f_chalk, start_sz=60, fill=green_c if erp_val >= 0 else red_c, stroke_w=5, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 520, 698, 195, 72, mark_type="red_circle")
 
                             else:
-                                _fit_single_line(draw, W // 2, 290, W - 60, "STEP 3. 공급망 체력 & 자사주 소각", f_chalk, start_sz=32, fill=yellow_c)
-                                draw.line([(45, 325), (W - 45, 325)], fill=(70, 100, 130), width=3)
+                                # [SCENE_SAFETY] 빅테크 CapEx 분석과 현금배당이 함께 들어간 완성형 보드
+                                _fit_single_line(draw, W // 2, 285, W - 60, "STEP 3. CapEx 성격 & 재무 안전판", f_chalk, start_sz=32, fill=yellow_c)
+                                draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 395, 280, "유동비율 (음의 운전자본)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 465, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=64, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 195, 465, 220, 80, mark_type="red_circle")
+                                _fit_single_line(draw, 195, 385, 280, "유동비율 (단기 체력)", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 455, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
-                                _fit_single_line(draw, 525, 395, 280, f"현금배당 ({div_10y_cnt}년 연속)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 525, 465, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=chalk_dim, stroke_w=3, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 385, 280, f"순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 525, 455, 280, f"연 {safe_div:.2f}%", f_chalk, start_sz=62, fill=green_c if safe_div >= 1.5 else white_c, stroke_w=3, stroke_c=(0, 0, 0))
 
-                                if sub_step >= 2:
-                                    draw.rounded_rectangle([55, 580, W - 55, 760], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
-                                    _fit_single_line(draw, W // 2, 635, W - 140, alloc_board_t1, f_chalk, start_sz=28, fill=white_c)
-                                    _fit_single_line(draw, W // 2, 702, W - 140, alloc_board_t2, f_chalk, start_sz=34, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                    draw_chalk_lecture_marks(draw, W // 2, 725, 540, 35, mark_type="underline")
+                                # 화면 중앙 빅테크 CapEx 핵심 진단 캡슐 (상시 고정)
+                                draw.rounded_rectangle([50, 560, W - 50, 755], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
+                                _fit_single_line(draw, W // 2, 615, W - 120, capex_board_title, f_chalk, start_sz=30, fill=yellow_c, stroke_w=2)
+                                _fit_single_line(draw, W // 2, 685, W - 120, capex_board_sub, f_chalk, start_sz=24, fill=white_c)
+                                draw_chalk_lecture_marks(draw, W // 2, 715, 560, 32, mark_type="underline")
 
                         # 4. 하단 자막
                         if not hide_subtitles:
