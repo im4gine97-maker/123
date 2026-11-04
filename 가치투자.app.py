@@ -9010,7 +9010,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     yt_title_prefix_45 = f"[{clean_tk}] {comp_name} 10년 장부 팩트체크"
                     default_yt_title = f"{yt_title_prefix_45} #shorts #가치투자 #{clean_tag_name}"
                     default_yt_desc = (
-                        f"[{today_short}] {comp_name} ({clean_tk}) 워런 버핏 기준 10년 장부 4대 팩트체크\n\n"
+                        f"[{today_short}] {comp_name} ({clean_tk}) 워런 버핏 기준 10년 장부 4대 팩트체크\n\n",
                         # =========================================================================
                         # [통합 안전 바인딩] 9014번 텍스트 및 MP4 렌더링 필수 변수 자동 선언
                         # =========================================================================
