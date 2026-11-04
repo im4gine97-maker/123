@@ -8017,188 +8017,99 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     today_short = datetime.now().strftime('%Y.%m.%d')
 
                     # =========================================================================
-                    # [V21: 45초 칼맞춤 · 어색한 끊김 제로(12개 완결 문장) · 전 구간 시각 그래프 엔진]
-                    # - 문장 중간을 쪼개서 "능력입니다", "있습니다"로 끊기던 현상을 100% 박멸!
-                    # - 모든 컷이 완벽한 한 문장으로 끝나며, 각 컷 길이를 WAV 프레임으로 정밀 측정해 싱크 밀림 0%!
-                    # =========================================================================
-                    eff_cur_pe_sh = t_pe if (t_pe and t_pe > 0) else sh_f_pe
-                    cur_ey_val = (100.0 / eff_cur_pe_sh) if eff_cur_pe_sh > 0 else 0.0
-                    req_g_val = 10.0 - cur_ey_val
-                    actual_fcf_g_val = sh_fcf_g_pct
-                    g_margin_val = actual_fcf_g_val - req_g_val
-                    erp_val = cur_ey_val - ty
-
-                    if is_financial:
-                        cap_ret_val = roe
-                        cap_ret_label = "자기자본수익률"
-                    else:
-                        cap_ret_val = roic_val if roic_val != 0 else roe
-                        cap_ret_label = "투하자본수익률"
-
-                    spy_roic_bench = 12.0
-                    roic_vs_spy_gap = cap_ret_val - spy_roic_bench
-
-                    safe_div = div if 'div' in locals() else 0.0
-                    div_10m_manwon = round(safe_div * 10.0, 1)
-                    roic_10m_manwon = int(round(cap_ret_val * 10.0, 0))
-                    ey_10m_manwon = int(round(cur_ey_val * 10.0, 0))
-                    bond_10m_manwon = int(round(ty * 10.0, 0))
-
-                    div_10y_cnt = 0
-                    try:
-                        if stk is not None and stk.dividends is not None and not stk.dividends.empty:
-                            y_d = stk.dividends.groupby(stk.dividends.index.year).sum()
-                            div_10y_cnt = int((y_d.tail(10) > 0).sum())
-                    except Exception:
-                        pass
-
-                    # =========================================================================
-                    # 1. 초반 2초 공포 훅 옵션 정의 및 선택
-                    # =========================================================================
-                    hook_options_45s = [
-                        "🎲 0. [AI 자동 매칭] 바이블 헌장 기준 최적 훅 자동 선택 (추천)",
-                        "🚨 1. [계좌 파탄 경고] 이거 모르고 사면 계좌 순식간에 녹아내립니다!",
-                        "💣 2. [설거지 폭탄 경고] 지금 사면 남들 설거지해 주는 호구 됩니다!",
-                        "🛑 3. [매수 긴급 중단] 잠깐! 매수 버튼 누르기 전에 딱 10초만 보세요!",
-                        "🩸 4. [영구 손실 공포] 주가 반토막 나도 버틸 자신 있습니까?",
-                        "💀 5. [시한폭탄 경고] 장부는 썩었는데 주가만 뜬 시한폭탄일까요?",
-                        "😱 6. [버핏 극대노 경고] 워런 버핏이 가장 치를 떠는 최악의 함정입니다!",
-                        "🏢 7. [기업 소유권형] 거래소가 5년간 문 닫아도 보유할 주식입니까?",
-                        "📉 8. [미스터 마켓형] 흔들리는 주가에 속지 말고 10년 장부부터 까보자!",
-                        "🏰 9. [해자 안전마진형] 해자 없는 싼 주식은 지옥 가는 가치 함정입니다!",
-                        "⚔️ 10. [미국채 맞대결형] 무위험 미국채 이자보다 돈을 더 잘 벌까요?"
-                    ]
-                    sel_hook_45 = st.selectbox(
-                        "🧲 초반 2초 훅(Hook) 테마 선택 (PDF 가치투자 헌장 기반)",
-                        hook_options_45s,
-                        index=1,
-                        key=f"sh_hook_45s_v23_{tk}"
-                    )
-
-                    char_c1, char_c2, char_c3 = st.columns([1.3, 1.3, 1.4])
-
-                    # =========================================================================
-                    # 2. [완전 해결] ROIC 구간별 맞춤형 비유 (애플 1,000만 원 비유 원천 박멸)
+                    # [V27] 대중적 버핏의 3대 잣대 40초 쇼츠 완성형 대본 생성기
                     # =========================================================================
                     roic_int = int(round(cap_ret_val))
-                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
                     req_int = int(round(req_g_val))
                     fcf_int = int(round(actual_fcf_g_val))
-                    roic_won_txt = f"{abs(roic_10m_manwon):,}만 원" if 'roic_10m_manwon' in locals() else f"{roic_int * 10:,}만 원"
-
-                    # (A) 영업이익률 마진 방어 문구
-                    if opm_int >= 25:
-                        opm_txt = f"영업마진 {opm_int}%로 가격결정력이 막강해!"
-                    elif opm_int >= 12:
-                        opm_txt = f"영업마진 {opm_int}%로 탄탄한 마진을 지켜내!"
-                    elif opm_int >= 5:
-                        opm_txt = f"영업마진 {opm_int}%의 보통 수준 수익성이야!"
-                    else:
-                        opm_txt = f"영업마진 {opm_int}%로 원가 압박을 심하게 받아!"
-
-                    # (B) ROIC 구간별 비유 (60% 이상이면 공장 없는 플랫폼 레버리지로 즉시 전환!)
-                    if roic_int >= 60:
-                        # 애플, 엔비디아, 마스터카드, 비자 전용
-                        moat_line = (
-                            f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%야! / "
-                            f"내 공장 거의 안 짓고도 밑천 회수 속도가 사기급이야! / {opm_txt}"
-                        )
-                    elif roic_int >= 20:
-                        # 우량 소비재/제조업 (코스트코, 삼양식품, TSMC 등)
-                        moat_line = (
-                            f"첫째 복리 속도야! / 보통 12% 버는데 여긴 연 {roic_int}%를 뽑아내! / "
-                            f"1,000만 원당 {roic_won_txt}을 벌 만큼 / {opm_txt}"
-                        )
-                    elif roic_int >= 10:
-                        # 일반 성숙형/사이클 기업
-                        moat_line = (
-                            f"첫째 복리 속도야! / 시장 기준선 12% 대비 연 {roic_int}% 수준이야! / "
-                            f"밑천 대비 평범한 효율을 내고 있고 / {opm_txt}"
-                        )
-                    else:
-                        # 자본잠식/저수익 가치함정
-                        moat_line = (
-                            f"첫째 복리 속도야! / 자본비용 12%에 한참 못 미치는 연 {roic_int}%야! / "
-                            f"장사할수록 밑천을 갉아먹는 구조라 / {opm_txt}"
-                        )
-
-                    # (C) 둘째 가격(역산 밸류에이션) 대본
-                    if erp_val < 0:
-                        price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
-                    else:
-                        price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
-
-                    # (D) 셋째 안전판 및 자본배분 대본 (기업 특성 100% 동적 반영)
+                    ey_int = int(round(cur_ey_val))
+                    tnx_int = int(round(ty))
+                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
                     div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
 
-                    # 유동성 문구: 애플 같은 음의 운전자본/빅테크는 공급망 체력으로 우대
-                    if current_ratio >= 1.2 or (opm_int >= 25 and roic_int >= 60):
-                        liq_txt = "압도적인 공급망 체력과 유동성으로 버티고"
-                    elif current_ratio >= 0.9:
-                        liq_txt = "안정적인 운전자본 흐름으로 버티고"
+                    # 1. 가격결정력 판정 (체크리스트 2번)
+                    if opm_int >= 25 or (roic_int >= 50 and opm_int >= 15):
+                        pricing_short_txt = f"영업마진 {opm_int}%로 가격결정력도 독점적이야"
+                    elif opm_int >= 10:
+                        pricing_short_txt = f"영업마진 {opm_int}%로 제값 받기를 방어해"
                     else:
-                        liq_txt = "단기 유동성을 보수적으로 관리하면서"
+                        pricing_short_txt = f"영업마진 {opm_int}%로 시황 눈치를 보는 구조야"
 
-                    if div_val >= 3.0:
-                        return_txt = f"연 {div_val:.1f}%의 쏠쏠한 현금배당으로 확실히 보답해!"
+                    # 2. 역산 가격 판정 (체크리스트 6, 7번)
+                    if g_margin_val >= 3.0:
+                        price_verdict_txt = "확실한 합격이야"
+                    elif g_margin_val >= -3.0:
+                        price_verdict_txt = "적정 수준이야"
+                    else:
+                        price_verdict_txt = "미래 기대감이 세게 붙어있어"
+
+                    # 3. CapEx 성격 판정 (체크리스트 5번)
+                    clean_capex_txt = re.sub(r'<[^>]+>', '', capex_nature_html).strip() if 'capex_nature_html' in locals() else ""
+                    if "선제투자" in clean_capex_txt or "자본 경량형" in clean_capex_txt or "선별적" in clean_capex_txt:
+                        capex_short_txt = "선제적 고수익 투자로 현금 회수는 빠른데"
+                    elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt:
+                        capex_short_txt = "대규모 설비투자로 현금 출혈 부담이 큰데"
+                    else:
+                        capex_short_txt = "안정적인 현금흐름 내에서 재투자 중인데"
+
+                    # 4. 공학적 다각화 및 주주환원 판정 (체크리스트 3, 4번)
+                    clean_div_txt = re.sub(r'<[^>]+>', '', diversification_html).strip() if 'diversification_html' in locals() else ""
+                    if "단일 집중" in clean_div_txt or "주의" in clean_div_txt:
+                        diversification_short_txt = "단일 사업 집중도가 높아 다운사이클 백업 시스템이 취약해"
                     elif bb_val >= 1.0:
-                        div_prefix = "배당은 적지만" if div_val > 0.3 else "배당은 없지만"
-                        return_txt = f"{div_prefix} 공격적인 자사주 소각으로 주당 가치를 쥐어짜 올려줘!"
-                    elif bb_val <= -1.5:
-                        return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
-                    elif cap_ret_val >= 15.0:
-                        return_txt = f"배당보단 밑천 {roic_int}%의 고수익 본업에 공격적으로 재투자해!"
+                        diversification_short_txt = "사업 분산과 대규모 자사주 소각으로 주당 가치를 압축해줘"
+                    elif div_val >= 3.0:
+                        diversification_short_txt = f"사업 분산과 연 {div_val:.1f}% 현금배당으로 안전판을 받쳐줘"
                     else:
-                        return_txt = "적정 배당과 사내 유보금으로 내부 체력을 다지고 있어!"
+                        diversification_short_txt = "탄탄한 다각화 포트폴리오로 단일 실패 리스크를 막았어"
 
-                    saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
+                    # 5. 시클리컬 저PER 착시 경고 문구 (체크리스트 8번)
+                    semi_cyclicals = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "005490", "010950", "011200", "051910"]
+                    tk_pure = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
+                    if (is_cyclical or tk_pure in semi_cyclicals) and 0 < eff_cur_pe_sh <= 9.0 and roe >= 18.0:
+                        cyc_short_txt = f"가장 조심할 건 호황 정점에 이익이 폭증해서 PER {eff_cur_pe_sh:.1f}배로 싸 보이는 '저PER 착시' 함정이야!"
+                    elif (is_cyclical or tk_pure in semi_cyclicals) and (eff_cur_pe_sh >= 25.0 or eff_cur_pe_sh <= 0):
+                        cyc_short_txt = "오히려 업황 바닥 적자 구간이라 역발상 선취매 기회일 수 있어!"
+                    else:
+                        cyc_short_txt = "장부와 가격의 안전마진이 탄탄한지 확인하고 진입해야 해!"
 
-                    # =========================================================================
-                    # 3. 선택된 훅 테마에 맞춘 1번 컷 첫 문장 매칭
-                    # =========================================================================
+                    # 대중 친화적 도입부 문장 (선택된 훅 테마 연동, 멍거 배제 -> 버핏 잣대로 통일)
                     h_num = 1
                     if not sel_hook_45.startswith("🎲 0."):
-                        try:
-                            h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
-                        except Exception:
-                            h_num = 1
+                        try: h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
+                        except Exception: h_num = 1
                     else:
                         h_num = (sum(ord(c) for c in clean_tk) % 6) + 1
 
                     hook_opening_dict = {
-                        1: f"이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부 팩트 까보자!",
-                        2: f"지금 사면 남들 설거지해 주는 호구 돼! / {comp_name} 10년 장부 팩트 까보자!",
-                        3: f"잠깐! 매수 버튼 누르기 전에 딱 10초만 봐! / {comp_name} 10년 장부 팩트 까보자!",
-                        4: f"주가 반토막 나도 버틸 자신 있어? / {comp_name} 10년 장부 팩트 까보자!",
-                        5: f"장부는 썩었는데 주가만 뜬 시한폭탄일까? / {comp_name} 10년 장부 팩트 까보자!",
-                        6: f"워런 버핏이 가장 치를 떠는 최악의 함정이야! / {comp_name} 10년 장부 팩트 까보자!",
-                        7: f"거래소가 5년간 문 닫아도 보유할 주식일까? / {comp_name} 10년 장부 팩트 까보자!",
-                        8: f"흔들리는 주가에 속지 마! / {comp_name} 10년 장부로 기회비용 까보자!",
-                        9: f"해자 없는 싼 주식은 지옥 가는 가치 함정이야! / {comp_name} 진짜 주주이익 까보자!",
-                        10: f"무위험 미국채 이자보다 돈을 더 잘 벌까? / {comp_name} 10년 장부 까보자!"
+                        1: f"이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        2: f"지금 사면 남들 설거지해 주는 호구 돼! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        3: f"잠깐! 매수 버튼 누르기 전에 딱 10초만 봐! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        4: f"주가 반토막 나도 버틸 자신 있어? / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        5: f"장부는 썩었는데 주가만 뜬 시한폭탄일까? / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        6: f"워런 버핏이 가장 치를 떠는 최악의 함정이야! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        7: f"거래소가 5년간 문 닫아도 보유할 주식일까? / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
+                        8: f"흔들리는 주가에 속지 마! / {comp_name} 10년 장부로 기회비용을 까보자!",
+                        9: f"해자 없는 싼 주식은 지옥 가는 가치 함정이야! / {comp_name} 진짜 주주이익을 까보자!",
+                        10: f"무위험 미국채 이자보다 돈을 더 잘 벌까? / {comp_name} 10년 장부로 기회비용 까보자!"
                     }
                     intro_first_line = hook_opening_dict.get(h_num, hook_opening_dict[1])
 
-                    # 5컷 최종 대본
+                    # 40초 완독 5컷 리스트 (각 컷마다 버핏의 핵심 잣대 1문장 탑재)
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
-                        f"[해자] {moat_line}",
-                        f"[가격] {price_line}",
-                        f"[안전] {saf_line}",
-                        f"[결론] 너라면 지금 가격에 {comp_name} 살래? / 다음 종목을 댓글로 남겨줘!"
+                        f"[해자] 첫째 복리 속도야! / 버핏은 '주가 상승률은 결국 밑천 수익률(ROIC)에 수렴한다'고 했어! / 시장 본전선은 12%인데 여긴 연 {roic_int}%야! / {pricing_short_txt}!",
+                        f"[가격] 둘째 역산법이야! / 버핏은 '무위험 국채보다 현금을 더 못 벌면 살 이유가 없다'고 했어! / 이익수익률 {ey_int}%에 실제 현금은 연 {fcf_int:+d}% 성장이라 안전마진은 {price_verdict_txt}!",
+                        f"[안전] 셋째 안전판이야! / 버핏은 '대규모 설비투자 없이 주주에게 현금을 돌려주는 기업이 최고'라고 했어! / {capex_short_txt} / {diversification_short_txt}!",
+                        f"[결론] {cyc_short_txt} / 너라면 지금 가격에 {comp_name} 살래? / 다음 종목을 댓글로 남겨줘!"
                     ]
 
-                    # =========================================================================
-                    # 4. [캐시 강제 초기화] key 버전을 v24로 변경하여 이전 대본 기억을 완전히 밀어버림!
-                    # =========================================================================
-                    script_area_key = f"script_v24_forced_{tk}_H{h_num}"
-
-                    st.success("🎬 **[대본 동기화 완료]** ROIC 60% 이상 플랫폼 비유와 선택된 공포 훅이 대본에 실시간 반영됩니다.")
+                    script_area_key = f"script_v27_buffett_{tk}_H{h_num}"
                     editable_script_text = st.text_area(
-                        "✏️ 바이블 기준 5컷 완결형 대본 편집창 (한 줄 = 완결된 1컷으로 문장 끊김 없이 렌더링됩니다)",
+                        "✏️ 버핏의 3대 잣대 40초 쇼츠 대본 편집창",
                         value="\n".join(default_12cuts_script),
-                        height=260,
+                        height=240,
                         key=script_area_key
                     )
                     # =========================================================================
