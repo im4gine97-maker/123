@@ -8366,12 +8366,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
-                        f"[해자] {moat_line}",
-                        f"[가격] {price_line}",
-                        f"[안전] {saf_line}",
-                        f"[결론] {end_line}"
+                        f"[해자] 버핏은 주가가 결국 밑천 수익률을 따라간다고 했어! / 시장 기준 12%를 넘는 연 {roic_int}%를 벌고 / {margin_phrase}",
+                        f"[가격] 버핏의 역산법은 채권보다 못 버는 주식을 거르는 건데 / 지금 숫자는 싸 보여도 경기 사이클 타는 주식이라 호황 고점의 저PER 착시를 조심해야 해!",
+                        f"[안전] 버핏은 끝없이 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / 공장 증설에 막대한 돈이 묶여 순수 현금 출혈 부담이 큰 편이고! / 사업 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!",
+                        f"[결론] 호황 정점의 착시인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
                     ]
-
                     ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_num}_V34_CAPEX_PRO"
                     mode_tag_k = f"KO_{ov_sig}"
                     script_area_key = f"script_v34_buffett_{tk}_{ov_sig}"
@@ -8948,23 +8947,19 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 1. 본업 밑천 효율 (ROIC) & 가격결정력", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 385, 280, "시장 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, "연 12.0%", f_chalk, start_sz=60, fill=white_c)
+                                _fit_single_line(draw, 195, 400, 280, "시장 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 470, 280, "연 12.0%", f_chalk, start_sz=60, fill=white_c)
 
-                                _fit_single_line(draw, 525, 385, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 455, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 525, 455, 250, 85, mark_type="red_circle")
+                                _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 525, 470, 250, 85, mark_type="red_circle")
 
-                                # 중앙 상시 팩트 캡슐 (공백 방지)
-                                draw.line([(55, 525), (W - 55, 525)], fill=(50, 75, 100), width=2)
-                                _fit_single_line(draw, W // 2, 570, W - 80, f"회사 밑천 1,000만 원당 ➔ 연 {roic_10m_manwon:+,}만 원 창출!", f_chalk, start_sz=36, fill=white_c)
-                                draw_chalk_lecture_marks(draw, W // 2, 600, 560, 32, mark_type="underline")
-
-                                # 하단 영업마진 캡슐
-                                draw.rounded_rectangle([50, 640, W - 50, 770], radius=18, fill=(18, 45, 68), outline=green_c, width=4)
-                                _fit_single_line(draw, 240, 705, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=32, fill=yellow_c)
-                                _fit_single_line(draw, 525, 705, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=62, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 525, 705, 195, 72, mark_type="red_circle")
+                                # '회사 밑천 1,000만 원당 창출' 문구 및 밑줄 완전 삭제 후, 하단 영업마진 캡슐을 중앙에 깔끔하게 배치
+                                draw.line([(55, 560), (W - 55, 560)], fill=(50, 75, 100), width=2)
+                                draw.rounded_rectangle([50, 610, W - 50, 750], radius=20, fill=(18, 45, 68), outline=green_c, width=4)
+                                _fit_single_line(draw, 240, 680, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=34, fill=yellow_c)
+                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                draw_chalk_lecture_marks(draw, 525, 680, 195, 72, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 2. 국채 금리 기회비용 & 주당 FCF 검증", f_chalk, start_sz=32, fill=yellow_c)
