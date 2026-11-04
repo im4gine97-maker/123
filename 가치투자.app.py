@@ -8216,7 +8216,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         export_clean_slides = st.checkbox("📦 렌더링 시 '캡컷·유튜브 편집용 칠판 슬라이드 원본(PNG ZIP)' 함께 생성하기", value=True, key=f"exp_zip_{tk}")
                     # ▼▼▼ 8162번 라인의 with char_c1: 바로 윗줄에 아래 한 줄을 추가하세요 ▼▼▼
-                    char_c1, char_c2 = st.columns([1.2, 1])
+                    char_c1, char_c2, char_c3 = st.columns([1.2, 1, 1])
                     
                     with char_c1:
                         # (기존 코드 유지)
