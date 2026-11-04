@@ -8253,7 +8253,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
                     clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
 
-                    # 1. [해자] 컷: 밑천 효율 + 영업마진 (직관적 단문)
+                    # 1. margin_phrase 변수를 moat_line 참조 전에 먼저 확정 선언
+                    _opm_chk = opm_int if 'opm_int' in locals() else 0
+                    if _opm_chk >= 20:
+                        margin_phrase = "영업마진도 높아서 가격결정력까지 탄탄해!"
+                    elif _opm_chk >= 10:
+                        margin_phrase = "영업마진도 적당해서 제값 받기를 방어해!"
+                    elif _opm_chk > 0:
+                        margin_phrase = "영업마진은 낮아서 원가 상승에 취약해!"
+                    else:
+                        margin_phrase = "영업적자 상태라 가격결정력이 무너졌어!"
+
+                    # 2. 선언된 margin_phrase를 참조하여 moat_line 생성
                     if roic_int >= 40:
                         moat_line = (
                             f"버핏은 주가가 결국 밑천 효율을 따라간다고 했어! / "
