@@ -6711,90 +6711,60 @@ with tab1:
                 col_op1, col_op2 = st.columns([1.4, 1])
                 
                 with col_op1:
-                    # ==============================================================================================
-                    # [UI 연동 패치]
-                    # 1. 찰리 멍거의 정량 체크리스트 (기업 가치 심층 분석 핵심 지표들 중 알짜배기만 7대/8대 관문으로 편성)
-                    # 2. 통합 카드 그리드(integrated_html) 내 다각화, 가격결정력, CapEx 성격 진단 카드 연동
-                    # ==============================================================================================
+                    # -------------------------------------------------------------
+                    # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 정량 체크리스트
+                    # -------------------------------------------------------------
                     
-                    # ----------------------------------------------------------------------------------------------
-                    # [위치 1] with col_op1: 내부의 체크리스트 조립부 교체 (약 6720행 부근)
-                    # ----------------------------------------------------------------------------------------------
-                    # 1. 비즈니스 해자 (ROIC / ROE)
+                    # 1. 해자 & 복리엔진 (Part 1-2B, Part 4-4 수학)
                     if is_financial:
                         c1_st = "pass" if roe >= 10.0 else ("warn" if roe >= 7.0 else "fail")
-                        c1_sub = f"ROE {roe:.1f}% (자본 불리는 속도)"
+                        c1_sub = f"자기자본수익률(ROE) {roe:.1f}% (자본비용 충족)"
                     else:
                         c1_st = "pass" if (roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0)) else ("warn" if (roic_val >= 6.0 or roe >= 8.0) else "fail")
-                        c1_sub = f"ROIC {roic_val:.1f}% · ROE {roe:.1f}%"
-                    
-                    # 2. 가격결정력 & 마진 해자 (매출총이익률 40% 이상 or 영업이익률 15% 이상)
-                    if gross_m >= 45.0 or op_m >= 18.0:
-                        c2_st = "pass"
-                        c2_sub = f"매출총이익률 {gross_m:.1f}% · 영업마진 {op_m:.1f}% (인플레 전가력 우수)"
-                    elif gross_m >= 25.0 or op_m >= 8.0:
-                        c2_st = "warn"
-                        c2_sub = f"매출총이익률 {gross_m:.1f}% · 영업마진 {op_m:.1f}% (보통 수준 마진)"
-                    else:
-                        c2_st = "fail"
-                        c2_sub = f"영업마진 {op_m:.1f}% (원가 압박 / 가격결정력 취약)"
-                    
-                    # 3. 이익의 질 (Quality of Cash: 영업현금흐름 >= 당기순이익)
-                    # 회계상 이익만 높고 실제 현금이 안 들어오는 분식/운전자본 악화 원천 차단
-                    try:
-                        inc_chk = stk.income_stmt
-                        cf_chk = stk.cash_flow
-                        ni_c = safe_float(inc_chk.loc['Net Income'].dropna().iloc[0]) if (inc_chk is not None and not inc_chk.empty and 'Net Income' in inc_chk.index) else 0.0
-                        ocf_c = 0.0
-                        if cf_chk is not None and not cf_chk.empty:
-                            for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
-                                if ok in cf_chk.index and not cf_chk.loc[ok].dropna().empty:
-                                    ocf_c = safe_float(cf_chk.loc[ok].dropna().iloc[0])
-                                    break
-                        if ni_c > 0 and ocf_c >= ni_c * 0.95:
-                            c3_st = "pass"
-                            c3_sub = f"영업현금흐름이 순이익 상회 (OCF/NI {ocf_c/ni_c:.2f}배)"
-                        elif ocf_c > 0:
-                            c3_st = "warn"
-                            c3_sub = f"영업현금 유입 양호 (OCF/NI {(ocf_c/ni_c if ni_c>0 else 1.0):.2f}배)"
-                        else:
-                            c3_st = "fail"
-                            c3_sub = "영업현금흐름 적자 주의 (회계상 이익과 현금 괴리)"
-                    except Exception:
-                        c3_st = "warn"
-                        c3_sub = "현금흐름 건전성 점검 필요"
-                    
-                    # 4. 주주가치 보존 (주식 희석 배제 / 자사주 소각)
+                        c1_sub = f"투하자본수익률(ROIC) {roic_val:.1f}% · ROE {roe:.1f}% (자본비용 12% 대비 {roic_val-12.0:+.1f}%p)"
+
+                    # 2. 가격결정력 & 마진 방어 (Part 1-2B, Part 3-5)
+                    pricing_st, pricing_sub, capex_st, capex_sub, cyc_st, cyc_sub = evaluate_munger_master_metrics(
+                        stk, i, tk, base_fcf, eff_cur_pe, roe, roic_val, op_m, current_ratio, is_cyclical, kr
+                    )
+
+                    # 3. 경영진 도덕성 & 주식희석 배제 (Part 1-2C, Part 2-13,15, Part 4-6)
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
-                    if bb_val >= 0.5:
-                        c4_st = "pass"
-                        c4_sub = f"자사주 소각 진행 (주식수 연 {abs(bb_val):.1f}% 감축)"
-                    elif bb_val >= -1.0:
-                        c4_st = "warn"
-                        c4_sub = "신주 발행/희석 없이 유통주식수 안정 유지"
-                    else:
-                        c4_st = "fail"
-                        c4_sub = f"주의: 유상증자/스톡옵션으로 주식수 증가 (연 {abs(bb_val):.1f}%)"
+                    div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
+                    mgmt_sc = 0
+                    for k_sb, v_sb in score_breakdown.items():
+                        if "경영진" in k_sb or "Management" in k_sb:
+                            mgmt_sc = v_sb[0] if isinstance(v_sb, tuple) else v_sb
+                            break
                     
-                    # 5. 자본 안전판 & 유동성 (단일 실패지점 차단)
-                    debt_bad = ("[경고]" in bio_eval or "[위험]" in bio_eval or "Danger" in bio_eval)
-                    if is_financial:
-                        c5_st = "pass" if roe >= 8.0 else "warn"
-                        c5_sub = "금융권 자본적정성 안정"
-                    elif current_ratio >= 1.2 and not debt_bad:
-                        c5_st = "pass"
-                        c5_sub = f"유동비율 {current_ratio:.2f}배 · 부채 상환 안정판 구축"
-                    elif current_ratio >= 0.9 and not debt_bad:
-                        c5_st = "warn"
-                        c5_sub = f"유동비율 {current_ratio:.2f}배 (적정 수준 방어력)"
+                    if bb_val <= -1.5 or mgmt_sc < -10.0:
+                        c3_st = "fail"
+                        c3_sub = f"주식 수 연 {abs(bb_val):.1f}% 증가 (유상증자/스톡옵션 주주가치 희석 경고)"
+                    elif bb_val >= 1.0 or div_val >= 2.5:
+                        c3_st = "pass"
+                        c3_sub = f"자사주 소각({bb_val:+.1f}%) 및 배당({div_val:.1f}%)을 통한 주주가치 극대화"
                     else:
-                        c5_st = "fail"
-                        c5_sub = f"단기 유동성/부채 부담 점검 필요 (유동비율 {current_ratio:.2f}배)"
-                    
-                    # 6. 가격 안전마진 (버핏 10초 암산 역산: 1/현재PER + 요구성장률 = 10%)
+                        c3_st = "warn"
+                        c3_sub = f"주식 희석 없음 · 배당 {div_val:.1f}% (사내 현금 유보 기조)"
+
+                    # 4. 공학적 다중화 & 단일실패 차단 (Part 3-4 공학)
+                    div_analysis_raw = analyze_business_diversification(stk, i, tk, kr)
+                    if "최상" in div_analysis_raw or "완벽" in div_analysis_raw: c4_st = "pass"
+                    elif "양호" in div_analysis_raw: c4_st = "pass"
+                    elif "보통" in div_analysis_raw: c4_st = "warn"
+                    else: c4_st = "fail"
+                    # HTML 태그 제거 후 깔끔한 한 줄 요약 추출
+                    clean_div_sub = re.sub(r'<[^>]+>', '', div_analysis_raw).strip()
+                    c4_sub = clean_div_sub[:65] + "..." if len(clean_div_sub) > 65 else clean_div_sub
+
+                    # 5. 주주이익 & CapEx 성격 진단 (Part 4-6 주주이익)
+                    c5_st = capex_st
+                    c5_sub = capex_sub
+
+                    # 6. 버핏 10초 암산 역산 안전마진 (Part 4-7A 역산)
                     if is_financial:
-                        c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if (0 < pbr <= 1.3) else "fail")
-                        c6_sub = f"현재 PBR {pbr:.2f}배 · ROE {roe:.1f}%"
+                        c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if 0 < pbr <= 1.3 else "fail")
+                        c6_sub = f"현재 PBR {pbr:.2f}배 (청산가치 안전마진 검증)"
                     else:
                         if eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= 2.0:
                             c6_st = "pass"
@@ -6802,43 +6772,39 @@ with tab1:
                             c6_st = "warn"
                         else:
                             c6_st = "fail"
-                        c6_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF {actual_fcf_g_main:+.1f}%" if eff_cur_pe > 0 else "적자(역산불가)"
-                    
-                    # 7. 거시 기회비용 (10년물 미국채 금리 대비 이익수익률)
-                    if f_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)):
-                        c7_st = "pass"
-                    elif f_pe > 0 and erp >= -1.5:
-                        c7_st = "warn"
-                    else:
-                        c7_st = "fail"
-                    c7_sub = f"이익수익률 {ey:.1f}% (국채 대비 {erp:+.1f}%p)" if f_pe > 0 else "산출 불가(적자)"
-                    
-                    # 기본 7대 멍거 정량 체크리스트 편성
+                        c6_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF성장 {actual_fcf_g_main:+.1f}% (마진 {pmos_val:+.1f}%p)" if eff_cur_pe > 0 else "이익 적자로 역산 불가"
+
+                    # 7. 거시 기회비용 vs 미국채 10년물 (Part 4-7C 기회비용)
+                    if eff_cur_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c7_st = "pass"
+                    elif eff_cur_pe > 0 and erp >= -1.5: c7_st = "warn"
+                    else: c7_st = "fail"
+                    c7_sub = f"주식 이익수익률 {ey:.1f}% vs 10년물 미국채 {ty:.1f}% (스프레드 {erp:+.1f}%p)" if eff_cur_pe > 0 else "순이익 적자로 산출 불가"
+
+                    # 8. 찰리 멍거 체크리스트 목록 조립
                     munger_items = [
                         (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
-                        (t("2. 가격결정력 & 마진", "2. Pricing Power"), c2_st, c2_sub),
-                        (t("3. 이익의 질 (현금흐름)", "3. Quality of Cash"), c3_st, c3_sub),
-                        (t("4. 주주가치 보존 (희석배제)", "4. Share Preservation"), c4_st, c4_sub),
-                        (t("5. 자본 안전판 (유동성)", "5. Capital Redundancy"), c5_st, c5_sub),
-                        (t("6. 가격 안전마진 (역산)", "6. Margin of Safety"), c6_st, c6_sub),
+                        (t("2. 가격결정력", "2. Pricing Power"), pricing_st, pricing_sub),
+                        (t("3. 경영진·주주희석 배제", "3. Mgmt & Anti-Dilution"), c3_st, c3_sub),
+                        (t("4. 공학적 다중화", "4. Business Redundancy"), c4_st, c4_sub),
+                        (t("5. 주주이익 & CapEx 성격", "5. Owner Earnings & CapEx"), c5_st, c5_sub),
+                        (t("6. 역산 가격 안전마진", "6. Invert Margin of Safety"), c6_st, c6_sub),
                         (t("7. 국채 대비 기회비용", "7. vs 10Y Treasury"), c7_st, c7_sub)
                     ]
-                    
-                    # 8. 시클리컬 기업(삼성전자, SK하이닉스, 마이크론 등) 전용: 피크아웃 저PER 착시 검증 관문 추가
-                    cyc_st, cyc_sub = analyze_cyclical_per_trap(tk, eff_cur_pe, is_cyclical, roe, kr)
+
+                    # 시클리컬(삼성전자, SK하이닉스, 마이크론 등) 종목일 때 8번째 피크아웃 관문 자동 추가!
                     if cyc_st is not None:
                         munger_items.append((t("8. 시클리컬 저PER 착시", "8. Cyclical PE Trap"), cyc_st, cyc_sub))
-                    
+
                     tot_chk_cnt = len(munger_items)
                     pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
-                    
-                    # 체크리스트 상단 헤더 표출 (무지개 바 없이 순수 기준 충족 텍스트만 깔끔하게 노출)
+
                     chk_header_ko = f"📋 <b>[찰리 멍거의 가치투자 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{tot_chk_cnt}개 중 {pass_cnt}개 기준 충족</span>"
                     chk_header_en = f"📋 <b>[Munger's Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/{tot_chk_cnt} Passed</span>"
-                    st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
                     
-                    # 체크리스트 카드 그리드 렌더링
-                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(205px, 1fr)); gap:10px; margin-top:10px; text-align:left; word-break:keep-all;'>"
+                    st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
+
+                    # 체크리스트 카드 렌더링
+                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:10px; text-align:left; word-break:keep-all;'>"
                     for b_title, b_st, b_sub in munger_items:
                         if b_st == "pass":
                             ico, b_col, bg_c, bd_c, pill_bg = "✅", "#188038", "rgba(46, 204, 113, 0.10)", "rgba(46, 204, 113, 0.40)", "#2ecc71"
@@ -6849,7 +6815,7 @@ with tab1:
                         else:
                             ico, b_col, bg_c, bd_c, pill_bg = "❌", "#d93025", "rgba(255, 118, 117, 0.10)", "rgba(255, 118, 117, 0.40)", "#ef4444"
                             st_lbl = t("미달", "Fail")
-                    
+
                         badges_html += (
                             f"<div style='background:{bg_c}; border:1.5px solid {bd_c}; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; justify-content:space-between;'>"
                             f"<div style='display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;'>"
@@ -7152,23 +7118,12 @@ with tab1:
                     f"<div style='{item_style}'><div style='{lbl_style}'>현재 주가 & 배당수익률</div><div style='{val_style}'>{p_str}</div><div style='{desc_style}'>{div_str}<br><span style='font-size:0.9em; color:#74b9ff; font-weight:600;'>{ext_str_clean}</span></div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pe_title}</div><div style='{val_style}'>{fwd_pe_val_str}</div><div style='{desc_style}'>{fwd_pe_desc_str}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>{lbl_fwd_pbr_title}</div><div style='{val_style}'>{fwd_pbr_val_str}</div><div style='{desc_style}'>{fwd_pbr_desc_str}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>가치 평가 종합 검증</div><div style='{desc_style} margin-top:5px;'>{clean_p_txt}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>자본 불리는 속도 (ROE/ROIC)</div><div style='{val_style}'>{roe_roic_val}</div><div style='{desc_style}'>{rr_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>기본 마진율 (매출총이익률)</div><div style='{val_style}'>{gross_m:.1f}%</div><div style='{desc_style}'>{gm_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>실제 장사 이익률 (영업이익)</div><div style='{val_style}'>{op_m:.1f}%</div><div style='{desc_style}'>{opm_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>비즈니스 경쟁력 종합</div><div style='{desc_style} margin-top:5px;'>{biz_eval}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>이익 성장 추세 (EPS/자본)</div><div style='{desc_style}'>이익: {eps_trend}<br>자본: {bps_trend}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>위기 대처 현금력 (유동비율)</div><div style='{val_style}'>{current_ratio:.2f}</div><div style='{desc_style}'>{cr_eval}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>부채 관리 (생존력)</div><div style='{desc_style} margin-top:5px;'>{bio_eval_styled}</div></div>"
-                    f"{rnd_block}"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>이익수익률 (vs 10년물 미국채)</div><div style='{desc_style} margin-top:5px;'>{ey_str if not is_financial else f'<b style=\"color:#74b9ff;\">{ey:.1f}%</b> (국채 {erp:+.1f}%p)'}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>이익의 질 (OCF/NI) & 실질 FCF</div><div style='{desc_style} margin-top:5px;'>{eq_sbc_html}</div></div>"
                     f"<div style='{item_style}'><div style='{lbl_style}'>주식 희석 vs 소각 판독기</div><div style='{desc_style} margin-top:5px;'>{dilution_html}</div></div>"
-                    
-                    # [3대 정성 분석 카드: 다각화 / 가격결정력 / CapEx 성격 진단]
-                    f"<div style='{item_style}'><div style='{lbl_style}'>사업 다각화 (단일 실패지점 차단)</div><div style='{desc_style} margin-top:5px;'>{diversification_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>가격결정력 (원가 전가 해자)</div><div style='{desc_style} margin-top:5px;'>{pricing_power_html}</div></div>"
-                    f"<div style='{item_style}'><div style='{lbl_style}'>CapEx(설비투자) 성격 진단</div><div style='{desc_style} margin-top:5px;'>{capex_nature_html}</div></div>"
                     f"</div>"
                 )
                 st.markdown(integrated_html, unsafe_allow_html=True)
