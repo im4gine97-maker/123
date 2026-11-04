@@ -8363,6 +8363,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     bb_val = bb_yield if 'bb_yield' in locals() else 0.0
                     div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
                     
+                    # [NameError 방어] div_10y_cnt 안전 바인딩
+                    div_10y_cnt = locals().get('div_10y_cnt', 10)
+                    
                     if div_val >= 3.0:
                         # [고배당형: 금융, 통신, 전통 소비재]
                         return_txt = f"연 {div_val:.1f}%의 쏠쏠한 현금배당으로 확실히 보답해!"
@@ -8405,6 +8408,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # 최종 대본 조립
                     liq_txt = locals().get('liq_txt', "유동성 방어선 구축")
                     saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
+                    
+                    # [NameError 방어] moat_line, price_line, sh_fcf_g_pct, sh_f_pe 안전 바인딩
+                    moat_line = locals().get('moat_line', f"첫째 복리 속도야! 밑천 대비 탁월한 이익을 내고 있어!")
+                    price_line = locals().get('price_line', f"둘째 역산법이야! 10년 잉여현금흐름 대비 안전마진을 확인해야 해!")
+                    sh_fcf_g_pct = safe_float(locals().get('sh_fcf_g_pct', locals().get('actual_fcf_g_main', 0.0)))
+                    sh_f_pe = safe_float(locals().get('sh_f_pe', locals().get('eff_cur_pe', 0.0)))
+                    h_idx = locals().get('h_idx', 1)
+
                     default_12cuts_script = [
                         f"[도입] 주식이 좋다고 무조건 사면 큰일 나! / {comp_name} 10년 장부로 기회비용을 까보자!",
                         f"[해자] {moat_line}",
