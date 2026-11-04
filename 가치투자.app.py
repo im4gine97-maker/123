@@ -8379,6 +8379,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
                         alloc_board_t1 = f"주의: 주식 수 연 {abs(bb_val):.1f}% 증가 (주주가치 희석)"
                         alloc_board_t2 = "⚠️ 유상증자 및 전환사채 발행 여부 지속 점검 필요 ⚠️"
+                    # cap_ret_val을 기존 계산 변수인 roic_val 또는 roe로 안전하게 자동 바인딩
+                    _cap_ret = locals().get('cap_ret_val', None)
+                    if _cap_ret is None:
+                        _cap_ret = locals().get('roic_val', locals().get('roe', 0.0))
+                    cap_ret_val = safe_float(_cap_ret)
+                    
+                    # 기존 조건문 정상 실행
+                    if cap_ret_val >= 20.0:
+                        # ...
                     elif cap_ret_val >= 15.0:
                         # [빅테크/성장형: 배당·소각 대신 고수익 본업 재투자]
                         return_txt = f"배당보단 밑천 {int(round(cap_ret_val))}%의 고수익 본업에 공격적으로 재투자해!"
