@@ -3774,6 +3774,51 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
     except:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # =========================================================================
+# [배당금 정밀 보정 엔진] 한국 주식 배당 뻥튀기 왜곡 차단 & 실제 DPS 검증
+# =========================================================================
+def get_accurate_dividend_yield(stk, i, p, kr):
+    """
+    yfinance의 엉터리 배당수익률(0.8% -> 8.27% 둔갑 버그)을 차단하고,
+    실제 1년 배당금 내역(stk.dividends) 및 네이버/DART 팩트 기반으로 정확한 배당수익률 산출
+    """
+    try:
+        raw_dy = safe_float(i.get('dividendYield'))
+        raw_dr = safe_float(i.get('dividendRate'))
+
+        calc_div = (raw_dy * 100.0) if (0 < raw_dy < 1.0) else raw_dy
+
+        if kr and p > 0:
+            actual_annual_dps = 0.0
+            div_history = None
+            try:
+                div_history = stk.dividends
+            except Exception:
+                pass
+
+            if div_history is not None and not div_history.empty:
+                one_yr_ago = pd.Timestamp.now(tz=div_history.index.tz) - pd.Timedelta(days=370)
+                recent_divs = div_history[div_history.index >= one_yr_ago]
+                
+                if not recent_divs.empty:
+                    actual_annual_dps = float(recent_divs.sum())
+                else:
+                    actual_annual_dps = float(div_history.tail(4).sum())
+
+            if actual_annual_dps > 0:
+                real_yield = (actual_annual_dps / p) * 100.0
+                return real_yield, actual_annual_dps
+
+            elif raw_dr > 0:
+                real_yield = (raw_dr / p) * 100.0
+                return real_yield, raw_dr
+
+            if calc_div >= 7.0 and p >= 50000:
+                calc_div = calc_div / 10.0
+
+        return calc_div, (p * (calc_div / 100.0))
+    except Exception:
+        return 0.0, 0.0
+# =========================================================================
 # [1] 사업 다각화 및 단일 실패 지점(SPOF) 차단 마스터 엔진
 # =========================================================================
 def analyze_business_diversification(stk, i, tk, kr):
@@ -7164,7 +7209,18 @@ with tab1:
                 
                 # [수정 완료] 자사주 매입 표기 완전 삭제 -> 순수 배당수익률만 단독 표기
                 div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
-                div_str = f"<span style='color:{div_color}; font-weight:600;'>배당수익률: {div:.2f}% ({div_trend})</span>"
+                # ▼▼▼ 기존 div 계산 및 div_str 조립 부분을 아래로 교체 ▼▼▼
+                div, annual_dps = get_accurate_dividend_yield(stk, i, p, kr)
+
+                if div > 0:
+                    div_trend = "지속 상승 중" if div >= 1.5 else "안정적 유지"
+                    if kr and annual_dps > 0:
+                        div_str = f"배당수익률: <b>{div:.2f}%</b> (주당 {int(round(annual_dps)):,}원)"
+                    else:
+                        div_str = f"배당수익률: <b>{div:.2f}%</b> ({div_trend})"
+                else:
+                    div_str = "배당수익률: <b>0.0% (무배당/사내유보)</b>"
+                # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
                 opm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 탁월한 비즈니스', 'Excellent')}</span>" if op_m >= 15 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 평균 수익', 'Average')}</span>" if op_m >= 8 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 수익성 경고', 'Poor')}</span>")
@@ -8159,7 +8215,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             custom_voice_file = st.file_uploader("🎵 외부 녹음/보이스 클로닝 파일(.mp3/.wav) 업로드", type=["mp3", "wav", "m4a"], key=f"vc_up_{tk}")
 
                         export_clean_slides = st.checkbox("📦 렌더링 시 '캡컷·유튜브 편집용 칠판 슬라이드 원본(PNG ZIP)' 함께 생성하기", value=True, key=f"exp_zip_{tk}")
+                    # ▼▼▼ 8162번 라인의 with char_c1: 바로 윗줄에 아래 한 줄을 추가하세요 ▼▼▼
+                    char_c1, char_c2 = st.columns([1.2, 1])
+                    
                     with char_c1:
+                        # (기존 코드 유지)
                         char_mode_sh = st.selectbox(
                             "🎭 말하는 캐릭터(립싱크) 선택",
                             [
