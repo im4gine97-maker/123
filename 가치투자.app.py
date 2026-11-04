@@ -8017,19 +8017,46 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     today_short = datetime.now().strftime('%Y.%m.%d')
 
                     # =========================================================================
-                    # [V27] 대중적 버핏의 3대 잣대 40초 쇼츠 완성형 대본 생성기
+                    # [안전 바인딩] 기존 계산 변수 자동 매핑 및 결측 방어
                     # =========================================================================
-                    roic_int = int(round(cap_ret_val))
-                    req_int = int(round(req_g_val))
-                    fcf_int = int(round(actual_fcf_g_val))
-                    ey_int = int(round(cur_ey_val))
-                    tnx_int = int(round(ty))
-                    opm_int = int(round(op_m)) if 'op_m' in locals() and op_m else 0
-                    bb_val = bb_yield if 'bb_yield' in locals() else 0.0
-                    div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
+                    # 1. ROIC / ROE 자본수익률 (기존 roic_val 또는 roe 자동 바인딩)
+                    _raw_cap = locals().get('roic_val', locals().get('cap_ret_val', locals().get('roe', 0.0)))
+                    if _raw_cap is None or (isinstance(_raw_cap, float) and pd.isna(_raw_cap)) or _raw_cap == 0:
+                        _raw_cap = locals().get('roe', 0.0)
+                    roic_int = int(round(safe_float(_raw_cap)))
 
-                    # 1. 가격결정력 판정 (체크리스트 2번)
-                    if opm_int >= 25 or (roic_int >= 50 and opm_int >= 15):
+                    # 2. 버핏 역산 요구성장률 & 실제 FCF 성장률 & 안전마진
+                    _raw_req = locals().get('buffett_req_g_main', locals().get('req_g_val', locals().get('req_g', 0.0)))
+                    req_int = int(round(safe_float(_raw_req)))
+
+                    _raw_fcf_g = locals().get('actual_fcf_g_main', locals().get('actual_fcf_g_val', locals().get('final_g_10y', 0.0)))
+                    fcf_int = int(round(safe_float(_raw_fcf_g)))
+
+                    _raw_pmos = locals().get('pmos_val', locals().get('g_margin_val', 0.0))
+                    g_margin_val = safe_float(_raw_pmos)
+
+                    # 3. 이익수익률 & 10년물 국채 금리
+                    _raw_ey = locals().get('ey', locals().get('cur_ey_val', 0.0))
+                    ey_int = int(round(safe_float(_raw_ey)))
+
+                    _raw_ty = locals().get('ty', 4.5)
+                    tnx_int = int(round(safe_float(_raw_ty)))
+
+                    # 4. 영업마진 & PER & 주주환원율
+                    _raw_opm = locals().get('op_m', 0.0)
+                    opm_int = int(round(safe_float(_raw_opm)))
+
+                    _raw_pe = locals().get('eff_cur_pe', locals().get('eff_cur_pe_sh', locals().get('cur_pe', 0.0)))
+                    eff_cur_pe_sh = safe_float(_raw_pe)
+
+                    bb_val = safe_float(locals().get('bb_yield', 0.0))
+                    div_val = safe_float(locals().get('safe_div', locals().get('div', 0.0)))
+
+                    # -------------------------------------------------------------
+                    # 대본 문구 자동 조립
+                    # -------------------------------------------------------------
+                    # 1. 가격결정력 문구 (체크리스트 2번)
+                    if opm_int >= 25 or (roic_int >= 40 and opm_int >= 15):
                         pricing_short_txt = f"영업마진 {opm_int}%로 가격결정력도 독점적이야"
                     elif opm_int >= 10:
                         pricing_short_txt = f"영업마진 {opm_int}%로 제값 받기를 방어해"
@@ -8045,16 +8072,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         price_verdict_txt = "미래 기대감이 세게 붙어있어"
 
                     # 3. CapEx 성격 판정 (체크리스트 5번)
-                    clean_capex_txt = re.sub(r'<[^>]+>', '', capex_nature_html).strip() if 'capex_nature_html' in locals() else ""
-                    if "선제투자" in clean_capex_txt or "자본 경량형" in clean_capex_txt or "선별적" in clean_capex_txt:
+                    clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
+                    if any(w in clean_capex_txt for w in ["선제투자", "자본 경량형", "선별적"]):
                         capex_short_txt = "선제적 고수익 투자로 현금 회수는 빠른데"
-                    elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt:
+                    elif any(w in clean_capex_txt for w in ["과투자", "출혈"]):
                         capex_short_txt = "대규모 설비투자로 현금 출혈 부담이 큰데"
                     else:
                         capex_short_txt = "안정적인 현금흐름 내에서 재투자 중인데"
 
                     # 4. 공학적 다각화 및 주주환원 판정 (체크리스트 3, 4번)
-                    clean_div_txt = re.sub(r'<[^>]+>', '', diversification_html).strip() if 'diversification_html' in locals() else ""
+                    clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
                     if "단일 집중" in clean_div_txt or "주의" in clean_div_txt:
                         diversification_short_txt = "단일 사업 집중도가 높아 다운사이클 백업 시스템이 취약해"
                     elif bb_val >= 1.0:
@@ -8067,20 +8094,24 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # 5. 시클리컬 저PER 착시 경고 문구 (체크리스트 8번)
                     semi_cyclicals = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "005490", "010950", "011200", "051910"]
                     tk_pure = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
-                    if (is_cyclical or tk_pure in semi_cyclicals) and 0 < eff_cur_pe_sh <= 9.0 and roe >= 18.0:
+                    is_cyc_stock = locals().get('is_cyclical', False) or (tk_pure in semi_cyclicals)
+
+                    if is_cyc_stock and 0 < eff_cur_pe_sh <= 9.0 and roic_int >= 18:
                         cyc_short_txt = f"가장 조심할 건 호황 정점에 이익이 폭증해서 PER {eff_cur_pe_sh:.1f}배로 싸 보이는 '저PER 착시' 함정이야!"
-                    elif (is_cyclical or tk_pure in semi_cyclicals) and (eff_cur_pe_sh >= 25.0 or eff_cur_pe_sh <= 0):
+                    elif is_cyc_stock and (eff_cur_pe_sh >= 25.0 or eff_cur_pe_sh <= 0):
                         cyc_short_txt = "오히려 업황 바닥 적자 구간이라 역발상 선취매 기회일 수 있어!"
                     else:
                         cyc_short_txt = "장부와 가격의 안전마진이 탄탄한지 확인하고 진입해야 해!"
 
-                    # 대중 친화적 도입부 문장 (선택된 훅 테마 연동, 멍거 배제 -> 버핏 잣대로 통일)
+                    # 훅 테마 문장 (멍거 배제, 버핏의 잣대로 통일)
+                    clean_tk_for_hash = tk_pure
                     h_num = 1
-                    if not sel_hook_45.startswith("🎲 0."):
-                        try: h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
+                    sel_hk = locals().get('sel_hook_45', '')
+                    if sel_hk and not sel_hk.startswith("🎲 0."):
+                        try: h_num = int(sel_hk.split(".")[0].split(" ")[-1])
                         except Exception: h_num = 1
                     else:
-                        h_num = (sum(ord(c) for c in clean_tk) % 6) + 1
+                        h_num = (sum(ord(c) for c in clean_tk_for_hash) % 6) + 1
 
                     hook_opening_dict = {
                         1: f"이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
@@ -8096,7 +8127,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     }
                     intro_first_line = hook_opening_dict.get(h_num, hook_opening_dict[1])
 
-                    # 40초 완독 5컷 리스트 (각 컷마다 버핏의 핵심 잣대 1문장 탑재)
+                    # 40초 완독 5컷 대본 리스트 (각 컷 버핏의 3대 잣대 1문장 탑재)
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
                         f"[해자] 첫째 복리 속도야! / 버핏은 '주가 상승률은 결국 밑천 수익률(ROIC)에 수렴한다'고 했어! / 시장 본전선은 12%인데 여긴 연 {roic_int}%야! / {pricing_short_txt}!",
