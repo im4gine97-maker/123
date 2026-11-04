@@ -8379,27 +8379,31 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         return_txt = "신주 발행과 스톡옵션으로 주주가치 희석 리스크가 있어!"
                         alloc_board_t1 = f"주의: 주식 수 연 {abs(bb_val):.1f}% 증가 (주주가치 희석)"
                         alloc_board_t2 = "⚠️ 유상증자 및 전환사채 발행 여부 지속 점검 필요 ⚠️"
-                    # cap_ret_val을 기존 계산 변수인 roic_val 또는 roe로 안전하게 자동 바인딩
-                    _cap_ret = locals().get('cap_ret_val', None)
-                    if _cap_ret is None:
-                        _cap_ret = locals().get('roic_val', locals().get('roe', 0.0))
-                    cap_ret_val = safe_float(_cap_ret)
-                    
-                    # 기존 조건문 정상 실행
-                    if cap_ret_val >= 20.0:
-                        # ...
-                    elif cap_ret_val >= 15.0:
-                        # [빅테크/성장형: 배당·소각 대신 고수익 본업 재투자]
-                        return_txt = f"배당보단 밑천 {int(round(cap_ret_val))}%의 고수익 본업에 공격적으로 재투자해!"
-                        alloc_board_t1 = f"벌어들인 FCF를 고수익 본업({cap_ret_val:.1f}%)에 집중 재투자!"
-                        alloc_board_t2 = "★ 사내 유보를 통한 장기 복리 성장 극대화 ★"
                     else:
-                        # [일반 성숙형]
-                        return_txt = "적정 배당과 사내 유보금으로 내부 체력을 다지고 있어!"
-                        alloc_board_t1 = f"배당 {div_val:.2f}% 및 사내 현금 유보를 통한 재무 방어"
-                        alloc_board_t2 = "★ 경기 변동 대응을 위한 내부 유보 우선 정책 ★"
-                    
+                        # 주식 희석이 없는 경우: 본업 자본수익률(ROIC/ROE)에 따른 재투자 vs 유보 판정
+                        _cap_ret = locals().get('cap_ret_val', None)
+                        if _cap_ret is None:
+                            _cap_ret = locals().get('roic_val', locals().get('roe', 0.0))
+                        cap_ret_val = safe_float(_cap_ret)
+
+                        if cap_ret_val >= 20.0:
+                            # [초고수익 복리형]
+                            return_txt = f"배당보단 밑천 {int(round(cap_ret_val))}%의 압도적 본업에 재투자해 복리를 극대화해!"
+                            alloc_board_t1 = f"벌어들인 현금을 초고수익 본업({cap_ret_val:.1f}%)에 재투자!"
+                            alloc_board_t2 = "★ 버핏식 고수익 재투자를 통한 장기 복리 성장 ★"
+                        elif cap_ret_val >= 15.0:
+                            # [빅테크/성장형: 고수익 본업 재투자]
+                            return_txt = f"배당보단 밑천 {int(round(cap_ret_val))}%의 고수익 본업에 공격적으로 재투자해!"
+                            alloc_board_t1 = f"벌어들인 FCF를 고수익 본업({cap_ret_val:.1f}%)에 집중 재투자!"
+                            alloc_board_t2 = "★ 사내 유보를 통한 장기 복리 성장 극대화 ★"
+                        else:
+                            # [일반 성숙형]
+                            return_txt = "적정 배당과 사내 유보금으로 내부 체력을 다지고 있어!"
+                            alloc_board_t1 = f"배당 {div_val:.2f}% 및 사내 현금 유보를 통한 재무 방어"
+                            alloc_board_t2 = "★ 경기 변동 대응을 위한 내부 유보 우선 정책 ★"
+
                     # 최종 대본 조립
+                    liq_txt = locals().get('liq_txt', "유동성 방어선 구축")
                     saf_line = f"셋째 재무 안전판이야! / {liq_txt} / {return_txt}"
                     default_12cuts_script = [
                         f"[도입] 주식이 좋다고 무조건 사면 큰일 나! / {comp_name} 10년 장부로 기회비용을 까보자!",
