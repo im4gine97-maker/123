@@ -8332,7 +8332,18 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         )
                     
                     # 2) 가격 대본
+                    # erp_val 변수를 기존 계산 변수인 erp 또는 (ey - ty)로 자동 안전 매핑
+                    _raw_erp = locals().get('erp', None)
+                    if _raw_erp is None:
+                        _cur_ey = safe_float(locals().get('ey', 0.0))
+                        _cur_ty = safe_float(locals().get('ty', 4.5))
+                        _raw_erp = _cur_ey - _cur_ty
+                    
+                    erp_val = safe_float(_raw_erp)
+                    
+                    # 아래 기존 조건문 정상 실행
                     if erp_val < 0:
+
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률은 국채보다 낮아. / 현금이 매년 {req_int:+d}% 이상 커져야 하는데 / 최근 10년 딱 {fcf_int:+d}% 성장이라 미래 기대감이 들어있어!"
                     else:
                         price_line = f"둘째 버핏의 역산법이야! / 이익수익률이 국채보다 훨씬 높아. / 현금이 매년 {req_int:+d}%만 커져도 되는데 / 최근 10년 {fcf_int:+d}%씩 자라서 안전마진이 확실해!"
