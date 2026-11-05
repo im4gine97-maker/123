@@ -8989,7 +8989,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     box_bg = (58, 20, 28)
                                     box_outline = red_c
                                     box_text_col = red_c
-                                    v_label = "호황 정점 저PER 착시 (주의)"
+                                    v_label = "저PER 착시 (주의)"
                                 elif g_margin_val >= 3.0:
                                     box_bg = (18, 48, 38)
                                     box_outline = green_c
