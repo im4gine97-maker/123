@@ -8970,11 +8970,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 535, 280, f"연 {req_g_val:+.1f}% 이상", f_chalk, start_sz=52, fill=white_c)
 
                                 _fit_single_line(draw, 525, 470, 280, "최근 10년 주당 FCF 성장", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 535, 280, f"연 {actual_fcf_g_val:+.1f}%", f_chalk, start_sz=64, fill=green_c if actual_fcf_g_val >= req_g_val else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+
+                                # [수정 1] -99.0% 대신 '적자로 판단불가' 표기
+                                if actual_fcf_g_val <= -90.0 or (base_fcf is not None and base_fcf <= 0):
+                                    fcf_disp_txt = "적자로 판단불가"
+                                    fcf_disp_sz = 46
+                                    fcf_disp_col = red_c
+                                else:
+                                    fcf_disp_txt = f"연 {actual_fcf_g_val:+.1f}%"
+                                    fcf_disp_sz = 64
+                                    fcf_disp_col = green_c if actual_fcf_g_val >= req_g_val else red_c
+
+                                _fit_single_line(draw, 525, 535, 280, fcf_disp_txt, f_chalk, start_sz=fcf_disp_sz, fill=fcf_disp_col, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 525, 535, 250, 85, mark_type="red_circle")
 
-                                # [핵심 수정: 대본과 100% 일치하도록 g_margin_val 기반 동적 판정 박스]
-                                if g_margin_val >= 3.0:
+                                # [수정 2] 대본에 맞춰 중간 박스 문구 완벽 일치 (시클리컬 저PER 착시 분기 반영)
+                                if is_cyc_stock and (0 < eff_cur_pe_sh <= 11.0 or (ey_int >= 9 and fcf_int >= 20)):
+                                    box_bg = (58, 20, 28)
+                                    box_outline = red_c
+                                    box_text_col = red_c
+                                    v_label = "호황 정점 저PER 착시 (주의)"
+                                elif g_margin_val >= 3.0:
                                     box_bg = (18, 48, 38)
                                     box_outline = green_c
                                     box_text_col = green_c
@@ -8985,7 +9001,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     box_text_col = yellow_c
                                     v_label = "현재 주가 적정 가치 수준"
                                 else:
-                                    # 구글처럼 실제 FCF 성장이 부족한 경우 -> 대본과 완벽 일치!
                                     box_bg = (58, 20, 28)
                                     box_outline = red_c
                                     box_text_col = red_c
