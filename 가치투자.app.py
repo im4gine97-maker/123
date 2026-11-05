@@ -8272,17 +8272,17 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     if roic_int >= 40:
                         moat_line = (
                             f"버핏은 주가가 결국 밑천 효율을 따라간다고 했어! / "
-                            f"여긴 밑천 효율이 무려 연 {roic_int}%에 달하고 / {margin_phrase}"
+                            f"여긴 섹터 평균 5%에 연 {roic_int}%에 달하고 / {margin_phrase}"
                         )
                     elif roic_int >= 15:
                         moat_line = (
                             f"버핏은 주가가 결국 밑천 수익률에 수렴한다고 했어! / "
-                            f"시장 기준 12%를 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
+                            f"섹터 평균 5%에 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
                         )
                     else:
                         moat_line = (
                             f"버핏은 밑천 효율이 낮으면 주가도 갇힌다고 했어! / "
-                            f"여긴 기준선 12%에 못 미치는 연 {roic_int}% 수준이라 / {margin_phrase}"
+                            f"섹터 평균 5%에 못 미치는 연 {roic_int}% 수준이라 / {margin_phrase}"
                         )
 
                     # 2. [가격] 컷: 역산 안전마진 vs 시클리컬 저PER 착시 (직관적 단문)
@@ -8944,8 +8944,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 1. 본업 밑천 효율 (ROIC) & 가격결정력", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 400, 280, "시장 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 470, 280, "연 12.0%", f_chalk, start_sz=60, fill=white_c)
+                                _fit_single_line(draw, 195, 400, 280, "자동차 섹터 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 470, 280, "연 5.5%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
                                 _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
