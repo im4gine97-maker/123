@@ -4705,8 +4705,16 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     s = re.sub(r'(\d),(\d{3})', r'\1\2', s)
     s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
 
+    # ▼▼▼ [수정 추가 구역: 저PER/고PER 축약 발음 방지] ▼▼▼
+    s = re.sub(r'저\s*PER', '저 피이알', s, flags=re.IGNORECASE)
+    s = re.sub(r'고\s*PER', '고 피이알', s, flags=re.IGNORECASE)
+    s = re.sub(r'([가-힣])PER', r'\1 피이알', s, flags=re.IGNORECASE)
+    s = re.sub(r'PER([가-힣])', r'피이알 \1', s, flags=re.IGNORECASE)
+    # ▲▲▲ 여기까지 추가 ▲▲▲
+
     pron_map = [
         ("SK하이닉스", "에스케이 하이닉스"), ("SK스퀘어", "에스케이 스퀘어"), ("SK이노베이션", "에스케이 이노베이션"),
+        # ... (이하 기존 pron_map 코드 유지)
         ("SK텔레콤", "에스케이 텔레콤"), ("SK바이오팜", "에스케이 바이오팜"), ("SK이터닉스", "에스케이 이터닉스"),
         ("LG에너지솔루션", "엘지 에너지솔루션"), ("LG엔솔", "엘지 엔솔"), ("LG전자", "엘지 전자"),
         ("LG화학", "엘지 화학"), ("LG생활건강", "엘지 생활건강"), ("LG이노텍", "엘지 이노텍"),
