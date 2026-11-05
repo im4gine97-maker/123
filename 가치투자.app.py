@@ -9380,6 +9380,86 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         use_container_width=True
                     )
                     up_col1, up_col2, up_col3 = st.columns(3)
+                    def _upload_shorts_to_youtube(video_bytes, title, description, tags, privacy_str="public", publish_at_iso=None):
+                        """
+                        YouTube Data API v3 백그라운드 직업로드 함수
+                        """
+                        import requests
+                        import json
+
+                        # secrets에서 인증 정보 불러오기
+                        client_id = st.secrets.get("YOUTUBE_CLIENT_ID") or st.secrets.get("GOOGLE_CLIENT_ID")
+                        client_secret = st.secrets.get("YOUTUBE_CLIENT_SECRET") or st.secrets.get("GOOGLE_CLIENT_SECRET")
+                        refresh_token = st.secrets.get("YOUTUBE_REFRESH_TOKEN") or st.secrets.get("GOOGLE_REFRESH_TOKEN")
+
+                        if not (client_id and client_secret and refresh_token):
+                            return False, "Secrets에 YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN이 설정되어 있지 않습니다."
+
+                        # 1. Access Token 갱신
+                        token_url = "https://oauth2.googleapis.com/token"
+                        token_data = {
+                            "client_id": client_id,
+                            "client_secret": client_secret,
+                            "refresh_token": refresh_token,
+                            "grant_type": "refresh_token"
+                        }
+
+                        try:
+                            r_tok = requests.post(token_url, data=token_data, timeout=10)
+                            if r_tok.status_code != 200:
+                                return False, f"구글 토큰 갱신 실패: {r_tok.text}"
+                            access_token = r_tok.json().get("access_token")
+                        except Exception as e:
+                            return False, f"인증 서버 연결 오류: {e}"
+
+                        # 2. 메타데이터 구성
+                        snippet = {
+                            "title": title[:100],
+                            "description": description[:4900],
+                            "tags": tags[:20] if isinstance(tags, list) else [],
+                            "categoryId": "27"  # 교육
+                        }
+                        status = {
+                            "privacyStatus": privacy_str if not publish_at_iso else "private",
+                            "selfDeclaredMadeForKids": False
+                        }
+                        if publish_at_iso:
+                            status["publishAt"] = publish_at_iso
+
+                        metadata = {"snippet": snippet, "status": status}
+
+                        # 3. Resumable Upload 세션 생성
+                        init_url = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status"
+                        headers = {
+                            "Authorization": f"Bearer {access_token}",
+                            "Content-Type": "application/json; charset=UTF-8",
+                            "X-Upload-Content-Length": str(len(video_bytes)),
+                            "X-Upload-Content-Type": "video/mp4"
+                        }
+
+                        try:
+                            r_init = requests.post(init_url, headers=headers, data=json.dumps(metadata), timeout=15)
+                            if r_init.status_code != 200:
+                                return False, f"업로드 세션 초기화 실패: {r_init.text}"
+
+                            upload_url = r_init.headers.get("Location")
+                            if not upload_url:
+                                return False, "업로드 URL 수신 실패"
+
+                            # 4. 바이너리 전송
+                            up_headers = {
+                                "Authorization": f"Bearer {access_token}",
+                                "Content-Type": "video/mp4"
+                            }
+                            r_up = requests.put(upload_url, headers=up_headers, data=video_bytes, timeout=180)
+
+                            if r_up.status_code in [200, 201]:
+                                video_id = r_up.json().get("id")
+                                return True, f"https://youtube.com/shorts/{video_id}"
+                            else:
+                                return False, f"비디오 전송 실패: {r_up.text}"
+                        except Exception as e:
+                            return False, f"업로드 통신 오류: {e}"
                     with up_col1:
                         
                         btn_yt_label = "⏰ 유튜브 예약 업로드 실행" if is_scheduled_mode else "▶️ 유튜브 즉시 업로드 실행"
