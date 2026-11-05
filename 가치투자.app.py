@@ -4706,10 +4706,10 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
 
     # ▼▼▼ [수정 추가 구역: 저PER/고PER 축약 발음 방지] ▼▼▼
-    s = re.sub(r'저\s*PER', '저 피이알', s, flags=re.IGNORECASE)
-    s = re.sub(r'고\s*PER', '고 피이알', s, flags=re.IGNORECASE)
-    s = re.sub(r'([가-힣])PER', r'\1 피이알', s, flags=re.IGNORECASE)
-    s = re.sub(r'PER([가-힣])', r'피이알 \1', s, flags=re.IGNORECASE)
+    s = re.sub(r'저\s*PER', '저, 피, 이, 알', s, flags=re.IGNORECASE)
+    s = re.sub(r'고\s*PER', '고, 피, 이, 알', s, flags=re.IGNORECASE)
+    s = re.sub(r'([가-힣])\s*PER', r'\1, 피, 이, 알', s, flags=re.IGNORECASE)
+    s = re.sub(r'\bPER\b', '피, 이, 알', s, flags=re.IGNORECASE)
     # ▲▲▲ 여기까지 추가 ▲▲▲
 
     pron_map = [
