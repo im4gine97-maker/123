@@ -8331,8 +8331,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         capex_board_sub = "다운사이클 진입 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
                         capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
-                        capex_board_title = "안정적 잉여현금(FCF) 창출 구조"
-                        capex_board_sub = "현금흐름 범위 내에서 건전하게 재투자를 진행 중!"
+                        capex_board_title = "안정적 배당 지급 여력 확보"
+                        capex_board_sub = "대규모 공장 증설에도 배당 안전판은 유지 중!"
 
                     if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
                         if div_val >= 2.5:
