@@ -8020,27 +8020,18 @@ with tab1:
                     )
                 badges_html += "</div>"
                 st.markdown(badges_html, unsafe_allow_html=True)
-                st.divider()
 
-
-                    op_clean_label = op_title.split("(")[0].strip()
-                    chk_header_ko = f"📋 [찰리 멍거의 5대 정량 체크리스트]<br><span style='font-size:1.18rem;'>5개 중 {pass_cnt}개 기준 충족</span>"
-                    chk_header_en = f"📋 [Munger's 5-Point Quantitative Checklist]<br><span style='font-size:1.18rem;'>{pass_cnt}/5 Passed</span>"
-                
-
-                    # ▼▼▼ st.markdown(munger_banner_html, unsafe_allow_html=True) 바로 아래(약 2180행)에 추가 ▼▼▼
-                    guru_holders = get_guru_holders_for_ticker(tk)
-                    if guru_holders:
-                        guru_chips = " · ".join([f"<b>{gh['name']}</b> (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in guru_holders])
-                        st.markdown(
-                            f"<div style='background: linear-gradient(90deg, rgba(250,204,21,0.15), rgba(234,179,8,0.05)); border: 1.5px solid #facc15; padding: 14px 18px; border-radius: 12px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>"
-                            f"<span style='font-size: 1.0rem; color: #facc15; font-weight: 900;'>🏆 [월가 거장의 선택 (13F 보유 확인)]</span><br>"
-                            f"<span style='font-size: 0.95rem; color: var(--text-color); font-weight: 700;'>이 기업은 현재 {guru_chips}가 실제 포트폴리오에 보유 중인 종목입니다!</span>"
-                            f"</div>",
-                            unsafe_allow_html=True
-                        )
-                    # ▲▲▲ 여기까지 추가 ▲▲▲
-                    # ▲▲▲ [수리 완료] ▲▲▲
+                # 월가 거장 13F 보유 여부 확인 배너
+                guru_holders = get_guru_holders_for_ticker(tk)
+                if guru_holders:
+                    guru_chips = " · ".join([f"<b>{gh['name']}</b> (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in guru_holders])
+                    st.markdown(
+                        f"<div style='background: linear-gradient(90deg, rgba(250,204,21,0.15), rgba(234,179,8,0.05)); border: 1.5px solid #facc15; padding: 14px 18px; border-radius: 12px; margin-bottom: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08);'>"
+                        f"<span style='font-size: 1.0rem; color: #facc15; font-weight: 900;'>🏆 [월가 거장의 선택 (13F 보유 확인)]</span><br>"
+                        f"<span style='font-size: 0.95rem; color: var(--text-color); font-weight: 700;'>이 기업은 현재 {guru_chips}가 실제 포트폴리오에 보유 중인 종목입니다!</span>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
 
                 with col_op2:
                     # [핵심] 차트 함수에도 is_cyclical=is_cyclical 전달
