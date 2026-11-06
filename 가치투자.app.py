@@ -8033,11 +8033,6 @@ with tab1:
                         unsafe_allow_html=True
                     )
 
-                with col_op2:
-                    # [핵심] 차트 함수에도 is_cyclical=is_cyclical 전달
-                    fig_radar = create_radar_chart(score_breakdown, is_financial, op_color, kr=kr, is_cyclical=is_cyclical)
-                    st.plotly_chart(fig_radar, use_container_width=True, config={'staticPlot': True})
-                st.divider()
 
                 if is_financial:
                     beginner_summary = t(
