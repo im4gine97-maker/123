@@ -9024,8 +9024,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 3. CapEx 성격 & 재무 안전판", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 385, 280, "유동비율 (단기 체력)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"240.4%", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 385, 280, "설비투자 (공장 증설)", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 455, 280, f"연 10조+", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
