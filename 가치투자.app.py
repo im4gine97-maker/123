@@ -8339,8 +8339,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         capex_board_sub = "다운사이클 진입 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
                         capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
-                        capex_board_title = "안정적 배당 지급 여력 확보"
-                        capex_board_sub = "대규모 공장 증설에도 배당 안전판은 유지 중!"
+                        capex_board_title = "설비 먹는 하마, 자사주 소각으로 승부!"
+                        capex_board_sub = "현금 배당은 짜도 주식 수 줄여 주가 방어!"
 
                     if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
                         if div_val >= 2.5:
@@ -8952,7 +8952,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 1. 본업 밑천 효율 (ROIC) & 가격결정력", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 400, 280, "자동차 섹터 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 400, 280, "S&P500 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
                                 _fit_single_line(draw, 195, 470, 280, "연 5.5%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
@@ -9025,7 +9025,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 385, 280, "유동비율 (단기 체력)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"{current_ratio:.2f}배", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 455, 280, f"240.4%", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
