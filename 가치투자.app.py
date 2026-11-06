@@ -6734,9 +6734,10 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
     return a_pe_10y, a_pbr_10y, final_g_10y, base_fcf_10y, data_len, is_zigzag_10y, hist_roe_10y, hist_roic_10y
 def generate_quick_ai_preview(tk):
     stk, p, i, kr = get_data(tk)
-    if not p: return f"<span class='highlight'>데이터를 불러올 수 없습니다. ({tk})</span>"
+    if not p: return f"<div style='padding:12px; border-left:4px solid #ff7675; background:rgba(255,255,255,0.05); border-radius:8px;'><b>데이터를 불러올 수 없습니다. ({tk})</b></div>"
     
-    ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
+    try: ty = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
+    except: ty = 4.4
     if ty == 0: ty = 4.4
     
     sector_str = str(i.get('sector', '')).lower()
@@ -6750,209 +6751,154 @@ def generate_quick_ai_preview(tk):
     is_summary_fin = any(kw in summary_str for kw in ['commercial bank', 'investment bank', 'property & casualty', 'insurance company'])
     us_fin_tickers = ["JPM", "BAC", "WFC", "C", "GS", "MS", "BRK-B", "BRK-A", "CB", "PGR", "DFS", "COF", "SYF", "MET", "PRU", "AFL", "TRV", "ALL", "AIG"]
     kr_fin_tickers = ["105560.KS", "055550.KS", "086790.KS", "316140.KS", "138040.KS", "032830.KS", "000810.KS", "006800.KS", "016360.KS", "039490.KS", "024110.KS", "377300.KS", "323410.KS", "071050.KS", "088980.KS", "008560.KS", "016610.KS", "138930.KS", "030000.KS", "005830.KS", "000370.KS"]
-    # [기존 코드]
     tk_upper = str(tk).upper()
     is_financial = is_eng_fin or is_kor_fin or is_summary_fin or (tk_upper in us_fin_tickers) or (tk_upper in kr_fin_tickers)
-
-    # ▼▼▼ [여기에 아래 3줄 추가] ▼▼▼
-    per_eval_fin_tickers = ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]
-    if tk_upper in per_eval_fin_tickers:
+    if tk_upper in ["V", "MA", "MCO", "SPGI", "MSCI", "FICO", "CME", "ICE", "PYPL", "FI", "SQ", "MMC", "AON", "WTW", "GSHD"]:
         is_financial = False
-    # ▲▲▲ 여기까지 추가 ▲▲▲
-    
-    # [추가] 미리보기 함수용 시클리컬 판독 로직
-    cyclical_eng_kw = ['semiconductor memory', 'steel', 'electric vehicles', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'energy', 'auto manufacturers', 'building materials', 'construction', 'heavy construction', 'shipping', 'cruises', 'agricultural inputs', 'aerospace', 'semiconductor equipment', 'defense', 'conglomerates']
-    cyclical_kor_kw = ['메모리', '철강', '해운','전기차', '정유', '석유화학', '화학', '조선', '항공', '비철금속', '자동차', '건설', '기계', '건자재', '크루즈', '원자재', '중공업', '운수장비', '에너지', '방산', '반도체 장비', '종합상사']
-    chinese_hk_adrs = ["PDD", "TME", "GDS", "BABA", "BIDU", "JD", "NIO", "XPEV", "LI", "NTES", "TCEHY", "YUMC", "ZTO", "EDU", "BILI", "FUTU", "TCOM"]
-    taiwan_tickers = ["TSM", "UMC", "ASX", "HIMX"]
-    is_china_tw = any(tk_upper.startswith(c) for c in chinese_hk_adrs) or tk_upper.endswith(".HK") or any(tk_upper.startswith(c) for c in taiwan_tickers) or tk_upper.endswith(".TW")
-    cyclical_tickers = ["MU", "WDC", "SKHY", "TSLA", "XOM", "CVX", "COP", "NVDA", "OXY", "NUE", "FCX", "DAL", "UAL", "AAL", "TM", "GM", "F", "SNDK", "TSM", "ASML", "PBR", "TTE", "SHEL", "MRO", "EOG", "SLB", "PSX", "VLO", "EPD", "RIG", "HCC", "AMR", "DOW", "DD", "APD", "EXP", "AA", "CAT", "DE", "DHI", "LEN", "RCL", "CCL", "NCLH", "AERO", "TRMD", "HMC", "EXPE", "BA", "GE", "RTX", "LMT", "GD", "NOC", "INTC", "AMAT", "LRCX", "KLAC", "BHP", "RIO", "VALE", "BP", "LIN", "SONY", "KYO", "ITOCY", "MITSY", "MSBHF", "SSUMY", "MARUY", "HITC", "CAJ", "FANUY", "EADSY", "SIEGY", "BASFY", "STLA", "NEM", "GOLD", "SCCO", "GFS", "STM", "PCAR", "CMI", "LUV", "MPC", "000660.KS", "011200.KS", "005490.KS", "004020.KS", "010950.KS", "011780.KS", "011170.KS", "329180.KS", "042660.KS", "010130.KS", "003490.KS", "005380.KS", "000270.KS", "096770.KS", "009540.KS", "010620.KS", "034020.KS", "241560.KS", "000720.KS", "028050.KS", "006360.KS", "047040.KS", "002990.KS", "028670.KS", "009830.KS", "002380.KS", "064350.KS", "161390.KS", "000880.KS", "010120.KS", "298040.KS", "009150.KS", "011070.KS", "010140.KS"]
-    
-    is_cyclical = any(kw in sector_str or kw in industry_str for kw in cyclical_eng_kw) or any(kw in summary_str for kw in cyclical_kor_kw) or (tk_upper in cyclical_tickers) or is_china_tw
 
-    ext_str = ""
-    is_ext_active = False
-    if not kr:
-        pre_p = safe_float(i.get('preMarketPrice', 0.0))
-        post_p = safe_float(i.get('postMarketPrice', 0.0))
-        if pre_p > 0:
-            p = pre_p
-            is_ext_active = True
-        elif post_p > 0:
-            p = post_p
-            is_ext_active = True
+    semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
+    clean_tk_pure = tk.split('.')[0] if kr else tk
+    is_cyclical = any(kw in sector_str or kw in industry_str for kw in ['semiconductor memory', 'steel', 'marine transportation', 'oil & gas', 'chemicals', 'airlines', 'metals', 'mining', 'auto manufacturers']) or any(kw in summary_str for kw in ['메모리', '철강', '해운', '정유', '석유화학', '조선', '항공', '자동차']) or (clean_tk_pure in semis)
 
-        try:
-            fast_p = safe_float(stk.fast_info.last_price)
-            if fast_p > 0: p = fast_p
-        except: pass
-
-    reg_p = safe_float(i.get('regularMarketPrice', p))
-    if reg_p == 0: reg_p = p
-
+    reg_p = safe_float(i.get('regularMarketPrice', p)) or p
     t_pe_raw = safe_float(i.get('trailingPE'))
     f_pe_raw = safe_float(i.get('forwardPE'))
     t_eps = safe_float(i.get('trailingEps'))
     f_eps = safe_float(i.get('forwardEps', i.get('finviz_eps_next')))
-
-    try:
-        _inc = stk.income_stmt
-        if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-            _ni = safe_float(_inc.loc['Net Income'].iloc[0])
-            _sh = safe_float(i.get('sharesOutstanding'))
-            if t_eps == 0 and _sh > 0 and _ni != 0:
-                t_eps = _ni / _sh
-    except: pass
-
     if t_eps == 0 and t_pe_raw > 0: t_eps = reg_p / t_pe_raw
     if f_eps == 0 and f_pe_raw > 0: f_eps = reg_p / f_pe_raw
 
     t_pe = t_pe_raw if (kr and t_pe_raw > 0) else ((p / t_eps) if (t_eps > 0 and p > 0) else t_pe_raw)
     f_pe = f_pe_raw if (kr and f_pe_raw > 0) else ((p / f_eps) if (f_eps > 0 and p > 0) else f_pe_raw)
-    if f_pe <= 0 and t_pe > 0:
-        f_pe = t_pe
+    eff_cur_pe = t_pe if t_pe > 0 else f_pe
 
-    # =================================================================
-    # [완벽 동기화 패치] 메인 탭과 100% 동일한 PBR 및 ADR 환율 보정 로직
-    # =================================================================
     pbr = safe_float(i.get('priceToBook'))
     bv = safe_float(i.get('bookValue'))
-
-    currency_trade = str(i.get('currency', 'USD')).upper()
-    currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-    is_adr = (currency_trade != currency_fin) and not kr
-    adr_fx_ratio = 1.0
-
-    if is_adr:
-        try:
-            inc_temp = stk.income_stmt
-            if inc_temp is not None and not inc_temp.empty and 'Net Income' in inc_temp.index:
-                ni_curr = safe_float(inc_temp.loc['Net Income'].iloc[0])
-                eps_curr = safe_float(i.get('trailingEps'))
-                if ni_curr != 0 and eps_curr != 0:
-                    adr_fx_ratio = abs(eps_curr / ni_curr)
-        except: pass
-
-    if pbr > 100.0: pbr = 0.0
-
-    if pbr <= 0.0 or bv <= 0.0 or tk in ["BRK-B", "BRK-A"] or is_adr:
-        try:
-            bs = stk.balance_sheet
-            if bs is not None and not bs.empty:
-                for eq_key in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity', 'Total Equity Gross Minority Interest']:
-                    if eq_key in bs.index:
-                        eq = safe_float(bs.loc[eq_key].iloc[0])
-                        sh_proxy = safe_float(i.get('impliedSharesOutstanding', i.get('sharesOutstanding')))
-                        if tk == "BRK-B": sh_proxy = 2160000000.0
-                        elif tk == "BRK-A": sh_proxy = 1440000.0
-                        
-                        if eq > 0 and sh_proxy > 0:
-                            # [핵심 수술 1] 현재 장부가치(bv)에 환율을 곱해 올바른 달러 가치로 복원!
-                            if is_adr and adr_fx_ratio != 1.0:
-                                bv = eq * adr_fx_ratio
-                            else:
-                                bv = eq / sh_proxy
-                                
-                            if bv > 0: pbr = reg_p / bv
-                        break
-        except: pass
-
-    if pbr <= 0.0 and bv > 0 and p > 0:
-        pbr = p / bv
-
-    if pbr > 0 and reg_p > 0 and p != reg_p: 
-        pbr = pbr * (p / reg_p)
-
+    if pbr <= 0.0 and bv > 0 and p > 0: pbr = p / bv
     roe = safe_float(i.get('returnOnEquity')) * 100
-    if roe <= 0.0 or roe > 300.0:
-        try:
-            inc = stk.income_stmt
-            bs = stk.balance_sheet
-            if inc is not None and not inc.empty and bs is not None and not bs.empty:
-                if 'Net Income' in inc.index and 'Stockholders Equity' in bs.index:
-                    ni = safe_float(inc.loc['Net Income'].iloc[0])
-                    eq = safe_float(bs.loc['Stockholders Equity'].iloc[0])
-                    if eq > 0: roe = (ni / eq) * 100
-        except: pass
-    
     real_roic = get_real_roic(stk, i)
-    a_pe = safe_float(i.get('fiveYearAvgPE'))
-    if a_pe <= 0.0:
-        if not is_adr:
-            try:
-                _inc = stk.income_stmt
-                if _inc is not None and not _inc.empty and 'Net Income' in _inc.index:
-                    _ni_vals = _inc.loc['Net Income'].dropna().values[:4]
-                    if len(_ni_vals) >= 2:
-                        _avg_ni = sum(_ni_vals) / len(_ni_vals)
-                        _sh_out = safe_float(i.get('sharesOutstanding'))
-                        if _avg_ni > 0 and _sh_out > 0:
-                            a_pe = reg_p / (_avg_ni / _sh_out) 
-            except: pass
-
-    if a_pe < 5.0 or a_pe > 200.0:
-        if t_eps > 0: a_pe = reg_p / t_eps
-        elif f_eps > 0: a_pe = reg_p / f_eps
-        elif t_pe_raw > 0: a_pe = t_pe_raw
-        elif f_pe_raw > 0: a_pe = f_pe_raw
-        else: a_pe = 0.0
+    roic_val = real_roic if real_roic is not None else (roe if not is_financial else 0.0)
 
     off = i.get('companyOfficers', [])
-    ceo_raw = '누락'
-    if isinstance(off, list) and len(off) > 0:
-        if isinstance(off[0], dict): ceo_raw = off[0].get('name', '누락')
-        else: ceo_raw = str(off[0])
-    elif isinstance(off, dict): ceo_raw = off.get('name', '누락')
-    elif isinstance(off, str): ceo_raw = off
+    ceo_raw = off[0].get('name', '누락') if (isinstance(off, list) and len(off) > 0 and isinstance(off[0], dict)) else '누락'
     ceo_cleaned = clean_ceo_name(ceo_raw)
-    criticism_text = fetch_governance_criticism(tk, tk.split('.')[0] if kr else tk, ceo_cleaned)
+    criticism_text = fetch_governance_criticism(tk, clean_tk_pure, ceo_cleaned)
 
-    if ceo_cleaned == '누락' or ceo_cleaned == 'N/A':
-        if ":" in criticism_text:
-            prefix = criticism_text.split(":")[0].strip()
-            if len(prefix) < 40 and "위키 및 공공" not in prefix:
-                ceo_cleaned = prefix
-
-    # 1. 10년 엔진 일괄 호출 (PER, PBR, FCF 성장률)
-    cd = tk.split('.')[0] if kr else tk  # <--- [수정] 에러 방지를 위해 cd 변수 정의 추가
+    cd = clean_tk_pure
+    is_adr = (str(i.get('currency', 'USD')).upper() != str(i.get('financialCurrency', 'USD')).upper()) and not kr
+    adr_fx_ratio = 1.0
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
         stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
     )
 
-    # 2. 현재 PBR(pbr) 기준으로 10년 평균 PBR(a_pbr)과 직접 비교 (f_pbr 완전 삭제)
-    is_kaspi_like = is_adr and not kr and not is_china_tw and not is_cyclical
-    if is_kaspi_like:
-        if f_pe < 1.0 or f_pe <= 0.0:
-            f_pe = a_pe if a_pe > 0 else (t_pe if t_pe > 0 else 8.6)
-        if pbr < 0.1 or pbr <= 0.0:
-            pbr = a_pbr if a_pbr > 0 else 1.0
-
-    # 3. 현재 PER(t_pe) 기반 이익수익률(ey) 및 버핏 역산 성장률 마진(pmos_val) 계산 (10년 평균 비교 삭제)
-    eff_cur_pe = t_pe if t_pe > 0 else f_pe
     ey = (100.0 / eff_cur_pe) if eff_cur_pe > 0 else 0.0
     erp = ey - ty
-    buffett_req_g_prev = 10.0 - ey
-    pmos_val = (final_g * 100.0) - buffett_req_g_prev if eff_cur_pe > 0 else -20.0
+    buffett_req_g = 10.0 - ey
+    actual_fcf_g = final_g * 100.0
+    pmos_val = actual_fcf_g - buffett_req_g if eff_cur_pe > 0 else -20.0
 
     sh_dcf = safe_float(i.get('sharesOutstanding'))
-    iv, mos_val, err = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
+    iv, mos_val, _ = calc_custom_dcf(base_fcf, sh_dcf, p, ty, final_g, is_financial)
     mos_val = safe_float(mos_val)
-    
-    roic_val = real_roic if real_roic is not None else 0
     div = calc_accurate_div_yield(stk, i, p, kr)
-    spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
     bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
-    
+
     op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
         mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
         is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-        f_pe=eff_cur_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
+        f_pe=eff_cur_pe, spy_pe=22.0, is_cyclical=is_cyclical,
         hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
         buyback_yield_pct=bb_yield
     )
-    # =================================================================
+    total_score = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
 
-    return f"<div style='padding:15px; border-left:4px solid {op_color}; background:rgba(255,255,255,0.05); border-radius:8px; margin-top:10px;'><b>[{tk}] {op_title}</b><br><span style='font-size:0.9em; color:#8892b0;'>{op_reason}</span></div>"
+    # --- 찰리 멍거의 정량 체크리스트 판정 조립 ---
+    if is_financial:
+        c1_st = "pass" if roe >= 10.0 else ("warn" if roe >= 7.0 else "fail")
+        c1_sub = f"ROE {roe:.1f}%"
+    else:
+        c1_st = "pass" if (roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0)) else ("warn" if (roic_val >= 6.0 or roe >= 8.0) else "fail")
+        c1_sub = f"ROIC {roic_val:.1f}% (기준선 12% 대비 {roic_val-12.0:+.1f}%p)"
+
+    pricing_raw = analyze_pricing_power(stk, i, tk, kr)
+    c2_st = "pass" if ("최상" in pricing_raw or "양호" in pricing_raw) else ("warn" if "보통" in pricing_raw else "fail")
+    c2_sub = re.sub(r'<[^>]+>', '', pricing_raw).strip()
+
+    if bb_yield <= -1.5:
+        c3_st, c3_sub = "fail", f"주식수 연 {abs(bb_yield):.1f}% 증가 (희석 경고)"
+    elif bb_yield >= 1.0 or div >= 2.5:
+        c3_st, c3_sub = "pass", f"자사주 소각({bb_yield:+.1f}%) · 배당 {div:.1f}%"
+    else:
+        c3_st, c3_sub = "warn", f"주식 희석 없음 · 배당 {div:.1f}%"
+
+    div_raw = analyze_business_diversification(stk, i, tk, kr)
+    c4_st = "pass" if ("최상" in div_raw or "완벽" in div_raw or "양호" in div_raw) else ("warn" if "보통" in div_raw else "fail")
+    c4_sub = re.sub(r'<[^>]+>', '', div_raw).strip()
+
+    capex_raw = analyze_capex_nature(stk, i, tk, base_fcf, kr)
+    c5_st = "pass" if ("선제투자" in capex_raw or "자본 경량형" in capex_raw or "안정적" in capex_raw or "선별적" in capex_raw) else ("warn" if "지속 추적" in capex_raw else "fail")
+    c5_sub = re.sub(r'<[^>]+>', '', capex_raw).strip()
+
+    if is_financial:
+        c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if 0 < pbr <= 1.3 else "fail")
+        c6_sub = f"PBR {pbr:.2f}배 (청산가치 검증)"
+    else:
+        c6_st = "pass" if (eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= 2.0) else ("warn" if (eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= -3.0) else "fail")
+        c6_sub = f"요구성장 {buffett_req_g:+.1f}% vs FCF성장 {actual_fcf_g:+.1f}% (마진 {pmos_val:+.1f}%p)" if eff_cur_pe > 0 else "이익 적자"
+
+    if eff_cur_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c7_st = "pass"
+    elif eff_cur_pe > 0 and erp >= -1.5: c7_st = "warn"
+    else: c7_st = "fail"
+    c7_sub = f"이익수익률 {ey:.1f}% vs 미국채 {ty:.1f}% (스프레드 {erp:+.1f}%p)" if eff_cur_pe > 0 else "적자"
+
+    m_items = [
+        ("1. 비즈니스 해자", c1_st, c1_sub),
+        ("2. 가격결정력", c2_st, c2_sub),
+        ("3. 주주희석 배제", c3_st, c3_sub),
+        ("4. 공학적 다중화", c4_st, c4_sub),
+        ("5. CapEx 성격", c5_st, c5_sub),
+        ("6. 역산 안전마진", c6_st, c6_sub),
+        ("7. 국채대비 수익", c7_st, c7_sub)
+    ]
+    if is_cyclical or (clean_tk_pure in semis):
+        if 0 < eff_cur_pe <= 8.5 and roe >= 20.0: cyc_st, cyc_sub = "fail", f"피크아웃 주의: 저PER 착시({eff_cur_pe:.1f}배)"
+        elif 0 < eff_cur_pe <= 12.0 and roe >= 14.0: cyc_st, cyc_sub = "warn", f"사이클 후반부 (PER {eff_cur_pe:.1f}배)"
+        elif eff_cur_pe >= 25.0 or eff_cur_pe <= 0: cyc_st, cyc_sub = "pass", f"역발상 기회 구간 (PER {eff_cur_pe:.1f}배)"
+        else: cyc_st, cyc_sub = "warn", f"사이클 중간 (PER {eff_cur_pe:.1f}배)"
+        m_items.append(("8. 저PER 착시", cyc_st, cyc_sub))
+
+    pass_cnt = sum(1 for _, st_c, _ in m_items if st_c == "pass")
+    tot_cnt = len(m_items)
+
+    # 미니 멍거 체크리스트 그리드 HTML 조립
+    mini_grid = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:8px; margin:12px 0;'>"
+    for b_t, b_s, b_d in m_items:
+        ico, b_col, b_bg, p_bg, s_lbl = ("✅", "#188038", "rgba(46,204,113,0.1)", "#2ecc71", "충족") if b_s == "pass" else (("⚠️", "#d97706", "rgba(253,203,110,0.14)", "#f59e0b", "보통") if b_s == "warn" else ("❌", "#d93025", "rgba(255,118,117,0.1)", "#ef4444", "미달"))
+        mini_grid += (
+            f"<div style='background:{b_bg}; border:1px solid {b_col}44; border-radius:10px; padding:8px 10px; display:flex; flex-direction:column; justify-content:space-between;'>"
+            f"<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;'>"
+            f"<span style='font-size:0.8rem; font-weight:800; color:{b_col};'>{ico} {b_t}</span>"
+            f"<span style='font-size:0.7rem; font-weight:800; color:#fff; background:{p_bg}; padding:2px 6px; border-radius:4px;'>{s_lbl}</span>"
+            f"</div>"
+            f"<div style='font-size:0.76rem; color:var(--text-color); opacity:0.92; font-weight:600; line-height:1.35;'>{b_d}</div>"
+            f"</div>"
+        )
+    mini_grid += "</div>"
+
+    comp_name = primary_names.get(tk, i.get('shortName', tk))
+    p_str = f"{int(p):,}원" if kr else f"${p:,.2f}"
+
+    return (
+        f"<div style='padding:18px 20px; border-left:5px solid {op_color}; background:rgba(255,255,255,0.04); border-radius:12px; margin-top:12px; box-shadow:0 4px 12px rgba(0,0,0,0.06);'>"
+        f"<div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;'>"
+        f"<span style='font-size:1.15rem; font-weight:900; color:var(--text-color);'>[{tk}] {comp_name} · 현재가 {p_str}</span>"
+        f"<span style='font-size:1.0rem; font-weight:800; color:{op_color}; background:rgba(255,255,255,0.08); padding:4px 12px; border-radius:8px;'>{op_title} ({total_score}점)</span>"
+        f"</div>"
+        f"<div style='margin-top:8px; font-size:0.92rem; color:#facc15; font-weight:800;'>📋 찰리 멍거의 가치투자 체크리스트 : {tot_cnt}개 중 {pass_cnt}개 기준 충족</div>"
+        f"{mini_grid}"
+        f"<div style='font-size:0.88rem; color:var(--text-color); opacity:0.88; line-height:1.55; margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.08);'><b>[AI 총평]</b> {op_reason}</div>"
+        f"</div>"
+    )
 def create_radar_chart(score_breakdown, is_financial, color_hex, kr=False, is_cyclical=False):
     color_hex = color_hex.lstrip('#')
     r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
@@ -7951,169 +7897,130 @@ with tab1:
                 sign_tot = "+" if total_score_val > 0 else ""
                 # ▲▲▲ 여기까지 추가 ▲▲▲
                 
-                col_op1, col_op2 = st.columns([1.4, 1])
-                
-                with col_op1:
-                    # -------------------------------------------------------------
-                    # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 가치투자 정량 체크리스트
-                    # -------------------------------------------------------------
-                    
-                    # 1. 비즈니스 해자 & 복리엔진 (PDF Part 1-2B, Part 4-4 수학)
-                    if is_financial:
-                        c1_st = "pass" if roe >= 10.0 else ("warn" if roe >= 7.0 else "fail")
-                        c1_sub = f"자기자본수익률(ROE) {roe:.1f}% (자본비용 충족)"
-                    else:
-                        c1_st = "pass" if (roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0)) else ("warn" if (roic_val >= 6.0 or roe >= 8.0) else "fail")
-                        c1_sub = f"투하자본수익률(ROIC) {roic_val:.1f}% · ROE {roe:.1f}% (자본비용 12% 대비 {roic_val-12.0:+.1f}%p)"
+                # -------------------------------------------------------------
+                # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 가치투자 정량 체크리스트 (전체 너비)
+                # -------------------------------------------------------------
+                # 1. 비즈니스 해자 & 복리엔진 (PDF Part 1-2B, Part 4-4 수학)
+                if is_financial:
+                    c1_st = "pass" if roe >= 10.0 else ("warn" if roe >= 7.0 else "fail")
+                    c1_sub = f"자기자본수익률(ROE) {roe:.1f}% (자본비용 충족)"
+                else:
+                    c1_st = "pass" if (roic_val >= 12.0 or (roic_val >= 10.0 and roe >= 12.0)) else ("warn" if (roic_val >= 6.0 or roe >= 8.0) else "fail")
+                    c1_sub = f"투하자본수익률(ROIC) {roic_val:.1f}% · ROE {roe:.1f}% (자본비용 12% 대비 {roic_val-12.0:+.1f}%p)"
 
-                    # 2. 가격결정력 & 마진 방어 (PDF Part 1-2B, Part 3-5)
-                    pricing_raw = analyze_pricing_power(stk, i, tk, kr)
-                    c2_st = (
-                        "pass"
-                        if ("최상" in pricing_raw or "양호" in pricing_raw)
-                        else ("warn" if "보통" in pricing_raw else "fail")
-                    )
-                    c2_sub = re.sub(r"<[^>]+>", "", pricing_raw).strip()
+                # 2. 가격결정력 & 마진 방어 (PDF Part 1-2B, Part 3-5)
+                pricing_raw = analyze_pricing_power(stk, i, tk, kr)
+                c2_st = "pass" if ("최상" in pricing_raw or "양호" in pricing_raw) else ("warn" if "보통" in pricing_raw else "fail")
+                c2_sub = re.sub(r'<[^>]+>', '', pricing_raw).strip()
 
-                    # 3. 경영진 도덕성 & 주식희석 배제 (PDF Part 1-2C, Part 2-13,15, Part 4-6)
-                    bb_val = bb_yield if "bb_yield" in locals() else 0.0
-                    div_val = (
-                        safe_div
-                        if "safe_div" in locals()
-                        else (div if "div" in locals() else 0.0)
-                    )
-                    mgmt_sc = 0
-                    for k_sb, v_sb in score_breakdown.items():
-                      if "경영진" in k_sb or "Management" in k_sb:
+                # 3. 경영진 도덕성 & 주식희석 배제 (PDF Part 1-2C, Part 2-13,15, Part 4-6)
+                bb_val = bb_yield if 'bb_yield' in locals() else 0.0
+                div_val = safe_div if 'safe_div' in locals() else (div if 'div' in locals() else 0.0)
+                mgmt_sc = 0
+                for k_sb, v_sb in score_breakdown.items():
+                    if "경영진" in k_sb or "Management" in k_sb:
                         mgmt_sc = v_sb[0] if isinstance(v_sb, tuple) else v_sb
                         break
+                
+                if bb_val <= -1.5 or mgmt_sc < -10.0:
+                    c3_st = "fail"
+                    c3_sub = f"주식 수 연 {abs(bb_val):.1f}% 증가 (유상증자·스톡옵션 주주가치 희석 경고)"
+                elif bb_val >= 1.0 or div_val >= 2.5:
+                    c3_st = "pass"
+                    c3_sub = f"자사주 소각({bb_val:+.1f}%) 및 배당({div_val:.1f}%)을 통한 주주가치 극대화"
+                else:
+                    c3_st = "warn"
+                    c3_sub = f"주식 희석 없음 · 배당 {div_val:.1f}% (사내 현금 유보 기조)"
 
-                    if bb_val <= -1.5 or mgmt_sc < -10.0:
-                      c3_st = "fail"
-                      c3_sub = (
-                          f"주식 수 연 {abs(bb_val):.1f}% 증가 (유상증자·스톡옵션"
-                          " 주주가치 희석 경고)"
-                      )
-                    elif bb_val >= 1.0 or div_val >= 2.5:
-                      c3_st = "pass"
-                      c3_sub = (
-                          f"자사주 소각({bb_val:+.1f}%) 및 배당({div_val:.1f}%)을"
-                          " 통한 주주가치 극대화"
-                      )
+                # 4. 공학적 다중화 & 단일실패 차단 (PDF Part 3-4 공학)
+                div_raw = analyze_business_diversification(stk, i, tk, kr)
+                c4_st = "pass" if ("최상" in div_raw or "완벽" in div_raw or "양호" in div_raw) else ("warn" if "보통" in div_raw else "fail")
+                c4_sub = re.sub(r'<[^>]+>', '', div_raw).strip()
+
+                # 5. 주주이익 & CapEx 성격 진단 (PDF Part 4-6 주주이익)
+                capex_raw = analyze_capex_nature(stk, i, tk, base_fcf, kr)
+                c5_st = "pass" if ("선제투자" in capex_raw or "자본 경량형" in capex_raw or "안정적" in capex_raw or "선별적" in capex_raw) else ("warn" if "지속 추적" in capex_raw else "fail")
+                c5_sub = re.sub(r'<[^>]+>', '', capex_raw).strip()
+
+                # 6. 버핏 10초 암산 역산 안전마진 (PDF Part 4-7A 역산)
+                if is_financial:
+                    c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if 0 < pbr <= 1.3 else "fail")
+                    c6_sub = f"현재 PBR {pbr:.2f}배 (청산가치 안전마진 검증)"
+                else:
+                    if eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= 2.0:
+                        c6_st = "pass"
+                    elif eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= -3.0:
+                        c6_st = "warn"
                     else:
-                      c3_st = "warn"
-                      c3_sub = (
-                          f"주식 희석 없음 · 배당 {div_val:.1f}% (사내 현금"
-                          " 유보 기조)"
-                      )
+                        c6_st = "fail"
+                    c6_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF성장 {actual_fcf_g_main:+.1f}% (마진 {pmos_val:+.1f}%p)" if eff_cur_pe > 0 else "이익 적자로 역산 불가"
 
-                    # 4. 공학적 다중화 & 단일실패 차단 (PDF Part 3-4 공학)
-                    div_raw = analyze_business_diversification(stk, i, tk, kr)
-                    c4_st = (
-                        "pass"
-                        if (
-                            "최상" in div_raw
-                            or "완벽" in div_raw
-                            or "양호" in div_raw
-                        )
-                        else ("warn" if "보통" in div_raw else "fail")
-                    )
-                    c4_sub = re.sub(r"<[^>]+>", "", div_raw).strip()
+                # 7. 거시 기회비용 vs 미국채 10년물 (PDF Part 4-7C 기회비용)
+                if eff_cur_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c7_st = "pass"
+                elif eff_cur_pe > 0 and erp >= -1.5: c7_st = "warn"
+                else: c7_st = "fail"
+                c7_sub = f"주식 이익수익률 {ey:.1f}% vs 10년물 미국채 {ty:.1f}% (스프레드 {erp:+.1f}%p)" if eff_cur_pe > 0 else "순이익 적자로 산출 불가"
 
-                    # 5. 주주이익 & CapEx 성격 진단 (PDF Part 4-6 주주이익)
-                    capex_raw = analyze_capex_nature(stk, i, tk, base_fcf, kr)
-                    c5_st = (
-                        "pass"
-                        if (
-                            "선제투자" in capex_raw
-                            or "자본 경량형" in capex_raw
-                            or "안정적" in capex_raw
-                            or "선별적" in capex_raw
-                        )
-                        else ("warn" if "지속 추적" in capex_raw else "fail")
-                    )
-                    c5_sub = re.sub(r"<[^>]+>", "", capex_raw).strip()
+                # 멍거 체크리스트 목록 조립
+                munger_items = [
+                    (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
+                    (t("2. 가격결정력", "2. Pricing Power"), c2_st, c2_sub),
+                    (t("3. 경영진·주주희석 배제", "3. Mgmt & Anti-Dilution"), c3_st, c3_sub),
+                    (t("4. 공학적 다중화", "4. Business Redundancy"), c4_st, c4_sub),
+                    (t("5. 주주이익 & CapEx 성격", "5. Owner Earnings & CapEx"), c5_st, c5_sub),
+                    (t("6. 역산 가격 안전마진", "6. Invert Margin of Safety"), c6_st, c6_sub),
+                    (t("7. 국채 대비 기회비용", "7. vs 10Y Treasury"), c7_st, c7_sub)
+                ]
 
-                    # 6. 버핏 10초 암산 역산 안전마진 (PDF Part 4-7A 역산)
-                    if is_financial:
-                        c6_st = "pass" if (0 < pbr <= 1.0 and roe >= 9.0) else ("warn" if 0 < pbr <= 1.3 else "fail")
-                        c6_sub = f"현재 PBR {pbr:.2f}배 (청산가치 안전마진 검증)"
+                # 시클리컬 종목일 때 8번째 피크아웃 관문 자동 추가
+                semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
+                clean_tk_check = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
+                if is_cyclical or (clean_tk_check in semis):
+                    if 0 < eff_cur_pe <= 8.5 and roe >= 20.0:
+                        cyc_st = "fail"
+                        cyc_sub = f"피크아웃 주의: 호황 정점 이익 폭증에 따른 '저PER 착시({eff_cur_pe:.1f}배)' 함정"
+                    elif 0 < eff_cur_pe <= 12.0 and roe >= 14.0:
+                        cyc_st = "warn"
+                        cyc_sub = f"사이클 후반부: 이익 고점 부근 통과 중 (현재 PER {eff_cur_pe:.1f}배 · 공급과잉 대비 필요)"
+                    elif eff_cur_pe >= 25.0 or eff_cur_pe <= 0:
+                        cyc_st = "pass"
+                        cyc_sub = f"역발상 기회 구간: 업황 바닥 실적 급감/적자 (PER {eff_cur_pe:.1f}배 착시) ➔ 차기 회복 선취매 가능"
                     else:
-                        if eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= 2.0:
-                            c6_st = "pass"
-                        elif eff_cur_pe > 0 and base_fcf and base_fcf > 0 and pmos_val >= -3.0:
-                            c6_st = "warn"
-                        else:
-                            c6_st = "fail"
-                        c6_sub = f"요구성장 {buffett_req_g_main:+.1f}% vs 실제FCF성장 {actual_fcf_g_main:+.1f}% (마진 {pmos_val:+.1f}%p)" if eff_cur_pe > 0 else "이익 적자로 역산 불가"
+                        cyc_st = "warn"
+                        cyc_sub = f"경기 사이클 중간 국면 (현재 PER {eff_cur_pe:.1f}배 · ROE {roe:.1f}%)"
+                    munger_items.append((t("8. 시클리컬 저PER 착시", "8. Cyclical PE Trap"), cyc_st, cyc_sub))
 
-                    # 7. 거시 기회비용 vs 미국채 10년물 (PDF Part 4-7C 기회비용)
-                    if eff_cur_pe > 0 and (erp >= 0.5 or (roic_val >= 20.0 and erp >= -0.8)): c7_st = "pass"
-                    elif eff_cur_pe > 0 and erp >= -1.5: c7_st = "warn"
-                    else: c7_st = "fail"
-                    c7_sub = f"주식 이익수익률 {ey:.1f}% vs 10년물 미국채 {ty:.1f}% (스프레드 {erp:+.1f}%p)" if eff_cur_pe > 0 else "순이익 적자로 산출 불가"
+                tot_chk_cnt = len(munger_items)
+                pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
 
-                    # 멍거 체크리스트 목록 조립
-                    munger_items = [
-                        (t("1. 비즈니스 해자", "1. Business Moat"), c1_st, c1_sub),
-                        (t("2. 가격결정력", "2. Pricing Power"), c2_st, c2_sub),
-                        (t("3. 경영진·주주희석 배제", "3. Mgmt & Anti-Dilution"), c3_st, c3_sub),
-                        (t("4. 공학적 다중화", "4. Business Redundancy"), c4_st, c4_sub),
-                        (t("5. 주주이익 & CapEx 성격", "5. Owner Earnings & CapEx"), c5_st, c5_sub),
-                        (t("6. 역산 가격 안전마진", "6. Invert Margin of Safety"), c6_st, c6_sub),
-                        (t("7. 국채 대비 기회비용", "7. vs 10Y Treasury"), c7_st, c7_sub)
-                    ]
+                chk_header_ko = f"📋 <b>[찰리 멍거의 가치투자 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{tot_chk_cnt}개 중 {pass_cnt}개 기준 충족</span>"
+                chk_header_en = f"📋 <b>[Munger's Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/{tot_chk_cnt} Passed</span>"
+                st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
 
-                    # 시클리컬(반도체, 철강, 정유, 해운 등) 종목일 때 8번째 피크아웃 관문 자동 추가
-                    semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
-                    clean_tk_check = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
-                    if is_cyclical or (clean_tk_check in semis):
-                        if 0 < eff_cur_pe <= 8.5 and roe >= 20.0:
-                            cyc_st = "fail"
-                            cyc_sub = f"피크아웃 주의: 호황 정점 이익 폭증에 따른 '저PER 착시({eff_cur_pe:.1f}배)' 함정"
-                        elif 0 < eff_cur_pe <= 12.0 and roe >= 14.0:
-                            cyc_st = "warn"
-                            cyc_sub = f"사이클 후반부: 이익 고점 부근 통과 중 (현재 PER {eff_cur_pe:.1f}배 · 공급과잉 대비 필요)"
-                        elif eff_cur_pe >= 25.0 or eff_cur_pe <= 0:
-                            cyc_st = "pass"
-                            cyc_sub = f"역발상 기회 구간: 업황 바닥 실적 급감/적자 (PER {eff_cur_pe:.1f}배 착시) ➔ 차기 회복 선취매 가능"
-                        else:
-                            cyc_st = "warn"
-                            cyc_sub = f"경기 사이클 중간 국면 (현재 PER {eff_cur_pe:.1f}배 · ROE {roe:.1f}%)"
-                        munger_items.append((t("8. 시클리컬 저PER 착시", "8. Cyclical PE Trap"), cyc_st, cyc_sub))
+                badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; margin-top:10px; text-align:left; word-break:keep-all;'>"
+                for b_title, b_st, b_sub in munger_items:
+                    if b_st == "pass":
+                        ico, b_col, bg_c, bd_c, pill_bg = "✅", "#188038", "rgba(46, 204, 113, 0.10)", "rgba(46, 204, 113, 0.40)", "#2ecc71"
+                        st_lbl = t("충족", "Pass")
+                    elif b_st == "warn":
+                        ico, b_col, bg_c, bd_c, pill_bg = "⚠️", "#d97706", "rgba(253, 203, 110, 0.14)", "rgba(245, 158, 11, 0.45)", "#f59e0b"
+                        st_lbl = t("보통", "Watch")
+                    else:
+                        ico, b_col, bg_c, bd_c, pill_bg = "❌", "#d93025", "rgba(255, 118, 117, 0.10)", "rgba(255, 118, 117, 0.40)", "#ef4444"
+                        st_lbl = t("미달", "Fail")
 
-                    tot_chk_cnt = len(munger_items)
-                    pass_cnt = sum(1 for _, st_code, _ in munger_items if st_code == "pass")
-
-                    chk_header_ko = f"📋 <b>[찰리 멍거의 가치투자 정량 체크리스트]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{tot_chk_cnt}개 중 {pass_cnt}개 기준 충족</span>"
-                    chk_header_en = f"📋 <b>[Munger's Quantitative Checklist]</b><br><span style='font-size:1.15rem; color:#facc15; font-weight:800;'>{pass_cnt}/{tot_chk_cnt} Passed</span>"
-                    
-                    st.markdown(f"<div style='margin-bottom:12px;'>{t(chk_header_ko, chk_header_en)}</div>", unsafe_allow_html=True)
-
-                    # 체크리스트 카드 렌더링
-                    badges_html = "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:10px; text-align:left; word-break:keep-all;'>"
-                    for b_title, b_st, b_sub in munger_items:
-                        if b_st == "pass":
-                            ico, b_col, bg_c, bd_c, pill_bg = "✅", "#188038", "rgba(46, 204, 113, 0.10)", "rgba(46, 204, 113, 0.40)", "#2ecc71"
-                            st_lbl = t("충족", "Pass")
-                        elif b_st == "warn":
-                            ico, b_col, bg_c, bd_c, pill_bg = "⚠️", "#d97706", "rgba(253, 203, 110, 0.14)", "rgba(245, 158, 11, 0.45)", "#f59e0b"
-                            st_lbl = t("보통", "Watch")
-                        else:
-                            ico, b_col, bg_c, bd_c, pill_bg = "❌", "#d93025", "rgba(255, 118, 117, 0.10)", "rgba(255, 118, 117, 0.40)", "#ef4444"
-                            st_lbl = t("미달", "Fail")
-
-                        badges_html += (
-                            f"<div style='background:{bg_c}; border:1.5px solid {bd_c}; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; justify-content:space-between;'>"
-                            f"<div style='display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;'>"
-                            f"<span style='font-size:0.88rem; font-weight:800; color:{b_col}; word-break:keep-all; line-height:1.3;'>{ico} {b_title}</span>"
-                            f"<span style='font-size:0.75rem; font-weight:800; color:#ffffff; background:{pill_bg}; padding:3px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.15);'>{st_lbl}</span>"
-                            f"</div>"
-                            f"<div style='font-size:0.82rem; color:var(--text-color); opacity:0.92; font-weight:700; line-height:1.4; word-break:keep-all; white-space:normal;'>{b_sub}</div>"
-                            f"</div>"
-                        )
-                    badges_html += "</div>"
-                    st.markdown(badges_html, unsafe_allow_html=True)
+                    badges_html += (
+                        f"<div style='background:{bg_c}; border:1.5px solid {bd_c}; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; justify-content:space-between;'>"
+                        f"<div style='display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;'>"
+                        f"<span style='font-size:0.88rem; font-weight:800; color:{b_col}; word-break:keep-all; line-height:1.3;'>{ico} {b_title}</span>"
+                        f"<span style='font-size:0.75rem; font-weight:800; color:#ffffff; background:{pill_bg}; padding:3px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;'>{st_lbl}</span>"
+                        f"</div>"
+                        f"<div style='font-size:0.82rem; color:var(--text-color); opacity:0.92; font-weight:700; line-height:1.4; word-break:keep-all;'>{b_sub}</div>"
+                        f"</div>"
+                    )
+                badges_html += "</div>"
+                st.markdown(badges_html, unsafe_allow_html=True)
+                st.divider()
 
 
                     op_clean_label = op_title.split("(")[0].strip()
