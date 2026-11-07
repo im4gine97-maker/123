@@ -7200,7 +7200,7 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-=======
+
 tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_bull_bear, tab_qe, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("종목 1:1 맞대결", "1:1 Stock Battle"),
@@ -7215,7 +7215,7 @@ tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_bull_bear, tab_qe, tab2,
     t("📖 가치투자 바이블 & 쇼츠", "📖 Value Bible & Shorts"),
     t("AGIE 철학", "About AGIE")
 ])
->>>>>>>
+
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
