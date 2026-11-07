@@ -14255,46 +14255,69 @@ with tab_heatmap:
     mkt_code = "US" if "미국" in hm_mkt else "KR"
     prd_code = hm_prd.split(" ")[0]
 
-    with st.spinner("실시간 섹터별 시가총액 및 등락률 히트맵을 렌더링 중입니다..."):
+    # --- [PC·모바일 가독성 최적화 높이 조절 바] ---
+    hm_h = st.slider(
+        "📱 🖥️ 히트맵 화면 높이 조절 (스마트폰: 650~750px / PC: 850~1000px)",
+        min_value=600, max_value=1200, value=850, step=50,
+        key="hm_height_slider"
+    )
+
+    with st.spinner("핀비즈 원본 스타일 실시간 마켓 히트맵을 렌더링 중입니다..."):
         df_hm = fetch_finviz_heatmap_data(mkt_code, prd_code)
 
         if not df_hm.empty:
             import plotly.express as px
-            # Finviz 시그니처 다크 레드 -> 다크 차콜 -> 브라이트 그린 컬러 스케일
+
+            # [핀비즈 원본 100% 동기화 컬러 스케일: 딥 크림슨 레드 -> 다크 차콜(0%) -> 핀비즈 에메랄드 그린]
             finviz_colorscale = [
-                [0.0, "#b71c1c"],
-                [0.25, "#7f1d1d"],
-                [0.5, "#262931"],
-                [0.75, "#14532d"],
-                [1.0, "#16a34a"]
+                [0.0, "#8E1616"],   # -3% 이하 (선명한 핀비즈 레드)
+                [0.2, "#681818"],   # -2%
+                [0.4, "#421D1D"],   # -1%
+                [0.5, "#22252C"],   # 0% (핀비즈 고유 다크 차콜 중립)
+                [0.6, "#194724"],   # +1%
+                [0.8, "#207A35"],   # +2%
+                [1.0, "#28A745"]    # +3% 이상 (선명한 핀비즈 그린)
             ]
             c_range = 3.0 if prd_code == "1D" else (6.0 if prd_code == "1W" else (12.0 if prd_code == "1M" else 25.0))
 
+            # [핵심 개편] 불필요한 외곽 루트 상자를 제거하고 핀비즈 실물처럼 [industry -> label] 2단계로 직접 배치하여 타일 면적을 극대화
             fig_hm = px.treemap(
                 df_hm,
-                path=[px.Constant("S&P 500 MAP" if mkt_code == "US" else "KOREA MARKET MAP"), "sector", "industry", "label"],
+                path=["industry", "label"],
                 values="mcap",
                 color="chg",
                 color_continuous_scale=finviz_colorscale,
                 range_color=[-c_range, c_range],
-                custom_data=["kor_name", "ticker", "chg", "mcap"]
+                custom_data=["kor_name", "ticker", "chg", "mcap", "sector", "industry"]
             )
+
             fig_hm.update_traces(
                 textinfo="label",
                 textposition="middle center",
-                textfont=dict(family="Pretendard, Arial Black, sans-serif", size=15, color="#ffffff"),
-                marker=dict(line=dict(width=1.5, color="#0b0e14"), cornerradius=2),
-                hovertemplate="<b>%{customdata[0]} (%{customdata[1]})</b><br>등락률: %{customdata[2]:+.2f}%<extra></extra>"
+                texttemplate="<b>%{label}</b>",
+                # 모바일/PC 모두에서 폰트가 자동 비례 스케일링되어 큰 종목은 시원하고 굵게 표시
+                insidetextfont=dict(family="Arial Black, Pretendard, sans-serif", size=24, color="#ffffff"),
+                # 핀비즈 특유의 각진 모서리와 두꺼운 분할선(2.5px), 상단 25px 업종 헤더 배너 완벽 재현
+                marker=dict(
+                    line=dict(width=2.5, color="#0b0e14"),
+                    cornerradius=0,
+                    pad=dict(t=25, l=3, r=3, b=3)
+                ),
+                pathbar=dict(visible=False),
+                hovertemplate="<b>%{customdata[0]} (%{customdata[1]})</b><br>업종: %{customdata[5]}<br>등락률: <b>%{customdata[2]:+.2f}%</b><br>시가총액: %{customdata[3]:,.1f}<extra></extra>"
             )
+
             fig_hm.update_layout(
-                height=720,
-                margin=dict(t=10, l=4, r=4, b=10),
+                height=hm_h,
+                margin=dict(t=8, l=4, r=4, b=8),
                 paper_bgcolor="#0b0e14",
                 plot_bgcolor="#0b0e14",
-                coloraxis_showscale=False
+                coloraxis_showscale=False,
+                uniformtext=dict(minsize=11, mode='scale')
             )
+
             st.plotly_chart(fig_hm, use_container_width=True)
-            st.caption("출처: Finviz 섹터 분류 체계 및 Yahoo Finance 실시간 시세 연동")
+            st.caption("출처: Finviz(핀비즈) 공식 업종 분류 체계 및 실시간 시세 연동")
 
 # ==========================================
 # [에러 수리 완료] S&P 500 업종 성과 데이터 수집 함수 + 탭 UI 통합본
