@@ -5624,6 +5624,40 @@ def clean_ceo_name(name):
                 k_name = k_name[:-len(s)].strip(); break
         return k_name
     return name_str
+# =========================================================================
+# [전역 폰트 로더] 모든 쇼츠/캡컷/롱폼 블록에서 안전하게 호출되는 단일 폰트 엔진
+# =========================================================================
+@st.cache_resource
+def _load_korean_pil_fonts():
+    import os, urllib.request
+    from PIL import ImageFont
+
+    font_dir = "/tmp/agie_fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+
+    if not os.path.exists(gothic_font_path):
+        try:
+            url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
+            urllib.request.urlretrieve(url_gothic, gothic_font_path)
+        except Exception:
+            gothic_font_path = None
+
+    def get_font(size, is_chalk=True):
+        if gothic_font_path and os.path.exists(gothic_font_path):
+            try:
+                return ImageFont.truetype(gothic_font_path, int(size))
+            except Exception:
+                pass
+        for sys_font in ["C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+            if os.path.exists(sys_font):
+                try:
+                    return ImageFont.truetype(sys_font, int(size))
+                except Exception:
+                    pass
+        return ImageFont.load_default()
+
+    return get_font
 def fix_global_tts_pronunciation(text_s, is_en=False):
     if text_s is None:
         return "데이터 확인"
@@ -10218,8 +10252,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # [캡컷·유튜브 편집기용 원클릭 에셋 ZIP 팩 생성기]
                     # =========================================================================
                     import zipfile, io
-                    # ✅ [추가] 8476행 ZIP 생성 루프 바로 윗줄에 삽입하여 NameError 해결
-                    get_font = _load_korean_pil_fonts() if 'get_font' not in locals() else get_font
+                    try:
+                        get_font = _load_korean_pil_fonts()
+                    except Exception:
+                        get_font = lambda sz, is_chalk=True: ImageFont.load_default()
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                         # 1. 칠판 슬라이드 원본 이미지들 (자막 없는 클린 고화질 PNG 캡처본)
