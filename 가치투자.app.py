@@ -9203,8 +9203,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         capex_board_sub = "다운사이클 진입 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
                         capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
-                        capex_board_title = "설비 먹는 하마, 자사주 소각으로 승부!"
-                        capex_board_sub = "현금 배당은 짜도 주식 수 줄여 주가 방어!"
+                        capex_board_title = "수주 잔치 뒤에 묶인 운전자본!"
+                        capex_board_sub = "실제 현금 유입은 마이너스, 주주 배당은 8년째 무배당!"
 
                     if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
                         if div_val >= 2.5:
@@ -9817,7 +9817,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 400, 280, "S&P500 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 470, 280, "연 5.5%", f_chalk, start_sz=60, fill=white_c)
+                                _fit_single_line(draw, 195, 470, 280, "연 12%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
                                 _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
@@ -9888,12 +9888,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 3. CapEx 성격 & 재무 안전판", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
-                                _fit_single_line(draw, 195, 385, 280, "설비투자 (공장 증설)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"연 10조+", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 385, 280, "영업현금흐름(장부상 돈 묶임)", f_chalk, start_sz=28, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 455, 280, f"적자 전환", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
-                                div_disp_str = f"연 {safe_div:.2f}%" if safe_div > 0.05 else "무배당 (사내유보)"
+                                div_disp_str = f"(무배당)"
                                 div_disp_sz = 62 if safe_div > 0.05 else 42
                                 _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
