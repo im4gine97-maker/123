@@ -7200,12 +7200,14 @@ st.markdown(macro_html, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom:25px;'></div>", unsafe_allow_html=True)
 
-tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_qe, tab2, tab3, tab6, tab4, tab5 = st.tabs([
+=======
+tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_bull_bear, tab_qe, tab2, tab3, tab6, tab4, tab5 = st.tabs([
     t("개별 기업 가치분석", "Company Value Analysis"), 
     t("종목 1:1 맞대결", "1:1 Stock Battle"),
     t("핀비즈 히트맵", "Finviz Heatmap"),
     t("S&P500 업종 성과", "S&P500 Sector Performance"),
     t("S&P500 이익·밸류", "S&P500 Earnings & Valuation"),
+    t("📈 S&P500 강세·약세장", "S&P 500 Bull & Bear Cycles"),
     t("연준 유동성·QE 분석", "Fed Liquidity & QE"),
     t("유명 투자자 13F", "Guru 13F Portfolios"),
     t("시가총액 랭킹", "Market Cap Top 100"),
@@ -7213,6 +7215,7 @@ tab1, tab_vs, tab_heatmap, tab_sector, tab_eps_val, tab_qe, tab2, tab3, tab6, ta
     t("📖 가치투자 바이블 & 쇼츠", "📖 Value Bible & Shorts"),
     t("AGIE 철학", "About AGIE")
 ])
+>>>>>>>
 # ==========================================
 # 탭 1: 개별 기업 가치분석
 # ==========================================
@@ -9635,46 +9638,42 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
-                    @st.cache_resource
-                    def _load_korean_pil_fonts():
-                        import os, urllib.request
-                        from PIL import ImageFont
-                    
-                        font_dir = "/tmp/agie_fonts"
-                        os.makedirs(font_dir, exist_ok=True)
-                        chalk_font_path = os.path.join(font_dir, "NanumPenScript-Regular.ttf")
-                        gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
-                    
-                        # 1. 칠판 분필체 자동 다운로드
-                        if not os.path.exists(chalk_font_path):
-                            try:
-                                url_chalk = "https://github.com/google/fonts/raw/main/ofl/nanumpenscript/NanumPenScript-Regular.ttf"
-                                urllib.request.urlretrieve(url_chalk, chalk_font_path)
-                            except Exception:
-                                chalk_font_path = None
-                    
-                        # 2. 자막/헤더용 고딕 볼드체 자동 다운로드 (글자 깨짐 방지 핵심)
-                        if not os.path.exists(gothic_font_path):
-                            try:
-                                url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
-                                urllib.request.urlretrieve(url_gothic, gothic_font_path)
-                            except Exception:
-                                gothic_font_path = None
-                    
-                        def get_font(size, is_chalk=True):
-                            if is_chalk and chalk_font_path and os.path.exists(chalk_font_path):
+
+                    =======
+                        @st.cache_resource
+                        def _load_korean_pil_fonts():
+                            import os, urllib.request
+                            from PIL import ImageFont
+                        
+                            font_dir = "/tmp/agie_fonts"
+                            os.makedirs(font_dir, exist_ok=True)
+                            gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
+                        
+                            # 자막 및 칠판 공통용 고딕 엑스트라볼드 폰트 다운로드
+                            if not os.path.exists(gothic_font_path):
                                 try:
-                                    return ImageFont.truetype(chalk_font_path, int(size * 1.15))
+                                    url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
+                                    urllib.request.urlretrieve(url_gothic, gothic_font_path)
                                 except Exception:
-                                    pass
-                            if gothic_font_path and os.path.exists(gothic_font_path):
-                                try:
-                                    return ImageFont.truetype(gothic_font_path, int(size))
-                                except Exception:
-                                    pass
-                            return ImageFont.load_default()
-                    
-                        return get_font
+                                    gothic_font_path = None
+                        
+                            # 필기체(is_chalk) 요청도 모두 하단 자막과 동일한 볼드 고딕체로 단일 통일
+                            def get_font(size, is_chalk=True):
+                                if gothic_font_path and os.path.exists(gothic_font_path):
+                                    try:
+                                        return ImageFont.truetype(gothic_font_path, int(size))
+                                    except Exception:
+                                        pass
+                                for sys_font in ["C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
+                                    if os.path.exists(sys_font):
+                                        try:
+                                            return ImageFont.truetype(sys_font, int(size))
+                                        except Exception:
+                                            pass
+                                return ImageFont.load_default()
+                        
+                            return get_font
+                    >>>>>>>
                     def _clean_font_safe_text(txt):
                         if txt is None:
                             return ""
@@ -15326,6 +15325,116 @@ with tab_eps_val:
                             except Exception: pass
             except Exception as e:
                 st.warning(f"쇼츠 렌더링 오류: {e}")
+
+# ==========================================
+# [신규 탭] 📈 S&P 500 강세장 & 약세장 역사적 사이클 (1929~현재)
+# ==========================================
+with tab_bull_bear:
+    st.subheader(t("📈 S&P 500, 강세장(Bull) & 약세장(Bear) 역사적 흐름과 주기 (1929 ~ 현재)", "📈 S&P 500 Bull & Bear Market Cycles (1929 ~ Present)"))
+    st.caption(t("※ 역사적으로 약세장은 평균 0.9년(-31% 하락) 동안만 지속된 반면, 강세장은 평균 4.5년(+170% 이상 상승) 동안 압도적으로 길고 강하게 지속되었습니다.", "※ Historically, Bear markets averaged 0.9 years (-31%), while Bull markets averaged 4.5+ years (+170%+)."))
+
+    col_quote, col_chart = st.columns([1, 3.2])
+
+    with col_quote:
+        st.markdown("""
+        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px; margin-bottom: 14px;">
+            <div style="font-size: 0.88rem; color: #f87171; font-weight: 800; margin-bottom: 4px;">📉 약세장 (Bear Market) 통계</div>
+            <div style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">평균 0.9년 / -31%</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">고통은 짧고 집중적으로 지나갑니다.</div>
+        </div>
+        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px;">
+            <div style="font-size: 0.88rem; color: #4ade80; font-weight: 800; margin-bottom: 4px;">📈 강세장 (Bull Market) 통계</div>
+            <div style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">평균 4.5년 / +170%+</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">약세장보다 기간은 5배 길고 보상은 거대합니다.</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_chart:
+        # 사진 속 1929년 대공황부터 현재까지의 강세장/약세장 누적 수익률 주기 데이터
+        cycles_data = [
+            ("1929 대공황", "Bear", 1929, 1932, -86.1),
+            ("1932 회복", "Bull", 1932, 1937, 375.0),
+            ("1937 침체", "Bear", 1937, 1942, -60.0),
+            ("2차대전 랠리", "Bull", 1942, 1946, 158.0),
+            ("전후 조정", "Bear", 1946, 1949, -29.6),
+            ("1950s 황금기", "Bull", 1949, 1956, 267.0),
+            ("1956 조정", "Bear", 1956, 1957, -21.6),
+            ("1957 회복", "Bull", 1957, 1961, 86.4),
+            ("1961 플래시크래시", "Bear", 1961, 1962, -28.0),
+            ("1962 고성장", "Bull", 1962, 1966, 100.0),
+            ("1966 조정", "Bear", 1966, 1966, -22.2),
+            ("1966 회복", "Bull", 1966, 1968, 48.0),
+            ("1968 인플레약세", "Bear", 1968, 1970, -36.1),
+            ("1970 반등", "Bull", 1970, 1973, 73.5),
+            ("1973 오일쇼크", "Bear", 1973, 1974, -48.2),
+            ("1974 회복장", "Bull", 1974, 1980, 125.6),
+            ("1980 볼커쇼크", "Bear", 1980, 1982, -27.1),
+            ("1982 대세상승", "Bull", 1982, 1987, 229.0),
+            ("1987 블랙먼데이", "Bear", 1987, 1987, -33.5),
+            ("1987 닷컴랠리", "Bull", 1987, 2000, 582.0),
+            ("2000 닷컴버블", "Bear", 2000, 2002, -49.1),
+            ("2002 회복", "Bull", 2002, 2007, 101.5),
+            ("2007 금융위기", "Bear", 2007, 2009, -56.8),
+            ("2009 최장기강세", "Bull", 2009, 2020, 400.5),
+            ("2020 코로나", "Bear", 2020, 2020, -33.9),
+            ("2020 유동성랠리", "Bull", 2020, 2022, 114.4),
+            ("2022 인플레긴축", "Bear", 2022, 2022, -25.4),
+            ("2022~현재 AI랠리", "Bull", 2022, 2026, 82.0)
+        ]
+
+        fig_cycles = go.Figure()
+        x_names = [f"{c[0]}<br>({c[2]})" for c in cycles_data]
+        returns = [c[4] for c in cycles_data]
+        bar_colors = ["#2563eb" if c[1] == "Bull" else "#ea580c" for c in cycles_data]
+
+        fig_cycles.add_trace(go.Bar(
+            x=x_names,
+            y=returns,
+            marker_color=bar_colors,
+            text=[f"<b>{v:+.1f}%</b>" for v in returns],
+            textposition="outside",
+            cliponaxis=False,
+            textfont=dict(size=11, color="#ffffff")
+        ))
+
+        fig_cycles.add_hline(y=0, line_width=2, line_color="#cbd5e1")
+        fig_cycles.update_layout(
+            title=dict(
+                text="<b>S&P 500 Cumulative Return in Bull & Bear Markets (1929 ~ Present)</b>",
+                font=dict(size=16, color="#ffffff"),
+                x=0.02, y=0.96
+            ),
+            height=460,
+            paper_bgcolor="#0f172a",
+            plot_bgcolor="#0f172a",
+            font=dict(color="#e2e8f0", family="Pretendard, sans-serif"),
+            yaxis=dict(
+                title="누적 수익률 (%)",
+                ticksuffix="%",
+                gridcolor="#334155",
+                range=[-110, 650]
+            ),
+            xaxis=dict(
+                tickfont=dict(size=9, color="#cbd5e1"),
+                tickangle=-45
+            ),
+            margin=dict(l=60, r=30, t=50, b=80)
+        )
+        st.plotly_chart(fig_cycles, use_container_width=True)
+
+    st.markdown("#### 📋 역사적 강세장 vs 약세장 사이클 상세 데이터 (1929년 대공황 ~ 2020년대)")
+    df_bb_summary = pd.DataFrame([
+        {
+            "사이클 명칭": c[0],
+            "유형": "📈 강세장 (Bull)" if c[1] == "Bull" else "📉 약세장 (Bear)",
+            "시작 연도": f"{c[2]}년",
+            "종료 연도": f"{c[3]}년",
+            "지속 기간": f"{max(0.3, c[3] - c[2]):.1f}년",
+            "누적 등락률": f"{c[4]:+.1f}%"
+        }
+        for c in cycles_data
+    ])
+    st.dataframe(df_bb_summary, use_container_width=True, hide_index=True)
 with tab_qe:
     st.subheader(t("🏦 연준의 시중 유동성 관리 정책 : 미국 총부채 vs 연준 자산 (Big Print 스캐너)", "🏦 Fed Liquidity Policy & QE Tracker (FRED)"))
     st.caption(t("미국 전체 부채(적갈색 선, 1/10 스케일)와 연준 대차대조표 자산·본원통화(파란색 선)의 격차(Gap)가 임계점을 넘어설 때마다 연준은 신용경색과 시스템 붕괴를 막기 위해 대규모 유동성 공급(Big Print / QE)을 단행했습니다.", "When the gap between Total US Debt/10 and Fed Balance Sheet grows too large, the Fed historically intervenes with QE (Big Print)."))
