@@ -9639,7 +9639,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
 
-                    =======
+
                         @st.cache_resource
                         def _load_korean_pil_fonts():
                             import os, urllib.request
@@ -9673,7 +9673,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 return ImageFont.load_default()
                         
                             return get_font
-                    >>>>>>>
+
                     def _clean_font_safe_text(txt):
                         if txt is None:
                             return ""
