@@ -15385,61 +15385,114 @@ with tab_eps_val:
                 st.warning(f"쇼츠 렌더링 오류: {e}")
 
 # ==========================================
-# [신규 탭] 📈 S&P 500 강세장 & 약세장 역사적 사이클 (1929~현재)
+# [신규 탭] 📈 S&P 500 강세장 & 약세장 역사적 사이클 (1929~현재 실시간 자동 연동)
 # ==========================================
-with tab_bull_bear:
-    st.subheader(t("📈 S&P 500, 강세장(Bull) & 약세장(Bear) 역사적 흐름과 주기 (1929 ~ 현재)", "📈 S&P 500 Bull & Bear Market Cycles (1929 ~ Present)"))
-    st.caption(t("※ 역사적으로 약세장은 평균 0.9년(-31% 하락) 동안만 지속된 반면, 강세장은 평균 4.5년(+170% 이상 상승) 동안 압도적으로 길고 강하게 지속되었습니다.", "※ Historically, Bear markets averaged 0.9 years (-31%), while Bull markets averaged 4.5+ years (+170%+)."))
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_sp500_cycles_live():
+    """
+    1929년부터 현재까지의 역사적 강세장/약세장 데이터셋에
+    현재 진행 중인 사이클(2022년 10월 저점 3,577.03pt 기준)의 
+    실시간 누적 수익률과 지속 기간을 자동으로 계산하여 항상 최신화합니다.
+    """
+    # 1. 1929년 대공황 ~ 2022년 인플레 긴축까지의 확정된 역사적 사이클 데이터
+    historical_fixed = [
+        ("1929 대공황", "Bear", 1929, 1932, -86.1, 2.8),
+        ("1932 대반등", "Bull", 1932, 1937, 375.0, 4.8),
+        ("1937 침체", "Bear", 1937, 1942, -60.0, 4.9),
+        ("2차대전 랠리", "Bull", 1942, 1946, 158.0, 4.1),
+        ("전후 조정", "Bear", 1946, 1949, -29.6, 3.0),
+        ("1950s 황금기", "Bull", 1949, 1956, 267.0, 6.9),
+        ("1956 조정", "Bear", 1956, 1957, -21.6, 1.3),
+        ("1957 회복", "Bull", 1957, 1961, 86.4, 4.0),
+        ("1961 플래시크래시", "Bear", 1961, 1962, -28.0, 0.6),
+        ("1962 고성장", "Bull", 1962, 1966, 100.0, 3.8),
+        ("1966 베트남조정", "Bear", 1966, 1966, -22.2, 0.7),
+        ("1966 회복", "Bull", 1966, 1968, 48.0, 2.3),
+        ("1968 인플레약세", "Bear", 1968, 1970, -36.1, 1.4),
+        ("1970 반등", "Bull", 1970, 1973, 73.5, 2.8),
+        ("1973 오일쇼크", "Bear", 1973, 1974, -48.2, 1.8),
+        ("1974 회복장", "Bull", 1974, 1980, 125.6, 6.2),
+        ("1980 볼커쇼크", "Bear", 1980, 1982, -27.1, 1.7),
+        ("1982 대세상승", "Bull", 1982, 1987, 229.0, 5.2),
+        ("1987 블랙먼데이", "Bear", 1987, 1987, -33.5, 0.3),
+        ("1987 닷컴랠리", "Bull", 1987, 2000, 582.0, 12.4),
+        ("2000 닷컴버블", "Bear", 2000, 2002, -49.1, 2.5),
+        ("2002 회복", "Bull", 2002, 2007, 101.5, 5.0),
+        ("2007 금융위기", "Bear", 2007, 2009, -56.8, 1.4),
+        ("2009 최장기강세", "Bull", 2009, 2020, 400.5, 10.9),
+        ("2020 코로나", "Bear", 2020, 2020, -33.9, 0.1),
+        ("2020 유동성랠리", "Bull", 2020, 2022, 114.4, 1.8),
+        ("2022 인플레긴축", "Bear", 2022, 2022, -25.4, 0.8)
+    ]
 
-    col_quote, col_chart = st.columns([1, 3.2])
+    # 2. 현재 진행 중인 사이클(2022년 10월 12일 저점 3,577.03pt 기준) 실시간 연동
+    curr_sp = 6500.0
+    try:
+        sp_tk = yf.Ticker("^GSPC")
+        hist = sp_tk.history(period="5d")
+        if not hist.empty:
+            curr_sp = float(hist['Close'].dropna().iloc[-1])
+    except Exception:
+        pass
+
+    oct_2022_trough = 3577.03
+    live_ret = ((curr_sp - oct_2022_trough) / oct_2022_trough) * 100.0
+    now_dt = datetime.now()
+    live_dur = (now_dt - datetime(2022, 10, 12)).days / 365.25
+
+    cycles = list(historical_fixed)
+    cycles.append((f"2022~현재 강세장", "Bull", 2022, now_dt.year, round(live_ret, 1), round(live_dur, 1)))
+    return cycles, curr_sp
+
+with tab_bull_bear:
+    cycles_data, current_sp_val = fetch_sp500_cycles_live()
+
+    # 실시간 통계 자동 계산 (데이터셋이 갱신될 때마다 평균값 자동 최신화)
+    bear_items = [c for c in cycles_data if c[1] == "Bear"]
+    bull_items = [c for c in cycles_data if c[1] == "Bull"]
+    avg_bear_dur = sum(c[5] for c in bear_items) / len(bear_items)
+    avg_bear_ret = sum(c[4] for c in bear_items) / len(bear_items)
+    avg_bull_dur = sum(c[5] for c in bull_items) / len(bull_items)
+    avg_bull_ret = sum(c[4] for c in bull_items) / len(bull_items)
+    current_bull = cycles_data[-1]
+
+    st.subheader(t("📈 S&P 500, 강세장(Bull) & 약세장(Bear) 역사적 흐름과 주기 (1929 ~ 현재)", "📈 S&P 500 Bull & Bear Market Cycles (1929 ~ Present)"))
+    st.caption(f"💡 현재 S&P 500 지수(<b>{current_sp_val:,.2f}pt</b>)를 반영하여 2022년 저점(3,577pt) 이후 진행 중인 강세장 누적 수익률(<b>{current_bull[4]:+.1f}%</b>)과 역사적 평균이 실시간 자동 갱신됩니다.")
+
+    col_quote, col_chart = st.columns([1.1, 3.1])
 
     with col_quote:
+        # 찰리 멍거 명언 박스
         st.markdown("""
-        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px; margin-bottom: 14px;">
-            <div style="font-size: 0.88rem; color: #f87171; font-weight: 800; margin-bottom: 4px;">📉 약세장 (Bear Market) 통계</div>
-            <div style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">평균 0.9년 / -31%</div>
-            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">고통은 짧고 집중적으로 지나갑니다.</div>
+        <div style="background: rgba(26, 115, 232, 0.08); border: 2px solid #38bdf8; border-radius: 16px; padding: 22px 18px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 16px;">
+            <div style="font-size: 0.85rem; color: #38bdf8; font-weight: 800; margin-bottom: 10px; letter-spacing: 1px;">THE VALUE PHILOSOPHY</div>
+            <div style="font-size: 1.15rem; font-weight: 900; color: var(--text-color); line-height: 1.7; word-break: keep-all;">
+                “기대치를 낮추는 게 중요합니다.<br>그래서 제가 결혼할 수 있었죠.”
+            </div>
+            <div style="font-size: 0.95rem; color: #facc15; font-weight: 800; margin-top: 10px;">— 찰리 멍거 (Charlie Munger)</div>
         </div>
-        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px;">
-            <div style="font-size: 0.88rem; color: #4ade80; font-weight: 800; margin-bottom: 4px;">📈 강세장 (Bull Market) 통계</div>
-            <div style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">평균 4.5년 / +170%+</div>
-            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">약세장보다 기간은 5배 길고 보상은 거대합니다.</div>
+        """, unsafe_allow_html=True)
+
+        # 실시간 자동 계산 통계 카드
+        st.markdown(f"""
+        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px; margin-bottom: 14px;">
+            <div style="font-size: 0.88rem; color: #f87171; font-weight: 800; margin-bottom: 4px;">📉 약세장 (Bear Market) 평균</div>
+            <div style="font-size: 1.35rem; font-weight: 900; color: #ffffff;">평균 {avg_bear_dur:.1f}년 / {avg_bear_ret:.1f}%</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">고통은 짧고 집중적으로 지나갑니다. (총 {len(bear_items)}회)</div>
+        </div>
+        <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px; margin-bottom: 14px;">
+            <div style="font-size: 0.88rem; color: #4ade80; font-weight: 800; margin-bottom: 4px;">📈 강세장 (Bull Market) 평균</div>
+            <div style="font-size: 1.35rem; font-weight: 900; color: #ffffff;">평균 {avg_bull_dur:.1f}년 / +{avg_bull_ret:.1f}%</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">약세장보다 기간은 5배 길고 보상은 거대합니다. (총 {len(bull_items)}회)</div>
+        </div>
+        <div style="background: rgba(37,99,235,0.12); border: 1.5px solid #3b82f6; border-radius: 14px; padding: 18px;">
+            <div style="font-size: 0.88rem; color: #60a5fa; font-weight: 800; margin-bottom: 4px;">🔥 현재 진행 중인 강세장 ({current_bull[2]}~{current_bull[3]})</div>
+            <div style="font-size: 1.35rem; font-weight: 900; color: #facc15;">{current_bull[5]:.1f}년차 / {current_bull[4]:+.1f}%</div>
+            <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 4px;">2022.10.12 저점(3,577pt) 이후 실시간 연동</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col_chart:
-        # 사진 속 1929년 대공황부터 현재까지의 강세장/약세장 누적 수익률 주기 데이터
-        cycles_data = [
-            ("1929 대공황", "Bear", 1929, 1932, -86.1),
-            ("1932 회복", "Bull", 1932, 1937, 375.0),
-            ("1937 침체", "Bear", 1937, 1942, -60.0),
-            ("2차대전 랠리", "Bull", 1942, 1946, 158.0),
-            ("전후 조정", "Bear", 1946, 1949, -29.6),
-            ("1950s 황금기", "Bull", 1949, 1956, 267.0),
-            ("1956 조정", "Bear", 1956, 1957, -21.6),
-            ("1957 회복", "Bull", 1957, 1961, 86.4),
-            ("1961 플래시크래시", "Bear", 1961, 1962, -28.0),
-            ("1962 고성장", "Bull", 1962, 1966, 100.0),
-            ("1966 조정", "Bear", 1966, 1966, -22.2),
-            ("1966 회복", "Bull", 1966, 1968, 48.0),
-            ("1968 인플레약세", "Bear", 1968, 1970, -36.1),
-            ("1970 반등", "Bull", 1970, 1973, 73.5),
-            ("1973 오일쇼크", "Bear", 1973, 1974, -48.2),
-            ("1974 회복장", "Bull", 1974, 1980, 125.6),
-            ("1980 볼커쇼크", "Bear", 1980, 1982, -27.1),
-            ("1982 대세상승", "Bull", 1982, 1987, 229.0),
-            ("1987 블랙먼데이", "Bear", 1987, 1987, -33.5),
-            ("1987 닷컴랠리", "Bull", 1987, 2000, 582.0),
-            ("2000 닷컴버블", "Bear", 2000, 2002, -49.1),
-            ("2002 회복", "Bull", 2002, 2007, 101.5),
-            ("2007 금융위기", "Bear", 2007, 2009, -56.8),
-            ("2009 최장기강세", "Bull", 2009, 2020, 400.5),
-            ("2020 코로나", "Bear", 2020, 2020, -33.9),
-            ("2020 유동성랠리", "Bull", 2020, 2022, 114.4),
-            ("2022 인플레긴축", "Bear", 2022, 2022, -25.4),
-            ("2022~현재 AI랠리", "Bull", 2022, 2026, 82.0)
-        ]
-
         fig_cycles = go.Figure()
         x_names = [f"{c[0]}<br>({c[2]})" for c in cycles_data]
         returns = [c[4] for c in cycles_data]
@@ -15451,18 +15504,24 @@ with tab_bull_bear:
             marker_color=bar_colors,
             text=[f"<b>{v:+.1f}%</b>" for v in returns],
             textposition="outside",
-            cliponaxis=False,
-            textfont=dict(size=11, color="#ffffff")
+            cliponaxis=False,  # 상단 글씨가 차트 경계선에 잘리는 현상 방지
+            textfont=dict(size=10, color="#ffffff")
         ))
 
+        # 기준선 0%
         fig_cycles.add_hline(y=0, line_width=2, line_color="#cbd5e1")
+
+        # 닷컴 버블(+582%) 등 초대형 수치가 상단 천장에 잘리지 않도록 여유 범위 자동 계산
+        max_ret = max(returns)
+        min_ret = min(returns)
+
         fig_cycles.update_layout(
             title=dict(
-                text="<b>S&P 500 Cumulative Return in Bull & Bear Markets (1929 ~ Present)</b>",
+                text=f"<b>S&P 500 Cumulative Return in Bull & Bear Markets (1929 ~ {datetime.now().year})</b>",
                 font=dict(size=16, color="#ffffff"),
                 x=0.02, y=0.96
             ),
-            height=460,
+            height=530,
             paper_bgcolor="#0f172a",
             plot_bgcolor="#0f172a",
             font=dict(color="#e2e8f0", family="Pretendard, sans-serif"),
@@ -15470,24 +15529,25 @@ with tab_bull_bear:
                 title="누적 수익률 (%)",
                 ticksuffix="%",
                 gridcolor="#334155",
-                range=[-110, 650]
+                range=[min_ret - 25, max_ret + 75]  # 글자 잘림 방지용 동적 버퍼
             ),
             xaxis=dict(
                 tickfont=dict(size=9, color="#cbd5e1"),
-                tickangle=-45
+                tickangle=-45,
+                showgrid=False
             ),
-            margin=dict(l=60, r=30, t=50, b=80)
+            margin=dict(l=60, r=30, t=65, b=95)  # 하단 라벨 및 상단 텍스트 잘림 방지 여백
         )
         st.plotly_chart(fig_cycles, use_container_width=True)
 
-    st.markdown("#### 📋 역사적 강세장 vs 약세장 사이클 상세 데이터 (1929년 대공황 ~ 2020년대)")
+    st.markdown("#### 📋 역사적 강세장 vs 약세장 사이클 상세 데이터 (1929년 대공황 ~ 현재)")
     df_bb_summary = pd.DataFrame([
         {
             "사이클 명칭": c[0],
             "유형": "📈 강세장 (Bull)" if c[1] == "Bull" else "📉 약세장 (Bear)",
             "시작 연도": f"{c[2]}년",
-            "종료 연도": f"{c[3]}년",
-            "지속 기간": f"{max(0.3, c[3] - c[2]):.1f}년",
+            "종료 연도": f"{c[3]}년" if "현재" not in str(c[0]) else "진행 중",
+            "지속 기간": f"{c[5]:.1f}년",
             "누적 등락률": f"{c[4]:+.1f}%"
         }
         for c in cycles_data
