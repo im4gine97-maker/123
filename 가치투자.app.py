@@ -14312,8 +14312,7 @@ with tab_heatmap:
                 margin=dict(t=8, l=4, r=4, b=8),
                 paper_bgcolor="#0b0e14",
                 plot_bgcolor="#0b0e14",
-                coloraxis_showscale=False,
-                uniformtext=dict(minsize=11, mode='scale')
+                coloraxis_showscale=False
             )
 
             st.plotly_chart(fig_hm, use_container_width=True)
