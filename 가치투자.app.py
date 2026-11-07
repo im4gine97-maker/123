@@ -9820,14 +9820,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 470, 280, "연 12%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 525, 470, 250, 85, mark_type="red_circle")
 
                                 # '회사 밑천 1,000만 원당 창출' 문구 및 밑줄 완전 삭제 후, 하단 영업마진 캡슐을 중앙에 깔끔하게 배치
                                 draw.line([(55, 560), (W - 55, 560)], fill=(50, 75, 100), width=2)
                                 draw.rounded_rectangle([50, 610, W - 50, 750], radius=20, fill=(18, 45, 68), outline=green_c, width=4)
                                 _fit_single_line(draw, 240, 680, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=34, fill=yellow_c)
-                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 525, 680, 195, 72, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
@@ -9889,13 +9889,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 385, 280, "영업현금흐름(장부상 돈 묶임)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"적자 전환", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 455, 280, f"적자 전환", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
                                 div_disp_str = f"(무배당)"
                                 div_disp_sz = 62 if safe_div > 0.05 else 42
-                                _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=yellow_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
                                 draw.rounded_rectangle([50, 560, W - 50, 755], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
                                 _fit_single_line(draw, W // 2, 615, W - 120, capex_board_title, f_chalk, start_sz=30, fill=yellow_c, stroke_w=2)
