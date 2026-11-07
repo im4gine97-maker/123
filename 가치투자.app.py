@@ -9930,7 +9930,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 )
 
                         # 5. 하단 푸터 및 법적 고지
-                        _fit_single_line(draw, W // 2, 1102, W - 60, "▶ @15초장부팩트체크 · 다음 분석 종목을 댓글로 신청하세요!", f_gothic, start_sz=25, fill=yellow_c)
+                        _fit_single_line(draw, W // 2, 1102, W - 60, "▶ @버핏의 장부체크 · 다음 분석 종목을 댓글로 신청하세요!", f_gothic, start_sz=25, fill=yellow_c)
                         _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시(TTM·10년 장부) 기반 교육용 통계이며 특정 종목 매수·매도 권유가 아닙니다", f_gothic, start_sz=13, fill=(140, 150, 165))
                         return img
                         
