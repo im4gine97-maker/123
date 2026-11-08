@@ -9860,7 +9860,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(55, 560), (W - 55, 560)], fill=(50, 75, 100), width=2)
                                 draw.rounded_rectangle([50, 610, W - 50, 750], radius=20, fill=(18, 45, 68), outline=green_c, width=4)
                                 _fit_single_line(draw, 240, 680, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=34, fill=yellow_c)
-                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 525, 680, 195, 72, mark_type="red_circle")
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
@@ -9922,13 +9922,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 385, 280, "영업현금흐름(장부상 돈 묶임)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"적자 전환", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 455, 280, f"지속 흑자!", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
-                                div_disp_str = f"(무배당)"
+                                div_disp_str = f"주당 2,630원"
                                 div_disp_sz = 62 if safe_div > 0.05 else 42
-                                _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=yellow_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
                                 draw.rounded_rectangle([50, 560, W - 50, 755], radius=20, fill=(18, 42, 70), outline=yellow_c, width=4)
                                 _fit_single_line(draw, W // 2, 615, W - 120, capex_board_title, f_chalk, start_sz=30, fill=yellow_c, stroke_w=2)
