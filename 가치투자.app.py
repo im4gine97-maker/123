@@ -15463,17 +15463,6 @@ with tab_bull_bear:
     col_quote, col_chart = st.columns([1.1, 3.1])
 
     with col_quote:
-        # 찰리 멍거 명언 박스
-        st.markdown("""
-        <div style="background: rgba(26, 115, 232, 0.08); border: 2px solid #38bdf8; border-radius: 16px; padding: 22px 18px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 16px;">
-            <div style="font-size: 0.85rem; color: #38bdf8; font-weight: 800; margin-bottom: 10px; letter-spacing: 1px;">THE VALUE PHILOSOPHY</div>
-            <div style="font-size: 1.15rem; font-weight: 900; color: var(--text-color); line-height: 1.7; word-break: keep-all;">
-                “기대치를 낮추는 게 중요합니다.<br>그래서 제가 결혼할 수 있었죠.”
-            </div>
-            <div style="font-size: 0.95rem; color: #facc15; font-weight: 800; margin-top: 10px;">— 찰리 멍거 (Charlie Munger)</div>
-        </div>
-        """, unsafe_allow_html=True)
-
         # 실시간 자동 계산 통계 카드
         st.markdown(f"""
         <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 14px; padding: 18px; margin-bottom: 14px;">
