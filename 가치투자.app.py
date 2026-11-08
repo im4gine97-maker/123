@@ -8945,23 +8945,28 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     col_sh1, col_sh2 = st.columns([1.5, 1.5])
                     with col_sh1:
                         if is_en_shorts:
+                            if is_en_shorts:
                             voice_choice = st.selectbox(
-                                "1️⃣ 미국 본토 AI 성우 선택 (Extreme High-Tone 지원)",
+                                "1️⃣ 미국 본토 AI 성우 선택 (버핏 특화 & 하이톤)",
                                 [
-                                    "💥 1위 [MrBeast Extreme High-Tone] 초고텐션 하이톤 남성 (Andrew +12Hz + FFmpeg 가속)",
-                                    "⚡ 2위 [Ava Extreme High-Tone] 귀에 꽂히는 하이톤 여성 (+10Hz)",
-                                    "🎙️ 3위 [Custom GPT-SoVITS] 코랩(Colab) 외부 TTS API 연동"
+                                    "💥 1위 [MrBeast Extreme High-Tone] 초고텐션 하이톤 남성 (Andrew +12Hz)",
+                                    "👴 2위 [Warren Buffett Original US] 중후한 오마하 현인 톤 (Christopher -3Hz)",
+                                    "🎙️ 3위 [Deep Authority Master] 신뢰감 넘치는 월가 원로 톤 (Guy -4Hz)",
+                                    "⚡ 4위 [Ava Extreme High-Tone] 귀에 꽂히는 하이톤 여성 (+10Hz)",
+                                    "🎙️ 5위 [Custom GPT-SoVITS] 코랩(Colab) 외부 TTS API 연동"
                                 ],
                                 key=f"shorts_voice_en_v12_{tk}"
                             )
                         else:
                             voice_choice = st.selectbox(
-                                "1️⃣ 쇼츠 AI 성우 선택 (미스터비스트 하이톤 & 코랩 GPT-SoVITS)",
+                                "1️⃣ 쇼츠 AI 성우 선택 (현재 음성 1위 유지 + 버핏 맞춤형 보이스 추가)",
                                 [
-                                    "💥 1위 [미스터비스트 극한 하이톤 남성] 귀에 때려박는 초고텐션 (인준 +12Hz 하이톤 + 물리 가속)",
-                                    "⚡ 2위 [하이톤 도파민 여성] 숏폼 특화 날카로운 하이톤 (선희 +10Hz 튜닝)",
-                                    "🔥 3위 [하이톤 속사포 남성] 숨 쉴 틈 없는 팩트 폭격 (현수 +11Hz 튜닝)",
-                                    "🎙️ 4위 [코랩 GPT-SoVITS 연동] 내 커스텀 AI 보이스 (API URL 연동)"
+                                    "💥 1위 [미스터비스트 극한 하이톤 남성] 귀에 때려박는 초고텐션 (인준 +12Hz 하이톤 + 물리 가속) [기존 기본값]",
+                                    "👴 2위 [오마하의 현인 봉진] 인자하고 중후한 정통 버핏 할아버지 톤 (봉진 -4Hz 중저음)",
+                                    "🎙️ 3위 [신뢰감 원로 애널리스트] 안정감 있고 묵직한 주총 브리핑 톤 (남신 -3Hz)",
+                                    "🔥 4위 [하이톤 속사포 남성] 숨 쉴 틈 없는 팩트 폭격 (현수 +11Hz 튜닝)",
+                                    "⚡ 5위 [하이톤 도파민 여성] 숏폼 특화 날카로운 하이톤 (선희 +10Hz 튜닝)",
+                                    "🎙️ 6위 [코랩 GPT-SoVITS 연동] 내 커스텀 AI 보이스 (API URL 연동)"
                                 ],
                                 key=f"shorts_voice_ko_v12_{tk}"
                             )
