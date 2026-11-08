@@ -9247,26 +9247,22 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         capex_board_title = "수주 잔치 뒤에 묶인 운전자본!"
                         capex_board_sub = "실제 현금 유입은 마이너스, 주주 배당은 8년째 무배당!"
 
-                    # 배당수익률 수치가 다른 마진 지표와 혼동되지 않도록 실제 배당값 안전 정규화
-                    real_div_say = safe_div if ('safe_div' in locals() and safe_div > 0) else (div if ('div' in locals() and div > 0) else 0.0)
-                    
                     if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
-                        if real_div_say >= 2.0:
-                            share_speech = f"단일 사업 의존도는 있지만 연 {real_div_say:.1f}% 현금배당으로 보답해!"
+                        if div_val >= 2.5:
+                            share_speech = f"단일 사업 의존도는 있지만 연 {div_val:.1f}% 현금배당으로 보답해!"
                         elif bb_val >= 1.0:
                             share_speech = "단일 사업 의존도는 있지만 자사주 소각으로 주당 가치를 올려줘!"
                         else:
                             share_speech = "단일 사업 집중도가 높아 불황기 방어 체력을 꼭 봐야 해!"
                     else:
-                        if bb_val >= 1.0 and real_div_say >= 1.5:
-                            share_speech = f"사업 다각화에 자사주 소각과 연 {real_div_say:.1f}% 배당까지 챙겨줘!"
+                        if bb_val >= 1.0 and div_val >= 2.0:
+                            share_speech = f"사업 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
                         elif bb_val >= 1.0:
                             share_speech = "사업 다각화에 적극적인 자사주 소각으로 주당 가치를 높여줘!"
-                        elif real_div_say >= 1.5:
-                            share_speech = f"사업 다각화에 연 {real_div_say:.1f}% 쏠쏠한 현금배당으로 안전판을 받쳐줘!"
+                        elif div_val >= 2.5:
+                            share_speech = f"사업 다각화에 연 {div_val:.1f}% 쏠쏠한 현금배당으로 안전판을 받쳐줘!"
                         else:
                             share_speech = "탄탄한 사업 다각화로 불황기 리스크를 든든하게 막았어!"
-
 
                     saf_line = (
                         f"버핏은 끝없이 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / "
@@ -9542,34 +9538,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pop_chunks.append((cl_txt, sc_tag))
 
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_chapter_start=False, sr=24000):
-                        """
-                        [입체 시네마틱 SFX] 챕터 전환 스우시(Whoosh) + 가슴을 울리는 서브베이스 쿵(45Hz Thud) + 캐시 링 합성
-                        """
-                        import math, random
+                        import math
                         if "없음" in sfx_style_str or not is_chapter_start:
                             return []
                         two_pi = 2.0 * math.pi
                         samples = []
-                        dur = 0.16
+                        dur = 0.13
                         n_s = int(sr * dur)
-                        rng = random.Random(2026 + cut_idx)
-                        
                         for idx_i in range(n_s):
                             t_s = idx_i / sr
-                            # 1. 공기 가르는 날카로운 스우시 노이즈 (초반 0.06초)
-                            whoosh_env = math.sin((idx_i / n_s) * math.pi) * math.exp(-t_s * 14.0)
-                            whoosh_noise = rng.uniform(-0.35, 0.35) * whoosh_env
-                            
-                            # 2. 묵직하게 바닥을 때리는 45Hz 서브베이스 펀치 (Boom)
-                            sub_freq = 45.0 + 85.0 * math.exp(-t_s * 28.0)
-                            sub_env = math.exp(-t_s * 13.0) * min(1.0, t_s / 0.004)
-                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.50
-                            
-                            # 3. 경쾌한 고음 금속 타격 벨소리 (Coin Ring)
-                            ring_wave = math.sin(two_pi * 1318.5 * t_s) * math.exp(-t_s * 24.0) * 0.22
-                            
-                            mixed = max(-0.95, min(0.95, whoosh_noise + sub_punch + ring_wave))
-                            samples.append(mixed)
+                            sub_freq = 50.0 + 70.0 * math.exp(-t_s * 30.0)
+                            sub_env = math.exp(-t_s * 16.0) * min(1.0, t_s / 0.003)
+                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.30
+                            ring_wave = math.sin(two_pi * 1046.5 * t_s) * math.exp(-t_s * 28.0) * 0.14
+                            samples.append(max(-0.85, min(0.85, sub_punch + ring_wave)))
                         return samples
 
                     def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, cut_idx=0, is_chapter_start=False):
@@ -10080,20 +10062,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         if last_img_path:
                                             icf.write(f"file '{last_img_path.replace(chr(92), '/')}'\n")
 
-                                    # 컷 시작 순간 0.08초간 화면이 1.05배 확대·미세 쉐이크되며 플래시(Flash)가 터지는 펀치 줌 필터
-                                    vf_punch_motion = (
-                                        "scale=756:1344:flags=lanczos,"
-                                        "crop=720:1280:'(iw-720)/2+if(lt(t,0.08),sin(t*180)*5,0)':'(ih-1280)/2+if(lt(t,0.08),cos(t*150)*5,0)',"
-                                        "eq=eval=frame:brightness='if(lt(t,0.05),0.10,0)'"
-                                    )
-
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", img_concat_txt, "-i", f_wav,
-                                        "-vf", vf_punch_motion, "-r", "30",
+                                        "-vf", "scale=720:1280:flags=lanczos", "-r", "30",
                                         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
                                         "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
                                         "-t", f"{exact_dur:.3f}", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
                                     # 이미지와 오디오(tmp_Created)만 즉시 청소하고, f_seg는 살려둡니다!
                                     for tf_rm in tmp_Created:
                                         if os.path.exists(tf_rm):
