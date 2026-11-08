@@ -8945,7 +8945,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     col_sh1, col_sh2 = st.columns([1.5, 1.5])
                     with col_sh1:
                         if is_en_shorts:
-                            if is_en_shorts:
                             voice_choice = st.selectbox(
                                 "1️⃣ 미국 본토 AI 성우 선택 (버핏 특화 & 하이톤)",
                                 [
