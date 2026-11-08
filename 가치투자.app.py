@@ -9542,35 +9542,35 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pop_chunks.append((cl_txt, sc_tag))
 
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_chapter_start=False, sr=24000):
-                    """
-                    [입체 시네마틱 SFX] 챕터 전환 스우시(Whoosh) + 가슴을 울리는 서브베이스 쿵(45Hz Thud) + 캐시 링 합성
-                    """
-                    import math, random
-                    if "없음" in sfx_style_str or not is_chapter_start:
-                        return []
-                    two_pi = 2.0 * math.pi
-                    samples = []
-                    dur = 0.16
-                    n_s = int(sr * dur)
-                    rng = random.Random(2026 + cut_idx)
-                    
-                    for idx_i in range(n_s):
-                        t_s = idx_i / sr
-                        # 1. 공기 가르는 날카로운 스우시 노이즈 (초반 0.06초)
-                        whoosh_env = math.sin((idx_i / n_s) * math.pi) * math.exp(-t_s * 14.0)
-                        whoosh_noise = rng.uniform(-0.35, 0.35) * whoosh_env
+                        """
+                        [입체 시네마틱 SFX] 챕터 전환 스우시(Whoosh) + 가슴을 울리는 서브베이스 쿵(45Hz Thud) + 캐시 링 합성
+                        """
+                        import math, random
+                        if "없음" in sfx_style_str or not is_chapter_start:
+                            return []
+                        two_pi = 2.0 * math.pi
+                        samples = []
+                        dur = 0.16
+                        n_s = int(sr * dur)
+                        rng = random.Random(2026 + cut_idx)
                         
-                        # 2. 묵직하게 바닥을 때리는 45Hz 서브베이스 펀치 (Boom)
-                        sub_freq = 45.0 + 85.0 * math.exp(-t_s * 28.0)
-                        sub_env = math.exp(-t_s * 13.0) * min(1.0, t_s / 0.004)
-                        sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.50
-                        
-                        # 3. 경쾌한 고음 금속 타격 벨소리 (Coin Ring)
-                        ring_wave = math.sin(two_pi * 1318.5 * t_s) * math.exp(-t_s * 24.0) * 0.22
-                        
-                        mixed = max(-0.95, min(0.95, whoosh_noise + sub_punch + ring_wave))
-                        samples.append(mixed)
-                    return samples
+                        for idx_i in range(n_s):
+                            t_s = idx_i / sr
+                            # 1. 공기 가르는 날카로운 스우시 노이즈 (초반 0.06초)
+                            whoosh_env = math.sin((idx_i / n_s) * math.pi) * math.exp(-t_s * 14.0)
+                            whoosh_noise = rng.uniform(-0.35, 0.35) * whoosh_env
+                            
+                            # 2. 묵직하게 바닥을 때리는 45Hz 서브베이스 펀치 (Boom)
+                            sub_freq = 45.0 + 85.0 * math.exp(-t_s * 28.0)
+                            sub_env = math.exp(-t_s * 13.0) * min(1.0, t_s / 0.004)
+                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.50
+                            
+                            # 3. 경쾌한 고음 금속 타격 벨소리 (Coin Ring)
+                            ring_wave = math.sin(two_pi * 1318.5 * t_s) * math.exp(-t_s * 24.0) * 0.22
+                            
+                            mixed = max(-0.95, min(0.95, whoosh_noise + sub_punch + ring_wave))
+                            samples.append(mixed)
+                        return samples
 
                     def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, cut_idx=0, is_chapter_start=False):
                         import wave, struct
