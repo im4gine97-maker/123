@@ -9605,20 +9605,38 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         if not tts_ready_text:
                             tts_ready_text = "핵심 지표 확인"
 
-                        # [성우 및 음정 튜닝]
-                        if "현수" in str(voice_choice) or "속사포" in str(voice_choice):
-                            voice_id = "ko-KR-HyunsuNeural"
-                            pitch_str = "+4Hz"
-                        elif "여성" in str(voice_choice) or "선희" in str(voice_choice):
-                            voice_id = "ko-KR-SunHiNeural"
-                            pitch_str = "+2Hz"
-                        elif "봉진" in str(voice_choice) or "버핏" in str(voice_choice):
-                            voice_id = "ko-KR-BongJinNeural"
-                            pitch_str = "+0Hz"
+                        # [성우 및 음정 튜닝: 기존 1번 유지 + 버핏 전용 톤 매핑]
+                        v_str = str(voice_choice)
+                        if is_en_shorts:
+                            if "Christopher" in v_str or "Buffett Original" in v_str:
+                                voice_id = "en-US-ChristopherNeural"
+                                pitch_str = "-3Hz"
+                            elif "Guy" in v_str or "Deep Authority" in v_str:
+                                voice_id = "en-US-GuyNeural"
+                                pitch_str = "-4Hz"
+                            elif "Ava" in v_str:
+                                voice_id = "en-US-AvaNeural"
+                                pitch_str = "+8Hz"
+                            else:
+                                voice_id = "en-US-AndrewNeural"
+                                pitch_str = "+10Hz"
                         else:
-                            voice_id = "ko-KR-InJoonNeural"
-                            pitch_str = "+2Hz"
-
+                            if "봉진" in v_str or "오마하의 현인" in v_str:
+                                voice_id = "ko-KR-BongJinNeural"
+                                pitch_str = "-4Hz"
+                            elif "남신" in v_str or "원로 애널리스트" in v_str:
+                                voice_id = "ko-KR-NamMinNeural" if "NamMin" in v_str else "ko-KR-InJoonNeural"
+                                pitch_str = "-3Hz"
+                            elif "현수" in v_str or "속사포" in v_str:
+                                voice_id = "ko-KR-HyunsuNeural"
+                                pitch_str = "+4Hz"
+                            elif "선희" in v_str or "여성" in v_str:
+                                voice_id = "ko-KR-SunHiNeural"
+                                pitch_str = "+2Hz"
+                            else:
+                                # 1위: 기존 미스터비스트 극한 하이톤 (인준)
+                                voice_id = "ko-KR-InJoonNeural"
+                                pitch_str = "+2Hz"
                         # 1차 TTS 생성: 원본 속도(+0%)로 깨끗하게 추출 (이중 배속 방지!)
                         try:
                             import edge_tts, asyncio
