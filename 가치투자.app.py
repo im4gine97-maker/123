@@ -9816,6 +9816,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                         # 2. 중앙 칠판 보드 (상단 마진 확보: Y 255 ~ 995)
                         board_top, board_bot = 255, 995
+                        board_bg_col = (14, 28, 42)
                         draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
                         draw.rectangle([0, board_top, W, board_top + 6], fill=(217, 165, 32))
                         draw.rectangle([0, 978, W, 1002], fill=(45, 34, 24))
