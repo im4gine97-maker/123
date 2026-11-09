@@ -9552,7 +9552,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
 
                     # ▼▼▼ [수정 2 시작] 5부작 에피소드별 고유 칠판 테마 & 단독 빅데이터 판서 렌더링 엔진 ▼▼▼
-                    ddef _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
+                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
                         # ▼▼▼ [추가] 멀티스레딩 환경에서도 char_mode_sh 미정의 에러가 절대 나지 않도록 세션에서 직접 로드 ▼▼▼
                         char_mode_sh = str(st.session_state.get(f"sh_char_mode_{tk}", "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)"))
                         custom_char_pil = locals().get("custom_char_pil", None)
