@@ -8872,50 +8872,62 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     st.markdown("##### 🎛️ 0️⃣ 쇼츠용 핵심 지표 직접 수정 (수정 즉시 대본·폭격 보드·10년 차트에 100% 반영)")
                     ov_c1, ov_c2, ov_c3, ov_c4, ov_c5, ov_c6 = st.columns(6)
                     with ov_c1:
+                        val_fcfg = safe_float(final_g * 100.0 if 'final_g' in locals() else 0.0, 0.0)
+                        val_fcfg = min(300.0, max(-99.9, val_fcfg))
                         sh_fcf_g_pct = st.number_input(
                             "📈 FCF 연평균 성장률(%)",
                             min_value=-99.9, max_value=300.0,
-                            value=float(round(final_g * 100.0, 2)),
+                            value=float(round(val_fcfg, 2)),
                             step=0.1, format="%.2f",
                             key=f"sh_ov_fcfg_{tk}"
                         )
                     with ov_c2:
+                        val_span = int(fcf_span_auto) if ('fcf_span_auto' in locals() and safe_float(fcf_span_auto) > 0) else 10
+                        val_span = min(10, max(1, val_span))
                         sh_fcf_span = st.number_input(
                             "⏳ FCF 측정기간(년)",
                             min_value=1, max_value=10,
-                            value=max(1, min(10, int(fcf_span_auto) if fcf_span_auto > 0 else 10)),
+                            value=val_span,
                             step=1,
                             key=f"sh_ov_fcfspan_{tk}"
                         )
                     with ov_c3:
+                        val_fpe = safe_float(f_pe if 'f_pe' in locals() else 0.0, 0.0)
+                        val_fpe = min(500.0, max(0.0, val_fpe))
                         sh_f_pe = st.number_input(
                             "⏱️ 선행 PER (배)",
                             min_value=0.0, max_value=500.0,
-                            value=float(round(max(0.0, f_pe), 2)),
+                            value=float(round(val_fpe, 2)),
                             step=0.1, format="%.2f",
                             key=f"sh_ov_fpe_{tk}"
                         )
                     with ov_c4:
+                        val_ape = safe_float(a_pe if 'a_pe' in locals() else 0.0, 0.0)
+                        val_ape = min(500.0, max(0.0, val_ape))
                         sh_a_pe = st.number_input(
                             "📊 10년 평균 PER (배)",
                             min_value=0.0, max_value=500.0,
-                            value=float(round(max(0.0, a_pe), 2)),
+                            value=float(round(val_ape, 2)),
                             step=0.1, format="%.2f",
                             key=f"sh_ov_ape_{tk}"
                         )
                     with ov_c5:
+                        val_pbr = safe_float(pbr if 'pbr' in locals() else 0.0, 0.0)
+                        val_pbr = min(200.0, max(0.0, val_pbr))
                         sh_cur_pbr = st.number_input(
                             "🏛️ 현재 PBR (배)",
                             min_value=0.0, max_value=200.0,
-                            value=float(round(max(0.0, pbr), 2)),
+                            value=float(round(val_pbr, 2)),
                             step=0.01, format="%.2f",
                             key=f"sh_ov_curpbr_{tk}"
                         )
                     with ov_c6:
+                        val_apbr = safe_float(a_pbr if 'a_pbr' in locals() else 0.0, 0.0)
+                        val_apbr = min(200.0, max(0.0, val_apbr))
                         sh_a_pbr = st.number_input(
                             "📐 10년 평균 PBR (배)",
                             min_value=0.0, max_value=200.0,
-                            value=float(round(max(0.0, a_pbr), 2)),
+                            value=float(round(val_apbr, 2)),
                             step=0.01, format="%.2f",
                             key=f"sh_ov_apbr_{tk}"
                         )
