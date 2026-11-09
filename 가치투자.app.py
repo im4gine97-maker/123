@@ -3827,48 +3827,51 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
 # =========================================================================
 # [배당금 정밀 보정 엔진] 한국 주식 배당 뻥튀기 왜곡 차단 & 실제 DPS 검증
 # =========================================================================
+# ▼▼▼ [배당금 정밀 보정 엔진] def get_accurate_dividend_yield 함수 전체를 아래 코드로 덮어쓰기 ▼▼▼
 def get_accurate_dividend_yield(stk, i, p, kr):
     """
-    yfinance의 엉터리 배당수익률(0.8% -> 8.27% 둔갑 버그)을 차단하고,
-    실제 1년 배당금 내역(stk.dividends) 및 네이버/DART 팩트 기반으로 정확한 배당수익률 산출
+    yfinance의 퍼센트 중복 곱셈 버그(0.32% -> 32.00% 둔갑)를 원천 차단하고,
+    실제 1년 배당금 지급액(dividendRate / stk.dividends)을 현재 주가(p)로 나누어 정확한 배당수익률을 산출합니다.
     """
     try:
-        raw_dy = safe_float(i.get('dividendYield'))
-        raw_dr = safe_float(i.get('dividendRate'))
+        if p <= 0 or not isinstance(i, dict):
+            return 0.0, 0.0
 
-        calc_div = (raw_dy * 100.0) if (0 < raw_dy < 1.0) else raw_dy
-
-        if kr and p > 0:
-            actual_annual_dps = 0.0
-            div_history = None
-            try:
+        # 1순위: 최근 1년 실제 배당금 지급 내역(stk.dividends) 직접 합산 (가장 정확함)
+        actual_annual_dps = 0.0
+        try:
+            if stk is not None:
                 div_history = stk.dividends
-            except Exception:
-                pass
+                if div_history is not None and not div_history.empty:
+                    one_yr_ago = pd.Timestamp.now(tz=div_history.index.tz) - pd.Timedelta(days=375)
+                    recent_divs = div_history[div_history.index >= one_yr_ago]
+                    if not recent_divs.empty:
+                        # 분기 배당 신설 초기(연 1~3회 기록)인 미국 주식은 최근 배당금 * 4 연환산
+                        if not kr and 1 <= len(recent_divs) < 4:
+                            actual_annual_dps = float(recent_divs.iloc[-1]) * 4.0
+                        else:
+                            actual_annual_dps = float(recent_divs.sum())
+        except Exception:
+            pass
 
-            if div_history is not None and not div_history.empty:
-                one_yr_ago = pd.Timestamp.now(tz=div_history.index.tz) - pd.Timedelta(days=370)
-                recent_divs = div_history[div_history.index >= one_yr_ago]
-                
-                if not recent_divs.empty:
-                    actual_annual_dps = float(recent_divs.sum())
-                else:
-                    actual_annual_dps = float(div_history.tail(4).sum())
-
-            if actual_annual_dps > 0:
-                real_yield = (actual_annual_dps / p) * 100.0
+        if actual_annual_dps > 0:
+            real_yield = (actual_annual_dps / p) * 100.0
+            if 0.01 <= real_yield <= 25.0:
                 return real_yield, actual_annual_dps
 
-            elif raw_dr > 0:
-                real_yield = (raw_dr / p) * 100.0
+        # 2순위: 연간 주당배당금(dividendRate 또는 trailingAnnualDividendRate) ÷ 현재 주가(p)
+        raw_dr = safe_float(i.get('dividendRate')) or safe_float(i.get('trailingAnnualDividendRate'))
+        if raw_dr > 0:
+            real_yield = (raw_dr / p) * 100.0
+            if 0.01 <= real_yield <= 25.0:
                 return real_yield, raw_dr
 
-            if calc_div >= 7.0 and p >= 50000:
-                calc_div = calc_div / 10.0
-
-        return calc_div, (p * (calc_div / 100.0))
+        # 3순위: calc_accurate_div_yield 엔진 연동 (0.32%에 100을 또 곱하는 오류 원천 차단)
+        clean_y = calc_accurate_div_yield(stk, i, p, kr)
+        return clean_y, (p * (clean_y / 100.0))
     except Exception:
         return 0.0, 0.0
+# ▲▲▲ [배당금 정밀 보정 엔진 교체 끝] ▲▲▲
 # =========================================================================
 # [1] 사업 다각화 및 단일 실패 지점(SPOF) 차단 마스터 엔진
 # =========================================================================
@@ -9549,7 +9552,11 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
 
                     # ▼▼▼ [수정 2 시작] 5부작 에피소드별 고유 칠판 테마 & 단독 빅데이터 판서 렌더링 엔진 ▼▼▼
-                    def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
+                    ddef _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
+                        # ▼▼▼ [추가] 멀티스레딩 환경에서도 char_mode_sh 미정의 에러가 절대 나지 않도록 세션에서 직접 로드 ▼▼▼
+                        char_mode_sh = str(st.session_state.get(f"sh_char_mode_{tk}", "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)"))
+                        custom_char_pil = locals().get("custom_char_pil", None)
+                        # ▲▲▲ 여기까지 추가 ▲▲▲
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
@@ -9753,7 +9760,8 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         im_c.save(f_closed)
                                         im_c.close()
 
-                                        if "캐릭터 없음" not in char_mode_sh:
+                                        _cur_char_mode = str(st.session_state.get(f"sh_char_mode_{tk}", "버핏 할아버지"))
+                                      if "캐릭터 없음" not in _cur_char_mode:
                                             f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_open)
                                             im_o = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx)
