@@ -9761,7 +9761,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         im_c.close()
 
                                         _cur_char_mode = str(st.session_state.get(f"sh_char_mode_{tk}", "버핏 할아버지"))
-                                      if "캐릭터 없음" not in _cur_char_mode:
+                                        if "캐릭터 없음" not in _cur_char_mode:
                                             f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_open)
                                             im_o = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx)
