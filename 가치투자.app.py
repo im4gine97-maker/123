@@ -5947,32 +5947,47 @@ def draw_talking_character_avatar(draw, base_img, cx, cy, radius, is_mouth_open=
 
     draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 226, 194), outline=(245, 208, 32), width=4)
 
-def draw_chalk_lecture_marks(draw, cx, cy, w_box, h_box, mark_type="red_circle", get_font=None, accent_label=""):
+def draw_chalk_lecture_marks(draw, cx, cy, w_box, h_box, mark_type="red_circle", get_font=None, accent_label="", anim_progress=1.0):
     """
-    [칠판 손글씨 강의 마크 엔진: 빨간 동그라미 2중 스트로크 / 노란 별표 / 분필 밑줄]
-    - 일타강사가 칠판에 분필로 세게 동그라미를 치거나 별표를 그리는 생생한 손맛을 재현합니다!
+    [실시간 판서 엔진] anim_progress(0.0~1.0)에 따라 분필로 화면 위를 쓱쓱 감아 돌리는 Write-on 궤적 애니메이션
     """
+    if anim_progress <= 0.0:
+        return
+    import math
     rx, ry = int(w_box // 2), int(h_box // 2)
     red_chalk = (255, 55, 65)
     yellow_chalk = (255, 230, 0)
 
     if "circle" in mark_type:
-        # 손으로 두 번 겹쳐 그린 듯한 비대칭 이중 빨간 동그라미 (강렬한 칠판 판서 느낌!)
-        draw.arc([cx - rx - 6, cy - ry - 4, cx + rx + 8, cy + ry + 6], start=0, end=360, fill=red_chalk, width=7)
-        draw.arc([cx - rx - 2, cy - ry - 9, cx + rx + 4, cy + ry + 3], start=15, end=345, fill=(255, 110, 110), width=4)
-        # 우측 상단 노란 별표 & 체크 악센트
-        if get_font is not None:
-            f_star = get_font(38)
-            draw.text((cx + rx - 10, cy - ry - 32), "★★", font=f_star, fill=yellow_chalk, stroke_width=3, stroke_fill=(0, 0, 0))
-            if accent_label:
-                f_acc = get_font(26)
-                draw.text((cx - rx, cy - ry - 34), accent_label, font=f_acc, fill=yellow_chalk, stroke_width=3, stroke_fill=(0, 0, 0))
+        if anim_progress < 1.0:
+            # 12시 방향(-90도)에서 시계방향으로 쓱쓱 감아 돌리는 궤적
+            start_deg = -90
+            sweep_deg = int(360 * anim_progress)
+            draw.arc([cx - rx - 6, cy - ry - 4, cx + rx + 8, cy + ry + 6], start=start_deg, end=start_deg + sweep_deg, fill=red_chalk, width=8)
+            # 분필 끝점 (Chalk Tip 접촉점)
+            rad = math.radians((start_deg + sweep_deg) % 360)
+            tip_x = cx + int((rx + 6) * math.cos(rad))
+            tip_y = cy + int((ry + 4) * math.sin(rad))
+            draw.ellipse([tip_x - 5, tip_y - 5, tip_x + 5, tip_y + 5], fill=(255, 190, 190))
+        else:
+            # 완성된 이중 빨간 동그라미 판서 & 별표
+            draw.arc([cx - rx - 6, cy - ry - 4, cx + rx + 8, cy + ry + 6], start=0, end=360, fill=red_chalk, width=7)
+            draw.arc([cx - rx - 2, cy - ry - 9, cx + rx + 4, cy + ry + 3], start=15, end=345, fill=(255, 110, 110), width=4)
+            if get_font is not None:
+                f_star = get_font(38)
+                draw.text((cx + rx - 10, cy - ry - 32), "★★", font=f_star, fill=yellow_chalk, stroke_width=3, stroke_fill=(0, 0, 0))
+                if accent_label:
+                    f_acc = get_font(26)
+                    draw.text((cx - rx, cy - ry - 34), accent_label, font=f_acc, fill=yellow_chalk, stroke_width=3, stroke_fill=(0, 0, 0))
 
     elif "underline" in mark_type:
-        # 숫자 아래에 분필로 쫙- 두 줄 그은 강조 밑줄
         y_line = cy + ry + 6
-        draw.line([(cx - rx + 10, y_line), (cx + rx - 10, y_line)], fill=red_chalk, width=8)
-        draw.line([(cx - rx + 25, y_line + 11), (cx + rx - 25, y_line + 11)], fill=yellow_chalk, width=5)
+        if anim_progress < 1.0:
+            cur_w = int((w_box - 20) * anim_progress)
+            draw.line([(cx - rx + 10, y_line), (cx - rx + 10 + cur_w, y_line)], fill=red_chalk, width=8)
+        else:
+            draw.line([(cx - rx + 10, y_line), (cx + rx - 10, y_line)], fill=red_chalk, width=8)
+            draw.line([(cx - rx + 25, y_line + 11), (cx + rx - 25, y_line + 11)], fill=yellow_chalk, width=5)
 def inject_chalk_sfx_into_wav(wav_path, sfx_timestamps_sec):
     """
     [신규 탑재] 성우 WAV 파일의 지정된 시각(칠판에 새 숫자가 적히는 순간)마다
@@ -9538,20 +9553,37 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         pop_chunks.append((cl_txt, sc_tag))
 
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_chapter_start=False, sr=24000):
-                        import math
+                        """
+                        [시네마틱 전환 SFX] 날카로운 고음 스우시(Whoosh) + 42Hz 서브베이스 쿵(Sub-bass Boom) 합성
+                        """
+                        import math, random
                         if "없음" in sfx_style_str or not is_chapter_start:
                             return []
                         two_pi = 2.0 * math.pi
                         samples = []
-                        dur = 0.13
+                        dur = 0.18  # 0.18초 임팩트
                         n_s = int(sr * dur)
+                        rng = random.Random(2026 + cut_idx)
+                        
                         for idx_i in range(n_s):
                             t_s = idx_i / sr
-                            sub_freq = 50.0 + 70.0 * math.exp(-t_s * 30.0)
-                            sub_env = math.exp(-t_s * 16.0) * min(1.0, t_s / 0.003)
-                            sub_punch = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.30
-                            ring_wave = math.sin(two_pi * 1046.5 * t_s) * math.exp(-t_s * 28.0) * 0.14
-                            samples.append(max(-0.85, min(0.85, sub_punch + ring_wave)))
+                            
+                            # 1. 날카롭게 공기를 가르는 스우시 (High Whoosh: 800Hz -> 3000Hz 휩스위프)
+                            whoosh_env = math.sin((idx_i / n_s) * math.pi) * math.exp(-t_s * 11.0)
+                            whoosh_freq = 800.0 + 2400.0 * math.sin((t_s / dur) * math.pi)
+                            whoosh_tone = math.sin(two_pi * whoosh_freq * t_s) * whoosh_env * 0.28
+                            whoosh_noise = rng.uniform(-0.4, 0.4) * whoosh_env * 0.35
+                            
+                            # 2. 바닥을 묵직하게 때리는 42Hz 서브베이스 쿵 (Sub-bass Impact Boom)
+                            sub_freq = 42.0 + 85.0 * math.exp(-t_s * 28.0)
+                            sub_env = math.exp(-t_s * 10.0) * min(1.0, t_s / 0.003)
+                            sub_boom = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.65
+                            
+                            # 3. 컷 시작 순간 찰나의 트랜지언트 스냅
+                            snap = math.sin(two_pi * 1400.0 * t_s) * math.exp(-t_s * 50.0) * 0.20
+                            
+                            mixed = max(-0.95, min(0.95, whoosh_tone + whoosh_noise + sub_boom + snap))
+                            samples.append(mixed)
                         return samples
 
                     def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, cut_idx=0, is_chapter_start=False):
@@ -9873,18 +9905,23 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 400, 280, "S&P500 평균 자본수익률", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 470, 280, "연 12%", f_chalk, start_sz=60, fill=white_c)
+                                _fit_single_line(draw, 195, 470, 280, "연 5.5%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 525, 470, 250, 85, mark_type="red_circle")
+                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                
+                                # 성우가 ROIC를 언급하는 2번째 문장(sub_step>=1)부터 원이 그려짐
+                                m1_p = 1.0 if (sub_step >= 1) else 0.0
+                                draw_chalk_lecture_marks(draw, 525, 470, 250, 85, mark_type="red_circle", anim_progress=m1_p)
 
-                                # '회사 밑천 1,000만 원당 창출' 문구 및 밑줄 완전 삭제 후, 하단 영업마진 캡슐을 중앙에 깔끔하게 배치
                                 draw.line([(55, 560), (W - 55, 560)], fill=(50, 75, 100), width=2)
                                 draw.rounded_rectangle([50, 610, W - 50, 750], radius=20, fill=(18, 45, 68), outline=green_c, width=4)
                                 _fit_single_line(draw, 240, 680, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=34, fill=yellow_c)
                                 _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 525, 680, 195, 72, mark_type="red_circle")
+                                
+                                # 성우가 영업마진을 언급하는 3번째 문장(sub_step>=2)부터 원이 그려짐
+                                m2_p = 1.0 if (sub_step >= 2) else 0.0
+                                draw_chalk_lecture_marks(draw, 525, 680, 195, 72, mark_type="red_circle", anim_progress=m2_p)
 
                             elif scene_code in ["SCENE_BUFFETT", "SCENE_MACRO"]:
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 2. 국채 금리 기회비용 & 주당 FCF 검증", f_chalk, start_sz=32, fill=yellow_c)
@@ -9898,58 +9935,48 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 535, 280, f"연 {req_g_val:+.1f}% 이상", f_chalk, start_sz=52, fill=white_c)
 
                                 _fit_single_line(draw, 525, 470, 280, "최근 10년 주당 FCF 성장", f_chalk, start_sz=28, fill=yellow_c)
-
-                                # [수정 1] -99.0% 대신 '적자로 판단불가' 표기
                                 if actual_fcf_g_val <= -90.0 or (base_fcf is not None and base_fcf <= 0):
-                                    fcf_disp_txt = "적자로 판단불가"
-                                    fcf_disp_sz = 46
-                                    fcf_disp_col = red_c
+                                    fcf_disp_txt, fcf_disp_sz, fcf_disp_col = "적자로 판단불가", 46, red_c
                                 else:
-                                    fcf_disp_txt = f"연 {actual_fcf_g_val:+.1f}%"
-                                    fcf_disp_sz = 64
-                                    fcf_disp_col = green_c if actual_fcf_g_val >= req_g_val else red_c
+                                    fcf_disp_txt, fcf_disp_sz, fcf_disp_col = f"연 {actual_fcf_g_val:+.1f}%", 64, (green_c if actual_fcf_g_val >= req_g_val else red_c)
 
                                 _fit_single_line(draw, 525, 535, 280, fcf_disp_txt, f_chalk, start_sz=fcf_disp_sz, fill=fcf_disp_col, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 525, 535, 250, 85, mark_type="red_circle")
+                                
+                                # 성우가 FCF를 언급하는 시점부터 원 판서
+                                m_fcf_p = 1.0 if (sub_step >= 1) else 0.0
+                                draw_chalk_lecture_marks(draw, 525, 535, 250, 85, mark_type="red_circle", anim_progress=m_fcf_p)
 
-                                # [수정 2] 대본에 맞춰 중간 박스 문구 완벽 일치 (시클리컬 저PER 착시 분기 반영)
+                                # 하단 PER 박스
                                 if is_cyc_stock and (0 < eff_cur_pe_sh <= 11.0 or (ey_int >= 9 and fcf_int >= 20)):
-                                    box_bg = (58, 20, 28)
-                                    box_outline = red_c
-                                    box_text_col = red_c
-                                    v_label = "저PER 착시 (주의)"
+                                    box_bg, box_outline, box_text_col, v_label = (58, 20, 28), red_c, red_c, "저PER 착시 (주의)"
                                 elif g_margin_val >= 3.0:
-                                    box_bg = (18, 48, 38)
-                                    box_outline = green_c
-                                    box_text_col = green_c
-                                    v_label = "안전마진 확보 구간 (합격)"
+                                    box_bg, box_outline, box_text_col, v_label = (18, 48, 38), green_c, green_c, "안전마진 확보 구간 (합격)"
                                 elif g_margin_val >= -2.0:
-                                    box_bg = (22, 38, 58)
-                                    box_outline = yellow_c
-                                    box_text_col = yellow_c
-                                    v_label = "현재 주가 적정 가치 수준"
+                                    box_bg, box_outline, box_text_col, v_label = (22, 38, 58), yellow_c, yellow_c, "현재 주가 적정 가치 수준"
                                 else:
-                                    box_bg = (58, 20, 28)
-                                    box_outline = red_c
-                                    box_text_col = red_c
-                                    v_label = "미래 성장 기대감 과열 (주의)"
+                                    box_bg, box_outline, box_text_col, v_label = (58, 20, 28), red_c, red_c, "미래 성장 기대감 과열 (주의)"
 
                                 draw.rounded_rectangle([50, 630, W - 50, 765], radius=20, fill=box_bg, outline=box_outline, width=4)
                                 _fit_single_line(draw, 240, 698, 300, v_label, f_chalk, start_sz=30, fill=box_text_col, stroke_w=2)
                                 _fit_single_line(draw, 520, 698, 220, f"PER {eff_cur_pe_sh:.1f}배", f_chalk, start_sz=60, fill=box_text_col, stroke_w=5, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 520, 698, 195, 72, mark_type="red_circle")
+                                
+                                # 성우가 PER 밸류를 언급하는 시점부터 원 판서
+                                m_per_p = 1.0 if (sub_step >= 2) else 0.0
+                                draw_chalk_lecture_marks(draw, 520, 698, 195, 72, mark_type="red_circle", anim_progress=m_per_p)
 
                             else:
-                                # [SCENE_SAFETY 컷: 배당이 0%일 때 '무배당 (사내유보)'로 정확히 표기]
                                 _fit_single_line(draw, W // 2, 285, W - 60, "STEP 3. CapEx 성격 & 재무 안전판", f_chalk, start_sz=32, fill=yellow_c)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 385, 280, "영업현금흐름(장부상 돈 묶임)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, f"지속 흑자!", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
-                                draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle")
+                                _fit_single_line(draw, 195, 455, 280, "지속 흑자!", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                
+                                # 좌측 현금흐름 원 판서
+                                m_ocf_p = 1.0 if (sub_step >= 1) else 0.0
+                                draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle", anim_progress=m_ocf_p)
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
-                                div_disp_str = f"주당 2,630원"
+                                div_disp_str = "주당 2,630원"
                                 div_disp_sz = 62 if safe_div > 0.05 else 42
                                 _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
