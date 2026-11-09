@@ -9161,10 +9161,55 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # + 애플 등 초고ROIC 오해 방지 + 영업마진 숫자 제거 + 기업별 맞춤 초단문 대본
                     # =========================================================================
                     roic_10m_manwon = int(round(1000 * (roic_int / 100.0)))
-                    st.session_state["roic_10m_manwon_shared"] = roic_10m_manwon
+                    # ▼▼▼ [무한 소재 로테이션 엔진 시작] hook_10_options = [ 부터 editable_script_text = st.text_area(...) 끝까지 교체 ▼▼▼
+                    mega_popular_rotation = [
+                        ("005930.KS", "삼성전자"), ("NVDA", "엔비디아"), ("000660.KS", "SK하이닉스"), ("TSLA", "테슬라"),
+                        ("005380.KS", "현대차"), ("AAPL", "애플"), ("GOOGL", "구글"), ("000270.KS", "기아"),
+                        ("MSFT", "마이크로소프트"), ("373220.KS", "LG에너지솔루션"), ("META", "메타"), ("AMZN", "아마존"),
+                        ("BRK-B", "버크셔해서웨이"), ("035420.KS", "NAVER"), ("AVGO", "브로드컴"), ("012450.KS", "한화에어로스페이스"),
+                        ("PLTR", "팔란티어"), ("034020.KS", "두산에너빌리티"), ("COST", "코스트코"), ("105560.KS", "KB금융"),
+                        ("TSM", "TSMC"), ("207940.KS", "삼성바이오로직스"), ("LLY", "일라이릴리"), ("138040.KS", "메리츠금융지주"),
+                        ("KO", "코카콜라"), ("068270.KS", "셀트리온"), ("V", "비자"), ("MA", "마스터카드")
+                    ]
+                    day_of_yr = datetime.now().timetuple().tm_yday
+                    rec_tk, rec_nm = mega_popular_rotation[day_of_yr % len(mega_popular_rotation)]
+
+                    angle_8_themes = [
+                        "🎯 테마 1. [기본] 10년 장부 종합 팩트체크 (해자·역산·안전판)",
+                        "🏦 테마 2. [기회비용] 미국채 10년물 이자 vs 이 주식, 누가 이길까?",
+                        "👑 테마 3. [구루의 시선] 워런 버핏·찰리 멍거라면 지금 이 주식을 살까?",
+                        "📉 테마 4. [저PER 착시 판독] 지금 진짜 바겐세일일까, 피크아웃 함정일까?",
+                        "💰 테마 5. [현금흐름 해부] 순이익에 속지 마라! 진짜 주주이익(FCF) 검증",
+                        "🔥 테마 6. [가격결정력] 인플레 위기에도 살아남을 독점 마진이 있는가?",
+                        "🎁 테마 7. [주주환원 감사] 배당과 자사주 소각 vs 주주가치 희석 판독",
+                        "🔒 테마 8. [5년 상폐 테스트] 내일 당장 거래소가 5년간 문 닫아도 버틸 주식인가?"
+                    ]
+                    rec_theme_idx = (day_of_yr // len(mega_popular_rotation)) % len(angle_8_themes)
+
+                    st.markdown(
+                        f"<div style='background:linear-gradient(90deg, rgba(250,204,21,0.14), rgba(56,189,248,0.10)); border:1.5px solid #facc15; border-radius:12px; padding:12px 16px; margin-bottom:12px;'>"
+                        f"<div style='font-size:0.95rem; font-weight:900; color:#facc15;'>♾️ [일일 무한 연재 큐레이터] 오늘 추천 대표주: <b>{rec_nm} ({rec_tk})</b> · 추천 앵글: <b>{angle_8_themes[rec_theme_idx]}</b></div>"
+                        f"<div style='font-size:0.82rem; color:var(--text-color); opacity:0.88; margin-top:4px;'>인기 대장주 28개 × 8대 기획 테마 = <b>총 224일 치 쇼츠가 중복 없이 무한 생성</b>됩니다.</div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+
+                    rot_c1, rot_c2 = st.columns([2.2, 1.0])
+                    with rot_c1:
+                        sel_angle_theme = st.selectbox(
+                            "🎬 쇼츠 기획 테마(앵글) 선택 — 같은 종목도 테마만 바꾸면 완전히 새로운 영상이 됩니다!",
+                            angle_8_themes,
+                            index=rec_theme_idx,
+                            key=f"sel_angle_8_{tk}"
+                        )
+                    with rot_c2:
+                        st.write("")
+                        if st.button(f"🔄 오늘의 추천주({rec_nm}) 바로 불러오기", use_container_width=True, key=f"btn_load_rec_{tk}"):
+                            select_ticker(rec_tk)
+                            st.rerun()
 
                     hook_10_options = [
-                        f"🎲 0. 종목별 자동 매칭 (기본값)",
+                        f"🎲 0. 선택 테마({sel_angle_theme[:6]}) 자동 맞춤 후킹 (기본값)",
                         f"😱 1. [계좌 순삭 경고] 이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
                         f"💣 2. [시한폭탄 경고] 장부는 썩었는데 주가만 뜬 시한폭탄일까? / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
                         f"🩸 3. [반토막 공포] 주가 반토막 나도 버틸 자신 있어? / {comp_name} 10년 장부로 버핏의 잣대를 까보자!",
@@ -9183,21 +9228,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         key=f"sel_fear_hook_10_{tk}"
                     )
 
-                    clean_tk_for_hash = str(tk).upper().strip().replace('.KS', '').replace('.KQ', '')
-                    if sel_hook_45.startswith("🎲 0."):
-                        h_num = (sum(ord(c) for c in clean_tk_for_hash) % 10) + 1
-                        intro_first_line = hook_10_options[h_num].split("] ", 1)[-1]
-                    else:
-                        h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
-                        intro_first_line = sel_hook_45.split("] ", 1)[-1]
-
-                    # =========================================================================
-                    # [V34 쾌속 타격판] 빅테크 CapEx 기회 분석 반영 + 시청자 눈높이 2줄 초압축 대본
-                    # =========================================================================
                     clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
                     clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
 
-                    # 1. margin_phrase 변수를 moat_line 참조 전에 먼저 확정 선언
                     _opm_chk = opm_int if 'opm_int' in locals() else 0
                     if _opm_chk >= 20:
                         margin_phrase = "영업마진도 높아서 가격결정력까지 탄탄해!"
@@ -9208,55 +9241,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         margin_phrase = "영업적자 상태라 가격결정력이 무너졌어!"
 
-                    # 2. 선언된 margin_phrase를 참조하여 moat_line 생성
-                    if roic_int >= 40:
-                        moat_line = (
-                            f"버핏은 주가가 결국 밑천 효율을 따라간다고 했어! / "
-                            f"여긴 섹터 평균 5%에 연 {roic_int}%에 달하고 / {margin_phrase}"
-                        )
-                    elif roic_int >= 15:
-                        moat_line = (
-                            f"버핏은 주가가 결국 밑천 수익률에 수렴한다고 했어! / "
-                            f"섹터 평균 5%에 넘는 연 {roic_int}%를 벌고 / {margin_phrase}"
-                        )
-                    else:
-                        moat_line = (
-                            f"버핏은 밑천 효율이 낮으면 주가도 갇힌다고 했어! / "
-                            f"섹터 평균 5%에 못 미치는 연 {roic_int}% 수준이라 / {margin_phrase}"
-                        )
-
-                    # 2. [가격] 컷: 역산 안전마진 vs 시클리컬 저PER 착시 (직관적 단문)
-                    if is_cyc_stock:
-                        if 0 < eff_cur_pe_sh <= 11.0 or (ey_int >= 9 and fcf_int >= 20):
-                            price_line = (
-                                f"버핏의 역산법은 채권보다 못 버는 주식을 거르는 건데 / "
-                                f"지금 숫자는 싸 보여도 시클리컬 호황 고점의 저PER 착시를 조심해야 해!"
-                            )
-                        else:
-                            price_line = (
-                                f"버핏의 역산법은 국채보다 현금을 더 버는지 보는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%라 사이클 꺾임을 체크해야 해!"
-                            )
-                    else:
-                        if g_margin_val >= 3.0:
-                            price_line = (
-                                f"버핏의 역산법은 채권보다 못 버는 주식을 거르는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금도 연 {fcf_int:+d}%씩 자라 안전마진 합격이야!"
-                            )
-                        elif g_margin_val >= -3.0:
-                            price_line = (
-                                f"버핏의 역산법은 채권보다 현금을 더 버는지 따지는 거야! / "
-                                f"이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%라 주가는 딱 적정 수준이야!"
-                            )
-                        else:
-                            price_line = (
-                                f"버핏의 역산법으로 보면 채권보다 불리한 가격은 피해야 해! / "
-                                f"이익수익률 {ey_int}% 대비 현금 성장이 부족해 주가에 기대감이 너무 꼈어!"
-                            )
-
-                    # 3. [안전 & CapEx] 컷: 빅테크 대규모 AI 투자 vs 일반 기업 정밀 분기!
                     is_bigtech_capex = any(bt in tk.upper() for bt in ["MSFT", "GOOGL", "GOOG", "AMZN", "META"]) or ("선제투자" in clean_capex_txt)
-
                     if is_bigtech_capex:
                         capex_speech = "AI 설비투자로 일시적 현금은 줄었지만 미래 독점 해자를 파는 기회고!"
                         capex_board_title = "AI CapEx 집중 ➔ 미래 독점 해자 선점!"
@@ -9268,59 +9253,107 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt or "대규모 설비투자" in clean_capex_txt:
                         capex_speech = "공장 증설에 막대한 현금이 묶여 FCF 출혈 부담이 큰 편이고!"
                         capex_board_title = "대규모 설비투자(CapEx) 출혈 주의"
-                        capex_board_sub = "배터리 업황 둔화 시 현금흐름 훼손 위험을 점검해야 함!"
+                        capex_board_sub = "업황 둔화 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
                         capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
-                        capex_board_title = "수주 잔치 뒤에 묶인 운전자본!"
-                        capex_board_sub = "실제 현금 유입은 마이너스, 주주 배당은 8년째 무배당!"
+                        capex_board_title = "현금흐름 범위 내 안정적 설비 재투자"
+                        capex_board_sub = "영업현금흐름과 잉여현금흐름(FCF) 추이 지속 점검!"
 
-                    if "단일 집중" in clean_div_txt or "단일 의존" in clean_div_txt:
-                        if div_val >= 2.5:
-                            share_speech = f"단일 사업 의존도는 있지만 연 {div_val:.1f}% 현금배당으로 보답해!"
-                        elif bb_val >= 1.0:
-                            share_speech = "단일 사업 의존도는 있지만 자사주 소각으로 주당 가치를 올려줘!"
-                        else:
-                            share_speech = "단일 사업 집중도가 높아 불황기 방어 체력을 꼭 봐야 해!"
+                    if bb_val >= 1.0 and div_val >= 2.0:
+                        share_speech = f"자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
+                    elif bb_val >= 1.0:
+                        share_speech = "적극적인 자사주 소각으로 주당 가치를 높여줘!"
+                    elif div_val >= 2.5:
+                        share_speech = f"연 {div_val:.1f}% 쏠쏠한 현금배당으로 안전판을 받쳐줘!"
+                    elif bb_val <= -1.5:
+                        share_speech = "유상증자나 주식 발행으로 주주가치 희석 위험이 있어!"
                     else:
-                        if bb_val >= 1.0 and div_val >= 2.0:
-                            share_speech = f"사업 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!"
-                        elif bb_val >= 1.0:
-                            share_speech = "사업 다각화에 적극적인 자사주 소각으로 주당 가치를 높여줘!"
-                        elif div_val >= 2.5:
-                            share_speech = f"사업 다각화에 연 {div_val:.1f}% 쏠쏠한 현금배당으로 안전판을 받쳐줘!"
-                        else:
-                            share_speech = "탄탄한 사업 다각화로 불황기 리스크를 든든하게 막았어!"
+                        share_speech = "사내 유보금으로 불황기 재무 안전판을 다지고 있어!"
 
-                    saf_line = (
-                        f"버핏은 끝없이 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / "
-                        f"{capex_speech} / {share_speech}"
-                    )
-
-                    # 4. [결론] 컷: 직관적인 한 줄 권유
-                    if is_cyc_stock and (0 < eff_cur_pe_sh <= 11.0 or roic_int >= 20):
-                        end_line = f"호황 정점의 착시인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
-                    elif g_margin_val < -3.0:
-                        end_line = f"주가에 낀 기대감을 증명할지 꼭 확인하고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
+                    # 8대 기획 테마별 맞춤형 5컷 대본 & 유튜브 제목 프리픽스 자동 분기
+                    t_idx = angle_8_themes.index(sel_angle_theme) + 1
+                    if t_idx == 2:
+                        theme_hook = f"무위험 미국채가 연 {tnx_int}% 이자를 주는데 굳이 {comp_name} 살 필요가 있을까? / 채권 이자랑 1대1로 맞붙여 보자!"
+                        moat_line = f"미국채는 1,000만 원 넣으면 연 {tnx_int*10}만 원으로 끝이지만 / {comp_name}은 회사 밑천으로 연 {roic_int}% 복리를 굴려! / {margin_phrase}"
+                        price_line = f"현재 주가 기준 이익수익률은 연 {ey_int}%고 / 지난 10년간 주주 현금이 연 {fcf_int:+d}%씩 성장했어! / {'채권 이자를 압도하는 안전마진이야!' if g_margin_val >= 0 else '채권 이자보다 매력이 낮아 조심해야 해!'}"
+                        saf_line = f"채권에 없는 기업만의 무기는 바로 재투자와 주주환원이야! / {capex_speech} / {share_speech}"
+                        end_line = f"확정 이자 {tnx_int}% 미국채 vs {comp_name}! / 너라면 지금 어디에 돈 넣을래? 댓글로 남겨줘!"
+                        yt_angle_prefix = f"미국채 이자 vs {comp_name}, 어디가 이길까?"
+                    elif t_idx == 3:
+                        theme_hook = f"워런 버핏과 찰리 멍거라면 지금 가격에 {comp_name} 절대 살까 안 살까? / 거장들의 3대 기준에 그대로 대입해 보자!"
+                        moat_line = f"버핏의 1번 기준은 경제적 해자야! / 시장 기준 12% 대비 여긴 연 {roic_int}%를 뽑아내고 / {margin_phrase}"
+                        price_line = f"멍거의 역산법으로 보면 연 10% 수익을 위해 매년 {req_int:+d}% 성장이 필요한데 / 실제 10년 현금 성장은 연 {fcf_int:+d}%야!"
+                        saf_line = f"버핏이 가장 싫어하는 건 돈만 먹는 하마야! / {capex_speech} / {share_speech}"
+                        end_line = f"버핏의 잣대로 본 {comp_name}! / 과연 지금이 매수 기회일까? 너의 생각을 댓글로 남겨줘!"
+                        yt_angle_prefix = f"워런 버핏이라면 지금 {comp_name} 살까?"
+                    elif t_idx == 4:
+                        theme_hook = f"지금 {comp_name} 주가, 일생일대의 바겐세일일까 고점 설거지 함정일까? / 10년 장부로 저PER 착시를 판독해 보자!"
+                        moat_line = f"진짜 싼 주식인지 보려면 본업 체력부터 봐야 해! / 밑천 수익률 ROIC는 연 {roic_int}%고 / {margin_phrase}"
+                        price_line = f"현재 PER은 {eff_cur_pe_sh:.1f}배로 이익수익률은 연 {ey_int}%인데 / 호황 정점에 이익이 폭증해 싸 보이는 착시인지 현금 성장률 연 {fcf_int:+d}%와 꼭 대조해야 해!"
+                        saf_line = f"사이클이 꺾일 때 주가를 지켜주는 건 결국 현금과 환원이야! / {capex_speech} / {share_speech}"
+                        end_line = f"바겐세일 기회 vs 피크아웃 함정! / 지금 {comp_name}에 대한 너의 판정을 댓글로 달아줘!"
+                        yt_angle_prefix = f"{comp_name} 지금 바겐세일일까 고점 함정일까?"
+                    elif t_idx == 5:
+                        theme_hook = f"뉴스에 나오는 {comp_name} 당기순이익 숫자에 속지 마! / 주주 주머니에 진짜로 떨어지는 현금흐름을 까보자!"
+                        moat_line = f"회계상 이익보다 중요한 건 현금 창출 효율이야! / 밑천 대비 수익률은 연 {roic_int}%를 기록 중이고 / {margin_phrase}"
+                        price_line = f"공장 유지보수비를 다 빼고 남은 진짜 잉여현금이 지난 10년간 연평균 {fcf_int:+d}%씩 움직였어! / 주가 요구치 {req_int:+d}%와 비교해 봐!"
+                        saf_line = f"결국 회사가 번 현금이 어디로 가느냐가 핵심이야! / {capex_speech} / {share_speech}"
+                        end_line = f"현금흐름까지 다 까본 {comp_name}! / 지금 사모을 타이밍일까? 댓글로 알려줘!"
+                        yt_angle_prefix = f"{comp_name} 순이익에 속지 마라! 진짜 현금흐름 해부"
+                    elif t_idx == 6:
+                        theme_hook = f"물가 오르고 원가 폭등할 때 {comp_name}은 살아남을까? / 버핏이 최고로 치는 가격결정력을 검증해 보자!"
+                        moat_line = f"가격을 올려도 고객이 안 도망가는 게 진짜 독점이야! / 여긴 밑천 효율이 연 {roic_int}%고 / {margin_phrase}"
+                        price_line = f"이 독점력 덕분에 주주 현금이 연 {fcf_int:+d}%씩 자랐고 / 현재 이익수익률은 연 {ey_int}%를 기록하고 있어!"
+                        saf_line = f"인플레이션 시대엔 설비 재투자 부담이 적어야 이겨! / {capex_speech} / {share_speech}"
+                        end_line = f"과연 {comp_name}의 독점 해자는 10년 뒤에도 굳건할까? / 너의 의견을 댓글로 남겨줘!"
+                        yt_angle_prefix = f"{comp_name} 독점 가격결정력 10년 검증"
+                    elif t_idx == 7:
+                        theme_hook = f"{comp_name}은 주주에게 돈을 퍼주는 효자 주식일까, 뒤통수치는 주식일까? / 배당과 자사주 소각 장부를 까보자!"
+                        moat_line = f"주주환원도 본업에서 돈을 잘 벌어야 지속 가능해! / 현재 밑천 수익률은 연 {roic_int}%고 / {margin_phrase}"
+                        price_line = f"10년간 잉여현금이 연 {fcf_int:+d}%씩 자라는 동안 / 주가 수익률은 연 {ey_int}% 수준에 와 있어!"
+                        saf_line = f"가장 중요한 주주환원 성적표야! / {capex_speech} / {share_speech}"
+                        end_line = f"평생 배당과 소각 받으며 동업할 주식으로 {comp_name} 어때? / 댓글로 투표해 줘!"
+                        yt_angle_prefix = f"{comp_name} 배당·자사주 소각 주주환원 팩트체크"
+                    elif t_idx == 8:
+                        theme_hook = f"내일 당장 주식시장이 5년 동안 문을 닫아도 {comp_name} 발 뻗고 들고 있을 자신 있어? / 버핏의 소유권 테스트를 해보자!"
+                        moat_line = f"거래소가 닫히면 오직 회사가 버는 돈만 남게 돼! / 이 회사는 밑천 대비 연 {roic_int}%를 벌고 / {margin_phrase}"
+                        price_line = f"시세판 없이 동업자로서 매년 챙기는 이익수익률은 {ey_int}%고 / 현금 창출력은 연 {fcf_int:+d}%씩 성장해 왔어!"
+                        saf_line = f"5년 동안 어떤 경제 위기가 와도 버틸 체력인지 보면! / {capex_speech} / {share_speech}"
+                        end_line = f"5년간 팔 수 없어도 지금 {comp_name} 살래? / 진정한 동업자들의 생각을 댓글로 남겨줘!"
+                        yt_angle_prefix = f"거래소가 5년간 문 닫아도 {comp_name} 버틸 수 있을까?"
                     else:
-                        end_line = f"장부와 가격의 안전마진이 탄탄한지 꼭 확인해 봐! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
+                        theme_hook = f"이거 모르고 사면 계좌 순식간에 녹아내려! / {comp_name} 10년 장부로 버핏의 잣대를 까보자!"
+                        moat_line = f"버핏은 주가가 결국 밑천 수익률을 따라간다고 했어! / 시장 기준 12% 대비 여긴 연 {roic_int}%를 벌고 / {margin_phrase}"
+                        price_line = f"버핏의 역산법은 채권보다 못 버는 주식을 거르는 건데 / 이익수익률 {ey_int}%에 현금 성장은 연 {fcf_int:+d}%라 안전마진부터 꼭 체크해야 해!"
+                        saf_line = f"버핏은 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / {capex_speech} / {share_speech}"
+                        end_line = f"호황 정점의 착시인지 저평가 기회인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
+                        yt_angle_prefix = f"{comp_name} 10년 장부 팩트체크"
+
+                    if sel_hook_45.startswith("🎲 0."):
+                        intro_first_line = theme_hook
+                        h_num = t_idx
+                    else:
+                        h_num = int(sel_hook_45.split(".")[0].split(" ")[-1])
+                        intro_first_line = sel_hook_45.split("] ", 1)[-1]
 
                     default_12cuts_script = [
                         f"[도입] {intro_first_line}",
-                        f"[해자] 버핏은 주가가 결국 밑천 수익률을 따라간다고 했어! / 시장 기준 12%를 넘는 연 {roic_int}%를 벌고 / {margin_phrase}",
-                        f"[가격] 버핏의 역산법은 채권보다 못 버는 주식을 거르는 건데 / 지금 숫자는 싸 보여도 경기 사이클 타는 주식이라 호황 고점의 저PER 착시를 조심해야 해!",
-                        f"[안전] 버핏은 끝없이 설비만 먹는 하마보다 주주에게 현금이 남는 기업을 좋아해! / 공장 증설에 막대한 돈이 묶여 순수 현금 출혈 부담이 큰 편이고! / 사업 다각화에 자사주 소각과 연 {div_val:.1f}% 배당까지 챙겨줘!",
-                        f"[결론] 호황 정점의 착시인지 꼭 따져보고 진입해! / 너라면 지금 {comp_name} 살래? 댓글로 남겨줘!"
+                        f"[해자] {moat_line}",
+                        f"[가격] {price_line}",
+                        f"[안전] {saf_line}",
+                        f"[결론] {end_line}"
                     ]
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_H{h_num}_V34_CAPEX_PRO"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_T{t_idx}_H{h_num}_V35_ROTATION"
                     mode_tag_k = f"KO_{ov_sig}"
-                    script_area_key = f"script_v34_buffett_{tk}_{ov_sig}"
+                    script_area_key = f"script_v35_rot_{tk}_{ov_sig}"
 
                     editable_script_text = st.text_area(
-                        "✏️ 버핏의 3대 잣대 맞춤형 초압축 쇼츠 대본 편집창 (빅테크 CapEx 기회 분석 반영)",
+                        "✏️ 8대 테마 로테이션 맞춤형 쇼츠 대본 편집창 (테마 변경 시 삼성전자·하이닉스·엔비디아 등 동일 종목도 전혀 다른 대본으로 자동 생성됩니다)",
                         value="\n".join(default_12cuts_script),
                         height=220,
                         key=script_area_key
                     )
+                    # ▲▲▲ [무한 소재 로테이션 엔진 끝] ▲▲▲
                     # =========================================================================
                     # [신규 탑재] 🎙️ 내 목소리 녹음/보이스 클로닝 적용 & ✂️ 외부 쇼츠 편집기(캡컷·유튜브) 에셋 추출기
                     # =========================================================================
@@ -10205,7 +10238,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # [1단계] 문자열 조립 전 필수 변수 안전 선언 (괄호 밖에서 계산)
                     # =========================================================================
                     _safe_h_idx = h_idx if 'h_idx' in locals() else 0
-                    yt_title_prefix_45 = f"[{clean_tk}] {comp_name} 10년 장부 팩트체크"
+                    yt_title_prefix_45 = f"[{clean_tk}] {locals().get('yt_angle_prefix', f'{comp_name} 10년 장부 팩트체크')}"
                     default_yt_title = f"{yt_title_prefix_45} #shorts #가치투자 #{clean_tag_name}"
 
                     # 금융주 여부 및 자본수익률 라벨
