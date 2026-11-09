@@ -9268,7 +9268,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     elif "과투자" in clean_capex_txt or "출혈" in clean_capex_txt or "대규모 설비투자" in clean_capex_txt:
                         capex_speech = "공장 증설에 막대한 현금이 묶여 FCF 출혈 부담이 큰 편이고!"
                         capex_board_title = "대규모 설비투자(CapEx) 출혈 주의"
-                        capex_board_sub = "다운사이클 진입 시 현금흐름 훼손 위험을 점검해야 함!"
+                        capex_board_sub = "배터리 업황 둔화 시 현금흐름 훼손 위험을 점검해야 함!"
                     else:
                         capex_speech = "번 돈 안에서 안정적으로 설비투자를 감당하고 있고!"
                         capex_board_title = "수주 잔치 뒤에 묶인 운전자본!"
@@ -9920,7 +9920,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 _fit_single_line(draw, 195, 470, 280, "연 5.5%", f_chalk, start_sz=60, fill=white_c)
 
                                 _fit_single_line(draw, 525, 400, 280, f"{comp_name} 밑천 효율(ROIC)", f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 470, 280, f"연 {cap_ret_val:.1f}%", f_chalk, start_sz=70, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 
                                 # 성우가 ROIC를 언급하는 2번째 문장(sub_step>=1)부터 원이 그려짐
                                 m1_p = 1.0 if (sub_step >= 1) else 0.0
@@ -9929,7 +9929,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(55, 560), (W - 55, 560)], fill=(50, 75, 100), width=2)
                                 draw.rounded_rectangle([50, 610, W - 50, 750], radius=20, fill=(18, 45, 68), outline=green_c, width=4)
                                 _fit_single_line(draw, 240, 680, 300, "본업 영업이익률 (마진)", f_chalk, start_sz=34, fill=yellow_c)
-                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=green_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 525, 680, 220, f"연 {op_m:.1f}%!", f_chalk, start_sz=64, fill=red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 
                                 # 성우가 영업마진을 언급하는 3번째 문장(sub_step>=2)부터 원이 그려짐
                                 m2_p = 1.0 if (sub_step >= 2) else 0.0
@@ -9981,14 +9981,14 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 draw.line([(45, 320), (W - 45, 320)], fill=(70, 100, 130), width=3)
 
                                 _fit_single_line(draw, 195, 385, 280, "영업현금흐름(장부상 돈 묶임)", f_chalk, start_sz=28, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 455, 280, "지속 흑자!", f_chalk, start_sz=62, fill=green_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
+                                _fit_single_line(draw, 195, 455, 280, "6조 적자!", f_chalk, start_sz=62, fill=red_c if current_ratio >= 1.2 else red_c, stroke_w=4, stroke_c=(0, 0, 0))
                                 
                                 # 좌측 현금흐름 원 판서
                                 m_ocf_p = 1.0 if (sub_step >= 1) else 0.0
                                 draw_chalk_lecture_marks(draw, 195, 455, 220, 80, mark_type="red_circle", anim_progress=m_ocf_p)
 
                                 _fit_single_line(draw, 525, 385, 280, "순수 현금배당", f_chalk, start_sz=28, fill=chalk_dim)
-                                div_disp_str = "주당 2,630원"
+                                div_disp_str = "주당 0원"
                                 div_disp_sz = 62 if safe_div > 0.05 else 42
                                 _fit_single_line(draw, 525, 455, 280, div_disp_str, f_chalk, start_sz=div_disp_sz, fill=green_c if safe_div >= 1.5 else (yellow_c if safe_div > 0.05 else chalk_dim), stroke_w=3, stroke_c=(0, 0, 0))
 
