@@ -9206,81 +9206,160 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             select_ticker(rec_stock_tk)
                             st.rerun()
 
+                    # ▼▼▼ [교체 시작] ep_num = pdf_7_series.index(sel_pdf_ep) + 1 부터 _draw_core_frame 끝(return img)까지 덮어쓰기 ▼▼▼
                     ep_num = pdf_7_series.index(sel_pdf_ep) + 1
                     clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
                     clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
                     pbr_now_val = safe_float(locals().get('pbr', 1.0))
                     cr_now_val = safe_float(locals().get('current_ratio', 1.0))
 
-                    # PDF 7대 단원별 맞춤형 대본 (초반 3초 질문 훅 + 공시 팩트(법적 안전) + 끝문장->첫문장 무한루프)
+                    # 1만 원어치 팔 때 남는 돈 (영업이익률 체감용) & 1,000만 원 넣을 때 1년 이자/배당 체감용
+                    opm_per_10k = int(round(100 * opm_int))
+                    ey_10m_manwon = int(round(1000 * (ey_int / 100.0)))
+                    bond_10m_manwon = int(round(1000 * (tnx_int / 100.0)))
+                    div_10m_manwon = int(round(1000 * (div_val / 100.0)))
+
+                    # =========================================================================
+                    # [초보자 눈높이 비교·비유 + 직관적 통역이 탑재된 PDF 바이블 7부작 대본 엔진]
+                    # =========================================================================
                     if ep_num == 1:
+                        # [1부: 기업 소유권 & 저PBR 가치함정 판독]
                         ep_badge_title = f"[1부·소유권] {comp_name} 가치함정 판독"
+                        if pbr_now_val <= 1.0 and roic_int >= 10:
+                            trap_verdict = f"장부가치 기준선인 1배보다도 싼 {pbr_now_val:.2f}배인데다 / 일반 기업 평균 8%를 넘는 연 {roic_int}% 수익을 내서 싼 게 비지떡이 아닌 진짜 알짜 가게야!"
+                        elif pbr_now_val <= 1.0 and roic_int < 8:
+                            trap_verdict = f"장부가치 기준선 1배보다 싼 {pbr_now_val:.2f}배지만 / 밑천 수익률이 일반 평균 8%에도 못 미치는 연 {roic_int}%라 버핏이 경고한 전형적인 저PBR 가치함정 위험이 있어!"
+                        elif roic_int >= 15:
+                            trap_verdict = f"장부가치 대비 {pbr_now_val:.2f}배 프리미엄이 붙어 있지만 / 밑천 수익률이 일반 기업 평균 8%의 두 배가 넘는 연 {roic_int}%라 비싼 값을 충분히 해내는 우량 가게야!"
+                        else:
+                            trap_verdict = f"장부가치 대비 {pbr_now_val:.2f}배에 거래 중이고 / 밑천 수익률은 일반 기업 평균 수준인 연 {roic_int}%를 기록 중이야!"
+
                         default_ep_script = [
                             f"[EP1_HOOK] 내일 당장 주식시장이 5년 동안 문을 닫아도 {comp_name} 불안 없이 들고 있을 자신 있어?",
-                            f"[EP1_BODY1] 버핏의 제1원칙은 주식을 종잇조각이 아니라 비즈니스의 지분 100%를 인수하는 동업으로 보는 거야! / 해자 없이 장부가치만 싼 주식은 위험한 가치함정이야!",
-                            f"[EP1_BODY2] 현재 이 기업의 장부가치 배수 PBR은 {pbr_now_val:.2f}배 수준이고 / 본업 해자를 보여주는 밑천 수익률 ROIC는 연 {roic_int}%를 기록 중이야!",
-                            f"[EP1_LOOP] 시세판이 꺼져도 동업할 만한 진짜 해자 기업인지 댓글로 판정해 봐! / 그래서 다시 처음 질문으로 돌아가 보면"
+                            f"[EP1_BODY1] 버핏의 제1원칙은 주식을 종잇조각이 아니라 이 가게를 통째로 인수하는 동업으로 보는 거야! / 가게 재산보다 싸게 파는 게 무조건 좋은 게 아니라 장사가 잘되는지가 핵심이야!",
+                            f"[EP1_BODY2] {trap_verdict}",
+                            f"[EP1_LOOP] 5년간 시세판이 꺼져도 믿고 동업할 만한 진짜 해자 기업인지 댓글로 판정해 봐! / 그래서 다시 처음 질문으로 돌아가 보면"
                         ]
+
                     elif ep_num == 2:
+                        # [2부: 자본경량성 & 무형의 가격결정력]
                         ep_badge_title = f"[2부·가격결정력] {comp_name} 인플레 방어력"
-                        cap_light_txt = "설비 부담이 적은 고효율 구조" if "자본 경량형" in clean_capex_txt or roic_int >= 25 else "지속적인 설비 재투자가 필요한 구조"
+                        if opm_int >= 20:
+                            margin_analogy = f"보통 제조업 마진이 5%에서 8%인데 여긴 무려 {opm_int}%야! / 쉽게 말해 1만 원어치 팔면 원가 다 빼고 {opm_per_10k:,}원이나 남는 독점적 가격결정력을 가졌어!"
+                        elif opm_int >= 10:
+                            margin_analogy = f"보통 기업 마진이 5%에서 8% 수준인데 여긴 {opm_int}%로 / 1만 원어치 팔면 {opm_per_10k:,}원을 남기며 원가 상승을 꽤 잘 방어하고 있어!"
+                        elif opm_int > 0:
+                            margin_analogy = f"보통 기업 평균 마진 8%보다 낮은 {opm_int}% 수준이라 / 1만 원어치 팔아도 고작 {opm_per_10k:,}원밖에 안 남는 치열한 가격 경쟁 구조야!"
+                        else:
+                            margin_analogy = f"현재 영업마진이 {opm_int}% 적자 상태라 / 물건을 팔수록 오히려 손해를 보는 원가 압박 구간에 빠져 있어!"
+
+                        cap_light_analogy = "게다가 공장 증설에 큰돈 안 들이고도 밑천 1,000만 원당 연 {:,}만 원씩 뽑아내는 고효율 체질이야!".format(abs(roic_10m_manwon)) if roic_int >= 15 else "여기에 밑천 1,000만 원당 연 {:,}만 원 수준을 벌고 있어 설비 부담을 계속 체크해야 해!".format(abs(roic_10m_manwon))
+
                         default_ep_script = [
-                            f"[EP2_HOOK] 물가 오르고 원가 폭등할 때 {comp_name}은 가격을 올려도 고객이 안 도망갈까?",
-                            f"[EP2_BODY1] 바이블 제2원칙은 인플레이션 방어력의 핵심이 부동산이 아니라 무형의 가격결정력과 자본 경량성에 있다고 봐! / 여긴 현재 {cap_light_txt}야!",
-                            f"[EP2_BODY2] 원가 상승분을 고객에게 전가하는 힘을 보여주는 본업 영업이익률은 연 {opm_int}%고 / 밑천 1,000만 원당 연 {abs(roic_10m_manwon):,}만 원씩 수익을 내고 있어!",
-                            f"[EP2_LOOP] 과연 가격을 올려도 살아남을 독점 기업인지 댓글로 의견 남겨줘! / 이 관점에서 처음 질문을 다시 보면"
+                            f"[EP2_HOOK] 물가 오르고 원가 폭등할 때 {comp_name}은 가격을 올려도 손님이 안 도망갈까?",
+                            f"[EP2_BODY1] 버핏은 인플레이션을 이기는 최고의 무기가 부동산이 아니라 배짱 좋게 가격을 올려도 되는 독점 브랜드 파워라고 했어!",
+                            f"[EP2_BODY2] {margin_analogy} / {cap_light_analogy}",
+                            f"[EP2_LOOP] 과연 물가 폭등기에도 살아남을 독점 가게인지 댓글로 의견 남겨줘! / 이 관점에서 처음 질문을 다시 보면"
                         ]
+
                     elif ep_num == 3:
+                        # [3부: 필립 피셔의 15대 조건 (R&D 생산성 & 설비투자 회수)]
                         ep_badge_title = f"[3부·피셔15원칙] {comp_name} R&D 및 마진"
+                        if fcf_int >= 10 and opm_int >= 12:
+                            fisher_analogy = f"영업마진 {opm_int}%를 찍으면서 10년간 주주 현금도 매년 {fcf_int:+d}%씩 불어났어! / 즉 연구비와 투자비가 밑 빠진 독이 아니라 황금알을 낳는 거위로 고스란히 돌아오고 있다는 뜻이야!"
+                        elif fcf_int < 0 and opm_int >= 10:
+                            fisher_analogy = f"장부상 영업마진은 {opm_int}%로 양호하지만 공장 증설과 연구 투자에 돈이 묶여 현금 성장률은 {fcf_int:+d}%야! / 미래를 위한 씨앗인지 현금 출혈인지 꼭 감시해야 해!"
+                        else:
+                            fisher_analogy = f"현재 영업마진은 {opm_int}%고 10년 현금 성장은 연 {fcf_int:+d}% 추세라 / 투입한 연구개발비가 실제 현금 수익으로 연결되는지 확인이 필요한 구간이야!"
+
                         default_ep_script = [
-                            f"[EP3_HOOK] {comp_name}이 쏟아붓는 막대한 연구개발비와 투자비, 진짜 이익으로 돌아오고 있을까?",
-                            f"[EP3_BODY1] 필립 피셔의 15대 원칙은 투입된 연구개발 비용이 단순 연구에 그치지 않고 높은 영업마진으로 직결되는지를 가장 중요하게 따져!",
-                            f"[EP3_BODY2] 현재 영업이익률은 {opm_int}%를 기록 중이고 / 설비투자를 뺀 10년 잉여현금 성장률은 연평균 {fcf_int:+d}% 추세를 보이고 있어!",
-                            f"[EP3_LOOP] 단기 마진 압박이 미래를 위한 씨앗인지 출혈인지 댓글로 알려줘! / 그래서 맨 앞의 질문으로 다시 이어가면"
+                            f"[EP3_HOOK] {comp_name}이 매년 쏟아붓는 막대한 연구개발비와 설비투자, 진짜 돈이 돼서 돌아오고 있을까?",
+                            f"[EP3_BODY1] 성장주 투자의 대가 필립 피셔는 연구개발비를 많이 쓰는 것보다, 그 돈이 실제 높은 마진과 현금으로 회수되는 생산성을 보라고 했어!",
+                            f"[EP3_BODY2] {fisher_analogy}",
+                            f"[EP3_LOOP] 과연 이 회사의 투자가 미래 독점 해자로 돌아올지 댓글로 알려줘! / 그래서 맨 앞의 질문으로 다시 이어가면"
                         ]
+
                     elif ep_num == 4:
+                        # [4부: 찰리 멍거의 다학제적 과학 (공학 백업 & 수학 복리)]
                         ep_badge_title = f"[4부·멍거과학] {comp_name} 백업 & 복리엔진"
-                        spof_txt = "다각화된 사업 포트폴리오로 단일 실패 위험을 분산 중" if "다각화" in clean_div_txt or "양호" in clean_div_txt or "최상" in clean_div_txt else "주력 핵심 사업의 사이클 의존도를 점검해야 하는 구조"
+                        if cr_now_val >= 1.5:
+                            backup_analogy = f"비상금 체력인 유동비율이 안전 기준선인 1.5배를 넘는 {cr_now_val:.2f}배라 / 당장 1년 안에 갚을 빚보다 현금성 자산이 훨씬 많은 든든한 백업 시스템을 갖췄어!"
+                        elif cr_now_val >= 1.0:
+                            backup_analogy = f"단기 비상금 체력인 유동비율이 최소 기준선 1배를 넘긴 {cr_now_val:.2f}배로 무난한 방어력을 유지 중이야!"
+                        else:
+                            backup_analogy = f"단기 유동비율이 기준선 1배 아래인 {cr_now_val:.2f}배라 불황기 현금 흐름 관리에 주의가 필요한 구조야!"
+
+                        comp_analogy = f"또 수학적 복리 엔진인 ROIC를 보면, 은행 예금이 3%고 시장 기준선이 12%인데 여긴 연 {roic_int}%야! / 밑천 1,000만 원마다 매년 {abs(roic_10m_manwon):,}만 원씩 복리로 굴러가고 있어!"
+
                         default_ep_script = [
-                            f"[EP4_HOOK] 한 사업부가 무너져도 회사 전체가 안 망하는 백업 시스템이 {comp_name}에 있을까?",
-                            f"[EP4_BODY1] 찰리 멍거는 공학의 단일 실패 지점 차단과 수학의 복리 모형으로 기업의 수명을 판독했어! / 현재 이 기업은 {spof_txt}이야!",
-                            f"[EP4_BODY2] 또한 수학적 복리의 바퀴인 투하자본수익률은 연 {roic_int}%로 / 시장 자본비용 기준선인 12% 대비 {roic_int-12:+d}%포인트 격차를 내고 있어!",
-                            f"[EP4_LOOP] 과연 위기에도 추락하지 않을 복리 비행기인지 댓글로 남겨줘! / 다시 첫 질문으로 돌아가서 보면"
+                            f"[EP4_HOOK] 주력 사업 하나가 갑자기 멈춰도 회사 전체가 안 망하는 비상 백업 엔진이 {comp_name}에 있을까?",
+                            f"[EP4_BODY1] 찰리 멍거는 비행기 엔진 하나가 꺼져도 추락하지 않는 공학적 백업 설계와 수학의 복리 공식으로 기업 수명을 판독했어!",
+                            f"[EP4_BODY2] {backup_analogy} / {comp_analogy}",
+                            f"[EP4_LOOP] 과연 경제 위기 폭풍우에도 추락하지 않을 복리 비행기인지 댓글로 남겨줘! / 다시 첫 질문으로 돌아가서 보면"
                         ]
+
                     elif ep_num == 5:
+                        # [5부: 인간 오판의 심리학 & 롤라팔루자 효과]
                         ep_badge_title = f"[5부·투자심리] {comp_name} 군중심리 판독"
+                        if 0 < eff_cur_pe_sh < 12.0:
+                            psych_analogy = f"미국 S&P500 평균 본전 회수 기간이 22년인데, 여긴 현재 PER {eff_cur_pe_sh:.1f}배로 본전 뽑는 데 {eff_cur_pe_sh:.0f}년밖에 안 걸려! / 남들이 공포에 질려 던진 저평가 구간인지 업황 고점 착시인지 냉정하게 볼 때야!"
+                        elif eff_cur_pe_sh >= 30.0:
+                            psych_analogy = f"시장 평균 본전 회수 기간이 22년인데 여긴 무려 {eff_cur_pe_sh:.1f}년이나 걸리는 PER {eff_cur_pe_sh:.1f}배야! / 남들이 다 산다고 따라 사는 군중 심리와 롤라팔루자 과열이 낀 건 아닌지 조심해야 해!"
+                        elif eff_cur_pe_sh > 0:
+                            psych_analogy = f"시장 평균 본전 회수 기간 22년과 비교할 때 여긴 현재 PER {eff_cur_pe_sh:.1f}배, 장부가치 대비 PBR {pbr_now_val:.2f}배로 비교적 이성적인 구간에 서 있어!"
+                        else:
+                            psych_analogy = f"현재 순이익 적자 상태에 장부가치 대비 PBR은 {pbr_now_val:.2f}배라 / 막연한 희망 회로나 뉴스 소음 대신 실제 흑자 전환 팩트를 기다려야 해!"
+
                         default_ep_script = [
-                            f"[EP5_HOOK] 남들이 {comp_name}으로 돈 벌 때 질투나고 폭락할 때 뉴스 보며 패닉에 빠지지 않았어?",
-                            f"[EP5_BODY1] 멍거의 인간 오판 심리학은 군중 심리와 확증 편향, 그리고 여러 편향이 겹치는 롤라팔루자 광기 효과를 가장 경계하라고 경고해!",
-                            f"[EP5_BODY2] 어제 나온 자극적인 뉴스 소음 대신 10년 장부 숫자를 보면 / 현재 PER은 {eff_cur_pe_sh:.1f}배, PBR은 {pbr_now_val:.2f}배 위치에 서 있어!",
-                            f"[EP5_LOOP] 지금 주가가 집단 광기 구간인지 비이성적 공포 구간인지 댓글로 판정해 봐! / 그래서 처음 질문을 다시 떠올려 보면"
+                            f"[EP5_HOOK] 남들이 {comp_name}으로 돈 벌 때 질투나서 추격 매수하고, 폭락할 때 뉴스 보며 패닉에 빠지지 않았어?",
+                            f"[EP5_BODY1] 찰리 멍거는 투자자를 파산시키는 최대의 적이 낮은 지능이 아니라 남들 따라 사는 군중 심리와 내 선택만 믿는 확증 편향이라고 경고했어!",
+                            f"[EP5_BODY2] 어제 나온 자극적인 뉴스 대신 팩트 숫자를 기준선과 비교해 봐! / {psych_analogy}",
+                            f"[EP5_LOOP] 지금 주가가 대중의 광기 구간인지 공포가 만든 기회인지 댓글로 판정해 봐! / 그래서 처음 질문을 다시 떠올려 보면"
                         ]
+
                     elif ep_num == 6:
+                        # [6부: 버핏의 주주이익 & 자본배분 5대 경로]
                         ep_badge_title = f"[6부·주주이익] {comp_name} 자본배분 감사"
+                        if bb_val >= 1.0 or div_val >= 2.5:
+                            alloc_analogy = f"은행 예금 이자가 3% 수준인데, 여긴 현금배당 연 {div_val:.2f}%에 자사주 소각 효과 연 {bb_val:+.1f}%까지 합쳐 주주 주머니를 알뜰하게 채워주고 있어!"
+                        elif bb_val <= -1.5:
+                            alloc_analogy = f"배당은 연 {div_val:.2f}%인데 신주 발행 등으로 주식 수가 연 {abs(bb_val):.1f}%씩 늘어나 내 지분 가치를 깎아먹는 주주 희석 경고가 켜졌어!"
+                        else:
+                            alloc_analogy = f"현금배당은 연 {div_val:.2f}%로 적지만, 주주 몫을 깎아먹는 유상증자 없이 벌어들인 현금을 연 {roic_int}% 수익률의 본업에 재투자해 몸집을 키우고 있어!"
+
                         default_ep_script = [
-                            f"[EP6_HOOK] 뉴스에 나오는 {comp_name} 회계상 순이익 숫자만 믿으면 왜 위험할까?",
-                            f"[EP6_BODY1] 버핏은 감가상각비를 무시한 에비타나 순이익 대신, 경쟁력 유지를 위한 필수 설비투자비를 빼고 남은 진짜 주주이익만 믿으라고 했어!",
-                            f"[EP6_BODY2] 이렇게 남은 현금을 재투자하고 주주에게 돌려주는 성적표를 보면 / 자사주 변화율은 연 {bb_val:+.1f}%, 순수 현금배당은 연 {div_val:.2f}%야!",
-                            f"[EP6_LOOP] 경영진이 현금을 주주친화적으로 배분하고 있는지 댓글로 평가해 줘! / 다시 처음 질문과 연결해 보면"
+                            f"[EP6_HOOK] 뉴스에 나오는 {comp_name} 당기순이익 숫자만 믿고 투자하면 왜 위험할까?",
+                            f"[EP6_BODY1] 식당 사장님도 매출에서 가스비랑 주방 기계 수리비를 다 빼야 진짜 내 주머니에 남는 돈이잖아? / 이 회사는 공장 설비투자를 다 빼고도 지난 10년간 진짜 주주 현금이 연 {fcf_int:+d}%씩 움직였어!",
+                            f"[EP6_BODY2] 이렇게 남은 현금을 주주에게 어떻게 돌려주는지 보면! / {alloc_analogy}",
+                            f"[EP6_LOOP] 경영진이 현금을 주주친화적으로 배분하는 진짜 동업자인지 댓글로 평가해 줘! / 다시 처음 질문과 연결해 보면"
                         ]
+
                     else:
+                        # [7부: 역산 밸류에이션(Invert) & 매수·매도 3대 철칙]
                         ep_badge_title = f"[7부·역산&매도] {comp_name} 매수·매도 철칙"
+                        if g_margin_val >= 2.0:
+                            invert_analogy = f"연 10% 수익을 내려면 회사가 앞으로 매년 {req_int:+d}%씩만 크면 되는데 / 실제 지난 10년 현금 성장 속도는 연 {fcf_int:+d}%로 기준선을 훨씬 뛰어넘어 안전마진 합격이야!"
+                        elif g_margin_val >= -2.0:
+                            invert_analogy = f"연 10% 수익을 위해 시장이 요구하는 성장률이 연 {req_int:+d}%인데 / 실제 10년 현금 성장 속도도 연 {fcf_int:+d}%라 거품도 바겐세일도 아닌 딱 적정 수준이야!"
+                        else:
+                            invert_analogy = f"연 10% 수익을 맞추려면 매년 {req_int:+d}%씩 성장이 필요한데 / 실제 현금 성장은 연 {fcf_int:+d}%에 그쳐서 주가에 미래 기대감이 높게 선반영돼 있어!"
+
                         default_ep_script = [
-                            f"[EP7_HOOK] 복잡한 엑셀 예측 말고 10초 암산으로 지금 {comp_name} 주가가 싼지 비싼지 바로 까볼까?",
-                            f"[EP7_BODY1] 버핏의 역산법으로 보면 현재 이익수익률은 연 {ey_int}%라 / 연 10% 허들을 맞추려면 앞으로 매년 {req_int:+d}% 성장이 필요해! 실제 10년 현금 성장은 연 {fcf_int:+d}%였어!",
-                            f"[EP7_BODY2] 또한 매도는 오직 내 분석이 틀렸거나, 해자가 영구 붕괴했거나, 더 확실한 기회를 찾았을 때만 하는 게 불변의 3대 철칙이야!",
-                            f"[EP7_LOOP] 10년 뒤에도 독점력을 유지할 평생 동업자인지 댓글로 투표해 줘! / 그래서 맨 처음 질문으로 다시 돌아가 보면"
+                            f"[EP7_HOOK] 복잡한 엑셀 예측 말고 딱 10초 암산으로 지금 {comp_name} 주가가 싼지 비싼지 바로 판독해 볼까?",
+                            f"[EP7_BODY1] 가장 안전한 미국 국채가 1,000만 원 넣으면 1년에 {bond_10m_manwon}만 원({tnx_int}%) 이자를 주는데 / 이 주식은 현재 이익수익률로 1년에 {ey_10m_manwon}만 원({ey_int}%)을 벌어줘!",
+                            f"[EP7_BODY2] 여기서 버핏의 10초 역산법을 쓰면! / {invert_analogy}",
+                            f"[EP7_LOOP] 해자가 무너지기 전엔 팔지 말라는 버핏의 철칙대로 10년 동업할 주식인지 댓글로 투표해 줘! / 그래서 맨 처음 질문으로 다시 돌아가 보면"
                         ]
 
                     yt_angle_prefix = ep_badge_title
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_PDF7EP_{ep_num}"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_PDF7EP_V2_{ep_num}"
                     mode_tag_k = f"KO_{ov_sig}"
-                    script_area_key = f"script_pdf7_{tk}_{ov_sig}"
+                    script_area_key = f"script_pdf7_v2_{tk}_{ov_sig}"
 
                     editable_script_text = st.text_area(
-                        f"✏️ {ep_badge_title} 전용 대본 편집창 (마지막 문장이 첫 문장으로 이어지는 무한루프 & 슬래시 '/' 호흡 분할 적용)",
+                        f"✏️ {ep_badge_title} 전용 대본 편집창 (모든 숫자에 '시장 평균 기준선 + 일상 비유 + 직관적 통역'이 자동 적용되었습니다!)",
                         value="\n".join(default_ep_script),
-                        height=195,
+                        height=205,
                         key=script_area_key
                     )
 
@@ -9464,7 +9543,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
-                        # 멀티스레딩 스코프에서도 char_mode_sh NameError가 절대 발생하지 않도록 st.session_state 직접 참조!
                         _char_mode_now = str(st.session_state.get(f"sh_char_mode_{tk}", "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)"))
                         _custom_pil_now = st.session_state.get(f"custom_char_pil_{tk}", None)
 
@@ -9483,8 +9561,10 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _pbr_v = safe_float(pbr_now_val)
                         _cr_v = safe_float(cr_now_val)
                         _bb_v = safe_float(bb_val)
+                        _opm_10k = int(round(100 * _opm_v))
+                        _ey_10m = int(round(1000 * (_ey_v / 100.0)))
+                        _bond_10m = int(round(1000 * (_ty_v / 100.0)))
 
-                        # PDF 7부작마다 칠판 배경색·테두리색·타이틀이 완전히 다르게 렌더링 (스팸 필터 원천 회피)
                         ep_code = scene_code[:3] if scene_code.startswith("EP") else f"EP{ep_num}"
                         theme_palette = {
                             "EP1": ((12, 34, 26), (46, 204, 113), "1부 · 기업 소유권 & 저PBR 가치함정 판독"),
@@ -9496,7 +9576,6 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             "EP7": ((18, 20, 28), (250, 204, 21), "7부 · 10초 역산(Invert) & 매도 3대 철칙")
                         }
                         board_bg_col, theme_acc_col, ep_sub_header = theme_palette.get(ep_code, ((14, 28, 42), (217, 165, 32), "워런 버핏 10년 장부 해부"))
-
                         yellow_c, white_c, green_c, red_c, chalk_dim = (255, 235, 45), (250, 252, 255), (80, 255, 160), (255, 75, 85), (185, 205, 220)
 
                         _fit_single_line(draw, W // 2, 162, W - 50, f"{comp_name} · 바이블 {ep_code.replace('EP','')}부", f_gothic, start_sz=52, min_sz=26, fill=yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
@@ -9515,7 +9594,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 is_mouth_open=is_mouth_open, char_style=_char_mode_now,
                                 custom_pil_img=_custom_pil_now, is_presenter_stage=True, sub_step=sub_step + chunk_idx
                             )
-                            banner_txt = "BIBLE CHECK : 공시 숫자로 본질을 검증하라!" if "HOOK" in scene_code else "INFINITE LOOP : 댓글 남기고 처음부터 다시 보기 ↻"
+                            banner_txt = "BIBLE CHECK : 시장 평균 기준선과 1:1 비교하라!" if "HOOK" in scene_code else "INFINITE LOOP : 댓글 남기고 처음부터 다시 보기 ↻"
                             draw.rounded_rectangle([38, 305, W - 38, 372], radius=14, fill=(20, 30, 48), outline=theme_acc_col, width=4)
                             _fit_single_line(draw, W // 2, 338, W - 95, banner_txt, f_gothic, start_sz=26, fill=yellow_c, stroke_w=2)
                         else:
@@ -9523,73 +9602,76 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _fit_single_line(draw, W // 2, 344, W - 90, ep_sub_header, f_chalk, start_sz=27, fill=yellow_c)
 
                             if ep_code == "EP1":
-                                _fit_single_line(draw, 195, 435, 270, "장부가치 배수(PBR)", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"{_pbr_v:.2f}배", f_chalk, start_sz=56, fill=white_c)
-                                _fit_single_line(draw, 525, 435, 270, "본업 해자(ROIC)", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_cap_ret:.0f}%", f_chalk, start_sz=62, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(16, 42, 34), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "원칙 1. 5년간 거래소가 닫혀도 버틸 해자가 있는가?", f_chalk, start_sz=27, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, "해자 없는 단순 저PBR = 가치 함정(Value Trap) 주의!", f_chalk, start_sz=28, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "장부가치 (청산기준 1.0배)", f_chalk, start_sz=23, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, f"PBR {_pbr_v:.2f}배", f_chalk, start_sz=52, fill=white_c)
+                                _fit_single_line(draw, 525, 425, 270, "밑천 수익 (일반평균 8%)", f_chalk, start_sz=23, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"연 {_cap_ret:.0f}%", f_chalk, start_sz=60, fill=green_c if _cap_ret >= 10 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(16, 42, 34), outline=theme_acc_col, width=4)
+                                v_trap_lbl = "✅ 합격 : 해자와 수익성이 뒷받침되는 우량 기업!" if _cap_ret >= 10 else "⚠️ 주의 : 장부가만 싸고 수익성 낮은 가치함정 경계!"
+                                _fit_single_line(draw, W // 2, 628, W - 95, v_trap_lbl, f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, f"밑천 1,000만 원당 연 {abs(_r10m):,}만 원 창출 (평균 80만 원)", f_chalk, start_sz=27, fill=white_c)
 
                             elif ep_code == "EP2":
-                                _fit_single_line(draw, 195, 435, 270, "본업 영업이익률", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"연 {_opm_v:.0f}%", f_chalk, start_sz=58, fill=green_c if _opm_v >= 15 else yellow_c)
-                                _fit_single_line(draw, 525, 435, 270, "1,000만 원당 창출액", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"{abs(_r10m):,}만/년", f_chalk, start_sz=54, fill=white_c, stroke_w=3)
-                                draw_chalk_lecture_marks(draw, 195, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(18, 34, 62), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "인플레 방어력의 핵심 = 무형의 가격결정력!", f_chalk, start_sz=30, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, "대규모 설비(CapEx) 추가 부담 없이 원가 전가 가능한가?", f_chalk, start_sz=25, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "보통 제조업 마진", f_chalk, start_sz=24, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, "연 5~8%", f_chalk, start_sz=52, fill=white_c)
+                                _fit_single_line(draw, 525, 425, 270, f"{comp_name} 영업마진", f_chalk, start_sz=24, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"연 {_opm_v:.0f}%!", f_chalk, start_sz=60, fill=green_c if _opm_v >= 15 else yellow_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(18, 34, 62), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 628, W - 95, f"💡 체감 비유 : 1만 원어치 팔면 {_opm_10k:,}원 남는 장사!", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, "원가가 올라도 판매가에 즉시 전가하는 가격결정력 점검", f_chalk, start_sz=25, fill=white_c)
 
                             elif ep_code == "EP3":
-                                _fit_single_line(draw, 195, 435, 270, "영업이익률 방어력", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"연 {_opm_v:.0f}%", f_chalk, start_sz=56, fill=white_c)
-                                _fit_single_line(draw, 525, 435, 270, "10년 FCF 성장률", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_fcf_g:+.0f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g > 0 else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(48, 28, 18), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "필립 피셔 15대 원칙 : R&D와 투자의 상업적 생산성", f_chalk, start_sz=27, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, "선제적 R&D로 인한 일시적 마진 압박 = 매수 기회!", f_chalk, start_sz=26, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "영업마진 (보통 8%)", f_chalk, start_sz=24, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, f"연 {_opm_v:.0f}%", f_chalk, start_sz=54, fill=white_c)
+                                _fit_single_line(draw, 525, 425, 270, "10년 진짜현금(FCF) 성장", f_chalk, start_sz=24, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"연 {_fcf_g:+.0f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g > 0 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(48, 28, 18), outline=theme_acc_col, width=4)
+                                r_verdict = "✅ 투자금이 황금알(현금)로 회수되는 선순환!" if _fcf_g > 0 else "⚠️ 설비·연구비 투입으로 현금이 묶이는 구간 점검!"
+                                _fit_single_line(draw, W // 2, 628, W - 95, r_verdict, f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, "피셔 15원칙 : R&D 비용이 실제 영업이익으로 직결되는가?", f_chalk, start_sz=24, fill=white_c)
 
                             elif ep_code == "EP4":
-                                _fit_single_line(draw, 195, 435, 270, "자본비용 허들", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, "연 12.0%", f_chalk, start_sz=54, fill=white_c)
-                                _fit_single_line(draw, 525, 435, 270, "수학적 복리(ROIC)", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_cap_ret:.0f}%", f_chalk, start_sz=62, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(38, 20, 58), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "공학(Redundancy) : 단일 고객·단일 제품 실패 차단", f_chalk, start_sz=27, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, f"유동비율 {_cr_v:.2f}배 백업 시스템 가동 중", f_chalk, start_sz=32, fill=green_c)
+                                _fit_single_line(draw, 195, 425, 270, "예금 3% · 시장허들 12%", f_chalk, start_sz=23, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, "120만/년", f_chalk, start_sz=50, fill=white_c)
+                                _fit_single_line(draw, 525, 425, 270, f"{comp_name} (ROIC {_cap_ret:.0f}%)", f_chalk, start_sz=23, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"{abs(_r10m):,}만/년", f_chalk, start_sz=56, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 235, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(38, 20, 58), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 628, W - 95, f"비상금 유동비율 : {_cr_v:.2f}배 (안전 기준선 1.50배)", f_chalk, start_sz=29, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, "공학적 백업(유동성) + 수학적 복리(ROIC) 동시 검증", f_chalk, start_sz=25, fill=white_c)
 
                             elif ep_code == "EP5":
-                                _fit_single_line(draw, 195, 435, 270, "현재 PER 배수", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"{_per_v:.1f}배", f_chalk, start_sz=56, fill=white_c)
-                                _fit_single_line(draw, 525, 435, 270, "현재 PBR 배수", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"{_pbr_v:.2f}배", f_chalk, start_sz=56, fill=yellow_c, stroke_w=3)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(52, 18, 28), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "멍거의 8대 심리학 : 질투·확증편향·군중심리 통제", f_chalk, start_sz=27, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, "롤라팔루자(집단 광기·패닉) 발생 시 즉시 멈추고 관망!", f_chalk, start_sz=25, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "S&P500 평균 본전회수", f_chalk, start_sz=23, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, "22.0년", f_chalk, start_sz=52, fill=white_c)
+                                _fit_single_line(draw, 525, 425, 270, f"{comp_name} 본전회수(PER)", f_chalk, start_sz=23, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"{_per_v:.1f}년" if _per_v > 0 else "적자상태", f_chalk, start_sz=56, fill=green_c if (0 < _per_v <= 22) else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(52, 18, 28), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 628, W - 95, f"장부가치 배수 PBR : {_pbr_v:.2f}배 (청산가치 1.0배 기준)", f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, "질투·확증편향·군중심리(롤라팔루자 광기)를 경계하라!", f_chalk, start_sz=25, fill=white_c)
 
                             elif ep_code == "EP6":
-                                _fit_single_line(draw, 195, 435, 270, "자사주 증감/소각", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"연 {_bb_v:+.1f}%", f_chalk, start_sz=54, fill=green_c if _bb_v >= 0 else red_c)
-                                _fit_single_line(draw, 525, 435, 270, "순수 현금배당", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_safe_div_val:.2f}%", f_chalk, start_sz=56, fill=green_c if _safe_div_val >= 1.5 else white_c, stroke_w=3)
-                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(16, 44, 48), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "주주이익 = 순이익 + 감가상각 - 유지보수 CapEx", f_chalk, start_sz=27, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, "자사주 매입은 오직 내재가치 대비 저평가일 때만 유효!", f_chalk, start_sz=25, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "자사주 소각/증감 효과", f_chalk, start_sz=23, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, f"연 {_bb_v:+.1f}%", f_chalk, start_sz=52, fill=green_c if _bb_v >= 0 else red_c)
+                                _fit_single_line(draw, 525, 425, 270, "현금배당 (예금 3% 비교)", f_chalk, start_sz=23, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"연 {_safe_div_val:.2f}%", f_chalk, start_sz=56, fill=green_c if _safe_div_val >= 2.0 else white_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(16, 44, 48), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 628, W - 95, f"설비 수리비 빼고 남은 진짜 현금 성장 : 연 {_fcf_g:+.0f}%", f_chalk, start_sz=28, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, f"1,000만 원 투자 시 연간 배당금 약 {div_10m_manwon:,}만 원 수취", f_chalk, start_sz=26, fill=white_c)
 
                             else:
-                                _fit_single_line(draw, 195, 435, 270, "주가 내포 요구성장", f_chalk, start_sz=25, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"연 {_req_g:+.0f}%", f_chalk, start_sz=56, fill=yellow_c)
-                                _fit_single_line(draw, 525, 435, 270, "실제 10년 FCF 성장", f_chalk, start_sz=25, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_fcf_g:+.0f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g >= _req_g else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(24, 28, 38), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, "매도 3철칙 : ①분석오류 ②해자붕괴 ③더 확실한 기회", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 100, f"이익수익률 {_ey_v:.0f}% vs 미국채 {_ty_v:.0f}% 기회비용 대조", f_chalk, start_sz=28, fill=white_c)
+                                _fit_single_line(draw, 195, 425, 270, "10% 허들 필요성장률", f_chalk, start_sz=23, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 495, 270, f"연 {_req_g:+.0f}% 필요", f_chalk, start_sz=48, fill=yellow_c)
+                                _fit_single_line(draw, 525, 425, 270, "실제 10년 현금성장률", f_chalk, start_sz=23, fill=yellow_c)
+                                _fit_single_line(draw, 525, 495, 270, f"연 {_fcf_g:+.0f}% 달성", f_chalk, start_sz=52, fill=green_c if _fcf_g >= _req_g else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 495, 235, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 575, W - 42, 760], radius=18, fill=(24, 28, 38), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 628, W - 95, f"1,000만 원당 연수익 : 주식 {_ey_10m}만({_ey_v:.0f}%) vs 국채 {_bond_10m}만({_ty_v:.0f}%)", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 702, W - 95, "매도 3철칙 : ①분석오류 ②해자붕괴 ③더 확실한 기회", f_chalk, start_sz=25, fill=white_c)
 
                         if not hide_subtitles:
                             clean_sub = _clean_font_safe_text(str(sub_text).replace("·", " ").strip())
@@ -9612,6 +9694,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         _fit_single_line(draw, W // 2, 1102, W - 60, f"▶ @버핏의 장부체크 · {comp_name} 바이블 7부작 연재!", f_gothic, start_sz=25, fill=yellow_c)
                         _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시 데이터 기반 학술·교육용 통계이며 매수·매도 권유가 아닙니다", f_gothic, start_sz=13, fill=(140, 150, 165))
                         return img
+                    # ▲▲▲ [교체 끝] 바로 아래에 if st.button("1단계: 59초 이내 보장... 줄이 그대로 이어지면 됩니다 ▲▲▲
 
                     if st.button("1단계: 59초 이내 보장 · 바이블 7부작 시리즈 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
                         try:
