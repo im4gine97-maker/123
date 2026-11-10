@@ -9159,138 +9159,169 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     else:
                         cyc_short_txt = "장부와 가격의 안전마진이 탄탄한지 확인하고 진입해야 해!"
 
-                    # =========================================================================
-                    # [V33 완전체] 10대 공포 자극 도입부 선택기 + 첫째/둘째/셋째 삭제 & 버핏 철학 직결
-                    # + 애플 등 초고ROIC 오해 방지 + 영업마진 숫자 제거 + 기업별 맞춤 초단문 대본
-                    # =========================================================================
+                    # ▼▼▼ [교체 2 시작] roic_10m_manwon = ... 부터 "#### 2단계: 스팸 방지..." 바로 윗줄까지 덮어쓰기 ▼▼▼
                     roic_10m_manwon = int(round(1000 * (roic_int / 100.0)))
-                    # ▼▼▼ [무한 소재 로테이션 엔진 시작] hook_10_options = [ 부터 editable_script_text = st.text_area(...) 끝까지 교체 ▼▼▼
-                    mega_popular_rotation = [
+                    st.session_state["roic_10m_manwon_shared"] = roic_10m_manwon
+
+                    # [90일(1분기) 주기 무한 리필 스케줄러: 한·미 최고 인기 대장주 15선 × PDF 바이블 7부작 = 105일 순환]
+                    core_15_popular = [
                         ("005930.KS", "삼성전자"), ("NVDA", "엔비디아"), ("000660.KS", "SK하이닉스"), ("TSLA", "테슬라"),
                         ("005380.KS", "현대차"), ("AAPL", "애플"), ("GOOGL", "구글"), ("000270.KS", "기아"),
-                        ("MSFT", "마이크로소프트"), ("373220.KS", "LG에너지솔루션"), ("META", "메타"), ("AMZN", "아마존"),
-                        ("BRK-B", "버크셔해서웨이"), ("035420.KS", "NAVER"), ("AVGO", "브로드컴"), ("012450.KS", "한화에어로스페이스"),
-                        ("PLTR", "팔란티어"), ("034020.KS", "두산에너빌리티"), ("COST", "코스트코"), ("105560.KS", "KB금융"),
-                        ("TSM", "TSMC"), ("207940.KS", "삼성바이오로직스"), ("LLY", "일라이릴리"), ("138040.KS", "메리츠금융지주"),
-                        ("KO", "코카콜라"), ("068270.KS", "셀트리온"), ("V", "비자"), ("MA", "마스터카드")
+                        ("MSFT", "마이크로소프트"), ("META", "메타"), ("AMZN", "아마존"), ("BRK-B", "버크셔해서웨이"),
+                        ("035420.KS", "NAVER"), ("AVGO", "브로드컴"), ("TSM", "TSMC")
                     ]
-                    day_of_yr = datetime.now().timetuple().tm_yday
-                    rec_tk, rec_nm = mega_popular_rotation[day_of_yr % len(mega_popular_rotation)]
+                    day_seq = datetime.now().timetuple().tm_yday
+                    rec_stock_tk, rec_stock_nm = core_15_popular[(day_seq // 7) % len(core_15_popular)]
+                    rec_ep_idx = day_seq % 7
 
-                    angle_8_themes = [
-                        "🎯 테마 1. [기본] 10년 장부 종합 팩트체크 (해자·역산·안전판)",
-                        "🏦 테마 2. [기회비용] 미국채 10년물 이자 vs 이 주식, 누가 이길까?",
-                        "👑 테마 3. [구루의 시선] 워런 버핏·찰리 멍거라면 지금 이 주식을 살까?",
-                        "📉 테마 4. [저PER 착시 판독] 지금 진짜 바겐세일일까, 피크아웃 함정일까?",
-                        "💰 테마 5. [현금흐름 해부] 순이익에 속지 마라! 진짜 주주이익(FCF) 검증",
-                        "🔥 테마 6. [가격결정력] 인플레 위기에도 살아남을 독점 마진이 있는가?",
-                        "🎁 테마 7. [주주환원 감사] 배당과 자사주 소각 vs 주주가치 희석 판독",
-                        "🔒 테마 8. [5년 상폐 테스트] 내일 당장 거래소가 5년간 문 닫아도 버틸 주식인가?"
+                    pdf_7_series = [
+                        "📘 [1부 · 소유권 & 가치함정] 5년간 거래소가 문 닫아도 버틸까? 단순 저PBR 함정 판독 (PDF Part 1-1)",
+                        "💎 [2부 · 자본경량성 & 가격결정력] 설비 부담 없이 판가를 올릴 독점 마진이 있는가? (PDF Part 1-2)",
+                        "🔬 [3부 · 피셔의 15대 조건] 투입된 R&D와 설비투자가 실제 영업이익으로 직결되는가? (PDF Part 2-3)",
+                        "⚙️ [4부 · 멍거의 4대 과학] 단일 실패 지점 차단(다중 백업)과 수학적 복리(ROIC) 엔진 (PDF Part 3-4)",
+                        "🧠 [5부 · 인간 오판의 심리학] 질투·현실부정·군중심리 차단! 지금 광기일까 패닉일까? (PDF Part 3-5)",
+                        "💰 [6부 · 주주이익 & 자본배분] 순이익에 속지 마라! 유지보수 CapEx 뺀 주주이익과 환원 (PDF Part 4-6)",
+                        "🎯 [7부 · 역산(Invert) & 매도 3철칙] 주가에 내포된 영구성장률 역산과 매수·매도 철칙 (PDF Part 4-7)"
                     ]
-                    rec_theme_idx = (day_of_yr // len(mega_popular_rotation)) % len(angle_8_themes)
 
                     st.markdown(
-                        f"<div style='background:linear-gradient(90deg, rgba(250,204,21,0.14), rgba(56,189,248,0.10)); border:1.5px solid #facc15; border-radius:12px; padding:12px 16px; margin-bottom:12px;'>"
-                        f"<div style='font-size:0.95rem; font-weight:900; color:#facc15;'>♾️ [일일 무한 연재 큐레이터] 오늘 추천 대표주: <b>{rec_nm} ({rec_tk})</b> · 추천 앵글: <b>{angle_8_themes[rec_theme_idx]}</b></div>"
-                        f"<div style='font-size:0.82rem; color:var(--text-color); opacity:0.88; margin-top:4px;'>인기 대장주 28개 × 8대 기획 테마 = <b>총 224일 치 쇼츠가 중복 없이 무한 생성</b>됩니다.</div>"
+                        f"<div style='background:linear-gradient(90deg, rgba(46,204,113,0.12), rgba(56,189,248,0.10)); border:1.5px solid #2ecc71; border-radius:12px; padding:12px 16px; margin-bottom:12px;'>"
+                        f"<div style='font-size:0.95rem; font-weight:900; color:#2ecc71;'>♻️ [PDF 바이블 7부작 × 90일 분기 리필 시스템] 오늘의 스케줄: <b>{rec_stock_nm}</b> — <b>{pdf_7_series[rec_ep_idx][:18]}...</b></div>"
+                        f"<div style='font-size:0.82rem; color:var(--text-color); opacity:0.9; margin-top:4px;'>인기 대장주 15개 × PDF 7부작 = <b>105일(1개 분기) 연재</b> 후, 새 분기 실적이 발표되면 1부부터 새로운 숫자로 <b>무한 리필</b>됩니다.</div>"
                         f"</div>",
                         unsafe_allow_html=True
                     )
 
-                    rot_c1, rot_c2 = st.columns([2.2, 1.0])
-                    with rot_c1:
-                        sel_angle_theme = st.selectbox(
-                            "🎬 쇼츠 기획 테마(앵글) 선택 — 같은 종목도 테마만 바꾸면 완전히 새로운 영상이 됩니다!",
-                            angle_8_themes,
-                            index=rec_theme_idx,
-                            key=f"sel_angle_8_{tk}"
+                    ep_sel_col1, ep_sel_col2 = st.columns([2.4, 1.0])
+                    with ep_sel_col1:
+                        sel_pdf_ep = st.selectbox(
+                            "📚 PDF 가치투자 바이블 7부작 에피소드 선택 (편마다 칠판 색상·다이어그램·대본이 100% 달라져 스팸 필터를 완벽 우회합니다)",
+                            pdf_7_series,
+                            index=rec_ep_idx,
+                            key=f"pdf_7ep_sel_{tk}"
                         )
-                    with rot_c2:
+                    with ep_sel_col2:
                         st.write("")
-                        if st.button(f"🔄 오늘의 추천주({rec_nm}) 바로 불러오기", use_container_width=True, key=f"btn_load_rec_{tk}"):
-                            select_ticker(rec_tk)
+                        if st.button(f"🔄 추천 대장주({rec_stock_nm}) 로드", use_container_width=True, key=f"btn_rec15_{tk}"):
+                            select_ticker(rec_stock_tk)
                             st.rerun()
 
-                    # ▼▼▼ [수정 1 시작] 1종목 5부작 시리즈 분할 + 무한루프 + 법적안전 대본 엔진 ▼▼▼
-                    ep_5_series = [
-                        "📘 [1부 · 본업 해자편] 회사 밑천 1,000만 원 넣으면 1년에 얼마씩 복사할까? (ROIC 집중 해부)",
-                        "⚖️ [2부 · 가격 역산편] 지금 주가에 숨겨진 시장의 요구성장률은 몇 %일까? (버핏의 역산법)",
-                        "💰 [3부 · 진짜 현금편] 당기순이익에 속지 마라! 설비투자 빼고 주주에게 남는 돈은? (CapEx & FCF)",
-                        "🛡️ [4부 · 위기 생존편] 내일 당장 경제위기가 터지면 현금과 배당으로 버틸 수 있을까? (유동성 & 환원)",
-                        "🏛️ [5부 · 동업 총평편] 5년간 거래소가 문을 닫아도 버핏이 동업할 기업일까? (최종 게이트)"
-                    ]
-                    sel_ep = st.radio(
-                        "🎞️ [인기 종목 5부작 쪼개기] 오늘 제작할 에피소드 선택 (한 종목으로 5일 연속 연재 가능 · 편마다 칠판 디자인 자동 변경!)",
-                        ep_5_series,
-                        index=0,
-                        key=f"ep5_split_radio_{tk}"
-                    )
-                    ep_num = ep_5_series.index(sel_ep) + 1
-
-                    # 법적 안전성 100% 보장 (공시 팩트 수치 기반) + 강력한 초반 3초 훅 + 무한루프(마지막 문장 -> 첫 문장 직결)
+                    ep_num = pdf_7_series.index(sel_pdf_ep) + 1
                     clean_capex_txt = re.sub(r'<[^>]+>', '', locals().get('capex_nature_html', '')).strip()
+                    clean_div_txt = re.sub(r'<[^>]+>', '', locals().get('diversification_html', '')).strip()
                     pbr_now_val = safe_float(locals().get('pbr', 1.0))
                     cr_now_val = safe_float(locals().get('current_ratio', 1.0))
 
+                    # PDF 7대 단원별 맞춤형 대본 (초반 3초 질문 훅 + 공시 팩트(법적 안전) + 끝문장->첫문장 무한루프)
                     if ep_num == 1:
-                        # 1부: 본업 해자 & 가격결정력 단독 집중
-                        ep_badge_title = f"[1부] {comp_name} 본업 해자 해부"
+                        ep_badge_title = f"[1부·소유권] {comp_name} 가치함정 판독"
                         default_ep_script = [
-                            f"[EP1_HOOK] 남들 다 사는 {comp_name}, 진짜 돈 복사기인지 껍데기인지 딱 15초 만에 까보자!",
-                            f"[EP1_BODY1] 워런 버핏은 주가가 결국 회사 밑천 굴리는 수익률을 따라간다고 했어! / 시장 평균이 12%인데 여긴 밑천 대비 연 {roic_int}%를 뽑아내!",
-                            f"[EP1_BODY2] 쉽게 말해 회사가 밑천 1,000만 원당 매년 {abs(roic_10m_manwon):,}만 원씩 결과를 내는 셈이고 / 본업 영업이익률은 {opm_int}%를 기록 중이야!",
-                            f"[EP1_LOOP] 공시 숫자로 본 본업 체력은 이렇다면 과연 너의 판단은 어때? / 댓글로 남겨주고, 이래서 처음부터 다시 보자면"
+                            f"[EP1_HOOK] 내일 당장 주식시장이 5년 동안 문을 닫아도 {comp_name} 불안 없이 들고 있을 자신 있어?",
+                            f"[EP1_BODY1] 버핏의 제1원칙은 주식을 종잇조각이 아니라 비즈니스의 지분 100%를 인수하는 동업으로 보는 거야! / 해자 없이 장부가치만 싼 주식은 위험한 가치함정이야!",
+                            f"[EP1_BODY2] 현재 이 기업의 장부가치 배수 PBR은 {pbr_now_val:.2f}배 수준이고 / 본업 해자를 보여주는 밑천 수익률 ROIC는 연 {roic_int}%를 기록 중이야!",
+                            f"[EP1_LOOP] 시세판이 꺼져도 동업할 만한 진짜 해자 기업인지 댓글로 판정해 봐! / 그래서 다시 처음 질문으로 돌아가 보면"
                         ]
                     elif ep_num == 2:
-                        # 2부: 버핏의 역산법 & 기회비용 단독 집중
-                        ep_badge_title = f"[2부] {comp_name} 주가 역산 판독"
+                        ep_badge_title = f"[2부·가격결정력] {comp_name} 인플레 방어력"
+                        cap_light_txt = "설비 부담이 적은 고효율 구조" if "자본 경량형" in clean_capex_txt or roic_int >= 25 else "지속적인 설비 재투자가 필요한 구조"
                         default_ep_script = [
-                            f"[EP2_HOOK] 지금 {comp_name} 주가, 거품일까 바겐세일일까? / 버핏의 10초 암산 역산법으로 지금 당장 계산해 보자!",
-                            f"[EP2_BODY1] 복잡한 예측 대신 무위험 미국채 금리 연 {tnx_int}%와 비교해 봐! / 현재 이 주식의 이익수익률은 연 {ey_int}% 수준이야!",
-                            f"[EP2_BODY2] 연 10% 목표수익을 맞추려면 앞으로 매년 {req_int:+d}% 성장이 필요한데 / 지난 10년 실제 잉여현금 성장률은 연 {fcf_int:+d}%를 기록했어!",
-                            f"[EP2_LOOP] 시장이 요구하는 기대치와 실제 성장의 격차를 봤다면 너라면 지금 살래? / 댓글로 알려주고, 다시 핵심만 짚어보면"
+                            f"[EP2_HOOK] 물가 오르고 원가 폭등할 때 {comp_name}은 가격을 올려도 고객이 안 도망갈까?",
+                            f"[EP2_BODY1] 바이블 제2원칙은 인플레이션 방어력의 핵심이 부동산이 아니라 무형의 가격결정력과 자본 경량성에 있다고 봐! / 여긴 현재 {cap_light_txt}야!",
+                            f"[EP2_BODY2] 원가 상승분을 고객에게 전가하는 힘을 보여주는 본업 영업이익률은 연 {opm_int}%고 / 밑천 1,000만 원당 연 {abs(roic_10m_manwon):,}만 원씩 수익을 내고 있어!",
+                            f"[EP2_LOOP] 과연 가격을 올려도 살아남을 독점 기업인지 댓글로 의견 남겨줘! / 이 관점에서 처음 질문을 다시 보면"
                         ]
                     elif ep_num == 3:
-                        # 3부: 순이익 착시 vs CapEx & 진짜 FCF 단독 집중
-                        ep_badge_title = f"[3부] {comp_name} 현금흐름 실체"
-                        capex_short = "차세대 독점 해자를 위한 선제 투자 중" if "선제투자" in clean_capex_txt or "자본 경량형" in clean_capex_txt else "설비 유지와 증설에 대규모 자본 투입 중"
+                        ep_badge_title = f"[3부·피셔15원칙] {comp_name} R&D 및 마진"
                         default_ep_script = [
-                            f"[EP3_HOOK] 뉴스에 나오는 {comp_name} 당기순이익 숫자만 믿고 투자하면 큰코다쳐! / 진짜 주주 주머니에 남는 현금을 까보자!",
-                            f"[EP3_BODY1] 버핏은 회계상 순이익이 아니라 공장 설비투자비를 빼고 남은 진짜 주주이익만 믿으라고 했어! / 현재 이 기업은 {capex_short}이야!",
-                            f"[EP3_BODY2] 설비투자를 다 빼고 남은 잉여현금흐름이 최근 10년간 연평균 {fcf_int:+d}%씩 움직였고 / 현재 PER은 {eff_cur_pe_sh:.1f}배에 거래되고 있어!",
-                            f"[EP3_LOOP] 끝없이 설비만 먹는 구조인지 현금이 남는 구조인지 댓글로 판정해 봐! / 그래서 처음 질문으로 돌아가 보면"
+                            f"[EP3_HOOK] {comp_name}이 쏟아붓는 막대한 연구개발비와 투자비, 진짜 이익으로 돌아오고 있을까?",
+                            f"[EP3_BODY1] 필립 피셔의 15대 원칙은 투입된 연구개발 비용이 단순 연구에 그치지 않고 높은 영업마진으로 직결되는지를 가장 중요하게 따져!",
+                            f"[EP3_BODY2] 현재 영업이익률은 {opm_int}%를 기록 중이고 / 설비투자를 뺀 10년 잉여현금 성장률은 연평균 {fcf_int:+d}% 추세를 보이고 있어!",
+                            f"[EP3_LOOP] 단기 마진 압박이 미래를 위한 씨앗인지 출혈인지 댓글로 알려줘! / 그래서 맨 앞의 질문으로 다시 이어가면"
                         ]
                     elif ep_num == 4:
-                        # 4부: 재무 안전판(유동비율) & 주주환원(배당/소각) 단독 집중
-                        ep_badge_title = f"[4부] {comp_name} 위기생존 & 환원"
-                        ret_short = f"자사주 변화율 연 {bb_val:+.1f}%에 현금배당 연 {div_val:.1f}%를 기록 중이야!"
+                        ep_badge_title = f"[4부·멍거과학] {comp_name} 백업 & 복리엔진"
+                        spof_txt = "다각화된 사업 포트폴리오로 단일 실패 위험을 분산 중" if "다각화" in clean_div_txt or "양호" in clean_div_txt or "최상" in clean_div_txt else "주력 핵심 사업의 사이클 의존도를 점검해야 하는 구조"
                         default_ep_script = [
-                            f"[EP4_HOOK] 내일 당장 금융위기가 터지면 {comp_name} 주주들은 무사할까? / 위기 생존력과 주주환원 장부를 까보자!",
-                            f"[EP4_BODY1] 찰리 멍거는 한 곳이 막혀도 버티는 재무 백업 시스템을 최우선으로 봤어! / 현재 단기 위기 대응력인 유동비율은 {cr_now_val:.2f}배야!",
-                            f"[EP4_BODY2] 또 장부가치 대비 주가 배수인 PBR은 {pbr_now_val:.2f}배 수준이고 / 주주환원은 {ret_short}",
-                            f"[EP4_LOOP] 과연 위기에도 내 자산을 지켜줄 안전판이 충분할까? / 댓글로 의견 남겨주고, 다시 맨 앞부터 확인해 보면"
+                            f"[EP4_HOOK] 한 사업부가 무너져도 회사 전체가 안 망하는 백업 시스템이 {comp_name}에 있을까?",
+                            f"[EP4_BODY1] 찰리 멍거는 공학의 단일 실패 지점 차단과 수학의 복리 모형으로 기업의 수명을 판독했어! / 현재 이 기업은 {spof_txt}이야!",
+                            f"[EP4_BODY2] 또한 수학적 복리의 바퀴인 투하자본수익률은 연 {roic_int}%로 / 시장 자본비용 기준선인 12% 대비 {roic_int-12:+d}%포인트 격차를 내고 있어!",
+                            f"[EP4_LOOP] 과연 위기에도 추락하지 않을 복리 비행기인지 댓글로 남겨줘! / 다시 첫 질문으로 돌아가서 보면"
+                        ]
+                    elif ep_num == 5:
+                        ep_badge_title = f"[5부·투자심리] {comp_name} 군중심리 판독"
+                        default_ep_script = [
+                            f"[EP5_HOOK] 남들이 {comp_name}으로 돈 벌 때 질투나고 폭락할 때 뉴스 보며 패닉에 빠지지 않았어?",
+                            f"[EP5_BODY1] 멍거의 인간 오판 심리학은 군중 심리와 확증 편향, 그리고 여러 편향이 겹치는 롤라팔루자 광기 효과를 가장 경계하라고 경고해!",
+                            f"[EP5_BODY2] 어제 나온 자극적인 뉴스 소음 대신 10년 장부 숫자를 보면 / 현재 PER은 {eff_cur_pe_sh:.1f}배, PBR은 {pbr_now_val:.2f}배 위치에 서 있어!",
+                            f"[EP5_LOOP] 지금 주가가 집단 광기 구간인지 비이성적 공포 구간인지 댓글로 판정해 봐! / 그래서 처음 질문을 다시 떠올려 보면"
+                        ]
+                    elif ep_num == 6:
+                        ep_badge_title = f"[6부·주주이익] {comp_name} 자본배분 감사"
+                        default_ep_script = [
+                            f"[EP6_HOOK] 뉴스에 나오는 {comp_name} 회계상 순이익 숫자만 믿으면 왜 위험할까?",
+                            f"[EP6_BODY1] 버핏은 감가상각비를 무시한 에비타나 순이익 대신, 경쟁력 유지를 위한 필수 설비투자비를 빼고 남은 진짜 주주이익만 믿으라고 했어!",
+                            f"[EP6_BODY2] 이렇게 남은 현금을 재투자하고 주주에게 돌려주는 성적표를 보면 / 자사주 변화율은 연 {bb_val:+.1f}%, 순수 현금배당은 연 {div_val:.2f}%야!",
+                            f"[EP6_LOOP] 경영진이 현금을 주주친화적으로 배분하고 있는지 댓글로 평가해 줘! / 다시 처음 질문과 연결해 보면"
                         ]
                     else:
-                        # 5부: 5년 상장폐지 테스트 & 동업 총평 단독 집중
-                        ep_badge_title = f"[5부] {comp_name} 5년 동업 테스트"
+                        ep_badge_title = f"[7부·역산&매도] {comp_name} 매수·매도 철칙"
                         default_ep_script = [
-                            f"[EP5_HOOK] 내일 당장 주식시장이 5년 동안 문을 닫아도 {comp_name} 발 뻗고 들고 있을 자신 있어? / 최종 동업 테스트를 해보자!",
-                            f"[EP5_BODY1] 버핏은 주식을 종잇조각이 아니라 기업 전체를 통째로 인수하는 동업으로 보라고 했어! / 본업 밑천 수익률은 연 {roic_int}%고 이익수익률은 연 {ey_int}%야!",
-                            f"[EP5_BODY2] 10년 현금 성장은 연 {fcf_int:+d}%에 배당은 연 {div_val:.1f}%를 주는 사업체인데 / 시세판이 꺼져도 이 사업 성과만으로 만족할 수 있는지 봐야 해!",
-                            f"[EP5_LOOP] 5년간 절대 팔 수 없어도 지금 {comp_name} 동업자로 들어갈래? / 댓글로 투표해 주고, 처음 질문과 연결해 보면"
+                            f"[EP7_HOOK] 복잡한 엑셀 예측 말고 10초 암산으로 지금 {comp_name} 주가가 싼지 비싼지 바로 까볼까?",
+                            f"[EP7_BODY1] 버핏의 역산법으로 보면 현재 이익수익률은 연 {ey_int}%라 / 연 10% 허들을 맞추려면 앞으로 매년 {req_int:+d}% 성장이 필요해! 실제 10년 현금 성장은 연 {fcf_int:+d}%였어!",
+                            f"[EP7_BODY2] 또한 매도는 오직 내 분석이 틀렸거나, 해자가 영구 붕괴했거나, 더 확실한 기회를 찾았을 때만 하는 게 불변의 3대 철칙이야!",
+                            f"[EP7_LOOP] 10년 뒤에도 독점력을 유지할 평생 동업자인지 댓글로 투표해 줘! / 그래서 맨 처음 질문으로 다시 돌아가 보면"
                         ]
 
                     yt_angle_prefix = ep_badge_title
-                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_EP{ep_num}_V36_SERIES"
+                    ov_sig = f"{sh_fcf_g_pct:.1f}_{sh_f_pe:.1f}_PDF7EP_{ep_num}"
                     mode_tag_k = f"KO_{ov_sig}"
-                    script_area_key = f"script_v36_ep_{tk}_{ov_sig}"
+                    script_area_key = f"script_pdf7_{tk}_{ov_sig}"
 
                     editable_script_text = st.text_area(
-                        f"✏️ {ep_badge_title} 전용 대본 편집창 (마지막 문장이 첫 문장으로 자연스럽게 이어지는 무한루프 구조입니다)",
+                        f"✏️ {ep_badge_title} 전용 대본 편집창 (마지막 문장이 첫 문장으로 이어지는 무한루프 & 슬래시 '/' 호흡 분할 적용)",
                         value="\n".join(default_ep_script),
                         height=195,
                         key=script_area_key
                     )
+
+                    with st.expander("🎙️ [고급 옵션] 내 목소리 직접 녹음 · 버핏 보이스 클로닝 업로드 & 캡컷/유튜브 편집용 에셋 추출", expanded=False):
+                        vc_col1, vc_col2 = st.columns(2)
+                        with vc_col1:
+                            custom_mic_audio = st.audio_input("🎤 마이크로 대본 직접 녹음하기 (선택)", key=f"mic_rec_{tk}")
+                        with vc_col2:
+                            custom_voice_file = st.file_uploader("🎵 외부 녹음/보이스 클로닝 파일(.mp3/.wav) 업로드", type=["mp3", "wav", "m4a"], key=f"vc_up_{tk}")
+                        export_clean_slides = st.checkbox("📦 렌더링 시 '캡컷·유튜브 편집용 칠판 슬라이드 원본(PNG ZIP)' 함께 생성하기", value=True, key=f"exp_zip_{tk}")
+
+                    char_c1, char_c2, char_c3 = st.columns([1.2, 1, 1])
+                    with char_c1:
+                        char_mode_sh = st.selectbox(
+                            "🎭 말하는 캐릭터(립싱크) 선택",
+                            [
+                                "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)",
+                                "🧑‍💼 월가 스마트 애널리스트 (입모양 립싱크 ON)",
+                                "🖼️ 내 캐릭터 이미지 직접 업로드 (립싱크 ON)",
+                                "🚫 캐릭터 없음 (깔끔한 차트 전용)"
+                            ],
+                            index=0,
+                            key=f"sh_char_mode_{tk}"
+                        )
+                    with char_c2:
+                        tone_mode_sh = st.selectbox(
+                            "🗣️ 대본 말투 스타일",
+                            [
+                                "🔥 머니치트키식 친근한 반말 (초보 맞춤형)",
+                                "🎙️ 정통 애널리스트 존댓말 (브리핑 스타일)"
+                            ],
+                            index=0,
+                            key=f"sh_tone_mode_{tk}"
+                        )
+                    with char_c3:
+                        custom_char_file = st.file_uploader("내 캐릭터(PNG/JPG) 업로드 (선택)", type=["png", "jpg", "jpeg"], key=f"sh_char_up_{tk}")
+                        custom_char_pil = None
+                        if custom_char_file is not None:
+                            from PIL import Image
+                            custom_char_pil = Image.open(custom_char_file)
+                            st.session_state[f"custom_char_pil_{tk}"] = custom_char_pil
 
                     raw_lines_v21 = [ln.strip() for ln in editable_script_text.split("\n") if ln.strip()]
                     if not raw_lines_v21:
@@ -9305,39 +9336,27 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             sc_tag = f"EP{ep_num}_BODY1"
                             cl_txt = re.sub(r'^\[[^\]]+\]\s*', '', r_ln).strip()
                         pop_chunks.append((cl_txt, sc_tag))
-                    # ▲▲▲ [수정 1 끝] ▲▲▲
+
                     def _generate_transition_sfx_samples(sfx_style_str, cut_idx=0, is_chapter_start=False, sr=24000):
-                        """
-                        [시네마틱 전환 SFX] 날카로운 고음 스우시(Whoosh) + 42Hz 서브베이스 쿵(Sub-bass Boom) 합성
-                        """
                         import math, random
                         if "없음" in sfx_style_str or not is_chapter_start:
                             return []
                         two_pi = 2.0 * math.pi
                         samples = []
-                        dur = 0.18  # 0.18초 임팩트
+                        dur = 0.18
                         n_s = int(sr * dur)
                         rng = random.Random(2026 + cut_idx)
-                        
                         for idx_i in range(n_s):
                             t_s = idx_i / sr
-                            
-                            # 1. 날카롭게 공기를 가르는 스우시 (High Whoosh: 800Hz -> 3000Hz 휩스위프)
                             whoosh_env = math.sin((idx_i / n_s) * math.pi) * math.exp(-t_s * 11.0)
                             whoosh_freq = 800.0 + 2400.0 * math.sin((t_s / dur) * math.pi)
                             whoosh_tone = math.sin(two_pi * whoosh_freq * t_s) * whoosh_env * 0.28
                             whoosh_noise = rng.uniform(-0.4, 0.4) * whoosh_env * 0.35
-                            
-                            # 2. 바닥을 묵직하게 때리는 42Hz 서브베이스 쿵 (Sub-bass Impact Boom)
                             sub_freq = 42.0 + 85.0 * math.exp(-t_s * 28.0)
                             sub_env = math.exp(-t_s * 10.0) * min(1.0, t_s / 0.003)
                             sub_boom = math.sin(two_pi * sub_freq * t_s) * sub_env * 0.65
-                            
-                            # 3. 컷 시작 순간 찰나의 트랜지언트 스냅
                             snap = math.sin(two_pi * 1400.0 * t_s) * math.exp(-t_s * 50.0) * 0.20
-                            
-                            mixed = max(-0.95, min(0.95, whoosh_tone + whoosh_noise + sub_boom + snap))
-                            samples.append(mixed)
+                            samples.append(max(-0.95, min(0.95, whoosh_tone + whoosh_noise + sub_boom + snap)))
                         return samples
 
                     def _Overlay_sfx_on_voice_wav(wav_path, sfx_style_str, cut_idx=0, is_chapter_start=False):
@@ -9351,8 +9370,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                 raw_frames = wf.readframes(wf.getnframes())
                             total_samples = len(raw_frames) // 2
                             pcm_list = list(struct.unpack(f'<{total_samples}h', raw_frames))
-                            mix_len = min(len(pcm_list), len(sfx_floats))
-                            for idx_i in range(mix_len):
+                            for idx_i in range(min(len(pcm_list), len(sfx_floats))):
                                 pcm_list[idx_i] = max(-32767, min(32767, int(pcm_list[idx_i] + sfx_floats[idx_i] * 32767.0)))
                             with wave.open(wav_path, 'wb') as wf_out:
                                 wf_out.setparams(params)
@@ -9386,306 +9404,193 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                     def _generate_chunk_voice(text_line, raw_mp3_path, tuned_wav_path, ffmpeg_exe, cut_idx=0, is_chapter_start=False, is_final_cut=False):
                         import subprocess, os, re
-                        tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip()
-                        if not tts_ready_text:
-                            tts_ready_text = "핵심 지표 확인"
-
-                        # [성우 및 음정 튜닝: 기존 1번 유지 + 버핏 전용 톤 매핑]
+                        tts_ready_text = str(fix_global_tts_pronunciation(text_line, is_en=is_en_shorts)).strip() or "핵심 지표 확인"
                         v_str = str(voice_choice)
                         if is_en_shorts:
-                            if "Christopher" in v_str or "Buffett Original" in v_str:
-                                voice_id = "en-US-ChristopherNeural"
-                                pitch_str = "-3Hz"
-                            elif "Guy" in v_str or "Deep Authority" in v_str:
-                                voice_id = "en-US-GuyNeural"
-                                pitch_str = "-4Hz"
-                            elif "Ava" in v_str:
-                                voice_id = "en-US-AvaNeural"
-                                pitch_str = "+8Hz"
-                            else:
-                                voice_id = "en-US-AndrewNeural"
-                                pitch_str = "+10Hz"
+                            voice_id = "en-US-ChristopherNeural" if "Christopher" in v_str else ("en-US-GuyNeural" if "Guy" in v_str else ("en-US-AvaNeural" if "Ava" in v_str else "en-US-AndrewNeural"))
+                            pitch_str = "-3Hz" if "Christopher" in v_str else "+6Hz"
                         else:
-                            if "봉진" in v_str or "오마하의 현인" in v_str:
-                                voice_id = "ko-KR-BongJinNeural"
-                                pitch_str = "-4Hz"
-                            elif "남신" in v_str or "원로 애널리스트" in v_str:
-                                voice_id = "ko-KR-NamMinNeural" if "NamMin" in v_str else "ko-KR-InJoonNeural"
-                                pitch_str = "-3Hz"
-                            elif "현수" in v_str or "속사포" in v_str:
-                                voice_id = "ko-KR-HyunsuNeural"
-                                pitch_str = "+4Hz"
-                            elif "선희" in v_str or "여성" in v_str:
-                                voice_id = "ko-KR-SunHiNeural"
-                                pitch_str = "+2Hz"
-                            else:
-                                # 1위: 기존 미스터비스트 극한 하이톤 (인준)
-                                voice_id = "ko-KR-InJoonNeural"
-                                pitch_str = "+2Hz"
-                        # 1차 TTS 생성: 원본 속도(+0%)로 깨끗하게 추출 (이중 배속 방지!)
+                            if "봉진" in v_str or "오마하의 현인" in v_str: voice_id, pitch_str = "ko-KR-BongJinNeural", "-4Hz"
+                            elif "현수" in v_str or "속사포" in v_str: voice_id, pitch_str = "ko-KR-HyunsuNeural", "+4Hz"
+                            elif "선희" in v_str or "여성" in v_str: voice_id, pitch_str = "ko-KR-SunHiNeural", "+2Hz"
+                            else: voice_id, pitch_str = "ko-KR-InJoonNeural", "+2Hz"
+
                         try:
                             import edge_tts, asyncio
                             async def _run():
-                                await edge_tts.Communicate(
-                                    str(tts_ready_text),
-                                    voice=str(voice_id),
-                                    rate="+0%",
-                                    pitch=str(pitch_str)
-                                ).save(str(raw_mp3_path))
-                            
+                                await edge_tts.Communicate(str(tts_ready_text), voice=str(voice_id), rate="+0%", pitch=str(pitch_str)).save(str(raw_mp3_path))
                             loop = asyncio.new_event_loop()
-                            try:
-                                loop.run_until_complete(_run())
-                            finally:
-                                loop.close()
+                            try: loop.run_until_complete(_run())
+                            finally: loop.close()
                         except Exception:
                             from gtts import gTTS
                             gTTS(text=str(tts_ready_text), lang='ko', slow=False).save(str(raw_mp3_path))
 
-                        # 2차 배속 반영: 슬라이더 값에 따라 atempo 단일 제어 (1.00x ~ 1.35x 동적 반영)
-                        # voice_speed 슬라이더(+0% ~ +60%)를 배율(1.0 ~ 1.6)로 환산
-                        u_spd = int(voice_speed) if 'voice_speed' in locals() and voice_speed is not None else 20
+                        u_spd = int(voice_speed) if 'voice_speed' in locals() and voice_speed is not None else 24
                         calc_tempo = max(0.95, min(1.45, 1.0 + (u_spd / 100.0)))
-
                         pad_part = "" if is_final_cut else ",apad=pad_dur=0.04"
+                        af_filter = f"silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.02:stop_periods=-1:stop_threshold=-36dB:stop_duration=0.04,atempo={calc_tempo:.3f},volume=1.25{pad_part}"
 
-                        # 자연스러운 쇼츠 템포 필터 (묵음은 정리하되 말이 씹히지 않도록 안전 마진 부여)
-                        af_filter = (
-                            "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.02:"
-                            "stop_periods=-1:stop_threshold=-36dB:stop_duration=0.04,"
-                            f"atempo={calc_tempo:.3f},"
-                            "volume=1.25"
-                            f"{pad_part}"
-                        )
-
-                        cmd = [
-                            ffmpeg_exe, "-y",
-                            "-i", raw_mp3_path,
-                            "-af", af_filter,
-                            "-ar", "24000",
-                            "-ac", "1",
-                            tuned_wav_path
-                        ]
-
-                        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        res = subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-af", af_filter, "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         if res.returncode != 0:
-                            # 폴백 시에도 계산된 단일 배속만 적용
-                            subprocess.run([
-                                ffmpeg_exe, "-y",
-                                "-i", raw_mp3_path,
-                                "-af", f"atempo={calc_tempo:.3f},volume=1.2",
-                                "-ar", "24000",
-                                "-ac", "1",
-                                tuned_wav_path
-                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-
+                            subprocess.run([ffmpeg_exe, "-y", "-i", raw_mp3_path, "-af", f"atempo={calc_tempo:.3f},volume=1.2", "-ar", "24000", "-ac", "1", tuned_wav_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                         _Overlay_sfx_on_voice_wav(tuned_wav_path, sfx_choice, cut_idx=cut_idx, is_chapter_start=is_chapter_start)
 
-
-                        @st.cache_resource
-                        def _load_korean_pil_fonts():
-                            import os, urllib.request
-                            from PIL import ImageFont
-                        
-                            font_dir = "/tmp/agie_fonts"
-                            os.makedirs(font_dir, exist_ok=True)
-                            gothic_font_path = os.path.join(font_dir, "NanumGothic-ExtraBold.ttf")
-                        
-                            # 자막 및 칠판 공통용 고딕 엑스트라볼드 폰트 다운로드
-                            if not os.path.exists(gothic_font_path):
-                                try:
-                                    url_gothic = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-ExtraBold.ttf"
-                                    urllib.request.urlretrieve(url_gothic, gothic_font_path)
-                                except Exception:
-                                    gothic_font_path = None
-                        
-                            # 필기체(is_chalk) 요청도 모두 하단 자막과 동일한 볼드 고딕체로 단일 통일
-                            def get_font(size, is_chalk=True):
-                                if gothic_font_path and os.path.exists(gothic_font_path):
-                                    try:
-                                        return ImageFont.truetype(gothic_font_path, int(size))
-                                    except Exception:
-                                        pass
-                                for sys_font in ["C:/Windows/Fonts/malgunbd.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"]:
-                                    if os.path.exists(sys_font):
-                                        try:
-                                            return ImageFont.truetype(sys_font, int(size))
-                                        except Exception:
-                                            pass
-                                return ImageFont.load_default()
-                        
-                            return get_font
-
                     def _clean_font_safe_text(txt):
-                        if txt is None:
-                            return ""
-                        if isinstance(txt, (list, tuple)):
-                            txt = " ".join(str(x) for x in txt)
+                        if txt is None: return ""
+                        if isinstance(txt, (list, tuple)): txt = " ".join(str(x) for x in txt)
                         s = str(txt)
-                        rep_map = {"①": "1.", "②": "2.", "③": "3.", "④": "4.", "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "", "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "", "💥": "", "🏦": "", "🏢": "", "⚖️": "", "❓": "?", "🎉": ""}
-                        for k_bad, v_good in rep_map.items():
+                        for k_bad, v_good in {"①": "1.", "②": "2.", "③": "3.", "④": "4.", "🏆": "", "⚡": "", "🔥": "", "💰": "", "🎁": "", "🚀": "", "📈": "", "🚨": "", "✅": "", "⚠️": "", "💥": "", "🏦": "", "🏢": "", "⚖️": "", "❓": "?", "🎉": ""}.items():
                             s = s.replace(k_bad, v_good)
                         return re.sub(r'\s+', ' ', s).strip()
 
                     def _fit_single_line(draw, cx, cy, max_w, text, get_font, start_sz=50, min_sz=11, fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0)):
                         t_str = str(_clean_font_safe_text(text))
-                        if not t_str:
-                            return get_font(min_sz), 0, 0
+                        if not t_str: return get_font(min_sz), 0, 0
                         for sz in range(start_sz, min_sz - 1, -2):
                             f = get_font(sz)
                             bb = draw.textbbox((0, 0), t_str, font=f, stroke_width=stroke_w)
-                            tw, th = bb[2] - bb[0], bb[3] - bb[1]
-                            if tw <= max_w:
+                            if (bb[2] - bb[0]) <= max_w:
                                 draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
-                                return f, tw, th
+                                return f, bb[2] - bb[0], bb[3] - bb[1]
                         f = get_font(min_sz)
                         bb = draw.textbbox((0, 0), t_str, font=f, stroke_width=stroke_w)
                         draw.text((cx - (bb[0] + bb[2]) / 2.0, cy - (bb[1] + bb[3]) / 2.0), t_str, font=f, fill=fill, stroke_width=stroke_w, stroke_fill=stroke_c)
                         return f, bb[2] - bb[0], bb[3] - bb[1]
 
-                    def _draw_box_with_centered_text(draw, box_coords, text, get_font, box_fill, outline_col=None, outline_w=0, radius=12, start_sz=28, min_sz=11, txt_fill=(255,255,255), stroke_w=0, stroke_c=(0,0,0), pad_x=14):
-                        x1, y1, x2, y2 = box_coords
-                        if outline_col and outline_w > 0:
-                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill, outline=outline_col, width=outline_w)
-                        else:
-                            draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=box_fill)
-                        _fit_single_line(draw, (x1 + x2) / 2.0, (y1 + y2) / 2.0, max(20, (x2 - x1) - (pad_x * 2)), text, get_font, start_sz=start_sz, min_sz=min_sz, fill=txt_fill, stroke_w=stroke_w, stroke_c=stroke_c)
-
-                    # ▼▼▼ [수정 2 시작] 5부작 에피소드별 고유 칠판 테마 & 단독 빅데이터 판서 렌더링 엔진 ▼▼▼
                     def _draw_core_frame(chunk_idx, total_chunks, sub_text, scene_code, get_font, is_mouth_open=False, sub_step=0, hide_subtitles=False):
-                        # ▼▼▼ [추가] 멀티스레딩 환경에서도 char_mode_sh 미정의 에러가 절대 나지 않도록 세션에서 직접 로드 ▼▼▼
-                        char_mode_sh = str(st.session_state.get(f"sh_char_mode_{tk}", "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)"))
-                        custom_char_pil = locals().get("custom_char_pil", None)
-                        # ▲▲▲ 여기까지 추가 ▲▲▲
                         from PIL import Image, ImageDraw
                         W, H = 720, 1280
                         img = Image.new("RGB", (W, H), color=(0, 0, 0))
                         draw = ImageDraw.Draw(img)
 
+                        # 멀티스레딩 스코프에서도 char_mode_sh NameError가 절대 발생하지 않도록 st.session_state 직접 참조!
+                        _char_mode_now = str(st.session_state.get(f"sh_char_mode_{tk}", "👴 버핏 할아버지 캐릭터 (입모양 립싱크 ON)"))
+                        _custom_pil_now = st.session_state.get(f"custom_char_pil_{tk}", None)
+
                         f_chalk = lambda s: get_font(s, is_chalk=True)
                         f_gothic = lambda s: get_font(s, is_chalk=False)
 
-                        _safe_div_val = safe_float(locals().get('safe_div', globals().get('div', 0.0)))
-                        _cap_ret = safe_float(locals().get('cap_ret_val', globals().get('roic_val', globals().get('roe', 0.0))))
+                        _safe_div_val = safe_float(div_val)
+                        _cap_ret = safe_float(roic_int)
                         _r10m = int(round(1000 * (_cap_ret / 100.0)))
-                        _ey_v = safe_float(locals().get('cur_ey_val', globals().get('ey', 0.0)))
-                        _ty_v = safe_float(locals().get('ty', globals().get('ty', 4.5)))
-                        _req_g = safe_float(locals().get('req_g_val', globals().get('buffett_req_g_main', 0.0)))
-                        _fcf_g = safe_float(locals().get('actual_fcf_g_val', globals().get('actual_fcf_g_main', 0.0)))
-                        _opm_v = safe_float(locals().get('op_m', globals().get('op_m', 0.0)))
-                        _per_v = safe_float(locals().get('eff_cur_pe_sh', globals().get('eff_cur_pe', 0.0)))
-                        _pbr_v = safe_float(locals().get('pbr', globals().get('pbr', 1.0)))
-                        _cr_v = safe_float(locals().get('current_ratio', globals().get('current_ratio', 1.0)))
-                        _bb_v = safe_float(locals().get('bb_val', globals().get('bb_yield', 0.0)))
+                        _ey_v = safe_float(ey_int)
+                        _ty_v = safe_float(tnx_int)
+                        _req_g = safe_float(req_int)
+                        _fcf_g = safe_float(fcf_int)
+                        _opm_v = safe_float(opm_int)
+                        _per_v = safe_float(eff_cur_pe_sh)
+                        _pbr_v = safe_float(pbr_now_val)
+                        _cr_v = safe_float(cr_now_val)
+                        _bb_v = safe_float(bb_val)
 
-                        # 유튜브 스팸 필터 완벽 우회: 1부~5부마다 칠판 배경 색상과 테두리 테마가 완전히 다르게 렌더링됨!
-                        ep_code = scene_code[:3] if scene_code.startswith("EP") else f"EP{locals().get('ep_num', 1)}"
+                        # PDF 7부작마다 칠판 배경색·테두리색·타이틀이 완전히 다르게 렌더링 (스팸 필터 원천 회피)
+                        ep_code = scene_code[:3] if scene_code.startswith("EP") else f"EP{ep_num}"
                         theme_palette = {
-                            "EP1": ((12, 34, 26), (46, 204, 113), "1부 · 본업 해자와 돈 복사 효율 (ROIC)"),
-                            "EP2": ((14, 25, 48), (56, 189, 248), "2부 · 버핏의 10초 암산 주가 역산법"),
-                            "EP3": ((38, 22, 14), (245, 158, 11), "3부 · 순이익 착시 vs 진짜 현금(FCF)"),
-                            "EP4": ((28, 16, 44), (168, 85, 247), "4부 · 위기 생존 유동성 & 주주환원"),
-                            "EP5": ((36, 14, 22), (244, 63, 94), "5부 · 5년 거래소 폐쇄 동업 테스트")
+                            "EP1": ((12, 34, 26), (46, 204, 113), "1부 · 기업 소유권 & 저PBR 가치함정 판독"),
+                            "EP2": ((14, 25, 48), (56, 189, 248), "2부 · 자본경량성 & 무형의 가격결정력"),
+                            "EP3": ((38, 24, 14), (245, 158, 11), "3부 · 피셔 15원칙 : R&D 효율과 영업마진"),
+                            "EP4": ((28, 16, 44), (168, 85, 247), "4부 · 멍거의 과학 : 다중 백업 & 복리엔진"),
+                            "EP5": ((42, 14, 22), (244, 63, 94), "5부 · 인간 오판의 심리학 & 군중 광기 차단"),
+                            "EP6": ((14, 34, 38), (20, 184, 166), "6부 · 버핏의 주주이익 & 자본배분 5경로"),
+                            "EP7": ((18, 20, 28), (250, 204, 21), "7부 · 10초 역산(Invert) & 매도 3대 철칙")
                         }
                         board_bg_col, theme_acc_col, ep_sub_header = theme_palette.get(ep_code, ((14, 28, 42), (217, 165, 32), "워런 버핏 10년 장부 해부"))
 
-                        yellow_c = (255, 235, 45)
-                        white_c = (250, 252, 255)
-                        green_c = (80, 255, 160)
-                        red_c = (255, 75, 85)
-                        chalk_dim = (185, 205, 220)
+                        yellow_c, white_c, green_c, red_c, chalk_dim = (255, 235, 45), (250, 252, 255), (80, 255, 160), (255, 75, 85), (185, 205, 220)
 
-                        # 상단 썸네일 Safe Zone 타이틀
-                        _fit_single_line(draw, W // 2, 162, W - 50, f"{comp_name} · {ep_code.replace('EP','')}부작 분석", f_gothic, start_sz=52, min_sz=26, fill=yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
-                        _fit_single_line(draw, W // 2, 235, W - 50, ep_sub_header, f_gothic, start_sz=32, min_sz=18, fill=theme_acc_col, stroke_w=3, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 162, W - 50, f"{comp_name} · 바이블 {ep_code.replace('EP','')}부", f_gothic, start_sz=52, min_sz=26, fill=yellow_c, stroke_w=4, stroke_c=(0, 0, 0))
+                        _fit_single_line(draw, W // 2, 235, W - 50, ep_sub_header, f_gothic, start_sz=30, min_sz=18, fill=theme_acc_col, stroke_w=3, stroke_c=(0, 0, 0))
 
-                        # 중앙 칠판 프레임
                         board_top, board_bot = 290, 1015
                         draw.rectangle([0, board_top, W, board_bot], fill=board_bg_col)
                         draw.rectangle([0, board_top, W, board_top + 7], fill=theme_acc_col)
                         draw.rectangle([0, 978, W, 1002], fill=(45, 34, 24))
                         draw.rectangle([0, 1002, W, 1014], fill=theme_acc_col)
 
-                        # 첫 컷(HOOK)과 마지막 루프 컷(LOOP)의 첫 호흡에는 버핏 캐릭터 강단 풀샷 등장
-                        show_char = ("HOOK" in scene_code) or ("LOOP" in scene_code and sub_step >= 1)
+                        show_char = ("캐릭터 없음" not in _char_mode_now) and (("HOOK" in scene_code) or ("LOOP" in scene_code and sub_step >= 1))
                         if show_char:
                             draw_talking_character_avatar(
                                 draw, img, cx=W // 2, cy=475, radius=132,
-                                is_mouth_open=is_mouth_open, char_style="버핏 할아버지",
-                                custom_pil_img=locals().get('custom_char_pil'), is_presenter_stage=True, sub_step=sub_step + chunk_idx
+                                is_mouth_open=is_mouth_open, char_style=_char_mode_now,
+                                custom_pil_img=_custom_pil_now, is_presenter_stage=True, sub_step=sub_step + chunk_idx
                             )
-                            banner_txt = "QUESTION : 공시 장부 숫자로 팩트를 확인하라!" if "HOOK" in scene_code else "LOOP : 댓글로 판정 남기고 처음부터 다시 보기 ↻"
+                            banner_txt = "BIBLE CHECK : 공시 숫자로 본질을 검증하라!" if "HOOK" in scene_code else "INFINITE LOOP : 댓글 남기고 처음부터 다시 보기 ↻"
                             draw.rounded_rectangle([38, 305, W - 38, 372], radius=14, fill=(20, 30, 48), outline=theme_acc_col, width=4)
-                            _fit_single_line(draw, W // 2, 338, W - 95, banner_txt, f_gothic, start_sz=27, fill=yellow_c, stroke_w=2)
+                            _fit_single_line(draw, W // 2, 338, W - 95, banner_txt, f_gothic, start_sz=26, fill=yellow_c, stroke_w=2)
                         else:
-                            # 에피소드(1부~5부)마다 전혀 다른 전용 빅데이터 판서 레이아웃 렌더링!
                             draw.rounded_rectangle([36, 312, W - 36, 376], radius=12, fill=(10, 18, 28), outline=theme_acc_col, width=3)
-                            _fit_single_line(draw, W // 2, 344, W - 90, ep_sub_header, f_chalk, start_sz=28, fill=yellow_c)
+                            _fit_single_line(draw, W // 2, 344, W - 90, ep_sub_header, f_chalk, start_sz=27, fill=yellow_c)
 
                             if ep_code == "EP1":
-                                # 1부 전용: 1,000만 원 밑천 대비 연간 창출액 대형 비교 보드
-                                _fit_single_line(draw, 195, 435, 270, "시장 평균 기준선", f_chalk, start_sz=26, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, "연 12.0%", f_chalk, start_sz=56, fill=white_c)
-                                _fit_single_line(draw, 525, 435, 270, f"{comp_name} ROIC", f_chalk, start_sz=26, fill=yellow_c)
-                                _fit_single_line(draw, 525, 505, 270, f"연 {_cap_ret:.1f}%", f_chalk, start_sz=64, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 505, 240, 82, mark_type="red_circle", anim_progress=1.0)
-
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(16, 42, 34), outline=green_c, width=4)
-                                _fit_single_line(draw, W // 2, 632, W - 110, f"밑천 1,000만 원당 연간 {abs(_r10m):,}만 원 창출 체력!", f_chalk, start_sz=32, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 705, W - 110, f"본업 영업이익률(마진율) : 연 {_opm_v:.1f}%", f_chalk, start_sz=44, fill=white_c, stroke_w=3)
+                                _fit_single_line(draw, 195, 435, 270, "장부가치 배수(PBR)", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"{_pbr_v:.2f}배", f_chalk, start_sz=56, fill=white_c)
+                                _fit_single_line(draw, 525, 435, 270, "본업 해자(ROIC)", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"연 {_cap_ret:.0f}%", f_chalk, start_sz=62, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(16, 42, 34), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "원칙 1. 5년간 거래소가 닫혀도 버틸 해자가 있는가?", f_chalk, start_sz=27, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, "해자 없는 단순 저PBR = 가치 함정(Value Trap) 주의!", f_chalk, start_sz=28, fill=white_c)
 
                             elif ep_code == "EP2":
-                                # 2부 전용: 버핏 10초 암산 역산 수식 칠판
-                                _fit_single_line(draw, W // 2, 425, W - 70, f"[암산 공식] 이익수익률({_ey_v:.1f}%) + 요구성장({_req_g:+.1f}%) = 10.0%", f_chalk, start_sz=28, fill=white_c)
-                                _fit_single_line(draw, 195, 500, 270, "주가가 요구하는 성장", f_chalk, start_sz=25, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 565, 270, f"연 {_req_g:+.1f}%", f_chalk, start_sz=56, fill=yellow_c)
-                                _fit_single_line(draw, 525, 500, 270, "실제 10년 FCF 성장", f_chalk, start_sz=25, fill=chalk_dim)
-                                _fit_single_line(draw, 525, 565, 270, f"연 {_fcf_g:+.1f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g >= _req_g else red_c, stroke_w=4)
-                                draw_chalk_lecture_marks(draw, 525, 565, 240, 80, mark_type="red_circle", anim_progress=1.0)
-
-                                draw.rounded_rectangle([42, 635, W - 42, 760], radius=18, fill=(18, 34, 62), outline=theme_acc_col, width=4)
-                                _fit_single_line(draw, W // 2, 698, W - 100, f"무위험 미국채({_ty_v:.1f}%) vs 주식 이익수익률({_ey_v:.1f}%)", f_chalk, start_sz=34, fill=yellow_c, stroke_w=2)
+                                _fit_single_line(draw, 195, 435, 270, "본업 영업이익률", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"연 {_opm_v:.0f}%", f_chalk, start_sz=58, fill=green_c if _opm_v >= 15 else yellow_c)
+                                _fit_single_line(draw, 525, 435, 270, "1,000만 원당 창출액", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"{abs(_r10m):,}만/년", f_chalk, start_sz=54, fill=white_c, stroke_w=3)
+                                draw_chalk_lecture_marks(draw, 195, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(18, 34, 62), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "인플레 방어력의 핵심 = 무형의 가격결정력!", f_chalk, start_sz=30, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, "대규모 설비(CapEx) 추가 부담 없이 원가 전가 가능한가?", f_chalk, start_sz=25, fill=white_c)
 
                             elif ep_code == "EP3":
-                                # 3부 전용: 회계상 순이익 vs 설비투자(CapEx) 차감 실질 FCF 보드
-                                _fit_single_line(draw, W // 2, 430, W - 80, "버핏의 주주이익 = 순이익 + 감가상각 - 필수 설비투자(CapEx)", f_chalk, start_sz=24, fill=chalk_dim)
-                                draw.rounded_rectangle([45, 475, 345, 615], radius=16, fill=(48, 28, 18), outline=theme_acc_col, width=3)
-                                _fit_single_line(draw, 195, 515, 260, "현재 본전회수(PER)", f_chalk, start_sz=24, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 570, 260, f"{_per_v:.1f}배", f_chalk, start_sz=52, fill=white_c)
-
-                                draw.rounded_rectangle([375, 475, W - 45, 615], radius=16, fill=(48, 28, 18), outline=yellow_c, width=3)
-                                _fit_single_line(draw, 525, 515, 260, "10년 FCF 복리성장", f_chalk, start_sz=24, fill=yellow_c)
-                                _fit_single_line(draw, 525, 570, 260, f"연 {_fcf_g:+.1f}%", f_chalk, start_sz=52, fill=green_c if _fcf_g > 0 else red_c)
-
-                                draw.rounded_rectangle([45, 640, W - 45, 760], radius=16, fill=(28, 20, 16), outline=green_c, width=3)
-                                _fit_single_line(draw, W // 2, 680, W - 110, locals().get('capex_board_title', '설비투자(CapEx) 및 잉여현금흐름 점검'), f_chalk, start_sz=28, fill=yellow_c)
-                                _fit_single_line(draw, W // 2, 728, W - 110, locals().get('capex_board_sub', '공장 재투자 후 주주에게 남는 현금 확인!'), f_chalk, start_sz=22, fill=white_c)
+                                _fit_single_line(draw, 195, 435, 270, "영업이익률 방어력", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"연 {_opm_v:.0f}%", f_chalk, start_sz=56, fill=white_c)
+                                _fit_single_line(draw, 525, 435, 270, "10년 FCF 성장률", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"연 {_fcf_g:+.0f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g > 0 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(48, 28, 18), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "필립 피셔 15대 원칙 : R&D와 투자의 상업적 생산성", f_chalk, start_sz=27, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, "선제적 R&D로 인한 일시적 마진 압박 = 매수 기회!", f_chalk, start_sz=26, fill=white_c)
 
                             elif ep_code == "EP4":
-                                # 4부 전용: 유동비율(위기생존) + PBR + 배당/자사주 소각 보드
-                                _fit_single_line(draw, 195, 435, 270, "단기 위기대응(유동비율)", f_chalk, start_sz=25, fill=chalk_dim)
-                                _fit_single_line(draw, 195, 505, 270, f"{_cr_v:.2f}배", f_chalk, start_sz=58, fill=green_c if _cr_v >= 1.2 else yellow_c)
-                                _fit_single_line(draw, 525, 435, 270, "장부가치 배수(PBR)", f_chalk, start_sz=25, fill=chalk_dim)
-                                _fit_single_line(draw, 525, 505, 270, f"{_pbr_v:.2f}배", f_chalk, start_sz=58, fill=white_c)
+                                _fit_single_line(draw, 195, 435, 270, "자본비용 허들", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, "연 12.0%", f_chalk, start_sz=54, fill=white_c)
+                                _fit_single_line(draw, 525, 435, 270, "수학적 복리(ROIC)", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"연 {_cap_ret:.0f}%", f_chalk, start_sz=62, fill=green_c if _cap_ret >= 12 else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(38, 20, 58), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "공학(Redundancy) : 단일 고객·단일 제품 실패 차단", f_chalk, start_sz=27, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, f"유동비율 {_cr_v:.2f}배 백업 시스템 가동 중", f_chalk, start_sz=32, fill=green_c)
 
-                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(38, 20, 58), outline=yellow_c, width=4)
-                                _fit_single_line(draw, W // 2, 635, W - 100, f"순수 현금배당 : 연 {_safe_div_val:.2f}%", f_chalk, start_sz=40, fill=green_c if _safe_div_val >= 2.0 else yellow_c, stroke_w=3)
-                                _fit_single_line(draw, W // 2, 708, W - 100, f"자사주 소각/증감 효과 : 연 {_bb_v:+.1f}%", f_chalk, start_sz=32, fill=white_c)
+                            elif ep_code == "EP5":
+                                _fit_single_line(draw, 195, 435, 270, "현재 PER 배수", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"{_per_v:.1f}배", f_chalk, start_sz=56, fill=white_c)
+                                _fit_single_line(draw, 525, 435, 270, "현재 PBR 배수", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"{_pbr_v:.2f}배", f_chalk, start_sz=56, fill=yellow_c, stroke_w=3)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(52, 18, 28), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "멍거의 8대 심리학 : 질투·확증편향·군중심리 통제", f_chalk, start_sz=27, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, "롤라팔루자(집단 광기·패닉) 발생 시 즉시 멈추고 관망!", f_chalk, start_sz=25, fill=white_c)
+
+                            elif ep_code == "EP6":
+                                _fit_single_line(draw, 195, 435, 270, "자사주 증감/소각", f_chalk, start_sz=26, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"연 {_bb_v:+.1f}%", f_chalk, start_sz=54, fill=green_c if _bb_v >= 0 else red_c)
+                                _fit_single_line(draw, 525, 435, 270, "순수 현금배당", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"연 {_safe_div_val:.2f}%", f_chalk, start_sz=56, fill=green_c if _safe_div_val >= 1.5 else white_c, stroke_w=3)
+                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(16, 44, 48), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "주주이익 = 순이익 + 감가상각 - 유지보수 CapEx", f_chalk, start_sz=27, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, "자사주 매입은 오직 내재가치 대비 저평가일 때만 유효!", f_chalk, start_sz=25, fill=white_c)
 
                             else:
-                                # 5부 전용: 5년 상장폐지 동업자 최종 성적표
-                                cards_5 = [
-                                    (45, 405, 345, 555, "1. 본업 복리(ROIC)", f"연 {_cap_ret:.1f}%"),
-                                    (375, 405, 675, 555, "2. 이익수익률(1/PER)", f"연 {_ey_v:.1f}%"),
-                                    (45, 580, 345, 730, "3. 10년 현금성장", f"연 {_fcf_g:+.1f}%"),
-                                    (375, 580, 675, 730, "4. 현금배당 수익", f"연 {_safe_div_val:.2f}%")
-                                ]
-                                for x1, y1, x2, y2, ct, cv in cards_5:
-                                    draw.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=(48, 18, 28), outline=theme_acc_col, width=3)
-                                    _fit_single_line(draw, (x1+x2)//2, y1+45, 260, ct, f_chalk, start_sz=24, fill=chalk_dim)
-                                    _fit_single_line(draw, (x1+x2)//2, y1+105, 260, cv, f_chalk, start_sz=44, fill=yellow_c, stroke_w=3)
+                                _fit_single_line(draw, 195, 435, 270, "주가 내포 요구성장", f_chalk, start_sz=25, fill=chalk_dim)
+                                _fit_single_line(draw, 195, 505, 270, f"연 {_req_g:+.0f}%", f_chalk, start_sz=56, fill=yellow_c)
+                                _fit_single_line(draw, 525, 435, 270, "실제 10년 FCF 성장", f_chalk, start_sz=25, fill=yellow_c)
+                                _fit_single_line(draw, 525, 505, 270, f"연 {_fcf_g:+.0f}%", f_chalk, start_sz=58, fill=green_c if _fcf_g >= _req_g else red_c, stroke_w=4)
+                                draw_chalk_lecture_marks(draw, 525, 505, 230, 80, mark_type="red_circle", anim_progress=1.0)
+                                draw.rounded_rectangle([42, 585, W - 42, 755], radius=18, fill=(24, 28, 38), outline=theme_acc_col, width=4)
+                                _fit_single_line(draw, W // 2, 635, W - 100, "매도 3철칙 : ①분석오류 ②해자붕괴 ③더 확실한 기회", f_chalk, start_sz=26, fill=yellow_c)
+                                _fit_single_line(draw, W // 2, 705, W - 100, f"이익수익률 {_ey_v:.0f}% vs 미국채 {_ty_v:.0f}% 기회비용 대조", f_chalk, start_sz=28, fill=white_c)
 
-                        # 하단 자막 렌더링
                         if not hide_subtitles:
                             clean_sub = _clean_font_safe_text(str(sub_text).replace("·", " ").strip())
                             words = clean_sub.split(" ")
@@ -9704,29 +9609,25 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     stroke_w=8, stroke_c=(0, 0, 0)
                                 )
 
-                        _fit_single_line(draw, W // 2, 1102, W - 60, f"▶ @버핏의 장부체크 · {comp_name} 5부작 시리즈 연재 중!", f_gothic, start_sz=25, fill=yellow_c)
+                        _fit_single_line(draw, W // 2, 1102, W - 60, f"▶ @버핏의 장부체크 · {comp_name} 바이블 7부작 연재!", f_gothic, start_sz=25, fill=yellow_c)
                         _fit_single_line(draw, W // 2, 1162, W - 40, "[안내] DART·SEC 공시 데이터 기반 학술·교육용 통계이며 매수·매도 권유가 아닙니다", f_gothic, start_sz=13, fill=(140, 150, 165))
                         return img
-                    # ▲▲▲ [수정 2 끝] ▲▲▲
-                    if st.button("1단계: 59초 이내 보장 · 바이블 헌장 완결형 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
+
+                    if st.button("1단계: 59초 이내 보장 · 바이블 7부작 시리즈 쇼츠(.mp4) 생성", key=f"btn_mp4_v22_{tk}", use_container_width=True, type="primary"):
                         try:
-                            import imageio_ffmpeg, subprocess, tempfile, os, re, wave
-                            with st.spinner("PDF 바이블 4대 기준 · SK 발음 완벽 교정 · 59초 이내 자동 안전가드 쇼츠(.mp4)를 렌더링 중입니다..."):
+                            import imageio_ffmpeg, subprocess, tempfile, os, re, wave, gc
+                            with st.spinner(f"[{ep_badge_title}] 버핏 립싱크 & 고유 테마 칠판 쇼츠(.mp4)를 렌더링 중입니다..."):
                                 get_font = _load_korean_pil_fonts()
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                                 cleanup_files = []
                                 n_chunks = len(pop_chunks)
                                 seg_mp4_list = [None] * n_chunks
-
-                                vf_motion = "scale=720:1280:flags=lanczos,eq=eval=frame:brightness='if(lt(t,0.05),0.10,0)'" if "시네마틱" in motion_intensity else "scale=720:1280:flags=lanczos"
+                                _cur_char_mode = str(st.session_state.get(f"sh_char_mode_{tk}", "버핏 할아버지"))
 
                                 def _build_single_cut(idx_c, sub_t, sc_code, is_ch_start):
-                                    import gc
                                     f_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
                                     f_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                     f_seg = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                                    
-                                    # ✅ [핵심 수정 1] f_seg(완성된 조각 영상)는 병합 전까지 지우면 안 되므로 tmp_Created에서 반드시 뺍니다!
                                     tmp_Created = [f_raw, f_wav]
 
                                     _generate_chunk_voice(sub_t.replace("/", " "), f_raw, f_wav, ffmpeg_exe, cut_idx=idx_c, is_chapter_start=is_ch_start, is_final_cut=(idx_c == n_chunks - 1))
@@ -9741,8 +9642,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     sub_phrases = split_subtitle_phrases(sub_t, max_len=24)
                                     spoken_weights = []
                                     for p_txt in sub_phrases:
-                                        s_pron = fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts)
-                                        s_pron = s_pron.replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
+                                        s_pron = fix_global_tts_pronunciation(p_txt, is_en=is_en_shorts).replace("+", "플러스").replace("-", "마이너스").replace(".", "점")
                                         digit_cnt = sum(1 for ch in s_pron if ch.isdigit())
                                         text_cnt = sum(1 for ch in re.sub(r'\s+', '', s_pron) if not ch.isdigit())
                                         pause_w = 1.2 if any(p_txt.endswith(mk) for mk in ["!", "?", ".", ","]) else 0.5
@@ -9757,16 +9657,13 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         f_closed = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                         tmp_Created.append(f_closed)
                                         im_c = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=False, sub_step=p_idx)
-                                        im_c.save(f_closed)
-                                        im_c.close()
+                                        im_c.save(f_closed); im_c.close()
 
-                                        _cur_char_mode = str(st.session_state.get(f"sh_char_mode_{tk}", "버핏 할아버지"))
                                         if "캐릭터 없음" not in _cur_char_mode:
                                             f_open = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                             tmp_Created.append(f_open)
                                             im_o = _draw_core_frame(idx_c, n_chunks, p_txt, sc_code, get_font, is_mouth_open=True, sub_step=p_idx)
-                                            im_o.save(f_open)
-                                            im_o.close()
+                                            im_o.save(f_open); im_o.close()
                                         else:
                                             f_open = f_closed
 
@@ -9789,21 +9686,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                         "-t", f"{exact_dur:.3f}", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                                    # 이미지와 오디오(tmp_Created)만 즉시 청소하고, f_seg는 살려둡니다!
                                     for tf_rm in tmp_Created:
                                         if os.path.exists(tf_rm):
                                             try: os.remove(tf_rm)
                                             except Exception: pass
                                     gc.collect()
-
-                                    # ✅ [핵심 수정 2] 최종 병합이 끝난 뒤 지워지도록 [f_seg]를 반환합니다!
                                     return idx_c, f_seg, [f_seg]
 
-                                with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-                                    futs = []
-                                    for i_c, (st_c, sc_c) in enumerate(pop_chunks):
-                                        is_ch_st = (i_c == 0 or pop_chunks[i_c - 1][1] != sc_c)
-                                        futs.append(ex.submit(_build_single_cut, i_c, st_c, sc_c, is_ch_st))
+                                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+                                    futs = [ex.submit(_build_single_cut, i_c, st_c, sc_c, (i_c == 0 or pop_chunks[i_c - 1][1] != sc_c)) for i_c, (st_c, sc_c) in enumerate(pop_chunks)]
                                     for ft in concurrent.futures.as_completed(futs):
                                         i_res, seg_p, tmp_list = ft.result()
                                         seg_mp4_list[i_res] = seg_p
@@ -9824,25 +9715,9 @@ AI Opinion: {op_title} ({total_score_val} pts)
 
                                 res_dur = subprocess.run([ffmpeg_exe, "-i", merged_no_bgm], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
                                 m_dur = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_dur.stderr)
-                                vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 46.0
-
-                                # [59초 이내 절대 안전가드 강화] 53초를 초과하면 무조건 49.5초(약 50초)로 자동 배속 압축!
-                                if vid_dur > 59.0:
-                                    spd_fix = min(1.45, max(1.05, vid_dur / 59.0))
-                                    fixed_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                                    cleanup_files.append(fixed_mp4)
-                                    res_fix = subprocess.run([
-                                        ffmpeg_exe, "-y", "-i", merged_no_bgm,
-                                        "-filter_complex", f"[0:v]setpts=PTS/{spd_fix:.3f}[v];[0:a]atempo={spd_fix:.3f}[a]",
-                                        "-map", "[v]", "-map", "[a]", "-r", "30",
-                                        "-c:v", "libx264", "-preset", "fast", "-crf", "18", "-c:a", "aac", "-b:a", "192k", fixed_mp4
-                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                                    if res_fix.returncode == 0 and os.path.exists(fixed_mp4) and os.path.getsize(fixed_mp4) > 1000:
-                                        merged_no_bgm = fixed_mp4
-                                        vid_dur = vid_dur / spd_fix
+                                vid_dur = (int(m_dur.group(1))*3600 + int(m_dur.group(2))*60 + float(m_dur.group(3))) if m_dur else 25.0
 
                                 st.session_state[f"shorts_dur_v12_{clean_tk}"] = vid_dur
-
                                 out_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                                 cleanup_files.append(out_mp4)
                                 now_iso_meta = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -9851,16 +9726,12 @@ AI Opinion: {op_title} ({total_score_val} pts)
                                     bgm_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                                     cleanup_files.append(bgm_wav)
                                     _generate_trendy_bgm_wav(bgm_wav, vid_dur, bgm_choice)
-
                                     subprocess.run([
                                         ffmpeg_exe, "-y", "-i", merged_no_bgm, "-i", bgm_wav,
                                         "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.12[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=1[aout]",
-                                        "-map", "0:v", "-map", "[aout]",
-                                        "-map_metadata", "-1",
-                                        "-metadata", f"creation_time={now_iso_meta}",
-                                        "-metadata", f"title={comp_name}_{clean_tk}",
-                                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-                                        "-shortest", out_mp4
+                                        "-map", "0:v", "-map", "[aout]", "-map_metadata", "-1",
+                                        "-metadata", f"creation_time={now_iso_meta}", "-metadata", f"title={comp_name}_{clean_tk}_EP{ep_num}",
+                                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out_mp4
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 else:
                                     subprocess.run([ffmpeg_exe, "-y", "-i", merged_no_bgm, "-map_metadata", "-1", "-metadata", f"creation_time={now_iso_meta}", "-c", "copy", out_mp4], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -9876,6 +9747,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             st.warning(f"MP4 렌더링 오류: {e}")
 
                     st.markdown("---")
+                    # ▲▲▲ [교체 2 끝] 바로 아래에 "#### 2단계: 스팸 방지(Anti-Spam)..." 줄이 이어지면 됩니다 ▲▲▲
                     st.markdown("#### 2단계: 스팸 방지(Anti-Spam) & 예약 공개(Schedule) 업로드 센터")
 
                     today_tag_str = datetime.now().strftime("%Y.%m.%d")
