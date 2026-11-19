@@ -3572,9 +3572,10 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
     return rnd_trend
 def get_accurate_dividend_yield(stk, i, p, kr):
     """
-    [배당 뻥튀기 원천 차단 엔진]
-    - 연간(1회)·반기(2회) ADR에 ×4를 곱하던 오류 완전 제거
-    - 3년 배당 이력의 실제 지급 간격(일수) + 공식 dividendRate 교차 검증
+    [배당 뻥튀기 원천 차단 최종판]
+    1) 최근 1년 실제 현금배당 합계(stk.dividends)를 최우선 진실 공급원으로 사용
+    2) Yahoo의 dividendRate가 trailingAnnualDividendRate나 실제 1년 합계의 1.8배 이상 튀면(연간 ADR ×4 오류) 즉시 폐기
+    3) 신규 분기배당 ×4 연환산은 과거 1년 전 이력이 없고, 지급 간격이 70~115일인 경우에만 허용
     """
     try:
         if p <= 0 or not isinstance(i, dict):
@@ -3582,10 +3583,16 @@ def get_accurate_dividend_yield(stk, i, p, kr):
 
         rate_fwd = safe_float(i.get('dividendRate'))
         rate_ttm = safe_float(i.get('trailingAnnualDividendRate'))
-        official_dps = rate_fwd if rate_fwd > 0 else rate_ttm
 
-        # 1순위: 실제 배당 지급 이력(stk.dividends) 기반 산출 (임의 ×4 금지)
+        # [핵심 차단 1] Yahoo dividendRate가 실제 TTM 배당의 1.8배 이상(예: 0.24 -> 0.96)이면 야후 자체 오기이므로 폐기
+        if rate_ttm > 0 and rate_fwd >= rate_ttm * 1.8:
+            official_dps = rate_ttm
+        else:
+            official_dps = rate_ttm if rate_ttm > 0 else rate_fwd
+
+        # 1순위: 실제 배당 지급 이력(stk.dividends) 직접 합산
         hist_dps = 0.0
+        has_multi_year_hist = False
         try:
             if stk is not None:
                 divs = stk.dividends
@@ -3593,54 +3600,44 @@ def get_accurate_dividend_yield(stk, i, p, kr):
                     now_ts = pd.Timestamp.now(tz=divs.index.tz)
                     recent_1y = divs[divs.index >= (now_ts - pd.Timedelta(days=375))]
                     recent_3y = divs[divs.index >= (now_ts - pd.Timedelta(days=1100))]
+                    has_multi_year_hist = len(recent_3y) > len(recent_1y)
 
                     if not recent_1y.empty:
-                        # 기본: 최근 1년 실제 합산 (연간 1회=1회분, 반기 2회=2회분, 분기 4회=4회분)
                         hist_dps = float(recent_1y.sum())
 
-                        # 예외: '신규 분기배당 개시'가 확실할 때만 ×4 허용
-                        # 조건: 과거 1년 이전 이력 없음 + 2~3회 지급 + 지급 간격 70~115일(분기 주기 확인)
-                        if (not kr) and len(recent_3y) == len(recent_1y) and (2 <= len(recent_1y) <= 3):
+                        # 오직 '신규 분기배당 개시(과거 이력 없음 + 2~3회 지급 + 간격 70~115일)'일 때만 ×4 허용
+                        if (not kr) and (not has_multi_year_hist) and (2 <= len(recent_1y) <= 3):
                             gaps = [(recent_1y.index[idx] - recent_1y.index[idx - 1]).days for idx in range(1, len(recent_1y))]
                             if all(70 <= g <= 115 for g in gaps):
                                 hist_dps = float(recent_1y.iloc[-1]) * 4.0
         except Exception:
             pass
 
-        # 2순위: official_dps(Yahoo 공식 연간 배당금)와 교차 검증
-        final_dps = 0.0
-        if official_dps > 0 and hist_dps > 0:
-            # 1회성 특별배당 등으로 hist_dps가 공식 연간 배당금보다 1.8배 이상 튀면 official_dps 채택
-            if hist_dps > official_dps * 1.8:
-                final_dps = official_dps
-            # 신규 분기배당 1회차라 hist_dps가 official_dps의 절반 이하이면 official_dps 채택
-            elif (not kr) and hist_dps < official_dps * 0.6:
+        # [핵심 차단 2] 실제 1년 합산(hist_dps)이 존재하면 절대로 Yahoo 추정치(dividendRate)로 덮어쓰지 않음!
+        if hist_dps > 0:
+            # 단, 1회성 초대형 특별배당으로 hist_dps가 official_dps의 2배 이상일 때만 official_dps로 진정
+            if official_dps > 0 and hist_dps > official_dps * 2.0:
                 final_dps = official_dps
             else:
                 final_dps = hist_dps
-        elif hist_dps > 0:
-            final_dps = hist_dps
         elif official_dps > 0:
             final_dps = official_dps
+        else:
+            final_dps = 0.0
 
         if final_dps > 0:
             real_yield = (final_dps / p) * 100.0
             if 0.01 <= real_yield <= 25.0:
                 return real_yield, final_dps
 
-        # 3순위: 배당금 금액 누락 시 비율(Finviz / Yahoo dividendYield) 정규화 폴백
+        # 2순위 폴백: Finviz / Yahoo 수익률(%)
         fv_y = safe_float(i.get('finviz_div_pct'))
         if 0.01 <= fv_y <= 25.0:
             return fv_y, p * (fv_y / 100.0)
 
         raw_y = safe_float(i.get('trailingAnnualDividendYield')) or safe_float(i.get('dividendYield'))
         if raw_y > 0:
-            if raw_y < 0.25:
-                res_y = raw_y * 100.0
-            elif raw_y >= 25.0 and not kr:
-                res_y = raw_y / 100.0
-            else:
-                res_y = raw_y
+            res_y = (raw_y * 100.0) if raw_y < 0.25 else ((raw_y / 100.0) if (raw_y >= 25.0 and not kr) else raw_y)
             if 0.01 <= res_y <= 25.0:
                 return res_y, p * (res_y / 100.0)
 
@@ -3650,7 +3647,6 @@ def get_accurate_dividend_yield(stk, i, p, kr):
 
 
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
-    """단일 진실 공급원: get_accurate_dividend_yield 결과를 그대로 반환 (p는 이미 가상 주가가 반영된 값)"""
     y_pct, _ = get_accurate_dividend_yield(stk, i, p, kr)
     return y_pct
 
@@ -8809,7 +8805,53 @@ with tab1:
                                     api_success = True
                         except:
                             pass
+                    # --- 2-B. 해외 ADR(중국·대만·유럽·일본): SEC 20-F 10년 장부 + yfinance 최신연도 병합 ---
+                    elif is_adr:
+                        try:
+                            g_vis_df, _ = get_global_10yr_financials(cd, FMP_API_KEY)
+                            if g_vis_df is not None and not g_vis_df.empty:
+                                g_sorted = g_vis_df[sorted(g_vis_df.columns)]
+                                yr_map_rev, yr_map_ni, yr_map_fcf = {}, {}, {}
 
+                                for yc in g_sorted.columns:
+                                    y_s = str(yc)[:4]
+                                    if '1. 매출액 (Revenue)' in g_sorted.index:
+                                        yr_map_rev[y_s] = safe_float(g_sorted.loc['1. 매출액 (Revenue)', yc]) * 1e6
+                                    if '5. 당기순이익 (Net Income)' in g_sorted.index:
+                                        yr_map_ni[y_s] = safe_float(g_sorted.loc['5. 당기순이익 (Net Income)', yc]) * 1e6
+                                    if '14. 잉여현금흐름 (FCF = OCF - CAPEX)' in g_sorted.index:
+                                        yr_map_fcf[y_s] = safe_float(g_sorted.loc['14. 잉여현금흐름 (FCF = OCF - CAPEX)', yc]) * 1e6
+
+                                # SEC 20-F에 아직 미반영된 최신 연도(예: 2025년)만 yfinance에서 환율 환산해 추가
+                                fin_fx_a, _ = get_fin_fx_to_usd(i, False)
+                                inc_a = stk.income_stmt if stk else None
+                                cf_a = stk.cash_flow if stk else None
+                                if inc_a is not None and not inc_a.empty:
+                                    for c_dt in inc_a.columns[:2]:
+                                        y_s = str(c_dt)[:4]
+                                        if y_s not in yr_map_rev and 'Total Revenue' in inc_a.index:
+                                            yr_map_rev[y_s] = safe_float(inc_a.loc['Total Revenue', c_dt]) * fin_fx_a
+                                        if y_s not in yr_map_ni and 'Net Income' in inc_a.index:
+                                            yr_map_ni[y_s] = safe_float(inc_a.loc['Net Income', c_dt]) * fin_fx_a
+                                if cf_a is not None and not cf_a.empty:
+                                    for c_dt in cf_a.columns[:2]:
+                                        y_s = str(c_dt)[:4]
+                                        if y_s not in yr_map_fcf:
+                                            if 'Free Cash Flow' in cf_a.index:
+                                                yr_map_fcf[y_s] = safe_float(cf_a.loc['Free Cash Flow', c_dt]) * fin_fx_a
+                                            elif 'Operating Cash Flow' in cf_a.index and 'Capital Expenditure' in cf_a.index:
+                                                yr_map_fcf[y_s] = (safe_float(cf_a.loc['Operating Cash Flow', c_dt]) + safe_float(cf_a.loc['Capital Expenditure', c_dt])) * fin_fx_a
+
+                                all_y_adr = sorted(set(list(yr_map_rev.keys()) + list(yr_map_ni.keys())))[-10:]
+                                if len(all_y_adr) >= 4:
+                                    years = all_y_adr
+                                    rev = [yr_map_rev.get(y, 0.0) for y in all_y_adr]
+                                    ni = [yr_map_ni.get(y, 0.0) for y in all_y_adr]
+                                    fcf_years = [y for y in all_y_adr if yr_map_fcf.get(y, 0.0) != 0.0]
+                                    fcf_chart = [yr_map_fcf[y] for y in fcf_years]
+                                    api_success = True
+                        except Exception:
+                            pass
                     # --- 3. 최후의 보루: yfinance 연동 (API 실패 기업 및 ADR 기업 -> 실시간 환율 USD 환산) ---
                     fin_fx_vis, fin_curr_vis = get_fin_fx_to_usd(i, kr)
                     if not api_success:
