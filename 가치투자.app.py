@@ -2524,10 +2524,56 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
             equity = _extract_sec_global(["StockholdersEquity", "Equity", "EquityAttributableToOwnersOfParent", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"], is_instant=True)
             ocf = _extract_sec_global(["NetCashProvidedByUsedInOperatingActivities", "CashFlowsFromUsedInOperatingActivities"])
             capex = _extract_sec_global([
-                "PaymentsToAcquirePropertyPlantAndEquipment", "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
-                "PaymentsToAcquireProductiveAssets", "PurchaseOfPropertyPlantAndEquipment",
-                "PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets"
+                "PaymentsToAcquirePropertyPlantAndEquipment",
+                "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
+                "PaymentsToAcquireProductiveAssets",
+                "PurchaseOfPropertyPlantAndEquipment",
+                "PaymentsToAcquirePropertyPlantAndEquipmentAndIntangibleAssets",
+                "PaymentsToAcquireOtherPropertyPlantAndEquipment",
+                "PaymentsToAcquireMachineryAndEquipment",
+                "PaymentsToAcquirePropertyPlantAndEquipmentAndSoftware"
             ])
+
+            # [보완 1] PDD 등 20-F 기업이 커스텀 태그(us-gaap 외 자체 태그)로 CAPEX를 공시한 경우 자동 스캔
+            for taxo_k, taxo_v in facts_root.items():
+                if taxo_k in ["dei", "srt"] or not isinstance(taxo_v, dict):
+                    continue
+                for tag_nm, tag_obj in taxo_v.items():
+                    low_t = tag_nm.lower()
+                    if any(w in low_t for w in ["paymentstoacquire", "purchaseof"]) and ("property" in low_t or "equipment" in low_t) and "proceeds" not in low_t:
+                        units_d = tag_obj.get("units", {})
+                        for ck, items in units_d.items():
+                            if "shares" in ck.lower():
+                                continue
+                            fx_m = _get_fx_to_usd(ck)
+                            for it in items:
+                                if it.get("form", "") not in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]:
+                                    continue
+                                es = str(it.get("end", ""))
+                                y_v = es[:4] if es[:4].isdigit() else str(it.get("fy", ""))
+                                vl = abs(safe_float(it.get("val", 0))) * fx_m
+                                if y_v.isdigit() and vl > 0 and (y_v not in capex or capex[y_v] == 0):
+                                    capex[y_v] = vl
+
+            # [보완 2] SEC XBRL에서 누락된 최근 연도 CAPEX는 yfinance 현금흐름표(실시간 환율 USD 환산)로 빈칸 채우기
+            try:
+                stk_fb = yf.Ticker(clean_tk)
+                cf_fb = stk_fb.cash_flow
+                info_fb = stk_fb.info if isinstance(stk_fb.info, dict) else {}
+                fin_c_fb = str(info_fb.get("financialCurrency", "USD")).upper()
+                fx_fb = _get_fx_to_usd(fin_c_fb)
+                if cf_fb is not None and not cf_fb.empty:
+                    for c_dt in cf_fb.columns:
+                        y_s = str(c_dt)[:4]
+                        if y_s.isdigit() and (y_s not in capex or capex.get(y_s, 0) == 0):
+                            for ck_yf in ["Capital Expenditure", "Capital Expenditures", "Purchase Of PPE"]:
+                                if ck_yf in cf_fb.index and pd.notna(cf_fb.loc[ck_yf, c_dt]):
+                                    capex[y_s] = abs(safe_float(cf_fb.loc[ck_yf, c_dt])) * fx_fb
+                                    break
+            except Exception:
+                pass
+
+            icf = _extract_sec_global(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
             icf = _extract_sec_global(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
             fcf_f = _extract_sec_global(["NetCashProvidedByUsedInFinancingActivities", "CashFlowsFromUsedInFinancingActivities"])
 
