@@ -3627,8 +3627,8 @@ def get_accurate_dividend_yield(stk, i, p, kr):
 
 
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
-    y_pct, _, _ = get_accurate_dividend_yield(stk, i, p, kr)
-    return y_pct
+    res = get_accurate_dividend_yield(stk, i, p, kr)
+    return res[0] if isinstance(res, tuple) and len(res) >= 1 else 0.0
 # =========================================================================
 # [버크셔·복수클래스·일시중단 완벽 보정] 무오차 자사주 순매입·소각 수익률 산출 엔진
 # =========================================================================
@@ -3965,54 +3965,7 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr, info_dict=
         return f"{eq_str}<br><span style='font-size:0.9em; color:var(--text-color); opacity:0.85;'>{sbc_str}</span>"
     except Exception:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
-# =========================================================================
-# [배당금 정밀 보정 엔진] 한국 주식 배당 뻥튀기 왜곡 차단 & 실제 DPS 검증
-# =========================================================================
-# ▼▼▼ [배당금 정밀 보정 엔진] def get_accurate_dividend_yield 함수 전체를 아래 코드로 덮어쓰기 ▼▼▼
-def get_accurate_dividend_yield(stk, i, p, kr):
-    """
-    yfinance의 퍼센트 중복 곱셈 버그(0.32% -> 32.00% 둔갑)를 원천 차단하고,
-    실제 1년 배당금 지급액(dividendRate / stk.dividends)을 현재 주가(p)로 나누어 정확한 배당수익률을 산출합니다.
-    """
-    try:
-        if p <= 0 or not isinstance(i, dict):
-            return 0.0, 0.0
 
-        # 1순위: 최근 1년 실제 배당금 지급 내역(stk.dividends) 직접 합산 (가장 정확함)
-        actual_annual_dps = 0.0
-        try:
-            if stk is not None:
-                div_history = stk.dividends
-                if div_history is not None and not div_history.empty:
-                    one_yr_ago = pd.Timestamp.now(tz=div_history.index.tz) - pd.Timedelta(days=375)
-                    recent_divs = div_history[div_history.index >= one_yr_ago]
-                    if not recent_divs.empty:
-                        # 분기 배당 신설 초기(연 1~3회 기록)인 미국 주식은 최근 배당금 * 4 연환산
-                        if not kr and 1 <= len(recent_divs) < 4:
-                            actual_annual_dps = float(recent_divs.iloc[-1]) * 4.0
-                        else:
-                            actual_annual_dps = float(recent_divs.sum())
-        except Exception:
-            pass
-
-        if actual_annual_dps > 0:
-            real_yield = (actual_annual_dps / p) * 100.0
-            if 0.01 <= real_yield <= 25.0:
-                return real_yield, actual_annual_dps
-
-        # 2순위: 연간 주당배당금(dividendRate 또는 trailingAnnualDividendRate) ÷ 현재 주가(p)
-        raw_dr = safe_float(i.get('dividendRate')) or safe_float(i.get('trailingAnnualDividendRate'))
-        if raw_dr > 0:
-            real_yield = (raw_dr / p) * 100.0
-            if 0.01 <= real_yield <= 25.0:
-                return real_yield, raw_dr
-
-        # 3순위: calc_accurate_div_yield 엔진 연동 (0.32%에 100을 또 곱하는 오류 원천 차단)
-        clean_y = calc_accurate_div_yield(stk, i, p, kr)
-        return clean_y, (p * (clean_y / 100.0))
-    except Exception:
-        return 0.0, 0.0
-# ▲▲▲ [배당금 정밀 보정 엔진 교체 끝] ▲▲▲
 # =========================================================================
 # [1] 사업 다각화 및 단일 실패 지점(SPOF) 차단 마스터 엔진
 # =========================================================================
@@ -8338,17 +8291,17 @@ with tab1:
                 
                 # [수정 완료] 자사주 매입 표기 완전 삭제 -> 순수 배당수익률만 단독 표기
                 div_color = "#2ecc71" if div >= 3.0 else ("#fdcb6e" if div > 0 else "var(--text-color)")
+
                 # ▼▼▼ 기존 div 계산 및 div_str 조립 부분을 아래로 교체 ▼▼▼
-                div, annual_dps = get_accurate_dividend_yield(stk, i, p, kr)
+                div, annual_dps, div_freq_lbl = get_accurate_dividend_yield(stk, i, p, kr)
 
                 if div > 0:
-                    div_trend = "지속 상승 중" if div >= 1.5 else "안정적 유지"
-                    if kr and annual_dps > 0:
-                        div_str = f"배당수익률: <b>{div:.2f}%</b> (주당 {int(round(annual_dps)):,}원)"
-                    else:
-                        div_str = f"배당수익률: <b>{div:.2f}%</b> ({div_trend})"
+                    dps_disp = f"{int(round(annual_dps)):,}원" if kr else f"${annual_dps:,.2f}"
+                    freq_part = f" · {div_freq_lbl}" if div_freq_lbl else ""
+                    div_str = f"배당수익률: <b>{div:.2f}%</b> (주당 {dps_disp}{freq_part})"
                 else:
                     div_str = "배당수익률: <b>0.0% (무배당/사내유보)</b>"
+                # ▲▲▲ 여기까지 교체 ▲▲▲
                 # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
