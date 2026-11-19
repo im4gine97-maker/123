@@ -10036,7 +10036,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         f"미국채 10년물 기회비용: 주식 이익수익률 연 {cur_ey_val:.2f}% vs 미국채 금리 연 {ty_val:.2f}% (스프레드 {erp_val:+.2f}%p)\n"
                         f"재무 안전판 & 순수 배당: 현재 PBR {sh_cur_pbr:.2f}배 · 순수 현금배당 연 {safe_div_val:.2f}% (최근 10년 중 {div_10y_cnt_val}회 지급)\n\n"
                         f"[안내] 본 영상은 DART 및 SEC 10-K 공시 데이터를 바탕으로 작성된 학술·교육용 통계 자료이며, 특정 종목의 매수·매도 추천이 아닙니다.\n\n"
-                        f"#shorts #{clean_tag_name} #가치투자 #재무제표 #주식공부 #배당주"
+                        f"#shorts #{clean_tag_name} #가치투자 #재무제표 #주식공부 #주식"
                     )
 
                     yt_up_title = st.text_input("공통 업로드 제목", value=default_yt_title, key=f"yt_t_v21_{clean_tk}_{mode_tag_k}")
