@@ -3570,69 +3570,89 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
         pass
         
     return rnd_trend
-def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
+def get_accurate_dividend_yield(stk, i, p, kr):
     """
-    [미국 신규 배당주(구글·메타 등) 누락 및 0.00% 방지 엔진]
+    [배당 뻥튀기 원천 차단 엔진]
+    - 연간(1회)·반기(2회) ADR에 ×4를 곱하던 오류 완전 제거
+    - 3년 배당 이력의 실제 지급 간격(일수) + 공식 dividendRate 교차 검증
     """
-    if p <= 0 or not isinstance(i, dict):
-        return 0.0
-
-    raw_y = safe_float(i.get('dividendYield'))
-    raw_d = safe_float(i.get('dividendRate'))
-    trailing_d = safe_float(i.get('trailingAnnualDividendRate'))
-    trailing_y = safe_float(i.get('trailingAnnualDividendYield'))
-    fv_y = safe_float(i.get('finviz_div_pct'))
-
-    # 1순위: 최근 1년 배당금 내역 직접 스캔 (최근 신설 분기배당은 × 4로 연환산 보정)
     try:
-        if stk is not None:
-            divs = stk.dividends
-            if divs is not None and not divs.empty:
-                cutoff = pd.Timestamp.now(tz=divs.index.tz) - pd.Timedelta(days=375)
-                recent_1y = divs[divs.index >= cutoff]
-                if not recent_1y.empty:
-                    # 구글 등 최근 배당을 신설해 1~3회만 있는 경우: 최근 지급액 * 4 연환산!
-                    if len(recent_1y) < 4 and len(recent_1y) >= 1:
-                        last_payout = float(recent_1y.iloc[-1])
-                        dps_ann = last_payout * 4.0
-                    else:
-                        dps_ann = float(recent_1y.sum())
-                    
-                    if dps_ann > 0:
-                        calc_y = (dps_ann / p) * 100.0
-                        if 0.01 <= calc_y <= 25.0:
-                            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
+        if p <= 0 or not isinstance(i, dict):
+            return 0.0, 0.0
+
+        rate_fwd = safe_float(i.get('dividendRate'))
+        rate_ttm = safe_float(i.get('trailingAnnualDividendRate'))
+        official_dps = rate_fwd if rate_fwd > 0 else rate_ttm
+
+        # 1순위: 실제 배당 지급 이력(stk.dividends) 기반 산출 (임의 ×4 금지)
+        hist_dps = 0.0
+        try:
+            if stk is not None:
+                divs = stk.dividends
+                if divs is not None and not divs.empty:
+                    now_ts = pd.Timestamp.now(tz=divs.index.tz)
+                    recent_1y = divs[divs.index >= (now_ts - pd.Timedelta(days=375))]
+                    recent_3y = divs[divs.index >= (now_ts - pd.Timedelta(days=1100))]
+
+                    if not recent_1y.empty:
+                        # 기본: 최근 1년 실제 합산 (연간 1회=1회분, 반기 2회=2회분, 분기 4회=4회분)
+                        hist_dps = float(recent_1y.sum())
+
+                        # 예외: '신규 분기배당 개시'가 확실할 때만 ×4 허용
+                        # 조건: 과거 1년 이전 이력 없음 + 2~3회 지급 + 지급 간격 70~115일(분기 주기 확인)
+                        if (not kr) and len(recent_3y) == len(recent_1y) and (2 <= len(recent_1y) <= 3):
+                            gaps = [(recent_1y.index[idx] - recent_1y.index[idx - 1]).days for idx in range(1, len(recent_1y))]
+                            if all(70 <= g <= 115 for g in gaps):
+                                hist_dps = float(recent_1y.iloc[-1]) * 4.0
+        except Exception:
+            pass
+
+        # 2순위: official_dps(Yahoo 공식 연간 배당금)와 교차 검증
+        final_dps = 0.0
+        if official_dps > 0 and hist_dps > 0:
+            # 1회성 특별배당 등으로 hist_dps가 공식 연간 배당금보다 1.8배 이상 튀면 official_dps 채택
+            if hist_dps > official_dps * 1.8:
+                final_dps = official_dps
+            # 신규 분기배당 1회차라 hist_dps가 official_dps의 절반 이하이면 official_dps 채택
+            elif (not kr) and hist_dps < official_dps * 0.6:
+                final_dps = official_dps
+            else:
+                final_dps = hist_dps
+        elif hist_dps > 0:
+            final_dps = hist_dps
+        elif official_dps > 0:
+            final_dps = official_dps
+
+        if final_dps > 0:
+            real_yield = (final_dps / p) * 100.0
+            if 0.01 <= real_yield <= 25.0:
+                return real_yield, final_dps
+
+        # 3순위: 배당금 금액 누락 시 비율(Finviz / Yahoo dividendYield) 정규화 폴백
+        fv_y = safe_float(i.get('finviz_div_pct'))
+        if 0.01 <= fv_y <= 25.0:
+            return fv_y, p * (fv_y / 100.0)
+
+        raw_y = safe_float(i.get('trailingAnnualDividendYield')) or safe_float(i.get('dividendYield'))
+        if raw_y > 0:
+            if raw_y < 0.25:
+                res_y = raw_y * 100.0
+            elif raw_y >= 25.0 and not kr:
+                res_y = raw_y / 100.0
+            else:
+                res_y = raw_y
+            if 0.01 <= res_y <= 25.0:
+                return res_y, p * (res_y / 100.0)
+
+        return 0.0, 0.0
     except Exception:
-        pass
+        return 0.0, 0.0
 
-    # 2순위: dividendRate ÷ 주가
-    if raw_d > 0 and p > 0:
-        calc_y = (raw_d / p) * 100.0
-        if 0.01 <= calc_y <= 25.0:
-            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
 
-    if trailing_d > 0 and p > 0:
-        calc_y = (trailing_d / p) * 100.0
-        if 0.01 <= calc_y <= 25.0:
-            return calc_y / multiplier if (sim_pct != 0 and multiplier != 0) else calc_y
-
-    # 3순위: Finviz 배당률 백업
-    if 0.01 <= fv_y <= 25.0:
-        return fv_y / multiplier if (sim_pct != 0 and multiplier != 0) else fv_y
-
-    # 4순위: 비율 정규화 (0.0045 -> 0.45% 등)
-    target_y = trailing_y if trailing_y > 0 else raw_y
-    if target_y > 0:
-        if target_y < 0.25:
-            res_y = target_y * 100.0
-        elif target_y >= 25.0 and not kr:
-            res_y = target_y / 100.0
-        else:
-            res_y = target_y
-        return res_y / multiplier if (sim_pct != 0 and multiplier != 0) else res_y
-
-    return 0.0
-
+def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
+    """단일 진실 공급원: get_accurate_dividend_yield 결과를 그대로 반환 (p는 이미 가상 주가가 반영된 값)"""
+    y_pct, _ = get_accurate_dividend_yield(stk, i, p, kr)
+    return y_pct
 
 # =========================================================================
 # [버크셔·복수클래스·일시중단 완벽 보정] 무오차 자사주 순매입·소각 수익률 산출 엔진
