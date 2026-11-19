@@ -3094,7 +3094,155 @@ def calc_smart_cagr(val_series_chrono, years_chrono=None):
     status_code = "NORMAL_UP" if raw_cagr >= 0 else "NORMAL_DOWN"
     return max(-0.95, min(raw_cagr, 2.00)), status_code, display_span, f"{display_span}년간 연평균 {raw_cagr*100:+.1f}%"
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_fx_to_usd(curr_code):
+    """현지 공시 통화(CNY, TWD, JPY, EUR 등) -> 실시간 USD 환산 배율"""
+    c = str(curr_code or "USD").upper().strip()
+    if c in ["USD", ""]:
+        return 1.0
+    if c == "RMB":
+        c = "CNY"
+    fx_fallback = {
+        "CNY": 0.138, "TWD": 0.031, "HKD": 0.128, "EUR": 1.08,
+        "JPY": 0.0066, "DKK": 0.145, "GBP": 1.28, "CHF": 1.13,
+        "CAD": 0.73, "AUD": 0.66, "BRL": 0.18, "KRW": 0.00073,
+        "INR": 0.012, "SEK": 0.095, "NOK": 0.093, "ILS": 0.27, "KZT": 0.0020
+    }
+    try:
+        hist = yf.Ticker(f"{c}USD=X").history(period="5d")
+        if hist is not None and not hist.empty:
+            rate = safe_float(hist["Close"].dropna().iloc[-1])
+            if rate > 0:
+                return rate
+    except Exception:
+        pass
+    return fx_fallback.get(c, 1.0)
 
+
+def get_fin_fx_to_usd(info_dict, kr=False):
+    """한국 주식은 1.0(원화 유지), 해외 ADR은 재무제표 통화 -> 거래 통화(USD) 환율 반환"""
+    if kr or not isinstance(info_dict, dict):
+        return 1.0, "KRW"
+    trade_c = str(info_dict.get("currency", "USD")).upper().strip()
+    fin_c = str(info_dict.get("financialCurrency", trade_c)).upper().strip()
+    if trade_c == "USD" and fin_c != "USD":
+        return get_fx_to_usd(fin_c), fin_c
+    return 1.0, fin_c
+
+
+def get_base_dcf_data(stk, i):
+    try:
+        if stk is None:
+            return None, None, 0.0, 0, False
+
+        # [핵심 수리 1] ADR 현지 통화(CNY/TWD/JPY 등) -> USD 실시간 환율 산출
+        tk_sym = str(getattr(stk, "ticker", "")).upper()
+        is_kr_local = tk_sym.endswith(".KS") or tk_sym.endswith(".KQ")
+        fin_fx, _ = get_fin_fx_to_usd(i, is_kr_local)
+
+        fcf_s = None
+        cf = stk.cash_flow
+
+        if cf is not None and not cf.empty:
+            if 'Free Cash Flow' in cf.index:
+                fcf_s = cf.loc['Free Cash Flow'].dropna()
+            elif 'Operating Cash Flow' in cf.index:
+                ocf_s = cf.loc['Operating Cash Flow'].dropna()
+                cap_s = None
+                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                    if ck in cf.index:
+                        cap_s = cf.loc[ck].dropna()
+                        break
+                if cap_s is not None:
+                    common_idx = ocf_s.index.intersection(cap_s.index)
+                    fcf_s = pd.Series([safe_float(ocf_s[c]) - abs(safe_float(cap_s[c])) for c in common_idx], index=common_idx)
+                else:
+                    fcf_s = ocf_s * 0.75
+
+        # 최근 FCF 체력 산출 (최근 연도 60% 가중)
+        weighted_fcf = None
+        if fcf_s is not None and not fcf_s.empty:
+            vals = [safe_float(v) for v in fcf_s.values[:3] if pd.notna(v) and safe_float(v) != 0]
+            if len(vals) == 1:
+                weighted_fcf = vals[0]
+            elif len(vals) == 2:
+                weighted_fcf = (vals[0] * 0.65) + (vals[1] * 0.35) if vals[0] > 0 else (sum(vals) / 2.0)
+            elif len(vals) >= 3:
+                weighted_fcf = (vals[0] * 0.60) + (vals[1] * 0.25) + (vals[2] * 0.15) if vals[0] > 0 else (sum(vals) / 3.0)
+
+        # 최근 4개 분기(Quarterly TTM) FCF 추출
+        ttm_fcf_q = 0.0
+        try:
+            q_cf = stk.quarterly_cash_flow
+            if q_cf is not None and not q_cf.empty and len(q_cf.columns) >= 2:
+                q_c4 = q_cf.columns[:4]
+                ann_f = 4.0 / len(q_c4)
+                if 'Free Cash Flow' in q_cf.index:
+                    ttm_fcf_q = sum(safe_float(q_cf.loc['Free Cash Flow', c]) for c in q_c4) * ann_f
+                elif 'Operating Cash Flow' in q_cf.index:
+                    ocf_q = sum(safe_float(q_cf.loc['Operating Cash Flow', c]) for c in q_c4) * ann_f
+                    cap_q = 0.0
+                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                        if ck in q_cf.index:
+                            cap_q = sum(abs(safe_float(q_cf.loc[ck, c])) for c in q_c4) * ann_f
+                            break
+                    ttm_fcf_q = ocf_q - cap_q
+        except Exception:
+            pass
+
+        if ttm_fcf_q == 0.0:
+            ttm_fcf_q = safe_float(i.get('freeCashflow'))
+
+        if ttm_fcf_q > 0 and weighted_fcf and weighted_fcf > 0:
+            fcf = (ttm_fcf_q * 0.60) + (weighted_fcf * 0.40)
+        elif ttm_fcf_q != 0:
+            fcf = ttm_fcf_q
+        else:
+            fcf = weighted_fcf
+
+        # [핵심 수리 1 적용] 현지 통화 FCF -> USD 환산 완료
+        if fcf is not None and fin_fx != 1.0:
+            fcf = fcf * fin_fx
+
+        # [핵심 수리 2] ADR 주식수는 marketCap / 주가로 계산해 ADS 수량(1:4, 1:5, 1:8 비율) 오차 원천 차단
+        sh = safe_float(i.get('sharesOutstanding'))
+        if not is_kr_local and fin_fx != 1.0:
+            mcap_usd = safe_float(i.get('marketCap'))
+            reg_p_usd = safe_float(i.get('regularMarketPrice', i.get('currentPrice')))
+            if mcap_usd > 0 and reg_p_usd > 0:
+                sh = mcap_usd / reg_p_usd
+
+        g, data_len = 0.0, 0
+        is_zigzag = False
+
+        if fcf_s is not None and len(fcf_s) >= 2:
+            vals_chrono = [safe_float(v) * fin_fx for v in fcf_s.values[::-1]]
+            yrs_chrono = [str(c)[:4] for c in fcf_s.index[::-1]]
+            data_len = len(vals_chrono)
+            g, _, _, _ = calc_smart_cagr(vals_chrono, yrs_chrono)
+
+            if data_len >= 3:
+                directions = []
+                for idx in range(1, data_len):
+                    prev, curr = vals_chrono[idx - 1], vals_chrono[idx]
+                    if prev == 0:
+                        directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
+                    else:
+                        change_pct = (curr - prev) / abs(prev)
+                        if change_pct >= 0.30: directions.append(1)
+                        elif change_pct <= -0.30: directions.append(-1)
+                        else: directions.append(0)
+                if 1 in directions and -1 in directions:
+                    is_zigzag = True
+        else:
+            eg = safe_float(i.get('earningsGrowth'))
+            if eg != 0.0:
+                g = eg
+            data_len = 1 if fcf_s is None else len(fcf_s)
+
+        return fcf, sh, g, data_len, is_zigzag
+    except Exception:
+        return None, None, 0.0, 0, False
 def get_base_dcf_data(stk, i):
     try:
         if stk is None: return None, None, 0.0, 0, False
@@ -3762,33 +3910,31 @@ def calc_accurate_f_pbr(stk, i, tk, p, reg_p, pbr, base_bv, f_eps, div_r_val, kr
         raw_fpbr = pbr_0
 
     return raw_fpbr * multiplier if multiplier != 1.0 else raw_fpbr
-# =========================================================================
-# [신규 추가 엔진 2] 이익의 질(OCF/NI) 및 SBC 차감 보수적 FCF 분석 함수
-# =========================================================================
-def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
+def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr, info_dict=None):
     if is_financial:
         return f"<span style='color:#8892b0'>{t('금융주 평가 제외', 'N/A (Financial)')}</span>"
     if stk is None:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'Insufficient Data')}</span>"
     try:
+        fin_fx, _ = get_fin_fx_to_usd(info_dict, kr) if info_dict else (1.0, "KRW" if kr else "USD")
         inc = stk.income_stmt
         cf = stk.cash_flow
         ni, ocf, sbc, fcf_curr = 0.0, 0.0, 0.0, safe_float(base_fcf)
 
         if inc is not None and not inc.empty and 'Net Income' in inc.index:
-            ni = safe_float(inc.loc['Net Income'].dropna().iloc[0]) if not inc.loc['Net Income'].dropna().empty else 0.0
+            ni = safe_float(inc.loc['Net Income'].dropna().iloc[0]) * fin_fx if not inc.loc['Net Income'].dropna().empty else 0.0
 
         if cf is not None and not cf.empty:
             for ok in ['Operating Cash Flow', 'Cash Flow From Continuing Operating Activities']:
                 if ok in cf.index and not cf.loc[ok].dropna().empty:
-                    ocf = safe_float(cf.loc[ok].dropna().iloc[0])
+                    ocf = safe_float(cf.loc[ok].dropna().iloc[0]) * fin_fx
                     break
             for sk in ['Stock Based Compensation', 'Share Based Compensation']:
                 if sk in cf.index and not cf.loc[sk].dropna().empty:
-                    sbc = abs(safe_float(cf.loc[sk].dropna().iloc[0]))
+                    sbc = abs(safe_float(cf.loc[sk].dropna().iloc[0])) * fin_fx
                     break
             if 'Free Cash Flow' in cf.index and not cf.loc['Free Cash Flow'].dropna().empty:
-                fcf_curr = safe_float(cf.loc['Free Cash Flow'].dropna().iloc[0])
+                fcf_curr = safe_float(cf.loc['Free Cash Flow'].dropna().iloc[0]) * fin_fx
 
         if ni > 0 and ocf > 0:
             eq_ratio = ocf / ni
@@ -3810,7 +3956,7 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
         if kr:
             div_v, u = (1e12, "조원") if mv >= 1e12 else ((1e8, "억원") if mv >= 1e8 else (1, "원"))
         else:
-            div_v, u = (1e9, "B") if mv >= 1e9 else ((1e6, "M") if mv >= 1e6 else (1, "$"))
+            div_v, u = (1e9, "B USD") if mv >= 1e9 else ((1e6, "M USD") if mv >= 1e6 else (1, "$"))
 
         if sbc > 0 and fcf_curr > 0:
             sbc_pct = (sbc / fcf_curr) * 100
@@ -3822,7 +3968,7 @@ def analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr):
             sbc_str = f"실질 FCF: <b>{fcf_curr/div_v:.1f}{u}</b> <span style='color:#8892b0; font-size:0.9em;'>(SBC 지출 없음/미공시)</span>"
 
         return f"{eq_str}<br><span style='font-size:0.9em; color:var(--text-color); opacity:0.85;'>{sbc_str}</span>"
-    except:
+    except Exception:
         return f"<span style='color:#8892b0'>{t('데이터 부족', 'N/A')}</span>"
 # =========================================================================
 # [배당금 정밀 보정 엔진] 한국 주식 배당 뻥튀기 왜곡 차단 & 실제 DPS 검증
@@ -7704,13 +7850,17 @@ with tab1:
                 actual_fcf_g_main = final_g * 100.0
                 pmos_val = actual_fcf_g_main - buffett_req_g_main if eff_cur_pe > 0 else -20.0
                 sh = safe_float(i.get('sharesOutstanding'))
+                if is_adr:
+                    _mcap_adr = safe_float(i.get('marketCap'))
+                    if _mcap_adr > 0 and reg_p > 0:
+                        sh = _mcap_adr / reg_p
                 dcf_source_txt = f"({data_len}{t('년 데이터 기반 산출', ' yrs data)')})"
                 
                 rnd_trend = analyze_rnd_trend(stk, base_fcf, is_financial, kr)
                 # ▼▼▼ [신규 추가] 총주주환원율 및 3대 신규 심층 지표 계산 ▼▼▼
                 bb_yield = calc_buyback_yield(stk, i, p, kr, adr_fx_ratio, is_adr)
                 tsy_total = div + bb_yield
-                eq_sbc_html = analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr)
+                eq_sbc_html = analyze_earnings_quality_and_sbc(stk, base_fcf, is_financial, kr, info_dict=i)
                 f_score_val, f_score_html = calc_piotroski_f_score(stk, is_financial)
                 dilution_html = analyze_share_dilution(stk, cd, kr)
                 # ▲▲▲ 여기까지 추가 ▲▲▲
@@ -8640,24 +8790,29 @@ with tab1:
                         except:
                             pass
 
-                    # --- 3. 최후의 보루: yfinance 연동 (API 실패 기업 및 ADR 기업) ---
+                    # --- 3. 최후의 보루: yfinance 연동 (API 실패 기업 및 ADR 기업 -> 실시간 환율 USD 환산) ---
+                    fin_fx_vis, fin_curr_vis = get_fin_fx_to_usd(i, kr)
                     if not api_success:
                         inc = stk.income_stmt if stk else None
                         cf = stk.cash_flow if stk else None
                         if inc is not None and not inc.empty:
                             cols = inc.columns[:10]
                             years = [str(c)[:4] for c in cols][::-1]
-                            
-                            rev = inc.loc['Total Revenue'].iloc[:len(cols)].values[::-1] if 'Total Revenue' in inc.index else []
-                            ni = inc.loc['Net Income'].iloc[:len(cols)].values[::-1] if 'Net Income' in inc.index else []
-                            
+
+                            rev = [safe_float(v) * fin_fx_vis for v in inc.loc['Total Revenue'].iloc[:len(cols)].values[::-1]] if 'Total Revenue' in inc.index else []
+                            ni = [safe_float(v) * fin_fx_vis for v in inc.loc['Net Income'].iloc[:len(cols)].values[::-1]] if 'Net Income' in inc.index else []
+
                             if cf is not None and not cf.empty:
                                 cf_cols = cf.columns[:10]
                                 fcf_years = [str(c)[:4] for c in cf_cols][::-1]
                                 if 'Free Cash Flow' in cf.index:
-                                    fcf_chart = cf.loc['Free Cash Flow'].iloc[:len(cf_cols)].values[::-1]
+                                    fcf_chart = [safe_float(v) * fin_fx_vis for v in cf.loc['Free Cash Flow'].iloc[:len(cf_cols)].values[::-1]]
                                 elif 'Operating Cash Flow' in cf.index and 'Capital Expenditure' in cf.index:
-                                    fcf_chart = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:len(cf_cols)].values[::-1]
+                                    raw_fcf_s = (cf.loc['Operating Cash Flow'] + cf.loc['Capital Expenditure']).iloc[:len(cf_cols)].values[::-1]
+                                    fcf_chart = [safe_float(v) * fin_fx_vis for v in raw_fcf_s]
+
+                    if not kr and fin_fx_vis != 1.0:
+                        st.caption(f"💱 **ADR 실시간 환율 자동 환산 적용:** 원천 공시 통화(`{fin_curr_vis}`)를 실시간 환율(`1 {fin_curr_vis} = ${fin_fx_vis:.4f} USD`)로 달러(USD) 기준 정렬했습니다.")
 
                     # --- 차트 렌더링 엔진 ---
                     def scale_vals(data_lists, is_kr):
@@ -11641,49 +11796,52 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
                         return df
 
                     def fallback_yfinance():
-                        st.info("💡 공공 데이터를 찾을 수 없어 yfinance(최근 4~5년치)로 대체 시각화합니다.")
+                        fin_fx_fb, fin_curr_fb = get_fin_fx_to_usd(i, kr)
+                        if not kr and fin_fx_fb != 1.0:
+                            st.info(f"💡 yfinance 재무제표를 실시간 환율(1 {fin_curr_fb} = ${fin_fx_fb:.4f} USD)로 달러 환산해 시각화합니다.")
+                        else:
+                            st.info("💡 공공 데이터를 찾을 수 없어 yfinance(최근 4~5년치)로 대체 시각화합니다.")
                         inc_df = stk.income_stmt
                         bs_df = stk.balance_sheet
                         cf_df = stk.cash_flow
-                        
+
                         combined_dict = {}
                         try:
                             if inc_df is not None and not inc_df.empty:
-                                if 'Total Revenue' in inc_df.index: combined_dict['1. 매출액 (Revenue)'] = inc_df.loc['Total Revenue']
-                                if 'Gross Profit' in inc_df.index: combined_dict['2. 매출총이익 (Gross Profit)'] = inc_df.loc['Gross Profit']
-                                if 'Operating Income' in inc_df.index: combined_dict['3. 영업이익 (Op. Income)'] = inc_df.loc['Operating Income']
-                                if 'Net Income' in inc_df.index: combined_dict['4. 당기순이익 (Net Income)'] = inc_df.loc['Net Income']
+                                if 'Total Revenue' in inc_df.index: combined_dict['1. 매출액 (Revenue)'] = inc_df.loc['Total Revenue'] * fin_fx_fb
+                                if 'Gross Profit' in inc_df.index: combined_dict['2. 매출총이익 (Gross Profit)'] = inc_df.loc['Gross Profit'] * fin_fx_fb
+                                if 'Operating Income' in inc_df.index: combined_dict['3. 영업이익 (Op. Income)'] = inc_df.loc['Operating Income'] * fin_fx_fb
+                                if 'Net Income' in inc_df.index: combined_dict['4. 당기순이익 (Net Income)'] = inc_df.loc['Net Income'] * fin_fx_fb
                             if bs_df is not None and not bs_df.empty:
-                                if 'Total Assets' in bs_df.index: combined_dict['5. 자산총계 (Assets)'] = bs_df.loc['Total Assets']
-                                if 'Total Liabilities Net Minority Interest' in bs_df.index: combined_dict['6. 부채총계 (Liabilities)'] = bs_df.loc['Total Liabilities Net Minority Interest']
-                                if 'Stockholders Equity' in bs_df.index: combined_dict['7. 자본총계 (Equity)'] = bs_df.loc['Stockholders Equity']
+                                if 'Total Assets' in bs_df.index: combined_dict['5. 자산총계 (Assets)'] = bs_df.loc['Total Assets'] * fin_fx_fb
+                                if 'Total Liabilities Net Minority Interest' in bs_df.index: combined_dict['6. 부채총계 (Liabilities)'] = bs_df.loc['Total Liabilities Net Minority Interest'] * fin_fx_fb
+                                if 'Stockholders Equity' in bs_df.index: combined_dict['7. 자본총계 (Equity)'] = bs_df.loc['Stockholders Equity'] * fin_fx_fb
                             if cf_df is not None and not cf_df.empty:
-                                if 'Operating Cash Flow' in cf_df.index: combined_dict['8. 영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow']
+                                if 'Operating Cash Flow' in cf_df.index: combined_dict['8. 영업현금흐름 (Op. CF)'] = cf_df.loc['Operating Cash Flow'] * fin_fx_fb
                                 for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
                                     if ck in cf_df.index:
-                                        combined_dict['9. 설비투자 (CAPEX)'] = cf_df.loc[ck].abs()
+                                        combined_dict['9. 설비투자 (CAPEX)'] = cf_df.loc[ck].abs() * fin_fx_fb
                                         break
-                                if 'Investing Cash Flow' in cf_df.index: combined_dict['10. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow']
-                                if 'Financing Cash Flow' in cf_df.index: combined_dict['11. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow']
+                                if 'Investing Cash Flow' in cf_df.index: combined_dict['10. 투자현금흐름 (Inv. CF)'] = cf_df.loc['Investing Cash Flow'] * fin_fx_fb
+                                if 'Financing Cash Flow' in cf_df.index: combined_dict['11. 재무현금흐름 (Fin. CF)'] = cf_df.loc['Financing Cash Flow'] * fin_fx_fb
                                 if 'Free Cash Flow' in cf_df.index:
-                                    combined_dict['12. 잉여현금흐름 (FCF)'] = cf_df.loc['Free Cash Flow']
-                            
+                                    combined_dict['12. 잉여현금흐름 (FCF)'] = cf_df.loc['Free Cash Flow'] * fin_fx_fb
+
                             if combined_dict:
                                 yf_df = pd.DataFrame(combined_dict).T
                                 yf_df.columns = [str(col).split('-')[0] for col in yf_df.columns]
                                 yf_df = yf_df / (100000000 if kr else 1000000)
-                                
-                                draw_financial_chart(yf_df, "연간 재무 추이")
+
+                                draw_financial_chart(yf_df, "연간 재무 추이 (USD 환산)" if (not kr and fin_fx_fb != 1.0) else "연간 재무 추이")
                                 yf_df = append_shares_split_adjusted(yf_df, stk, kr, cd)
-                                
+
                                 try: formatted_yf = yf_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
-                                except: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
+                                except Exception: formatted_yf = yf_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) else "-")
                                 st.dataframe(formatted_yf, use_container_width=True)
                             else:
                                 st.warning("재무제표 데이터를 가져올 수 없습니다.")
                         except Exception:
                             st.warning("데이터 처리 중 에러가 발생했습니다.")
-
                     # =========================================================================
                     # [모드별 실행] 1) 분기별(10년 40분기) / 2) 연환산(10년 40분기 ×4 & TTM) / 3) 연간(10년)
                     # =========================================================================
@@ -11849,7 +12007,16 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
                                             sec_success = True
                                 except Exception: pass
                             if not sec_success:
-                                fallback_yfinance()
+                                g_df, g_src = get_global_10yr_financials(cd, FMP_API_KEY)
+                                if g_df is not None and not g_df.empty:
+                                    st.caption(f"🌐 **{g_src}** 연동 완료 (단위: 백만 USD)")
+                                    draw_financial_chart(g_df, "연간(10년) 실적 추이 (USD)")
+                                    g_df = append_shares_split_adjusted(g_df, stk, kr, cd)
+                                    try: fmt_g = g_df.map(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
+                                    except Exception: fmt_g = g_df.applymap(lambda x: f"{x:,.0f}" if pd.notna(x) and x != 0 else "-")
+                                    st.dataframe(fmt_g, use_container_width=True)
+                                else:
+                                    fallback_yfinance()
                 # ▲▲▲ [수리 3 끝] ▲▲▲
                             
 # ==========================================
