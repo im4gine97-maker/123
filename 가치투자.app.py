@@ -10168,41 +10168,332 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     # -----------------------------------------------------------------
                     # [서브탭 1] 제미나이 & 이미지/영상 AI 원클릭 프롬프트 생성기
                     # -----------------------------------------------------------------
+                    # -----------------------------------------------------------------
+                    # [서브탭 1] 제미나이(Gemini) 전 항목 풀데이터 대본 프롬프트 & AI 에셋 프롬프트
+                    # -----------------------------------------------------------------
                     with doc_sub_tab1:
-                        st.markdown("#### ① 제미나이(Gemini)에게 바로 보내는 `체스막타` 스타일 다큐 대본 프롬프트")
-                        st.caption("우측 상단 복사 버튼을 눌러 제미나이 채팅창에 그대로 붙여넣으세요. 아래 2번 탭 조립기가 바로 인식하는 태그(`[해설]`, `[버핏]`, `[반론]`, `[차트:...]`, `[장면]`) 형식으로 8~10분 다큐 대본을 써줍니다.")
+                        st.markdown("#### ① 제미나이(Gemini)에게 바로 보내는 `체스막타` 스타일 풀데이터 다큐 대본 프롬프트")
+                        st.caption("체크리스트 · 13F · 심층 9대 지표 · 버핏 역산/DCF · 장기 시각화 · 질적/뉴스/거버넌스 · 10년 핵심 장부 표가 전부 자동 결합됩니다.")
 
+                        def _p_strip(raw_h):
+                            if raw_h is None:
+                                return "N/A"
+                            s = re.sub(r'<br\s*/?>', ' / ', str(raw_h))
+                            s = re.sub(r'<[^>]+>', '', s)
+                            return re.sub(r'\s+', ' ', s).strip()
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 1] 찰리 멍거 체크리스트 & 13F 거장 보유 현황
+                        # -------------------------------------------------------------
+                        _m_items = locals().get('munger_items', [])
+                        _m_pass = locals().get('pass_cnt', 0)
+                        _m_tot = locals().get('tot_chk_cnt', len(_m_items))
+                        munger_prompt_lines = []
+                        for _mt, _ms, _md in _m_items:
+                            _st_ko = "충족" if _ms == "pass" else ("보통" if _ms == "warn" else "미달")
+                            munger_prompt_lines.append(f"- {_mt} [{_st_ko}]: {_p_strip(_md)}")
+                        munger_prompt_block = "\n".join(munger_prompt_lines) if munger_prompt_lines else "- 체크리스트 데이터 없음"
+
+                        _g_holders = locals().get('guru_holders', [])
+                        if _g_holders:
+                            guru_prompt_txt = " / ".join([f"{gh['name']} (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in _g_holders])
+                        else:
+                            guru_prompt_txt = "추적 중인 12인 13F 거장 포트폴리오 내 미보유"
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 2] 기업 가치 심층 분석 (9대 핵심 카드 + AI 스코어 세부 내역)
+                        # -------------------------------------------------------------
+                        _trade_curr = str(i.get('currency', 'KRW' if kr else 'USD')).upper()
+                        _fin_curr = str(i.get('financialCurrency', _trade_curr)).upper()
+                        _curr_mismatch = (_trade_curr != _fin_curr) and not kr
+                        _curr_warn_note = (
+                            f"⚠️ [통화 주의] 이 종목은 {_trade_curr}로 거래되는 ADR이나 원천 재무제표 통화는 {_fin_curr}입니다. "
+                            f"장부 수치 및 DCF 수치가 {_fin_curr} 기준일 수 있으므로 대본 작성 시 반드시 {_fin_curr} 단위를 명시하거나 환율 환산 검증을 수행할 것!"
+                            if _curr_mismatch else f"거래 통화: {_trade_curr} / 재무제표 통화: {_fin_curr} (통화 일치)"
+                        )
+
+                        _bps_txt = f"{int(bv):,}원" if (kr and bv > 0) else (f"${bv:,.2f}" if bv > 0 else "N/A")
+                        _bio_txt = _p_strip(locals().get('bio_eval', 'N/A'))
+                        _eq_sbc_txt = _p_strip(locals().get('eq_sbc_html', 'N/A'))
+                        _dil_txt = _p_strip(locals().get('dilution_html', 'N/A'))
+                        _rnd_txt = _p_strip(locals().get('rnd_trend', 'N/A'))
+                        _fsc_txt = _p_strip(locals().get('f_score_html', 'N/A'))
+                        _div_card_txt = _p_strip(locals().get('div_str', f"배당수익률: {doc_div_val:.2f}%"))
+
+                        _sb_lines = []
+                        for _k_sb, _v_sb in locals().get('score_breakdown', {}).items():
+                            _sc_n = _v_sb[0] if isinstance(_v_sb, tuple) else _v_sb
+                            _sc_r = _p_strip(_v_sb[1]) if isinstance(_v_sb, tuple) else ""
+                            _sb_lines.append(f"- {_k_sb}: {_sc_n:+g}점 ({_sc_r})")
+                        score_breakdown_block = "\n".join(_sb_lines) if _sb_lines else "- 세부 점수 없음"
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 3] 2. 10년 내재가치 평가 (버핏 10초 암산 + 국채+5%p + DCF 3시나리오)
+                        # -------------------------------------------------------------
+                        _eff_eps_p = t_eps if (t_eps and t_eps > 0) else ((reg_p / doc_pe) if doc_pe > 0 else 0.0)
+                        _bft_p10 = _eff_eps_p * 10.0 if _eff_eps_p > 0 else 0.0
+                        _bft_p10_str = (f"{int(_bft_p10):,}원" if kr else f"${_bft_p10:,.2f}") if _bft_p10 > 0 else "산출 불가"
+                        _req_bond_y = ty + 5.0
+                        _req_g_bond = _req_bond_y - doc_ey
+
+                        if is_financial:
+                            dcf_prompt_block = "- 금융/보험주 특성상 DCF 평가 제외 (현재 PBR 및 ROE 기반 대체 평가)"
+                        elif iv and iv > 0:
+                            _fmt_p = lambda v: f"{int(v):,}원" if kr else f"${v:,.2f}"
+                            _g_worst = max(final_g * 0.5, 0.0) * 100.0
+                            _g_base = final_g * 100.0
+                            _g_best = min(final_g * 1.5, 0.25) * 100.0
+                            dcf_prompt_block = (
+                                f"- 할인율: {max(ty, 9.0):.1f}% | 산출 기간: 최근 {data_len}년 데이터 기반\n"
+                                f"- 최악 시나리오: 적정가 {_fmt_p(iv_worst)} (성장률 {_g_worst:.1f}%, 안전마진 {mos_worst:.1f}%)\n"
+                                f"- 평균 시나리오: 적정가 {_fmt_p(iv)} (성장률 {_g_base:.1f}%, 안전마진 {mos_val:.1f}%)\n"
+                                f"- 최상 시나리오: 적정가 {_fmt_p(iv_best)} (성장률 {_g_best:.1f}%, 안전마진 {mos_best:.1f}%)"
+                            )
+                            if _curr_mismatch:
+                                dcf_prompt_block += f"\n- ⚠️ 주의: ADR 통화 불일치({_fin_curr} vs {_trade_curr})로 인해 DCF 달러 적정가가 환율만큼 과대계상되었을 수 있으므로, 대본에서는 DCF 절대 주가 대신 버핏 10초 역산과 수익률(%) 중심으로 검증할 것!"
+                        else:
+                            dcf_prompt_block = "- FCF 적자 또는 데이터 부족으로 DCF 산출 제외"
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 4] 3. 장기 재무 시각화 (연도별 매출·순이익·FCF 시계열)
+                        # -------------------------------------------------------------
+                        _vis_years = locals().get('years', [])
+                        _vis_rev = locals().get('rev', [])
+                        _vis_ni = locals().get('ni', [])
+                        _vis_fcf_y = locals().get('fcf_years', [])
+                        _vis_fcf = locals().get('fcf_chart', [])
+
+                        _vis_unit_div = 1e8 if kr else 1e9
+                        _vis_unit_lbl = "억 원" if kr else f"10억 {_fin_curr} [B]"
+                        _vis_lines = []
+                        if len(_vis_years) > 0 and len(_vis_rev) == len(_vis_years):
+                            for _idx_v, _vy in enumerate(_vis_years):
+                                _rv = safe_float(_vis_rev[_idx_v]) / _vis_unit_div
+                                _nv = (safe_float(_vis_ni[_idx_v]) / _vis_unit_div) if _idx_v < len(_vis_ni) else 0.0
+                                _vis_lines.append(f"  * {_vy}년: 매출 {_rv:,.1f} / 순이익 {_nv:,.1f} ({_vis_unit_lbl})")
+                        if len(_vis_fcf_y) > 0 and len(_vis_fcf) == len(_vis_fcf_y):
+                            _fcf_s_parts = [f"{_fy}년 {safe_float(_fv)/_vis_unit_div:,.1f}" for _fy, _fv in zip(_vis_fcf_y, _vis_fcf)]
+                            _vis_lines.append(f"  * 연도별 잉여현금흐름(FCF, {_vis_unit_lbl}): " + " → ".join(_fcf_s_parts))
+                        vis_prompt_block = "\n".join(_vis_lines) if _vis_lines else "  * 시계열 차트 데이터 없음"
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 5] 4. 질적 분석 · 최신 뉴스 · 경영진/거버넌스 비판
+                        # -------------------------------------------------------------
+                        _raw_sum_txt = _p_strip(locals().get('raw_summary', ''))[:450]
+                        _news_arr = locals().get('news_items', [])
+                        if _news_arr:
+                            _news_prompt_lines = [f"- {it.get('title', '')} (출처: {it.get('publisher', '')})" for it in _news_arr[:3]]
+                            news_prompt_block = "\n".join(_news_prompt_lines)
+                        else:
+                            news_prompt_block = "- 최근 주요 뉴스 없음"
+
+                        # -------------------------------------------------------------
+                        # [데이터 수집 6] 10년 핵심 장부 요약 전체 표 (DART / SEC / Global / yfinance 캐시 즉시 활용)
+                        # -------------------------------------------------------------
+                        def _extract_full_ledger_for_prompt():
+                            _df_out = pd.DataFrame()
+                            _unit_tag = "억 원 / 억 주" if kr else f"백만 {_fin_curr} / 백만 주"
+                            try:
+                                if kr:
+                                    _d_p, _ = get_10yr_dart_financials_v2(doc_clean_tk, DART_API_KEY)
+                                    if _d_p is not None and not _d_p.empty:
+                                        _df_out = _d_p.copy()
+                                elif not is_adr:
+                                    _f_res = get_sec_company_facts_cached(doc_clean_tk)
+                                    if _f_res:
+                                        _ug = _f_res.get('facts', {}).get('us-gaap', {})
+                                        def _ex_p(tags, is_inst=False):
+                                            _r = {}
+                                            for _tg in tags:
+                                                if _tg in _ug:
+                                                    for _it in _ug[_tg].get('units', {}).get('USD', []):
+                                                        if _it.get('form') in ['10-K', '10-K/A']:
+                                                            _ss, _es = _it.get('start', ''), _it.get('end', '')
+                                                            if not is_inst and _ss and _es:
+                                                                try:
+                                                                    _days = (datetime.strptime(_es[:10], "%Y-%m-%d") - datetime.strptime(_ss[:10], "%Y-%m-%d")).days
+                                                                    if _days < 330 or _days > 380:
+                                                                        continue
+                                                                except Exception:
+                                                                    pass
+                                                            _yv = str(_es)[:4] if str(_es)[:4].isdigit() else str(_it.get('fy', ''))
+                                                            _vl = safe_float(_it.get('val', 0))
+                                                            if _yv.isdigit() and _vl != 0:
+                                                                if _yv not in _r or abs(_vl) > abs(_r[_yv]):
+                                                                    _r[_yv] = _vl
+                                            return _r
+                                        _p_rev = _ex_p(['Revenues', 'SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                                        _p_op = _ex_p(['OperatingIncomeLoss'])
+                                        _p_ni = _ex_p(['NetIncomeLoss', 'ProfitLoss'])
+                                        _p_ast = _ex_p(['Assets'], True)
+                                        _p_lb = _ex_p(['Liabilities'], True)
+                                        _p_eq = _ex_p(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], True)
+                                        _p_ocf = _ex_p(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'])
+                                        _p_cap = _ex_p(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+                                        _yrs = sorted(list(set(list(_p_rev.keys()) + list(_p_ni.keys()) + list(_p_ast.keys()))), reverse=True)[:10]
+                                        if _yrs:
+                                            _rows = []
+                                            for _y in _yrs:
+                                                _o = _p_ocf.get(_y, 0)
+                                                _c = abs(_p_cap.get(_y, 0))
+                                                _rows.append({
+                                                    '연도': _y,
+                                                    '1. 매출액': _p_rev.get(_y, 0), '3. 영업이익': _p_op.get(_y, 0),
+                                                    '4. 당기순이익': _p_ni.get(_y, 0), '5. 자산총계': _p_ast.get(_y, 0),
+                                                    '6. 부채총계': _p_lb.get(_y, 0), '7. 자본총계': _p_eq.get(_y, 0),
+                                                    '8. 영업현금흐름': _o, '9. 설비투자(CAPEX)': _c,
+                                                    '12. 잉여현금흐름(FCF)': (_o - _c) if _o != 0 else 0
+                                                })
+                                            _df_out = pd.DataFrame(_rows).set_index('연도').T / 1e6
+                                            _unit_tag = "백만 USD"
+                                if _df_out.empty and stk is not None:
+                                    _inc_p, _bs_p, _cf_p = stk.income_stmt, stk.balance_sheet, stk.cash_flow
+                                    _comb = {}
+                                    if _inc_p is not None and not _inc_p.empty:
+                                        if 'Total Revenue' in _inc_p.index: _comb['1. 매출액'] = _inc_p.loc['Total Revenue']
+                                        if 'Gross Profit' in _inc_p.index: _comb['2. 매출총이익'] = _inc_p.loc['Gross Profit']
+                                        if 'Operating Income' in _inc_p.index: _comb['3. 영업이익'] = _inc_p.loc['Operating Income']
+                                        if 'Net Income' in _inc_p.index: _comb['4. 당기순이익'] = _inc_p.loc['Net Income']
+                                    if _bs_p is not None and not _bs_p.empty:
+                                        if 'Total Assets' in _bs_p.index: _comb['5. 자산총계'] = _bs_p.loc['Total Assets']
+                                        if 'Total Liabilities Net Minority Interest' in _bs_p.index: _comb['6. 부채총계'] = _bs_p.loc['Total Liabilities Net Minority Interest']
+                                        if 'Stockholders Equity' in _bs_p.index: _comb['7. 자본총계'] = _bs_p.loc['Stockholders Equity']
+                                    if _cf_p is not None and not _cf_p.empty:
+                                        if 'Operating Cash Flow' in _cf_p.index: _comb['8. 영업현금흐름'] = _cf_p.loc['Operating Cash Flow']
+                                        for _ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                            if _ck in _cf_p.index:
+                                                _comb['9. 설비투자(CAPEX)'] = _cf_p.loc[_ck].abs()
+                                                break
+                                        if 'Investing Cash Flow' in _cf_p.index: _comb['10. 투자현금흐름'] = _cf_p.loc['Investing Cash Flow']
+                                        if 'Financing Cash Flow' in _cf_p.index: _comb['11. 재무현금흐름'] = _cf_p.loc['Financing Cash Flow']
+                                        if 'Free Cash Flow' in _cf_p.index: _comb['12. 잉여현금흐름(FCF)'] = _cf_p.loc['Free Cash Flow']
+                                    if _comb:
+                                        _df_out = pd.DataFrame(_comb).T / (1e8 if kr else 1e6)
+                                        _df_out.columns = [str(c)[:4] for c in _df_out.columns]
+                            except Exception:
+                                pass
+
+                            if _df_out.empty:
+                                return "장부 표 데이터 없음", 0, _unit_tag
+
+                            # 발행주식수 행 보완 (없으면 income_stmt에서 추가)
+                            if not any('발행주식수' in str(ix) for ix in _df_out.index) and stk is not None:
+                                try:
+                                    _inc_s = stk.income_stmt
+                                    if _inc_s is not None and not _inc_s.empty:
+                                        _sr = _inc_s.loc['Diluted Average Shares'] if 'Diluted Average Shares' in _inc_s.index else (_inc_s.loc['Basic Average Shares'] if 'Basic Average Shares' in _inc_s.index else None)
+                                        if _sr is not None:
+                                            _sh_map = {str(c)[:4]: safe_float(_sr[c]) / (1e8 if kr else 1e6) for c in _sr.index if pd.notna(_sr[c])}
+                                            _vals_sh = [_sh_map.get(str(col)[:4], None) for col in _df_out.columns]
+                                            if any(pd.notna(x) for x in _vals_sh):
+                                                _df_out.loc['15. 발행주식수 (분할보정)'] = _vals_sh
+                                except Exception:
+                                    pass
+
+                            # 연도 오름차순(과거→최신) 정렬 후 Markdown 표 문자열 변환
+                            _cols_sorted = sorted([str(c) for c in _df_out.columns])[-10:]
+                            _df_out.columns = [str(c) for c in _df_out.columns]
+                            _df_out = _df_out[_cols_sorted]
+
+                            _md_lines = [
+                                "| 계정 항목 (" + _unit_tag + ") | " + " | ".join(_cols_sorted) + " |",
+                                "|---|" + "|".join(["---:" for _ in _cols_sorted]) + "|"
+                            ]
+                            for _r_name, _r_ser in _df_out.iterrows():
+                                _cells = [f"{safe_float(v):,.0f}" if (pd.notna(v) and safe_float(v) != 0) else "-" for v in _r_ser.values]
+                                _md_lines.append(f"| {_r_name} | " + " | ".join(_cells) + " |")
+                            return "\n".join(_md_lines), len(_cols_sorted), _unit_tag
+
+                        ledger_md_table, ledger_yr_cnt, ledger_unit_str = _extract_full_ledger_for_prompt()
+
+                        # -------------------------------------------------------------
+                        # [최종 조립] 제미나이 전송용 올인원 풀데이터 롱폼 프롬프트
+                        # -------------------------------------------------------------
                         gemini_script_prompt = f"""너는 구독자 수십만 명을 보유한 유튜브 다큐멘터리 채널 '체스막타' 스타일의 가치투자 스토리텔링 작가다.
-아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 10년 공시 팩트 데이터를 바탕으로, 8~10분 분량의 몰입감 있는 6막(Act 1~6) 유튜브 다큐멘터리 대본을 작성해 줘.
+아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 **AGIE 전체 정량·정성·10년 장부 팩트 데이터**를 단 하나도 누락하거나 왜곡하지 말고, 8~10분 분량의 몰입감 있는 6막(Act 1~6) 유튜브 다큐멘터리 대본을 작성해 줘.
 
-[기업 팩트 데이터 ({doc_today} 기준)]
-- 기업명 / 티커: {doc_comp_nm} ({doc_clean_tk}) | CEO: {ceo_cleaned}
-- 현재 주가: {p_str} | 현재 PER: {doc_pe:.1f}배 | 현재 PBR: {pbr:.2f}배
-- 자본수익률 ({doc_cap_lbl}): 연 {doc_cap_val:.1f}% (1,000만 원당 연 {abs(doc_roic_won):,}만 원 창출 / S&P500 허들 12%)
-- 영업이익률: {op_m:.1f}% | 단기 유동비율: {current_ratio:.2f}배
-- 버핏 10초 암산 역산(1/PER + 요구성장률 = 10%):
-  * 이익수익률(1/PER): 연 {doc_ey:.2f}% (1,000만 원당 연 {doc_ey_won}만 원) vs 미국채 10년물 연 {ty:.2f}% (연 {doc_bond_won}만 원, 스프레드 {doc_erp:+.2f}%p)
-  * 10% 허들 요구성장률: 연 {doc_req_g:+.1f}% vs 실제 FCF 연평균 성장률: 연 {doc_fcf_g:+.1f}% (안전마진 격차 {doc_g_margin:+.1f}%p)
-- 주주환원: 순수 현금배당 연 {doc_div_val:.2f}% / 자사주 순매입 효과 연 {doc_bb_val:+.1f}%
-- 거버넌스 및 경영진 팩트체크: {doc_crit_clean}
-- 종합 판정: {op_title} ({total_score_val}점)
+==================================================
+[0. 기본 메타 및 통화 검증]
+==================================================
+- 기업명 / 티커: {doc_comp_nm} ({doc_clean_tk}) | 기준일: {doc_today}
+- 재무 기준 시점: 연간 [{locals().get('latest_annual_period', '확인 중')}] / 최신분기 [{locals().get('latest_qtr_period', '확인 중')}]
+- 월가 거장 13F 보유 현황: {guru_prompt_txt}
+- 통화 상태: {_curr_warn_note}
+- AGIE AI 종합 판정: {op_title} ({total_score_val}점)
+- AI 스코어링 세부 내역:
+{score_breakdown_block}
 
+==================================================
+[1. 찰리 멍거의 가치투자 정량 체크리스트 ({_m_tot}개 중 {_m_pass}개 기준 충족)]
+==================================================
+{munger_prompt_block}
+
+==================================================
+[2. 기업 가치 심층 분석 (9대 핵심 지표 카드)]
+==================================================
+1) 현재 주가 & 배당: {p_str} | {_div_card_txt} | 자사주 순매입·소각 효과: 연 {doc_bb_val:+.1f}%
+2) 본전 회수 기간 (현재 PER): {doc_pe:.1f}배 | 이익수익률(1/PER): 연 {doc_ey:.2f}% | 버핏 10% 허들 필요성장률: 연 {doc_req_g:+.1f}%
+3) 장부가치 배수 (현재 PBR): {pbr:.2f}배 | 주당순자산(BPS): {_bps_txt}
+4) 자본 불리는 속도 (ROE / ROIC): ROE {roe:.1f}% / ROIC {roic_str} (매출총이익률 {gross_m:.1f}%)
+5) 실제 장사 이익률 (영업이익률): {op_m:.1f}%
+6) 위기 대처 현금력 (유동비율): {current_ratio:.2f}배
+7) 부채 관리 (생존력): {_bio_txt}
+8) 이익의 질 (OCF/NI) & 실질 FCF (SBC 차감): {_eq_sbc_txt}
+9) 주식 희석 vs 소각 판독기: {_dil_txt}
+※ 보조 지표 — R&D 지출 추이: {_rnd_txt} | 피오트로스키 F-Score: {_fsc_txt}
+
+==================================================
+[3. 10년 내재가치 평가 (워런 버핏 10초 암산 역산 & DCF 3시나리오)]
+==================================================
+- [워런 버핏 10초 암산 역산 공식: 1/현재PER + 요구성장률 = 10%]
+  * ① 이익수익률(1/현재PER): 연 {doc_ey:.2f}% (1,000만 원당 연 {doc_ey_won}만 원)
+  * ② 10% 허들 암산 요구 성장률: 연 {doc_req_g:+.2f}%
+  * ③ 실제 FCF 연평균 성장률 (최근 {data_len}년 CAGR): 연 {doc_fcf_g:+.1f}%
+  * ④ 성장률 안전마진 (③ - ②): {doc_g_margin:+.1f}%p
+  * ⑤ 10년물 미국채({ty:.2f}%, 1,000만 원당 연 {doc_bond_won}만 원) 대비 스프레드: {doc_erp:+.2f}%p
+  * ⑥ [미국채 + 5%p = {_req_bond_y:.2f}% 허들 대입 시] 요구성장률 {_req_g_bond:+.2f}% vs 실제 FCF 성장률 {doc_fcf_g:+.1f}% (격차 {doc_fcf_g - _req_g_bond:+.1f}%p) / 무성장 PER 10배 기준가: {_bft_p10_str}
+- [DCF 3가지 시나리오]
+{dcf_prompt_block}
+
+==================================================
+[4. 장기 재무 시각화 추이 (매출 · 순이익 · FCF)]
+==================================================
+{vis_prompt_block}
+
+==================================================
+[5. 질적 분석 · 최신 뉴스 · 경영진 및 지배구조 비판]
+==================================================
+- CEO: {ceo_cleaned}
+- 비즈니스 요약: {_raw_sum_txt}
+- 최근 주요 뉴스:
+{news_prompt_block}
+- 경영진 및 지배구조 비판 점검: {doc_crit_clean}
+
+==================================================
+[6. 핵심 장부 요약표 ({ledger_yr_cnt}개년 · 단위: {ledger_unit_str})]
+==================================================
+{ledger_md_table}
+
+==================================================
 [필수 연출 규칙 - 체스막타 스타일]
-1. 딱딱한 AI 브리핑 말투 금지. 감정이 담긴 스토리텔링 구어체("~였어요", "도대체 왜 이런 일이 벌어졌을까요?", "하지만 축제는 짧았습니다")로 작성할 것.
-2. 반말/존댓말 섞지 말고 메인 [해설]은 부드럽고 흡입력 있는 존댓말, [버핏]은 묵직한 조언 톤, [반론]은 월가 비관론자/경쟁사의 날카로운 반박 톤으로 멀티 보이스 대사를 섞을 것.
-3. 모든 줄 맨 앞에 아래 5개 태그 중 하나만 반드시 붙일 것 (AGIE 영상 조립기 자동 파싱용):
-   - [해설] : 스튜디오 마이크 앞 호스트가 시청자에게 말 거는 씬
+==================================================
+1. 딱딱한 AI 브리핑 말투 금지. 체스막타 다큐멘터리처럼 흡입력 있는 스토리텔링 구어체("~였어요", "도대체 왜 이런 숫자가 나왔을까요?", "하지만 여기엔 치명적인 그림자가 있었습니다")로 작성할 것.
+2. 위 1~6번 데이터의 핵심 수치(체크리스트 통과/탈락 사유, 13F 거장 보유 여부, 이익의 질과 SBC, 주식 희석 여부, 버핏 10초 역산, 실제 연도별 장부 변화, 경영진 비판 리스크)를 이야기의 기승전결 속에 자연스럽게 녹여낼 것.
+3. 멀티 보이스 태그 규칙 — 모든 줄 맨 앞에 아래 5개 태그 중 하나만 반드시 붙일 것 (AGIE 2번 탭 조립기 자동 파싱용):
+   - [해설] : 스튜디오 마이크 앞 메인 호스트 씬 (부드럽고 흡입력 있는 존댓말)
    - [장면] : 드라마틱한 B-roll 일러스트/영상 클립 씬
-   - [버핏] : 워런 버핏의 인용구/핵심 철학 씬 (좌측 하단 명패 자동 생성 + 중저음 성우)
-   - [반론] : 월가 애널리스트/공매도/경쟁사의 날카로운 비판 씬 (좌측 하단 명패 + 남성 성우)
+   - [버핏] : 워런 버핏의 철학·역산 조언 씬 (좌측 하단 명패 + 중저음 성우)
+   - [반론] : 월가 회의론자·공매도·지배구조 비판 씬 (좌측 하단 명패 + 날카로운 반박 톤)
    - [차트:ROIC] / [차트:역산] / [차트:현금] : 풀스크린 재무 데이터 그래프를 띄우는 씬
 4. 한 줄은 1~2문장 이내로 쓰고, 자막 호흡을 끊고 싶은 곳마다 '/' 기호를 넣을 것.
-5. Act 1(왕관의 무게) ~ Act 6(최후의 결단: 매수/매도 3철칙)으로 구성하고, 각 Act마다 5~7줄씩 출력할 것."""
+5. Act 1(왕관의 무게와 13F 거장의 시선) ~ Act 6(최후의 결단: 매수 타이밍과 매도 3철칙)으로 구성하고, 각 Act마다 5~7줄씩 출력할 것.
+6. 통화 불일치 경고가 있는 경우(예: ADR 위안화 장부), 절대로 위안화를 달러로 착각해 말하지 말고 정확한 통화 단위나 환산 수치를 사용할 것."""
 
+                        st.success(f"✅ 풀데이터 프롬프트 조립 완료! (체크리스트 {_m_tot}항목 · 심층 9대 지표 · 역산/DCF · 장부 {ledger_yr_cnt}개년 · 뉴스/거버넌스 전부 포함)")
                         st.code(gemini_script_prompt, language="text")
 
                         st.markdown("#### ② 화풍 통일(Style Consistency) 이미지 & 현실적 움직임(I2V) 프롬프트 세트")
-                        st.caption("체스막타처럼 모든 컷의 그림체를 하나로 고정하려면 아래 **공통 화풍 시드**를 이미지 생성 AI(Imagen / Midjourney / Flux 등)에 고정으로 넣고, 생성된 이미지를 영상 AI(Veo / Kling / Runway)에 넣어 모션 프롬프트를 적용하세요.")
+                        st.caption("체스막타처럼 모든 컷의 그림체를 하나로 고정하려면 아래 **공통 화풍 시드**를 이미지 생성 AI에 넣고, 생성된 이미지를 영상 AI(Veo / Kling / Runway)에 넣어 모션 프롬프트를 적용하세요.")
 
                         master_style_seed = (
                             "Clean modern graphic novel cel-shaded anime documentary style, "
@@ -10213,7 +10504,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         asset_prompts = f"""=== [공통 화풍 시드 (모든 이미지 프롬프트 끝에 동일하게 유지)] ===
 {master_style_seed}
 
---- [1. 메인 호스트 스튜디오 클립 (가장 많이 재사용됨 - 1~2개만 만들어 루프)] ---
+--- [1. 메인 호스트 스튜디오 클립 (1~2개만 만들어 평생 재사용)] ---
 [Image Prompt - Host Studio]
 A charismatic young financial documentary host wearing studio headphones sitting in front of a broadcast condenser microphone in a dark navy studio, glowing translucent blue financial charts and stock books softly illuminated on the dark background wall, leaning slightly forward with engaging expression, {master_style_seed}
 
@@ -10228,7 +10519,7 @@ Elderly wise investor resembling Warren Buffett with silver parted hair, classic
 Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and calm faint smile while speaking thoughtfully, natural eye blinks, warm dust motes floating slowly in the soft window sunlight, very slow cinematic dolly-in camera movement
 
 --- [3. Act별 드라마틱 B-roll 클립 ([장면] & [반론] 태그 씬)] ---
-[Act 1 - 왕관의 무게 / 시장의 공포]
+[Act 1 - 왕관의 무게 / 13F 거장의 시선]
 - Image: A lone silhouette of a businessman in a dark suit standing under a harsh spotlight holding a heavy glowing crown while red and green stock ticker shadows swirl in the dark hall, {master_style_seed}
 - Motion: Dramatic slow camera push-in, floating light particles, heavy breathing posture, subtle flickering overhead spotlight
 
@@ -10244,7 +10535,7 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
 - Image: A tense Wall Street skeptic analyst wearing glasses and headset in a dimly lit trading room with glowing red candlestick screens behind him, raising one hand skeptically while speaking into a desk mic, {master_style_seed}
 - Motion: Analyst frowns slightly, gestures sharply with one hand in skepticism, natural blinking and lip movement, red monitor glow reflecting on glasses
 
-[Act 5 - 경영진의 선택과 주주총회]
+[Act 5 - 경영진의 선택과 지배구조 감사]
 - Image: Grand dark corporate boardroom with a dramatic overhead spotlight illuminating a wooden conference table and two contrasting figures facing each other across financial documents, {master_style_seed}
 - Motion: Slow tense camera orbit around the conference table, subtle posture shift, dramatic shadow contrast
 
