@@ -3572,84 +3572,63 @@ def analyze_rnd_trend(stk, base_fcf, is_financial, kr):
     return rnd_trend
 def get_accurate_dividend_yield(stk, i, p, kr):
     """
-    [배당 뻥튀기 원천 차단 최종판]
-    1) 최근 1년 실제 현금배당 합계(stk.dividends)를 최우선 진실 공급원으로 사용
-    2) Yahoo의 dividendRate가 trailingAnnualDividendRate나 실제 1년 합계의 1.8배 이상 튀면(연간 ADR ×4 오류) 즉시 폐기
-    3) 신규 분기배당 ×4 연환산은 과거 1년 전 이력이 없고, 지급 간격이 70~115일인 경우에만 허용
+    [배당 주기 자동 대응 · 곱셈(*4) 완전 삭제 엔진]
+    연 1회·2회·3회·4회·12회 구분 없이 '최근 1년 실제 지급액 합계'만 사용하여
+    배당 뻥튀기 오류를 원천 차단하고, 실제 지급 횟수까지 반환합니다.
     """
     try:
         if p <= 0 or not isinstance(i, dict):
-            return 0.0, 0.0
+            return 0.0, 0.0, ""
 
-        rate_fwd = safe_float(i.get('dividendRate'))
-        rate_ttm = safe_float(i.get('trailingAnnualDividendRate'))
-
-        # [핵심 차단 1] Yahoo dividendRate가 실제 TTM 배당의 1.8배 이상(예: 0.24 -> 0.96)이면 야후 자체 오기이므로 폐기
-        if rate_ttm > 0 and rate_fwd >= rate_ttm * 1.8:
-            official_dps = rate_ttm
-        else:
-            official_dps = rate_ttm if rate_ttm > 0 else rate_fwd
-
-        # 1순위: 실제 배당 지급 이력(stk.dividends) 직접 합산
-        hist_dps = 0.0
-        has_multi_year_hist = False
-        try:
-            if stk is not None:
+        # 1순위: 최근 370일 실제 현금배당 지급 내역 합산 (연 1/2/3/4/12회 모두 자동 일치)
+        if stk is not None:
+            try:
                 divs = stk.dividends
                 if divs is not None and not divs.empty:
-                    now_ts = pd.Timestamp.now(tz=divs.index.tz)
-                    recent_1y = divs[divs.index >= (now_ts - pd.Timedelta(days=375))]
-                    recent_3y = divs[divs.index >= (now_ts - pd.Timedelta(days=1100))]
-                    has_multi_year_hist = len(recent_3y) > len(recent_1y)
+                    # 타임존 비교 에러 원천 차단 (tz 제거 후 순수 날짜 비교)
+                    idx_naive = divs.index.tz_localize(None) if divs.index.tz is not None else divs.index
+                    divs_clean = pd.Series(divs.values, index=idx_naive)
+                    cutoff = pd.Timestamp.now() - pd.Timedelta(days=370)
+                    recent_1y = divs_clean[divs_clean.index >= cutoff]
 
                     if not recent_1y.empty:
-                        hist_dps = float(recent_1y.sum())
+                        dps_1y = float(recent_1y.sum())
+                        cnt_1y = int(len(recent_1y))
+                        if dps_1y > 0:
+                            real_yield = (dps_1y / p) * 100.0
+                            if 0.01 <= real_yield <= 25.0:
+                                return real_yield, dps_1y, f"연 {cnt_1y}회"
+            except Exception:
+                pass
 
-                        # 오직 '신규 분기배당 개시(과거 이력 없음 + 2~3회 지급 + 간격 70~115일)'일 때만 ×4 허용
-                        if (not kr) and (not has_multi_year_hist) and (2 <= len(recent_1y) <= 3):
-                            gaps = [(recent_1y.index[idx] - recent_1y.index[idx - 1]).days for idx in range(1, len(recent_1y))]
-                            if all(70 <= g <= 115 for g in gaps):
-                                hist_dps = float(recent_1y.iloc[-1]) * 4.0
-        except Exception:
-            pass
-
-        # [핵심 차단 2] 실제 1년 합산(hist_dps)이 존재하면 절대로 Yahoo 추정치(dividendRate)로 덮어쓰지 않음!
-        if hist_dps > 0:
-            # 단, 1회성 초대형 특별배당으로 hist_dps가 official_dps의 2배 이상일 때만 official_dps로 진정
-            if official_dps > 0 and hist_dps > official_dps * 2.0:
-                final_dps = official_dps
-            else:
-                final_dps = hist_dps
-        elif official_dps > 0:
-            final_dps = official_dps
-        else:
-            final_dps = 0.0
-
-        if final_dps > 0:
-            real_yield = (final_dps / p) * 100.0
+        # 2순위: 최근 1년 이력이 비어있을 때만 trailingAnnualDividendRate(과거 1년 확정치) 사용
+        # (Yahoo가 4배로 뻥튀기하는 경우가 있는 forward dividendRate는 후순위로 밀어둠)
+        ttm_dps = safe_float(i.get('trailingAnnualDividendRate'))
+        if ttm_dps > 0:
+            real_yield = (ttm_dps / p) * 100.0
             if 0.01 <= real_yield <= 25.0:
-                return real_yield, final_dps
+                return real_yield, ttm_dps, "최근 1년 확정"
 
-        # 2순위 폴백: Finviz / Yahoo 수익률(%)
+        # 3순위: Finviz 배당수익률 백업
         fv_y = safe_float(i.get('finviz_div_pct'))
         if 0.01 <= fv_y <= 25.0:
-            return fv_y, p * (fv_y / 100.0)
+            return fv_y, p * (fv_y / 100.0), "Finviz 기준"
 
-        raw_y = safe_float(i.get('trailingAnnualDividendYield')) or safe_float(i.get('dividendYield'))
+        # 4순위: 최후 폴백 (trailingAnnualDividendYield)
+        raw_y = safe_float(i.get('trailingAnnualDividendYield'))
         if raw_y > 0:
-            res_y = (raw_y * 100.0) if raw_y < 0.25 else ((raw_y / 100.0) if (raw_y >= 25.0 and not kr) else raw_y)
+            res_y = (raw_y * 100.0) if raw_y < 0.25 else raw_y
             if 0.01 <= res_y <= 25.0:
-                return res_y, p * (res_y / 100.0)
+                return res_y, p * (res_y / 100.0), "공시 기준"
 
-        return 0.0, 0.0
+        return 0.0, 0.0, ""
     except Exception:
-        return 0.0, 0.0
+        return 0.0, 0.0, ""
 
 
 def calc_accurate_div_yield(stk, i, p, kr, sim_pct=0, multiplier=1.0):
-    y_pct, _ = get_accurate_dividend_yield(stk, i, p, kr)
+    y_pct, _, _ = get_accurate_dividend_yield(stk, i, p, kr)
     return y_pct
-
 # =========================================================================
 # [버크셔·복수클래스·일시중단 완벽 보정] 무오차 자사주 순매입·소각 수익률 산출 엔진
 # =========================================================================
