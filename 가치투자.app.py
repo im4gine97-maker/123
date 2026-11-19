@@ -3243,102 +3243,6 @@ def get_base_dcf_data(stk, i):
         return fcf, sh, g, data_len, is_zigzag
     except Exception:
         return None, None, 0.0, 0, False
-def get_base_dcf_data(stk, i):
-    try:
-        if stk is None: return None, None, 0.0, 0, False
-        fcf_s = None
-        cf = stk.cash_flow
-        
-        if cf is not None and not cf.empty:
-            if 'Free Cash Flow' in cf.index:
-                fcf_s = cf.loc['Free Cash Flow'].dropna()
-            elif 'Operating Cash Flow' in cf.index:
-                ocf_s = cf.loc['Operating Cash Flow'].dropna()
-                cap_s = None
-                for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
-                    if ck in cf.index:
-                        cap_s = cf.loc[ck].dropna()
-                        break
-                if cap_s is not None:
-                    common_idx = ocf_s.index.intersection(cap_s.index)
-                    fcf_s = pd.Series([safe_float(ocf_s[c]) - abs(safe_float(cap_s[c])) for c in common_idx], index=common_idx)
-                else:
-                    fcf_s = ocf_s * 0.75
-                
-        # 최근 FCF 체력 산출: 성장 기업이 과거 3년 평균 때문에 저평가/고평가 왜곡되지 않도록 최근 연도 가중치(60%) 부여
-        weighted_fcf = None
-        if fcf_s is not None and not fcf_s.empty:
-            vals = [safe_float(v) for v in fcf_s.values[:3] if pd.notna(v) and safe_float(v) != 0]
-            if len(vals) == 1:
-                weighted_fcf = vals[0]
-            elif len(vals) == 2:
-                weighted_fcf = (vals[0] * 0.65) + (vals[1] * 0.35) if vals[0] > 0 else (sum(vals) / 2.0)
-            elif len(vals) >= 3:
-                weighted_fcf = (vals[0] * 0.60) + (vals[1] * 0.25) + (vals[2] * 0.15) if vals[0] > 0 else (sum(vals) / 3.0)
-                
-        # 최근 4개 분기(Quarterly TTM) FCF를 추출하여 분기 실적 발표를 즉시 반영!
-        ttm_fcf_q = 0.0
-        try:
-            q_cf = stk.quarterly_cash_flow
-            if q_cf is not None and not q_cf.empty and len(q_cf.columns) >= 2:
-                q_c4 = q_cf.columns[:4]
-                ann_f = 4.0 / len(q_c4)
-                if 'Free Cash Flow' in q_cf.index:
-                    ttm_fcf_q = sum(safe_float(q_cf.loc['Free Cash Flow', c]) for c in q_c4) * ann_f
-                elif 'Operating Cash Flow' in q_cf.index:
-                    ocf_q = sum(safe_float(q_cf.loc['Operating Cash Flow', c]) for c in q_c4) * ann_f
-                    cap_q = 0.0
-                    for ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
-                        if ck in q_cf.index:
-                            cap_q = sum(abs(safe_float(q_cf.loc[ck, c])) for c in q_c4) * ann_f
-                            break
-                    ttm_fcf_q = ocf_q - cap_q
-        except Exception:
-            pass
-
-        if ttm_fcf_q == 0.0:
-            ttm_fcf_q = safe_float(i.get('freeCashflow'))
-
-        # 최신 분기 TTM FCF(60%)와 최근 연간 가중 FCF(40%)를 결합하여 분기 실적 변동을 즉각 반영!
-        if ttm_fcf_q > 0 and weighted_fcf and weighted_fcf > 0:
-            fcf = (ttm_fcf_q * 0.60) + (weighted_fcf * 0.40)
-        elif ttm_fcf_q != 0:
-            fcf = ttm_fcf_q
-        else:
-            fcf = weighted_fcf
-        sh = safe_float(i.get('sharesOutstanding'))
-            
-        g, data_len = 0.0, 0
-        is_zigzag = False
-        
-        if fcf_s is not None and len(fcf_s) >= 2:
-            vals_chrono = [safe_float(v) for v in fcf_s.values[::-1]]
-            yrs_chrono = [str(c)[:4] for c in fcf_s.index[::-1]]
-            data_len = len(vals_chrono)
-            g, _, _, _ = calc_smart_cagr(vals_chrono, yrs_chrono)
-            
-            if data_len >= 3:
-                directions = []
-                for idx in range(1, data_len):
-                    prev, curr = vals_chrono[idx-1], vals_chrono[idx]
-                    if prev == 0:
-                        directions.append(1 if curr > 0 else (-1 if curr < 0 else 0))
-                    else:
-                        change_pct = (curr - prev) / abs(prev)
-                        if change_pct >= 0.30: directions.append(1)     
-                        elif change_pct <= -0.30: directions.append(-1) 
-                        else: directions.append(0) 
-                if 1 in directions and -1 in directions:
-                    is_zigzag = True
-        else:
-            eg = safe_float(i.get('earningsGrowth'))
-            if eg != 0.0: g = eg
-            data_len = 1 if fcf_s is None else len(fcf_s)
-            
-        return fcf, sh, g, data_len, is_zigzag
-    except:
-        return None, None, 0.0, 0, False
-
 def calc_custom_dcf(fcf, sh, p, ty, g, is_financial=False):
     if is_financial: return 0, 0, t("금융/보험주 DCF 평가 제외 (PBR 대체 분석 진행)", "DCF N/A for Financials (Evaluated via PBR instead)")
     if not fcf or fcf <= 0: return 0, 0, t("주주이익(FCF) 적자 또는 미제공", "Negative / Missing FCF (Owner Earnings)")
@@ -8301,7 +8205,6 @@ with tab1:
                     div_str = f"배당수익률: <b>{div:.2f}%</b> (주당 {dps_disp}{freq_part})"
                 else:
                     div_str = "배당수익률: <b>0.0% (무배당/사내유보)</b>"
-                # ▲▲▲ 여기까지 교체 ▲▲▲
                 # ▲▲▲ 여기까지 교체 ▲▲▲
 
                 gm_eval = f"<span style='color:#2ecc71; font-weight:600;'>{t('[합격] 강력한 해자', 'Strong Moat')}</span>" if gross_m >= 40 else (f"<span style='color:#fdcb6e; font-weight:600;'>{t('[보통] 무난함', 'Average')}</span>" if gross_m >= 20 else f"<span style='color:#ff7675; font-weight:600;'>{t('[경고] 원가 부담', 'High Cost')}</span>")
