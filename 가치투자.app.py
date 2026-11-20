@@ -3106,23 +3106,27 @@ def get_data(tk):
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
         sh = safe_float(i.get('sharesOutstanding'))
-    if (not kr) and (tk in ADR_CURRENCY_MAP):
-        mcap_adr = safe_float(i.get('marketCap'))
-        if mcap_adr > 0 and p > 0:
-            sh = mcap_adr / p
-    if sh <= 0: sh = safe_float(i.get('impliedSharesOutstanding'))
-    if sh <= 0:
-        mcap = safe_float(i.get('marketCap'))
-        if mcap > 0 and p > 0: sh = mcap / p
-    if sh <= 0:
-        try:
-            inc = stk.income_stmt
-            if inc is not None and not inc.empty and 'Net Income' in inc.index:
-                ni = safe_float(inc.loc['Net Income'].iloc[0])
-                eps = safe_float(i.get('trailingEps'))
-                _fx_sh, _ = get_fin_fx_to_usd(i, kr, tk)
-                if ni != 0 and eps != 0: sh = abs((ni * _fx_sh) / eps)
-        except: pass
+        if (not kr) and (tk in ADR_CURRENCY_MAP):
+            mcap_adr = safe_float(i.get('marketCap'))
+            if mcap_adr > 0 and p > 0:
+                sh = mcap_adr / p
+        if sh <= 0:
+            sh = safe_float(i.get('impliedSharesOutstanding'))
+        if sh <= 0:
+            mcap = safe_float(i.get('marketCap'))
+            if mcap > 0 and p > 0:
+                sh = mcap / p
+        if sh <= 0:
+            try:
+                inc = stk.income_stmt
+                if inc is not None and not inc.empty and 'Net Income' in inc.index:
+                    ni = safe_float(inc.loc['Net Income'].iloc[0])
+                    eps = safe_float(i.get('trailingEps'))
+                    _fx_sh, _ = get_fin_fx_to_usd(i, kr, tk)
+                    if ni != 0 and eps != 0:
+                        sh = abs((ni * _fx_sh) / eps)
+            except Exception:
+                pass
         
         i['sharesOutstanding'] = sh
 
