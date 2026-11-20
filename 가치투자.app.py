@@ -452,7 +452,7 @@ new_tickers_100 = {
     "토름": "TRMD", "SQM": "SQM", "선코어": "SU", "SU": "SU", "캐나디안내추럴": "CNQ", "CNQ": "CNQ", "BCE": "BCE", 
     "텔러스": "TU", "TU": "TU", "프레제니우스": "FMS", "FMS": "FMS", "텔레포니카": "TEF", "TEF": "TEF", "BNP파리바": "BNPQY", "BNPQY": "BNPQY", "ING": "ING"
 }
-
+tmap.update(new_tickers_100)
 # ▲▲▲ 여기까지 ▲▲▲
 
 
@@ -1122,29 +1122,6 @@ def fetch_single_pe(tk, default_pe):
         return safe_float(info.get("trailingPE", info.get("forwardPE", default_pe)), default_pe)
     except:
         return default_pe
-
-@st.cache_data(ttl=60) 
-def fetch_macro_realtime_v6():
-    macro_symbols = {
-        "KOSPI": "^KS11", "KOSDAQ": "^KQ11", 
-        "S&P 500": "^GSPC", "Nasdaq 100": "^NDX", "Nasdaq Futures": "NQ=F",
-        "USD/KRW": "KRW=X", "WTI Crude": "CL=F", "10Y Treasury": "^TNX"
-    }
-    res = {}
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [executor.submit(fetch_single_macro, name, tk) for name, tk in macro_symbols.items()]
-        spy_future = executor.submit(fetch_single_pe, "SPY", 22.0)
-        qqq_future = executor.submit(fetch_single_pe, "QQQ", 30.0)
-        
-        for future in concurrent.futures.as_completed(futures):
-            name, data = future.result()
-            res[name] = data
-            
-        res["SPY_PE"] = spy_future.result()
-        res["QQQ_PE"] = qqq_future.result()
-        
-    return res
 
 def get_13f_portfolio(guru_code):
     return fallback_13f_data.get(guru_code, [])
@@ -2189,7 +2166,21 @@ def _fetch_pure_dart_10yr_cached_v5(corp_code, clean_code, api_key):
 
     df = pd.DataFrame(all_data).dropna().drop_duplicates(subset=['연도', '계정'], keep='first')
     pivot_df = df.pivot(index='계정', columns='연도', values='금액')
-
+    # [원칙 3] 한국 DART 전용 단위 잠금 (천원/백만원 오기 1000배 스케일 이상치 방어)
+    for row_k in ['1. 매출액', '5. 자산총계', '8. 자본총계']:
+        if row_k in pivot_df.index:
+            s_vals = pivot_df.loc[row_k].dropna()
+            if len(s_vals) >= 3:
+                med_v = float(s_vals.abs().median())
+                if med_v > 0:
+                    for c_y in pivot_df.columns:
+                        cv = pivot_df.loc[row_k, c_y]
+                        if pd.notna(cv) and abs(cv) > 0:
+                            ratio_u = abs(cv) / med_v
+                            if 500 <= ratio_u <= 2000:
+                                pivot_df[c_y] = pivot_df[c_y] / 1000.0
+                            elif 0.0005 <= ratio_u <= 0.002:
+                                pivot_df[c_y] = pivot_df[c_y] * 1000.0
     # 최근 10개 연도 컬럼(예: 2025 ~ 2016)이 모두 존재하도록 보장
     expected_10_cols = [str(y) for y in range(base_y, base_y - 10, -1)]
     existing_cols = sorted([c for c in pivot_df.columns if str(c).isdigit() and int(c) >= base_y - 9], reverse=True)
@@ -2431,50 +2422,134 @@ def get_sec_company_facts_cached(cd):
     except Exception:
         pass
     return {}
-# =========================================================================
-# [글로벌 10년 재무 엔진] 대만·홍콩·중국·유럽·일본 (20-F / IFRS / FMP / 웹 폴백 통합)
-# =========================================================================
+ADR_CURRENCY_MAP = {
+    "PDD": "CNY", "BABA": "CNY", "JD": "CNY", "BIDU": "CNY", "NTES": "CNY", "TME": "CNY",
+    "TCOM": "CNY", "NIO": "CNY", "LI": "CNY", "XPEV": "CNY", "ZTO": "CNY", "BEKE": "CNY",
+    "BILI": "CNY", "TCEHY": "CNY", "BYDDY": "CNY", "YUMC": "CNY", "FUTU": "HKD", "GDS": "CNY",
+    "TSM": "TWD", "UMC": "TWD",
+    "TM": "JPY", "SONY": "JPY", "HMC": "JPY", "MUFG": "JPY", "SMFG": "JPY", "MFG": "JPY",
+    "NMR": "JPY", "ITOCY": "JPY", "MITSY": "JPY", "MSBHF": "JPY", "SSUMY": "JPY", "MARUY": "JPY",
+    "HITC": "JPY", "CAJPY": "JPY", "FANUY": "JPY", "NTDOY": "JPY",
+    "ASML": "EUR", "SAP": "EUR", "LVMUY": "EUR", "TTE": "EUR", "EADSY": "EUR", "SIEGY": "EUR",
+    "BASFY": "EUR", "RACE": "EUR", "SNY": "EUR", "STLA": "EUR", "BUD": "EUR", "ING": "EUR",
+    "NVO": "DKK", "SHEL": "GBP", "AZN": "GBP", "UL": "GBP", "HSBC": "GBP", "ARM": "GBP",
+    "GSK": "GBP", "DEO": "GBP", "RIO": "GBP", "NVS": "CHF", "UBS": "CHF", "ABB": "CHF",
+    "RHHBY": "CHF", "PBR": "BRL", "VALE": "BRL", "KSPI": "KZT", "BHP": "AUD"
+}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_fx_to_usd(curr_code):
+    """현지 공시 통화(CNY, TWD, JPY, EUR 등) -> 실시간 USD 환산 배율"""
+    c = str(curr_code or "USD").upper().strip()
+    if c in ["USD", ""]:
+        return 1.0
+    if c == "RMB":
+        c = "CNY"
+    fx_fallback = {
+        "CNY": 0.138, "TWD": 0.031, "HKD": 0.128, "EUR": 1.08,
+        "JPY": 0.0066, "DKK": 0.145, "GBP": 1.28, "CHF": 1.13,
+        "CAD": 0.73, "AUD": 0.66, "BRL": 0.18, "KRW": 0.00073,
+        "INR": 0.012, "SEK": 0.095, "NOK": 0.093, "ILS": 0.27, "KZT": 0.0020
+    }
+    try:
+        hist = yf.Ticker(f"{c}USD=X").history(period="5d")
+        if hist is not None and not hist.empty:
+            rate = safe_float(hist["Close"].dropna().iloc[-1])
+            if rate > 0:
+                return rate
+    except Exception:
+        pass
+    return fx_fallback.get(c, 1.0)
+
+
+def get_fin_fx_to_usd(info_dict, kr=False, tk=""):
+    """한국 주식은 1.0(KRW), 해외 ADR은 Yahoo의 USD 오기까지 교정해 실시간 USD 환율 반환"""
+    if kr or not isinstance(info_dict, dict):
+        return 1.0, "KRW"
+    tk_clean = str(tk or info_dict.get("symbol", "")).upper().strip()
+    trade_c = str(info_dict.get("currency", "USD")).upper().strip()
+    fin_c = str(info_dict.get("financialCurrency", "")).upper().strip()
+
+    if tk_clean in ADR_CURRENCY_MAP and (not fin_c or fin_c == "USD"):
+        fin_c = ADR_CURRENCY_MAP[tk_clean]
+    if not fin_c:
+        fin_c = trade_c
+
+    if trade_c == "USD" and fin_c != "USD":
+        return get_fx_to_usd(fin_c), fin_c
+    return 1.0, fin_c
+
+
+def sanity_check_fx_series(series_map, native_curr, fx_to_usd, ref_ocf_map=None):
+    """[환율 배수 이상치 자동 탐지] 특정 연도만 본국 통화로 섞여 튄 경우 자동 재환산"""
+    if not series_map or native_curr == "USD" or fx_to_usd <= 0 or fx_to_usd >= 0.9:
+        return series_map
+    inv_fx = 1.0 / fx_to_usd
+    cleaned = dict(series_map)
+    yrs = sorted(cleaned.keys())
+
+    pos_vals = sorted([abs(v) for v in cleaned.values() if v != 0])
+    if len(pos_vals) >= 4:
+        med = pos_vals[len(pos_vals) // 2]
+        for y in yrs:
+            v = abs(cleaned[y])
+            if med > 0 and (inv_fx * 0.55) <= (v / med) <= (inv_fx * 1.85):
+                cleaned[y] = cleaned[y] * fx_to_usd
+
+    if ref_ocf_map:
+        for y in yrs:
+            c_v = abs(cleaned.get(y, 0))
+            o_v = abs(ref_ocf_map.get(y, 0))
+            if c_v > 0 and o_v > 0 and (c_v / o_v) > 0.8 and (c_v * fx_to_usd / o_v) < 0.35:
+                cleaned[y] = cleaned[y] * fx_to_usd
+    return cleaned
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_global_10yr_financials(cd, fmp_api_key=""):
     """
-    대만(TSM), 중국/홍콩(BABA, PDD, TCEHY), 유럽(ASML, NVO, LVMUY), 일본(TM, ITOCY) 등
-    비미국 글로벌 기업의 10년 치 연간 재무제표(백만 USD 기준)를 3중 백업으로 수집합니다.
+    [4대 방어 원칙 통합 글로벌 10년 재무 엔진]
+    1. SEC 20-F/40-F에서 USD 편의환산 대신 '원본 통화(Native Currency)' 일괄 추출 후 단 한 번 USD 환산
+    2. 보조 소스(yfinance) 병합 시 OCF 비율로 통화 배율 교차 검증
+    3. 환율 배수 이상치 자동 탐지(Sanity Check) 적용
     """
     clean_tk = str(cd).upper().strip()
 
-    # -----------------------------------------------------------------
-    # 0. 현지 통화(TWD, CNY, EUR, JPY, DKK, GBP 등) -> USD 환산 비율 자동 산출
-    # -----------------------------------------------------------------
-    def _get_fx_to_usd(curr_code):
-        curr_code = str(curr_code).upper().strip()
-        if curr_code in ["USD", ""]:
-            return 1.0
-        fx_fallback = {
-            "TWD": 0.031, "CNY": 0.138, "RMB": 0.138, "HKD": 0.128,
-            "EUR": 1.08, "JPY": 0.0066, "DKK": 0.145, "GBP": 1.28,
-            "CHF": 1.13, "CAD": 0.73, "AUD": 0.66, "BRL": 0.18, "KRW": 0.00073, "INR": 0.012
-        }
-        try:
-            fx_hist = yf.Ticker(f"{curr_code}USD=X").history(period="5d")
-            if not fx_hist.empty:
-                return float(fx_hist["Close"].dropna().iloc[-1])
-        except Exception:
-            pass
-        return fx_fallback.get(curr_code, 1.0)
-
-    # -----------------------------------------------------------------
-    # 1순위: SEC EDGAR (20-F / 40-F / 10-K + us-gaap & ifrs-full 동시 스캔)
-    # - TSMC(TSM), ASML, 노보노디스크(NVO), 알리바바(BABA), 핀둬둬(PDD), 토요타(TM) 등 완벽 대응!
-    # -----------------------------------------------------------------
     try:
         facts_res = get_sec_company_facts_cached(clean_tk)
         if facts_res and "facts" in facts_res:
             facts_root = facts_res["facts"]
             taxonomies = [facts_root.get("us-gaap", {}), facts_root.get("ifrs-full", {})]
 
-            def _extract_sec_global(tag_list, is_instant=False):
+            # [원칙 1] 기본 보고 통화(Native Currency) 먼저 확정
+            curr_year_counts = {}
+            for taxo in taxonomies:
+                if not taxo:
+                    continue
+                for probe_tag in ["Assets", "Revenues", "Revenue", "NetIncomeLoss", "ProfitLoss"]:
+                    if probe_tag in taxo:
+                        for ck, items in taxo[probe_tag].get("units", {}).items():
+                            if "shares" in ck.lower():
+                                continue
+                            yrs_found = {
+                                str(it.get("end", ""))[:4]
+                                for it in items
+                                if it.get("form", "") in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]
+                                and str(it.get("end", ""))[:4].isdigit()
+                            }
+                            curr_year_counts[ck] = max(curr_year_counts.get(ck, 0), len(yrs_found))
+
+            non_usd_currs = {k: v for k, v in curr_year_counts.items() if k != "USD" and v >= 3}
+            if non_usd_currs:
+                native_curr = max(non_usd_currs.items(), key=lambda x: x[1])[0]
+            else:
+                native_curr = ADR_CURRENCY_MAP.get(clean_tk, "USD")
+
+            fx_native_to_usd = get_fx_to_usd(native_curr)
+
+            def _extract_native_sec(tag_list, is_instant=False):
                 res = {}
-                detected_curr = "USD"
                 for taxo in taxonomies:
                     if not taxo:
                         continue
@@ -2482,14 +2557,13 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
                         if tag not in taxo:
                             continue
                         units_dict = taxo[tag].get("units", {})
-                        # USD가 있으면 최우선, 없으면 첫 번째 통화(TWD, EUR, CNY, JPY 등) 선택
-                        curr_keys = ["USD"] + [k for k in units_dict.keys() if k != "USD" and "shares" not in k.lower()]
-                        for ck in curr_keys:
-                            if ck not in units_dict:
-                                continue
+                        ordered_cks = ([native_curr] if native_curr in units_dict else []) + [
+                            k for k in units_dict.keys() if k != native_curr and "shares" not in k.lower()
+                        ]
+                        for ck in ordered_cks:
+                            ck_fx_to_native = 1.0 if ck == native_curr else (get_fx_to_usd(ck) / fx_native_to_usd if fx_native_to_usd > 0 else 1.0)
                             for item in units_dict[ck]:
-                                form_t = item.get("form", "")
-                                if form_t not in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]:
+                                if item.get("form", "") not in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]:
                                     continue
                                 start_s, end_s = item.get("start", ""), item.get("end", "")
                                 if not is_instant and start_s and end_s:
@@ -2504,26 +2578,26 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
                                 y_val = end_yr if (end_yr.isdigit() and int(end_yr) >= 2012) else fy_yr
                                 val = safe_float(item.get("val", 0))
                                 if y_val.isdigit() and val != 0:
-                                    fx_mult = _get_fx_to_usd(ck)
-                                    val_usd = val * fx_mult
-                                    if y_val not in res or abs(val_usd) > abs(res[y_val]):
-                                        res[y_val] = val_usd
-                                        detected_curr = ck
-                            if len(res) >= 5:
+                                    val_native = val * ck_fx_to_native
+                                    if y_val not in res:
+                                        res[y_val] = val_native
+                                    elif ck == native_curr and abs(val_native) > abs(res[y_val]):
+                                        res[y_val] = val_native
+                            if ck == native_curr and len(res) >= 4:
                                 break
                 return res
 
-            rev = _extract_sec_global(["Revenues", "Revenue", "SalesRevenueNet", "SalesRevenueGoodsNet", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractsWithCustomers"])
-            cogs = _extract_sec_global(["CostOfGoodsAndServicesSold", "CostOfRevenue", "CostOfSales"])
-            gp = _extract_sec_global(["GrossProfit"])
-            op = _extract_sec_global(["OperatingIncomeLoss", "ProfitLossFromOperatingActivities"])
-            ni = _extract_sec_global(["NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"])
-            assets = _extract_sec_global(["Assets"], is_instant=True)
-            curr_assets = _extract_sec_global(["AssetsCurrent", "CurrentAssets"], is_instant=True)
-            liab = _extract_sec_global(["Liabilities"], is_instant=True)
-            equity = _extract_sec_global(["StockholdersEquity", "Equity", "EquityAttributableToOwnersOfParent", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"], is_instant=True)
-            ocf = _extract_sec_global(["NetCashProvidedByUsedInOperatingActivities", "CashFlowsFromUsedInOperatingActivities"])
-            capex = _extract_sec_global([
+            rev = _extract_native_sec(["Revenues", "Revenue", "SalesRevenueNet", "SalesRevenueGoodsNet", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractsWithCustomers"])
+            cogs = _extract_native_sec(["CostOfGoodsAndServicesSold", "CostOfRevenue", "CostOfSales"])
+            gp = _extract_native_sec(["GrossProfit"])
+            op = _extract_native_sec(["OperatingIncomeLoss", "ProfitLossFromOperatingActivities"])
+            ni = _extract_native_sec(["NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"])
+            assets = _extract_native_sec(["Assets"], is_instant=True)
+            curr_assets = _extract_native_sec(["AssetsCurrent", "CurrentAssets"], is_instant=True)
+            liab = _extract_native_sec(["Liabilities"], is_instant=True)
+            equity = _extract_native_sec(["StockholdersEquity", "Equity", "EquityAttributableToOwnersOfParent", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"], is_instant=True)
+            ocf = _extract_native_sec(["NetCashProvidedByUsedInOperatingActivities", "CashFlowsFromUsedInOperatingActivities"])
+            capex = _extract_native_sec([
                 "PaymentsToAcquirePropertyPlantAndEquipment",
                 "PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities",
                 "PaymentsToAcquireProductiveAssets",
@@ -2533,91 +2607,118 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
                 "PaymentsToAcquireMachineryAndEquipment",
                 "PaymentsToAcquirePropertyPlantAndEquipmentAndSoftware"
             ])
+            icf = _extract_native_sec(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
+            fcf_f = _extract_native_sec(["NetCashProvidedByUsedInFinancingActivities", "CashFlowsFromUsedInFinancingActivities"])
 
-            # [보완 1] PDD 등 20-F 기업이 커스텀 태그(us-gaap 외 자체 태그)로 CAPEX를 공시한 경우 자동 스캔
+            # [보완 1] 커스텀 택소노미 CAPEX 스캔 (native_curr 기준 수집)
             for taxo_k, taxo_v in facts_root.items():
                 if taxo_k in ["dei", "srt"] or not isinstance(taxo_v, dict):
                     continue
                 for tag_nm, tag_obj in taxo_v.items():
                     low_t = tag_nm.lower()
-                    if any(w in low_t for w in ["paymentstoacquire", "purchaseof"]) and ("property" in low_t or "equipment" in low_t) and "proceeds" not in low_t:
+                    if any(w in low_t for w in ["payment", "purchase", "addition", "acquisition"]) and any(w in low_t for w in ["property", "equipment", "fixedasset"]) and "proceeds" not in low_t and "disposal" not in low_t:
                         units_d = tag_obj.get("units", {})
-                        for ck, items in units_d.items():
-                            if "shares" in ck.lower():
-                                continue
-                            fx_m = _get_fx_to_usd(ck)
-                            for it in items:
+                        ck_list = ([native_curr] if native_curr in units_d else []) + [k for k in units_d.keys() if k != native_curr and "shares" not in k.lower()]
+                        for ck in ck_list:
+                            ck_to_nat = 1.0 if ck == native_curr else (get_fx_to_usd(ck) / fx_native_to_usd if fx_native_to_usd > 0 else 1.0)
+                            for it in units_d[ck]:
                                 if it.get("form", "") not in ["10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"]:
                                     continue
-                                es = str(it.get("end", ""))
-                                y_v = es[:4] if es[:4].isdigit() else str(it.get("fy", ""))
-                                vl = abs(safe_float(it.get("val", 0))) * fx_m
-                                if y_v.isdigit() and vl > 0 and (y_v not in capex or capex[y_v] == 0):
-                                    capex[y_v] = vl
+                                start_s, end_s = it.get("start", ""), it.get("end", "")
+                                if start_s and end_s:
+                                    try:
+                                        days = (datetime.strptime(end_s[:10], "%Y-%m-%d") - datetime.strptime(start_s[:10], "%Y-%m-%d")).days
+                                        if days < 330 or days > 380:
+                                            continue
+                                    except Exception:
+                                        pass
+                                y_v = str(end_s)[:4] if str(end_s)[:4].isdigit() else str(it.get("fy", ""))
+                                vl_nat = abs(safe_float(it.get("val", 0))) * ck_to_nat
+                                if y_v.isdigit() and vl_nat > 0 and (y_v not in capex or capex[y_v] == 0):
+                                    capex[y_v] = vl_nat
 
-            # [보완 2] SEC XBRL에서 누락된 최근 연도 CAPEX는 yfinance 현금흐름표(실시간 환율 USD 환산)로 빈칸 채우기
+            # [원칙 2] 보조 소스(yfinance) 병합 시 OCF 비율 교차 검증 후 native_curr로 정렬
             try:
                 stk_fb = yf.Ticker(clean_tk)
                 cf_fb = stk_fb.cash_flow
-                info_fb = stk_fb.info if isinstance(stk_fb.info, dict) else {}
-                fin_c_fb = str(info_fb.get("financialCurrency", "USD")).upper()
-                fx_fb = _get_fx_to_usd(fin_c_fb)
                 if cf_fb is not None and not cf_fb.empty:
+                    yf_to_native_mult = 1.0
+                    if "Operating Cash Flow" in cf_fb.index:
+                        for c_dt in cf_fb.columns:
+                            y_chk = str(c_dt)[:4]
+                            yf_o = safe_float(cf_fb.loc["Operating Cash Flow", c_dt])
+                            sec_o = safe_float(ocf.get(y_chk, 0))
+                            if yf_o > 0 and sec_o > 0:
+                                ratio_o = sec_o / yf_o
+                                yf_to_native_mult = 1.0 if (0.75 <= ratio_o <= 1.33) else ratio_o
+                                break
                     for c_dt in cf_fb.columns:
                         y_s = str(c_dt)[:4]
                         if y_s.isdigit() and (y_s not in capex or capex.get(y_s, 0) == 0):
                             for ck_yf in ["Capital Expenditure", "Capital Expenditures", "Purchase Of PPE"]:
                                 if ck_yf in cf_fb.index and pd.notna(cf_fb.loc[ck_yf, c_dt]):
-                                    capex[y_s] = abs(safe_float(cf_fb.loc[ck_yf, c_dt])) * fx_fb
+                                    capex[y_s] = abs(safe_float(cf_fb.loc[ck_yf, c_dt])) * yf_to_native_mult
                                     break
             except Exception:
                 pass
 
-            icf = _extract_sec_global(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
-            icf = _extract_sec_global(["NetCashProvidedByUsedInInvestingActivities", "CashFlowsFromUsedInInvestingActivities"])
-            fcf_f = _extract_sec_global(["NetCashProvidedByUsedInFinancingActivities", "CashFlowsFromUsedInFinancingActivities"])
+            # [원칙 1 & 4] 모든 계정을 단 한 번에 USD로 일괄 환산 + Sanity Check
+            rev_u = {k: v * fx_native_to_usd for k, v in rev.items()}
+            cogs_u = {k: v * fx_native_to_usd for k, v in cogs.items()}
+            gp_u = {k: v * fx_native_to_usd for k, v in gp.items()}
+            op_u = {k: v * fx_native_to_usd for k, v in op.items()}
+            ni_u = {k: v * fx_native_to_usd for k, v in ni.items()}
+            assets_u = {k: v * fx_native_to_usd for k, v in assets.items()}
+            ca_u = {k: v * fx_native_to_usd for k, v in curr_assets.items()}
+            liab_u = {k: v * fx_native_to_usd for k, v in liab.items()}
+            eq_u = {k: v * fx_native_to_usd for k, v in equity.items()}
+            ocf_u = {k: v * fx_native_to_usd for k, v in ocf.items()}
+            capex_u = sanity_check_fx_series(
+                {k: abs(v) * fx_native_to_usd for k, v in capex.items()},
+                native_curr, fx_native_to_usd, ref_ocf_map=ocf_u
+            )
+            icf_u = {k: v * fx_native_to_usd for k, v in icf.items()}
+            fcf_f_u = {k: v * fx_native_to_usd for k, v in fcf_f.items()}
 
             curr_cal_y = datetime.now().year
-            raw_years = sorted(list(set(list(rev.keys()) + list(ni.keys()) + list(assets.keys()))), reverse=True)
+            raw_years = sorted(list(set(list(rev_u.keys()) + list(ni_u.keys()) + list(assets_u.keys()))), reverse=True)
             comp_years = [y for y in raw_years if int(y) < curr_cal_y]
             all_years = comp_years[:10] if len(comp_years) >= 5 else raw_years[:10]
 
             if len(all_years) >= 5:
                 sec_data = []
                 for y in all_years:
-                    ocf_y = ocf.get(y, 0)
-                    capex_y = abs(capex.get(y, 0))
+                    ocf_y = ocf_u.get(y, 0)
+                    capex_y = abs(capex_u.get(y, 0))
                     fcf_y = (ocf_y - capex_y) if ocf_y != 0 else 0
-                    rev_y = rev.get(y, 0)
-                    cogs_y = cogs.get(y, 0)
-                    gp_y = gp.get(y, (rev_y - cogs_y) if (rev_y > 0 and cogs_y > 0) else 0)
-                    eq_y = equity.get(y, (assets.get(y, 0) - liab.get(y, 0)) if (assets.get(y, 0) > liab.get(y, 0)) else 0)
+                    rev_y = rev_u.get(y, 0)
+                    cogs_y = cogs_u.get(y, 0)
+                    gp_y = gp_u.get(y, (rev_y - cogs_y) if (rev_y > 0 and cogs_y > 0) else 0)
+                    eq_y = eq_u.get(y, (assets_u.get(y, 0) - liab_u.get(y, 0)) if (assets_u.get(y, 0) > liab_u.get(y, 0)) else 0)
 
                     sec_data.append({
                         '연도': y,
                         '1. 매출액 (Revenue)': rev_y,
                         '2. 매출원가 (COGS)': cogs_y,
                         '3. 매출총이익 (Gross Profit)': gp_y,
-                        '4. 영업이익 (Op. Income)': op.get(y, 0),
-                        '5. 당기순이익 (Net Income)': ni.get(y, 0),
-                        '6. 자산총계 (Assets)': assets.get(y, 0),
-                        '7. 유동자산 (Current Assets)': curr_assets.get(y, 0),
-                        '8. 부채총계 (Liabilities)': liab.get(y, 0),
+                        '4. 영업이익 (Op. Income)': op_u.get(y, 0),
+                        '5. 당기순이익 (Net Income)': ni_u.get(y, 0),
+                        '6. 자산총계 (Assets)': assets_u.get(y, 0),
+                        '7. 유동자산 (Current Assets)': ca_u.get(y, 0),
+                        '8. 부채총계 (Liabilities)': liab_u.get(y, 0),
                         '9. 자본총계 (Equity)': eq_y,
                         '10. 영업현금흐름 (Op. CF)': ocf_y,
                         '11. 설비투자 (CAPEX)': capex_y,
-                        '12. 투자현금흐름 (Inv. CF)': icf.get(y, 0),
-                        '13. 재무현금흐름 (Fin. CF)': fcf_f.get(y, 0),
+                        '12. 투자현금흐름 (Inv. CF)': icf_u.get(y, 0),
+                        '13. 재무현금흐름 (Fin. CF)': fcf_f_u.get(y, 0),
                         '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_y
                     })
                 df_sec_g = pd.DataFrame(sec_data).set_index('연도').T / 1000000.0
-                return df_sec_g, "SEC EDGAR (20-F / IFRS 10년 원천 공시)"
+                return df_sec_g, f"SEC EDGAR ({native_curr} 원본 일괄 추출 → USD 환산)"
     except Exception:
         pass
 
-    # -----------------------------------------------------------------
-    # 2순위: Financial Modeling Prep (FMP) API 10년 치 호출 (이미 보유한 API 키 활용)
-    # -----------------------------------------------------------------
+    # 2순위: FMP API 폴백
     if fmp_api_key:
         try:
             base_fmp = "https://financialmodelingprep.com/api/v3"
@@ -2632,8 +2733,7 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
                 for inc_it in r_inc[:10]:
                     yr = str(inc_it.get("calendarYear") or inc_it.get("date", "")[:4])
                     curr_rep = inc_it.get("reportedCurrency", "USD")
-                    fx_m = _get_fx_to_usd(curr_rep) / 1000000.0  # 백만 USD 환산
-
+                    fx_m = get_fx_to_usd(curr_rep) / 1000000.0
                     b_it = bs_map.get(yr, {})
                     c_it = cf_map.get(yr, {})
                     ocf_v = safe_float(c_it.get("operatingCashFlow")) * fx_m
@@ -2658,84 +2758,9 @@ def get_global_10yr_financials(cd, fmp_api_key=""):
                         '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_v
                     })
                 df_fmp = pd.DataFrame(fmp_rows).drop_duplicates(subset=['연도']).set_index('연도').T
-                return df_fmp, "FMP 글로벌 10년 재무 API"
+                return df_fmp, "FMP 글로벌 10년 재무 API (USD 환산)"
         except Exception:
             pass
-
-    # -----------------------------------------------------------------
-    # 3순위: StockAnalysis 공개 웹 테이블 파싱 (OTC ADR: LVMUY, TCEHY, BYDDY 등 10년 지원)
-    # -----------------------------------------------------------------
-    try:
-        sa_tk = clean_tk.lower().replace("-", ".")
-        headers_sa = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        sa_urls = [
-            ("inc", f"https://stockanalysis.com/stocks/{sa_tk}/financials/"),
-            ("bs", f"https://stockanalysis.com/stocks/{sa_tk}/financials/balance-sheet/"),
-            ("cf", f"https://stockanalysis.com/stocks/{sa_tk}/financials/cash-flow-statement/")
-        ]
-        sa_tables = {}
-        for stype, s_url in sa_urls:
-            r_sa = requests.get(s_url, headers=headers_sa, timeout=5)
-            if r_sa.status_code == 200:
-                dfs = pd.read_html(io.StringIO(r_sa.text))
-                if dfs:
-                    df_t = dfs[0].set_index(dfs[0].columns[0])
-                    # 컬럼명에서 연도(2016~2026) 추출
-                    yr_cols = {}
-                    for c in df_t.columns:
-                        m_y = re.search(r'(20\d{2})', str(c))
-                        if m_y and m_y.group(1) not in yr_cols:
-                            yr_cols[m_y.group(1)] = c
-                    sa_tables[stype] = (df_t, yr_cols)
-
-        if "inc" in sa_tables:
-            df_i, ymap_i = sa_tables["inc"]
-            df_b, ymap_b = sa_tables.get("bs", (pd.DataFrame(), {}))
-            df_c, ymap_c = sa_tables.get("cf", (pd.DataFrame(), {}))
-            years_sa = sorted(list(ymap_i.keys()), reverse=True)[:10]
-
-            def _get_sa_val(df_src, ymap, row_names, y_str):
-                if df_src.empty or y_str not in ymap:
-                    return 0.0
-                col_n = ymap[y_str]
-                for rn in row_names:
-                    for idx_s in df_src.index:
-                        if str(idx_s).strip().lower() == rn.lower():
-                            raw_v = str(df_src.loc[idx_s, col_n])
-                            clean_v = re.sub(r'[^\d\.\-]', '', raw_v)
-                            return safe_float(clean_v) if clean_v not in ["", "-"] else 0.0
-                return 0.0
-
-            if len(years_sa) >= 5:
-                sa_rows = []
-                for y in years_sa:
-                    ocf_v = _get_sa_val(df_c, ymap_c, ["Operating Cash Flow", "Cash From Operations"], y)
-                    capex_v = abs(_get_sa_val(df_c, ymap_c, ["Capital Expenditures", "CapEx"], y))
-                    fcf_v = _get_sa_val(df_c, ymap_c, ["Free Cash Flow"], y)
-                    if fcf_v == 0 and ocf_v != 0:
-                        fcf_v = ocf_v - capex_v
-
-                    sa_rows.append({
-                        '연도': y,
-                        '1. 매출액 (Revenue)': _get_sa_val(df_i, ymap_i, ["Revenue", "Total Revenue"], y),
-                        '2. 매출원가 (COGS)': _get_sa_val(df_i, ymap_i, ["Cost of Revenue", "Cost of Goods Sold"], y),
-                        '3. 매출총이익 (Gross Profit)': _get_sa_val(df_i, ymap_i, ["Gross Profit"], y),
-                        '4. 영업이익 (Op. Income)': _get_sa_val(df_i, ymap_i, ["Operating Income", "Operating Profit"], y),
-                        '5. 당기순이익 (Net Income)': _get_sa_val(df_i, ymap_i, ["Net Income", "Net Income to Common"], y),
-                        '6. 자산총계 (Assets)': _get_sa_val(df_b, ymap_b, ["Total Assets"], y),
-                        '7. 유동자산 (Current Assets)': _get_sa_val(df_b, ymap_b, ["Total Current Assets", "Current Assets"], y),
-                        '8. 부채총계 (Liabilities)': _get_sa_val(df_b, ymap_b, ["Total Liabilities"], y),
-                        '9. 자본총계 (Equity)': _get_sa_val(df_b, ymap_b, ["Shareholders' Equity", "Total Equity", "Stockholders' Equity"], y),
-                        '10. 영업현금흐름 (Op. CF)': ocf_v,
-                        '11. 설비투자 (CAPEX)': capex_v,
-                        '12. 투자현금흐름 (Inv. CF)': _get_sa_val(df_c, ymap_c, ["Investing Cash Flow", "Cash From Investing"], y),
-                        '13. 재무현금흐름 (Fin. CF)': _get_sa_val(df_c, ymap_c, ["Financing Cash Flow", "Cash From Financing"], y),
-                        '14. 잉여현금흐름 (FCF = OCF - CAPEX)': fcf_v
-                    })
-                df_sa_out = pd.DataFrame(sa_rows).set_index('연도').T
-                return df_sa_out, "StockAnalysis 글로벌 10년 장부 연동"
-    except Exception:
-        pass
 
     return pd.DataFrame(), "글로벌 10년 데이터 미발견"
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -3081,18 +3106,23 @@ def get_data(tk):
             p = safe_float(i.get('currentPrice', i.get('regularMarketPrice')))
             
         sh = safe_float(i.get('sharesOutstanding'))
-        if sh <= 0: sh = safe_float(i.get('impliedSharesOutstanding'))
-        if sh <= 0:
-            mcap = safe_float(i.get('marketCap'))
-            if mcap > 0 and p > 0: sh = mcap / p
-        if sh <= 0:
-            try:
-                inc = stk.income_stmt
-                if inc is not None and not inc.empty and 'Net Income' in inc.index:
-                    ni = safe_float(inc.loc['Net Income'].iloc[0])
-                    eps = safe_float(i.get('trailingEps'))
-                    if ni != 0 and eps != 0: sh = abs(ni / eps)
-            except: pass
+    if (not kr) and (tk in ADR_CURRENCY_MAP):
+        mcap_adr = safe_float(i.get('marketCap'))
+        if mcap_adr > 0 and p > 0:
+            sh = mcap_adr / p
+    if sh <= 0: sh = safe_float(i.get('impliedSharesOutstanding'))
+    if sh <= 0:
+        mcap = safe_float(i.get('marketCap'))
+        if mcap > 0 and p > 0: sh = mcap / p
+    if sh <= 0:
+        try:
+            inc = stk.income_stmt
+            if inc is not None and not inc.empty and 'Net Income' in inc.index:
+                ni = safe_float(inc.loc['Net Income'].iloc[0])
+                eps = safe_float(i.get('trailingEps'))
+                _fx_sh, _ = get_fin_fx_to_usd(i, kr, tk)
+                if ni != 0 and eps != 0: sh = abs((ni * _fx_sh) / eps)
+        except: pass
         
         i['sharesOutstanding'] = sh
 
@@ -3140,42 +3170,6 @@ def calc_smart_cagr(val_series_chrono, years_chrono=None):
     status_code = "NORMAL_UP" if raw_cagr >= 0 else "NORMAL_DOWN"
     return max(-0.95, min(raw_cagr, 2.00)), status_code, display_span, f"{display_span}년간 연평균 {raw_cagr*100:+.1f}%"
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_fx_to_usd(curr_code):
-    """현지 공시 통화(CNY, TWD, JPY, EUR 등) -> 실시간 USD 환산 배율"""
-    c = str(curr_code or "USD").upper().strip()
-    if c in ["USD", ""]:
-        return 1.0
-    if c == "RMB":
-        c = "CNY"
-    fx_fallback = {
-        "CNY": 0.138, "TWD": 0.031, "HKD": 0.128, "EUR": 1.08,
-        "JPY": 0.0066, "DKK": 0.145, "GBP": 1.28, "CHF": 1.13,
-        "CAD": 0.73, "AUD": 0.66, "BRL": 0.18, "KRW": 0.00073,
-        "INR": 0.012, "SEK": 0.095, "NOK": 0.093, "ILS": 0.27, "KZT": 0.0020
-    }
-    try:
-        hist = yf.Ticker(f"{c}USD=X").history(period="5d")
-        if hist is not None and not hist.empty:
-            rate = safe_float(hist["Close"].dropna().iloc[-1])
-            if rate > 0:
-                return rate
-    except Exception:
-        pass
-    return fx_fallback.get(c, 1.0)
-
-
-def get_fin_fx_to_usd(info_dict, kr=False):
-    """한국 주식은 1.0(원화 유지), 해외 ADR은 재무제표 통화 -> 거래 통화(USD) 환율 반환"""
-    if kr or not isinstance(info_dict, dict):
-        return 1.0, "KRW"
-    trade_c = str(info_dict.get("currency", "USD")).upper().strip()
-    fin_c = str(info_dict.get("financialCurrency", trade_c)).upper().strip()
-    if trade_c == "USD" and fin_c != "USD":
-        return get_fx_to_usd(fin_c), fin_c
-    return 1.0, fin_c
-
-
 def get_base_dcf_data(stk, i):
     try:
         if stk is None:
@@ -3184,7 +3178,7 @@ def get_base_dcf_data(stk, i):
         # [핵심 수리 1] ADR 현지 통화(CNY/TWD/JPY 등) -> USD 실시간 환율 산출
         tk_sym = str(getattr(stk, "ticker", "")).upper()
         is_kr_local = tk_sym.endswith(".KS") or tk_sym.endswith(".KQ")
-        fin_fx, _ = get_fin_fx_to_usd(i, is_kr_local)
+        fin_fx, _ = get_fin_fx_to_usd(i, is_kr_local, tk_sym)
 
         fcf_s = None
         cf = stk.cash_flow
@@ -5111,26 +5105,7 @@ def analyze_capex_nature(stk, i, tk, base_fcf, kr):
     if fcf_ok:
         return f"<b style='color:#2ecc71;'>[안정적 잉여현금 창출]</b> 설비투자 규모를 현금흐름으로 충분히 감당하여 주주이익 훼손 없이 본업 재투자 진행"
     return f"<b style='color:#fdcb6e;'>[설비투자 지속 추적 필요]</b> 미래 먹거리를 위한 선제 투자 집행 여부 및 FCF 잠식 수준 확인 필요"
-    # 3. 시클리컬 저PER 착시 판정 (PDF Part 1-원칙 3, Part 4-7B)
-    semis = ["005930", "000660", "MU", "WDC", "SNDK", "TSM", "INTC", "005490", "004020", "011200", "010950", "051910", "XOM", "CVX", "COP", "VALE", "BHP", "RIO"]
-    is_target_cyc = is_cyclical or (tk_u in semis)
-
-    cyc_st, cyc_sub = None, None
-    if is_target_cyc:
-        if 0 < cur_pe <= 8.5 and roe >= 20.0:
-            cyc_st = "fail"
-            cyc_sub = f"피크아웃 주의: 호황 정점 이익 폭증에 따른 '저PER 착시({cur_pe:.1f}배)' 함정"
-        elif 0 < cur_pe <= 12.0 and roe >= 14.0:
-            cyc_st = "warn"
-            cyc_sub = f"사이클 후반부: 이익 고점 부근 통과 중 (현재 PER {cur_pe:.1f}배 · 공급과잉 대비 필요)"
-        elif cur_pe >= 25.0 or cur_pe <= 0:
-            cyc_st = "pass"
-            cyc_sub = f"역발상 기회 구간: 업황 바닥 실적 급감/적자 (PER {cur_pe:.1f}배 착시) ➔ 차기 회복 선취매 가능"
-        else:
-            cyc_st = "warn"
-            cyc_sub = f"경기 사이클 중간 국면 (현재 PER {cur_pe:.1f}배 · ROE {roe:.1f}%)"
-
-    return pricing_st, pricing_sub, capex_st, capex_sub, cyc_st, cyc_sub
+    
 # =========================================================================
 # [복원] 피오트로스키 F-Score (9점 만점 재무 건전성 판독기)
 # =========================================================================
@@ -6141,47 +6116,6 @@ def build_lipsync_concat_entries(wav_path, sub_phrases, spoken_weights, img_pair
 
     return entries, exact_dur
     
-    # 1. "투하자본수익률(ROIC)" 처럼 한글 뒤 괄호 안에 영문 약어가 있으면 중복 발음 방지를 위해 괄호 안 영문을 먼저 제거
-    s = re.sub(r'\([A-Za-z0-9\s/\-\+\.&]+\)', '', s)
-    # 2. 특수 기호 및 이모지 제거
-    s = re.sub(r'[\(\)\[\]\{\}⚡🔥💰🎁🚀📈🚨✅⚠️🌱⏸️💥💣🔁↑↓🏦🏢⚖️❓🔒🔓🎉🟦🟥📊📌]', ' ', s)
-    s = re.sub(r'\$([\d,\.]+)', r'\1달러', s)
-    s = s.replace("%p", "퍼센트포인트").replace("%", "퍼센트")
-    s = s.replace("1,000만", "천만").replace("1000만", "천만").replace("4가지", "네가지").replace("3가지", "세가지")
-    s = s.replace("1대1", "일대일").replace("1:1", "일대일")
-    s = re.sub(r'(\d),(\d{3})', r'\1\2', s)
-    s = s.replace("S&P 500", "에스앤피 오백").replace("S&P500", "에스앤피 오백")
-    s = s.replace("/", " ")
-
-    # 3. 대소문자 구분 없이 SK가 "슥"으로 읽히지 않도록 단어 경계 및 접두사 정밀 치환!
-    pron_map = [
-        ("SK하이닉스", "에스케이 하이닉스"), ("SK스퀘어", "에스케이 스퀘어"), ("SK이노베이션", "에스케이 이노베이션"),
-        ("SK텔레콤", "에스케이 텔레콤"), ("SK바이오팜", "에스케이 바이오팜"), ("SK이터닉스", "에스케이 이터닉스"),
-        ("LG에너지솔루션", "엘지 에너지솔루션"), ("LG엔솔", "엘지 엔솔"), ("LG전자", "엘지 전자"),
-        ("LG화학", "엘지 화학"), ("LG생활건강", "엘지 생활건강"), ("LG이노텍", "엘지 이노텍"),
-        ("LG디스플레이", "엘지 디스플레이"), ("HD현대", "에이치디 현대"), ("LS일렉트릭", "엘에스 일렉트릭"),
-        ("KB금융", "케이비 금융"), ("CJ제일제당", "씨제이 제일제당"), ("DB손해보험", "디비 손해보험"),
-        ("DB하이텍", "디비 하이텍"), ("GS건설", "지에스 건설"), ("NH투자증권", "엔에이치 투자증권"),
-        ("KT&G", "케이티앤지"), ("S-Oil", "에스오일"), ("POSCO", "포스코"),
-        ("NAVER", "네이버"), ("KAKAO", "카카오"), ("HYUNDAI", "현대"),
-        ("SAMSUNG", "삼성"), ("CELLTRION", "셀트리온"), ("KRAFTON", "크래프톤"),
-        ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"), ("NVIDIA", "엔비디아"),
-        ("LVMH", "엘브이엠에이치"), ("HSBC", "에이치에스비씨"), ("BYD", "비야디"),
-        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"),
-        ("PER", "피이알"), ("PBR", "피비알"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
-        ("BPS", "비피에스"), ("FCF", "잉여현금흐름"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
-        ("EBITDA", "에비타"), ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
-        ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
-        ("OCI", "오씨아이"), ("LIG", "엘아이지"), ("BGF", "비지에프"), ("KCC", "케이씨씨"),
-        ("JYP", "제이와이피"), ("F&F", "에프앤에프"), ("AMD", "에이엠디"), ("IBM", "아이비엠"),
-        ("SK", "에스케이 "), ("LG", "엘지 "), ("KT", "케이티 "), ("KB", "케이비 "),
-        ("CJ", "씨제이 "), ("HD", "에이치디 "), ("LS", "엘에스 "), ("DB", "디비 "),
-        ("GS", "지에스 "), ("NH", "엔에이치 "), ("vs", "대"), ("VS", "대")
-    ]
-    for eng_k, kor_v in pron_map:
-        s = re.sub(re.escape(eng_k), kor_v, s, flags=re.IGNORECASE)
-    return re.sub(r'\s+', ' ', s).strip()
-
 def get_safe_macro(key, is_currency=False, is_rate=False):
     data = macro_data.get(key, {"p": 0.0, "c": 0.0, "pct": 0.0})
     p, c, pct = safe_float(data.get("p")), safe_float(data.get("c")), safe_float(data.get("pct"))
@@ -6881,7 +6815,7 @@ def generate_quick_ai_preview(tk):
     criticism_text = fetch_governance_criticism(tk, clean_tk_pure, ceo_cleaned)
 
     cd = clean_tk_pure
-    is_adr = (str(i.get('currency', 'USD')).upper() != str(i.get('financialCurrency', 'USD')).upper()) and not kr
+    is_adr = ((str(i.get('currency', 'USD')).upper() != str(i.get('financialCurrency', 'USD')).upper()) or (tk.upper() in ADR_CURRENCY_MAP)) and not kr
     adr_fx_ratio = 1.0
     a_pe, a_pbr, final_g, base_fcf, data_len, is_zigzag, hist_roe_10y, hist_roic_10y = get_10yr_custom_metrics(
         stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv, adr_fx_ratio, DART_API_KEY
@@ -7601,8 +7535,7 @@ with tab1:
 
                 currency_trade = str(i.get('currency', 'USD')).upper()
                 currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-                is_adr = (currency_trade != currency_fin) and not kr
-
+                is_adr = ((currency_trade != currency_fin) or (tk.upper() in ADR_CURRENCY_MAP)) and not kr
                 adr_fx_ratio = 1.0
                 if is_adr:
                     try:
@@ -7945,43 +7878,42 @@ with tab1:
                 iv_best, mos_best, iv_worst, mos_worst = 0.0, 0.0, 0.0, 0.0
                 
                 # --- [사용자 커스텀 DCF 시뮬레이터 연동 로직] ---
-                # 1. AI의 원본 기본값 백업
                 ai_final_g = final_g
-                sim_g_default = float(ai_final_g * 100) if not is_financial else 10.0
-                sim_dr_default = 9.0  # 할인율 9%를 최소값이 아닌 '중간 기본값'으로 설정
-                
-                # 2. 사용자가 하단 슬라이더를 움직였다면 그 값을 가져옴
-                user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
-                user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
-                user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
-                
-                # 3. 사용자의 값으로 내재가치(iv), 안전마진(mos_val), 성장률(final_g) 강제 덮어쓰기 (9% 제한 해제)
-                if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
-                    u_dr = user_dr_val / 100  # 최소 제한 없이 사용자가 입력한 소수점 그대로 반영
-                    u_g = user_g_val / 100
-                    u_tg = user_tg_val / 100
-                    
-                    # 시뮬레이터 전용 계산 함수 (AI 기본 제한 회피)
-                    def sim_dcf(g_rate):
-                        cv = base_fcf
-                        fut = []
-                        for y in range(1, 11):
-                            cv *= (1 + g_rate)
-                            fut.append(cv / ((1 + u_dr) ** y))
-                        if u_dr > u_tg:
-                            tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
-                            dtv = tv / ((1 + u_dr) ** 10)
-                            calc_iv = (sum(fut) + dtv) / sh
-                            calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
-                            return calc_iv, calc_mos
-                        return 0, 0
+            sim_g_default = max(-15.0, min(float(ai_final_g * 100), 20.0)) if not is_financial else 10.0
+            sim_dr_default = 9.0
+            g_worst = max(final_g * 0.5, 0.0)
+            g_best = min(max(final_g * 1.25, final_g + 0.03), 0.30)
 
+            user_g_val = st.session_state.get(f"user_g_{tk}", sim_g_default)
+            user_dr_val = st.session_state.get(f"user_dr_{tk}", sim_dr_default)
+            user_tg_val = st.session_state.get(f"user_tg_{tk}", 2.0)
+
+            if not is_financial and sh > 0 and base_fcf and base_fcf > 0 and not is_zigzag:
+                u_dr = user_dr_val / 100.0
+                u_g = user_g_val / 100.0
+                u_tg = user_tg_val / 100.0
+
+                def sim_dcf(g_rate):
+                    cv = base_fcf
+                    fut = []
+                    for y in range(1, 11):
+                        cv *= (1 + g_rate)
+                        fut.append(cv / ((1 + u_dr) ** y))
                     if u_dr > u_tg:
-                        iv, mos_val = sim_dcf(u_g)
-                        final_g = u_g  # 사용자의 성장률을 AI 점수 모델에 동기화
-                        
-                        iv_best, mos_best = sim_dcf(min(final_g * 1.5, 0.25))
-                        iv_worst, mos_worst = sim_dcf(max(final_g * 0.5, 0.0))
+                        tv = (cv * (1 + u_tg)) / (u_dr - u_tg)
+                        dtv = tv / ((1 + u_dr) ** 10)
+                        calc_iv = (sum(fut) + dtv) / sh
+                        calc_mos = ((calc_iv - p) / calc_iv) * 100 if calc_iv > 0 else 0
+                        return calc_iv, calc_mos
+                    return 0, 0
+
+                if u_dr > u_tg:
+                    g_worst = max(u_g * 0.5, 0.0) if u_g > 0 else (u_g - 0.05)
+                    g_best = min(max(u_g * 1.25, u_g + 0.03), 0.30) if u_g < 0.30 else u_g
+                    iv, mos_val = sim_dcf(u_g)
+                    final_g = u_g
+                    iv_worst, mos_worst = sim_dcf(g_worst)
+                    iv_best, mos_best = sim_dcf(g_best)
                     
                 # -----------------------------------------------
 
@@ -8259,58 +8191,6 @@ with tab1:
                 
                 if (gross_m == 0.0 and op_m == 0.0): gm_eval, opm_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>", "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
                 if current_ratio == 0.0: cr_eval = "<span style='color:var(--text-color); opacity:0.6;'>N/A</span>"
-                bio_eval = f"<span style='color:#8892b0'>{t('재무제표 데이터 부족으로 확인 불가.', 'Unable to verify due to missing financial data.')}</span>"
-                try:
-                    bs = stk.balance_sheet
-                    if bs is not None and not bs.empty:
-                        debt_col = 'Total Debt' if 'Total Debt' in bs.index else ('Total Liabilities Net Minority Interest' if 'Total Liabilities Net Minority Interest' in bs.index else None)
-                        eq_col = 'Stockholders Equity' if 'Stockholders Equity' in bs.index else ('Total Equity Gross Minority Interest' if 'Total Equity Gross Minority Interest' in bs.index else None)
-                        
-                        if debt_col and eq_col:
-                            debts = bs.loc[debt_col].dropna().values[:4][::-1]
-                            equities = bs.loc[eq_col].dropna().values[:4][::-1]
-                            
-                            if len(debts) > 0 and len(equities) > 0:
-                                curr_d = debts[-1]
-                                curr_e = equities[-1]
-                                
-                                if curr_e > 0:
-                                    curr_de = (curr_d / curr_e) * 100
-                                    trend_text = ""
-                                    if len(debts) >= 2 and len(equities) >= 2:
-                                        past_e = equities[0]
-                                        past_d = debts[0]
-                                        if past_e > 0:
-                                            past_de = (past_d / past_e) * 100
-                                            if curr_de < past_de - 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 감소", f"{len(debts)}Y Declining debt")
-                                            elif curr_de > past_de + 5:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 증가", f"{len(debts)}Y Increasing debt")
-                                            else:
-                                                trend_text = t(f"최근 {len(debts)}년 부채 유지", f"{len(debts)}Y Stable debt")
-                                    
-                                    if is_financial:
-                                        t_ko = f"[특수] 금융주는 고객 예치금이 부채로 잡혀 부채비율({curr_de:.1f}%) 분석이 무의미합니다."
-                                        t_en = f"[N/A] D/E ({curr_de:.1f}%) is irrelevant for Financials due to deposits."
-                                        bio_eval = f"<span style='color:#fdcb6e;'>{t(t_ko, t_en)}</span>"
-                                    else:
-                                        if curr_de < 50:
-                                            t_ko = f"[합격] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
-                                            t_en = f"[Pass] D/E {curr_de:.1f}% ({trend_text})"
-                                            bio_eval = f"<span class='good'>{t(t_ko, t_en)}</span>"
-                                        elif curr_de < 120:
-                                            t_ko = f"[양호] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
-                                            t_en = f"[Good] D/E {curr_de:.1f}% ({trend_text})"
-                                            bio_eval = f"<span style='color:#74b9ff;'>{t(t_ko, t_en)}</span>"
-                                        else:
-                                            t_ko = f"[경고] 현재 부채비율 {curr_de:.1f}% ({trend_text})"
-                                            t_en = f"[Warning] D/E {curr_de:.1f}% ({trend_text})"
-                                            bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                                else:
-                                    t_ko = "[위험] 자본잠식 상태입니다."
-                                    t_en = "[Danger] Capital impairment detected."
-                                    bio_eval = f"<span class='highlight'>{t(t_ko, t_en)}</span>"
-                except: pass
 
                 bio_eval_styled = bio_eval.replace("class='good'", "style='color:#2ecc71; font-weight:600;'")
                 bio_eval_styled = bio_eval_styled.replace("class='highlight'", "style='color:#ff7675; font-weight:600;'")
@@ -8563,9 +8443,9 @@ with tab1:
 
                     section3_html = (
                         f"<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 25px; width: 100%;'>"
-                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{max(final_g*0.5, 0.0)*100:.1f}%</b><br>{str_mos}: <span style='color:{w_color}; font-weight:bold;'>{w_lbl} {mos_worst:.1f}%</span></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_w_title}</div><div style='{val_style}'>{val_w}</div><div style='{desc_style}'>{str_g}: <b>{g_worst*100:.1f}%</b><br>{str_mos}: <span style='color:{w_color}; font-weight:bold;'>{w_lbl} {mos_worst:.1f}%</span></div></div>"
                         f"<div style='{item_style}'><div style='{lbl_style}'>{txt_b_title}</div><div style='{val_style}'>{val_b}</div><div style='{desc_style}'>{str_g}: <b>{final_g*100:.1f}%</b><br>{str_mos}: <span style='color:{b_color}; font-weight:bold;'>{b_lbl} {mos_val:.1f}%</span></div></div>"
-                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{min(final_g*1.5, 0.25)*100:.1f}%</b><br>{str_mos}: <span style='color:{e_color}; font-weight:bold;'>{e_lbl} {mos_best:.1f}%</span></div></div>"
+                        f"<div style='{item_style}'><div style='{lbl_style}'>{txt_e_title}</div><div style='{val_style}'>{val_e}</div><div style='{desc_style}'>{str_g}: <b>{g_best*100:.1f}%</b><br>{str_mos}: <span style='color:{e_color}; font-weight:bold;'>{e_lbl} {mos_best:.1f}%</span></div></div>"
                         f"</div>"
                     )
                     st.markdown(section3_html, unsafe_allow_html=True)
@@ -8704,7 +8584,7 @@ with tab1:
                                         yr_map_fcf[y_s] = safe_float(g_sorted.loc['14. 잉여현금흐름 (FCF = OCF - CAPEX)', yc]) * 1e6
 
                                 # SEC 20-F에 아직 미반영된 최신 연도(예: 2025년)만 yfinance에서 환율 환산해 추가
-                                fin_fx_a, _ = get_fin_fx_to_usd(i, False)
+                                fin_fx_a, _ = get_fin_fx_to_usd(i, False, cd)
                                 inc_a = stk.income_stmt if stk else None
                                 cf_a = stk.cash_flow if stk else None
                                 if inc_a is not None and not inc_a.empty:
@@ -8734,7 +8614,7 @@ with tab1:
                         except Exception:
                             pass
                     # --- 3. 최후의 보루: yfinance 연동 (API 실패 기업 및 ADR 기업 -> 실시간 환율 USD 환산) ---
-                    fin_fx_vis, fin_curr_vis = get_fin_fx_to_usd(i, kr)
+                    fin_fx_vis, fin_curr_vis = get_fin_fx_to_usd(i, kr, tk)
                     if not api_success:
                         inc = stk.income_stmt if stk else None
                         cf = stk.cash_flow if stk else None
@@ -11739,7 +11619,7 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
                         return df
 
                     def fallback_yfinance():
-                        fin_fx_fb, fin_curr_fb = get_fin_fx_to_usd(i, kr)
+                        fin_fx_fb, fin_curr_fb = get_fin_fx_to_usd(i, kr, tk)
                         if not kr and fin_fx_fb != 1.0:
                             st.info(f"💡 yfinance 재무제표를 실시간 환율(1 {fin_curr_fb} = ${fin_fx_fb:.4f} USD)로 달러 환산해 시각화합니다.")
                         else:
@@ -12136,83 +12016,7 @@ with tab4:
     with st.expander("🎬 [가치투자 바이블 쇼츠 스튜디오] 체리콕 버핏 강단 풀샷 & 칠판 판서 빌드업(.mp4) 원클릭 제작", expanded=False):
         st.info("🔥 **[개별 종목 쇼츠와 100% 동일한 시그니처 칠판 판서 디자인 적용]** 복잡한 박스 대신, **강단 위 버핏 할아버지 풀샷**과 **분필 소리(`사각- 톡!`)에 맞춰 하나씩 적히는 칠판 다이어그램 판서**로 45초 만에 7대 바이블 챕터를 마스터합니다!")
         # ✅ [10049행 에러 완벽 해결] bible_series_db가 선언되지 않았을 때 즉시 자동 로드
-        if 'bible_series_db' not in locals() and 'bible_series_db' not in globals():
-            bible_series_db = {
-                "Part 1. 가치투자 4대 불변의 핵심 철학 (소유권 · 미스터 마켓 · 해자 · 능력범위)": {
-                    "badge": "BIBLE SERIES #1 · 4대 불변의 핵심 철학", "title": "가치투자의 4대 불변 원칙",
-                    "cards": [
-                        ("원칙 1. 기업 소유권 (Ownership)", "주식은 종잇조각이 아닌 실체적 비즈니스의 지분!", "거래소가 5년간 문을 닫아도 불안 없는 기업만 소유", (0, 200, 83)),
-                        ("원칙 2. 미스터 마켓 (Mr. Market)", "시장은 가치를 알려주는 스승이 아닌 변덕쟁이 동업자!", "일일 등락률은 무시하고 광기와 패닉만 역이용", (56, 189, 248)),
-                        ("원칙 3. 해자 기반 안전마진", "해자 없는 싼 주식(저PBR)은 위험한 가치 함정!", "강력한 해자가 보장하는 미래 주주이익 대비 할인 매수", (245, 158, 11)),
-                        ("원칙 4. 능력 범위 (Circle of Competence)", "내가 완벽히 이해하는 비즈니스에만 머문다!", "전문가의 비관적 반론을 논리로 반박 못 하면 투자 제외", (168, 85, 247))
-                    ]
-                },
-                "Part 2. 기업 분석의 기초: 사실 수집(Scuttlebutt) · 자본경량성 · 경영진의 정직성": {
-                    "badge": "BIBLE SERIES #2 · 정성적 기업 해부", "title": "사실 수집 & 경영진 정직성",
-                    "cards": [
-                        ("핵심 1. 필립 피셔의 사실 수집", "재무제표 너머의 현장 평판(고객·경쟁사·직원) 실사!", "경쟁사가 진짜 두려워하는 기업인지 교차 검증", (0, 200, 83)),
-                        ("핵심 2. 자본 경량성 (Asset-Light)", "대규모 설비 재투자 없이도 성장하는 무형자산 해자!", "인플레이션 시대에 최고의 방어력은 독점 가격결정력", (56, 189, 248)),
-                        ("핵심 3. 경영진 3대 자질 감사", "지능 · 열정 · 정직함 중 가장 중요한 것은 정직함!", "정직함이 없는 똑똑한 경영진은 주주의 자산을 파괴", (245, 158, 11)),
-                        ("핵심 4. 주주 희석 영구 배제", "유상증자·전환사채 남발 경영진은 즉시 분석 제외!", "실패한 비용을 일회성으로 포장하는 분식 징후 감시", (220, 38, 38))
-                    ]
-                },
-                "Part 3. 필립 피셔 & 버핏의 위대한 기업 발굴 15가지 체크리스트 (4대 탈락 기준)": {
-                    "badge": "BIBLE SERIES #3 · 피셔의 15대 원칙", "title": "위대한 기업 발굴 4대 관문",
-                    "cards": [
-                        ("관문 1. 구조적 성장과 독점 해자", "향후 수년간 매출을 늘릴 제품군과 높은 진입장벽!", "단기 유행 테마주 및 지속적 자본잠식 기업 즉시 탈락", (0, 200, 83)),
-                        ("관문 2. 수익성과 원가 통제력", "충분히 높은 영업마진과 정밀한 부문별 원가 추적!", "출혈 경쟁으로 원가 상승분을 전가 못 하면 즉시 탈락", (56, 189, 248)),
-                        ("관문 3. 인적 자본과 후계 양성", "낮은 핵심 인력 이직률과 제왕적 1인 독재 배제!", "차세대 리더십 승계 시스템이 작동하는 조직 문화", (245, 158, 11)),
-                        ("관문 4. 장기주의와 도덕적 무결성", "월가 단기 가이던스보다 10년 뒤 복리 성장을 추구!", "악재 발생 시 은폐 없이 주주에게 정직하게 소통", (168, 85, 247))
-                    ]
-                },
-                "Part 4. 찰리 멍거의 다학제적 멘탈 모델 (공학 · 물리화학 · 수학 · 생물학)": {
-                    "badge": "BIBLE SERIES #4 · 멍거의 멘탈 모델", "title": "다학제적 과학 분석 4대 렌즈",
-                    "cards": [
-                        ("모델 1. 공학 : 다중 백업 시스템", "단일 실패 지점(Single Point of Failure) 원천 제거!", "단일 고객·단일 벤더 이탈에도 무너지지 않는 유동성", (0, 200, 83)),
-                        ("모델 2. 물리·화학 : 자가 촉매", "임계점(Tipping Point) 돌파 후 스스로 수요 창출!", "네트워크 효과로 후발주자가 영원히 못 따라잡는 구조", (56, 189, 248)),
-                        ("모델 3. 수학 : 복리의 바퀴", "ROIC가 자본비용 허들(12%)을 현저히 초과하는가!", "벌어들인 현금을 고수익 본업에 재투자하는 복리 엔진", (245, 158, 11)),
-                        ("모델 4. 생물학 : 다윈주의 진화", "환경과 기술 변화에 맞춰 스스로 진화하는 적응력!", "과거 성공 공식에만 안주하는 공룡 기업은 도태", (168, 85, 247))
-                    ]
-                },
-                "Part 5. 인지적 오판을 막는 8대 심리학 체크리스트 & 롤라팔루자 효과": {
-                    "badge": "BIBLE SERIES #5 · 인간 오판의 심리학", "title": "멍거의 투자 심리 편향 방어",
-                    "cards": [
-                        ("편향 1. 인센티브 & 확증 편향", "보상이 걸린 애널리스트의 장밋빛 리포트 경계!", "매수 후 악재를 애써 무시하는 확증 편향 자기 점검", (220, 38, 38)),
-                        ("편향 2. 질투심 & 고통스러운 현실 부정", "남들의 단기 급등주 수익에 질투해 고점 추격 금지!", "해자가 영구 훼손됐는데도 손실 확정 피하는 희망회로 차단", (245, 158, 11)),
-                        ("편향 3. 군중 심리 & 가용성 편향", "모두가 열광하는 테마주 편승이 버블 붕괴의 시작!", "10년 장부보다 어제 뉴스에 과민 반응하는 소음 차단", (56, 189, 248)),
-                        ("편향 4. 롤라팔루자 효과 경계", "여러 심리 편향이 동시에 겹치면 집단 광기 폭발!", "극단적 패닉이나 광기장에서는 모든 매매 멈추고 관망", (168, 85, 247))
-                    ]
-                },
-                "Part 6. 경영진의 자본 배분(Capital Allocation) 5대 경로 & 버핏의 주주이익 산출": {
-                    "badge": "BIBLE SERIES #6 · 자본 배분과 주주이익", "title": "CEO 자본 배분 5대 원칙",
-                    "cards": [
-                        ("핵심 1. 버핏의 주주이익 공식", "순이익 + 감가상각비 - 유지보수 설비투자(CapEx)!", "회계상 순이익이 아닌 주머니에 남는 진짜 자유현금", (0, 200, 83)),
-                        ("핵심 2. 1순위 : 고수익 본업 재투자", "ROIC가 높다면 외부 유출보다 본업 재투자가 최고!", "제국 건설용 고가 M&A는 주주가치를 파괴하는 독약", (56, 189, 248)),
-                        ("핵심 3. 저평가 구간 자사주 매입·소각", "오직 주가가 내재가치보다 현저히 쌀 때만 자사주 매입!", "고평가 상태의 자사주 매입은 남은 주주의 자본 낭비", (245, 158, 11)),
-                        ("핵심 4. 일관된 현금배당 & 부채 상환", "성숙기 기업은 잉여현금을 주주에게 투명하게 배당!", "고금리 차입금 선제 상환으로 불황기 파산 위험 차단", (168, 85, 247))
-                    ]
-                },
-                "Part 7. 역산 밸류에이션(Invert) · 피셔와 버핏의 매수 타이밍 · 매도 3대 철칙": {
-                    "badge": "BIBLE SERIES #7 · 역산 & 매수·매도 철칙", "title": "역산 암산법 & 매도 3대 원칙",
-                    "cards": [
-                        ("원칙 1. 거짓 정밀성 탈피 & 역산", "복잡한 엑셀 DCF 대신 현재 주가의 요구성장률 역산!", "암산으로도 명백히 안전마진이 보일 때만 진입", (0, 200, 83)),
-                        ("원칙 2. 피셔 & 버핏의 3대 매수 적기", "신공장 초기 일시적 문제 · 거시 공황 · 일회성 악재!", "해자가 온전한 초우량주가 일시적 오해로 폭락할 때 매수", (56, 189, 248)),
-                        ("원칙 3. 매도는 오직 3가지 경우만", "① 초기 분석 오류 ② 해자 영구 붕괴 ③ 더 확실한 기회!", "단순히 주가가 올랐다고 위대한 기업의 지분을 팔지 마라", (245, 158, 11)),
-                        ("원칙 4. 최종 집행 3대 관문", "10년 뒤 독점력 유지 · 경영진 정직성 · 영구 보유 관점!", "세 가지 질문에 모두 YES일 때만 평생 동업자로 매수", (168, 85, 247))
-                    ]
-                }
-            }
-        b_col1, b_col2, b_col3, b_col4 = st.columns([1.6, 1.1, 1.1, 1.0])
-        with b_col1:
-            sel_bible_part = st.selectbox("📚 쇼츠로 제작할 바이블 챕터 (Part 1 ~ Part 7)", list(bible_series_db.keys()), key="bible_part_sel_v26")
-        with b_col2:
-            b_tone = st.selectbox("🗣️ 대본 말투 스타일", ["🔥 머니치트키식 반말 (45초 도파민)", "🎙️ 정통 마스터 존댓말"], index=0, key="bible_tone_v26")
-        with b_col3:
-            b_voice = st.selectbox("🎙️ AI 성우 선택", ["🔥 현수 (임팩트 남성)", "🎙️ 인준 (중후한 남성)", "⚡ 선희 (아나운서 여성)"], index=0, key="bible_voice_v26")
-        with b_col4:
-            b_spd = st.slider("⚡ 성우 배속", 10, 45, 28, 2, format="+%d%%", help="28%~30% 배속이 발음도 또렷하고 45초 내외로 가장 듣기 좋습니다.", key="bible_spd_v26")
-          
-            bible_series_db = {
+        bible_series_db = {
             "Part 1. 가치투자 4대 불변의 핵심 철학 (소유권 · 미스터 마켓 · 해자 · 능력범위)": {
                 "badge": "BIBLE SERIES #1 · 4대 불변의 핵심 철학",
                 "title": "가치투자의 4대 불변 원칙",
@@ -12389,6 +12193,17 @@ with tab4:
                 ]
             }
         }
+        b_col1, b_col2, b_col3, b_col4 = st.columns([1.6, 1.1, 1.1, 1.0])
+        with b_col1:
+            sel_bible_part = st.selectbox("📚 쇼츠로 제작할 바이블 챕터 (Part 1 ~ Part 7)", list(bible_series_db.keys()), key="bible_part_sel_v26")
+        with b_col2:
+            b_tone = st.selectbox("🗣️ 대본 말투 스타일", ["🔥 머니치트키식 반말 (45초 도파민)", "🎙️ 정통 마스터 존댓말"], index=0, key="bible_tone_v26")
+        with b_col3:
+            b_voice = st.selectbox("🎙️ AI 성우 선택", ["🔥 현수 (임팩트 남성)", "🎙️ 인준 (중후한 남성)", "⚡ 선희 (아나운서 여성)"], index=0, key="bible_voice_v26")
+        with b_col4:
+            b_spd = st.slider("⚡ 성우 배속", 10, 45, 28, 2, format="+%d%%", help="28%~30% 배속이 발음도 또렷하고 45초 내외로 가장 듣기 좋습니다.", key="bible_spd_v26")
+          
+            
         b_meta = bible_series_db[sel_bible_part]
         cards_data = b_meta["cards"]  # 4개의 핵심 카드 [(제목, 핵심문구, 보조문구, 색상), ...]
 
@@ -13574,7 +13389,7 @@ def get_full_battle_profile(tk):
     bv = safe_float(i.get('bookValue'))
     currency_trade = str(i.get('currency', 'USD')).upper()
     currency_fin = str(i.get('financialCurrency', 'USD')).upper()
-    is_adr = (currency_trade != currency_fin) and not kr
+    is_adr = ((currency_trade != currency_fin) or (tk.upper() in ADR_CURRENCY_MAP)) and not kr
     adr_fx_ratio = 1.0
     if is_adr:
         try:
@@ -14089,7 +13904,25 @@ with tab_vs:
                                     "-c:a", "aac", "-b:a", "192k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", fs
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                                 return i_v, fs, tmp_v_list
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex_vs:
+                                futs_vs = [ex_vs.submit(_build_vs_cut, i_v, st_v, sc_v) for i_v, (st_v, sc_v) in enumerate(vs_pop_chunks)]
+                                for ft_v in concurrent.futures.as_completed(futs_vs):
+                                    idx_r, seg_p_v, tmp_l_v = ft_v.result()
+                                    seg_list[idx_r] = seg_p_v
+                                    cleans.extend(tmp_l_v)
 
+                            cat_vs = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                            out_vs_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                            cleans.extend([cat_vs, out_vs_mp4])
+                            with open(cat_vs, "w", encoding="utf-8") as cf_v:
+                                for sp_v in seg_list:
+                                    if sp_v:
+                                        cf_v.write(f"file '{sp_v.replace(chr(92), '/')}'\n")
+                            subprocess.run([
+                                ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_vs,
+                                "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_vs_mp4
+                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                            
                             # [59초 이내 절대 안전가드]
                             res_d_vs = subprocess.run([ffmpeg_exe, "-i", out_vs_mp4], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
                             m_d_vs = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_d_vs.stderr)
