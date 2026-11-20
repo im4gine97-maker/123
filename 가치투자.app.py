@@ -8502,15 +8502,15 @@ with tab1:
                     
                 # -----------------------------------------------
 
-                roic_val = real_roic if real_roic is not None else 0
-                spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
-                op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
-                    mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
-                    is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
-                    f_pe=eff_cur_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
-                    hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
-                    buyback_yield_pct=bb_yield  # <--- 추가!
-                )
+            roic_val = real_roic if real_roic is not None else 0
+            spy_pe_val = safe_float(macro_data.get("SPY_PE", 22.0), 22.0)
+            op_title, op_color, op_reason, score_breakdown = get_comprehensive_investment_opinion(
+                mos_val, pmos_val, roe, roic_val, erp, final_g, criticism_text, 
+                is_financial, pbr, kr, tk, base_fcf, div, is_zigzag,
+                f_pe=eff_cur_pe, spy_pe=spy_pe_val, is_cyclical=is_cyclical,
+                hist_roe_10y=hist_roe_10y, hist_roic_10y=hist_roic_10y,
+                buyback_yield_pct=bb_yield  # <--- 추가!
+            )
 
                 # ▼▼▼ 아래 3줄을 col_op1, col_op2 = st.columns(...) 바로 위에 꼭 넣어주세요 ▼▼▼
                 total_score_val = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
