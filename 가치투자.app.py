@@ -2985,9 +2985,14 @@ def get_naver_finance(cd):
             pass
     return res
 # ▲▲▲ 여기까지 교체 ▲▲▲
-@st.cache_data(ttl=60)
+@st.cache_resource(ttl=600)
+def get_cached_ticker(tk):
+    """yf.Ticker 인스턴스를 10분간 재사용해 income_stmt/cash_flow 중복 요청(429 차단) 방지"""
+    return yf.Ticker(tk)
+
+@st.cache_data(ttl=600)
 def fetch_cached_info(tk, kr, cd):
-    stk = yf.Ticker(tk)
+    stk = get_cached_ticker(tk)
     i = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         future_info = executor.submit(get_yf_info, stk)
@@ -3072,7 +3077,7 @@ def get_data(tk):
         kr = tk.endswith('.KS') or tk.endswith('.KQ')
         cd = tk.split('.')[0] if kr else tk
         
-        stk = yf.Ticker(tk)
+        stk = get_cached_ticker(tk)
         i = fetch_cached_info(tk, kr, cd).copy()
         
         p = 0.0
