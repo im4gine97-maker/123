@@ -8513,10 +8513,10 @@ with tab1:
                 buyback_yield_pct=bb_yield  # <--- 추가!
             )
 
-                # ▼▼▼ 아래 3줄을 col_op1, col_op2 = st.columns(...) 바로 위에 꼭 넣어주세요 ▼▼▼
-                total_score_val = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
-                sign_tot = "+" if total_score_val > 0 else ""
-                # ▲▲▲ 여기까지 추가 ▲▲▲
+            # ▼▼▼ 아래 3줄을 col_op1, col_op2 = st.columns(...) 바로 위에 꼭 넣어주세요 ▼▼▼
+            total_score_val = round(sum(v[0] if isinstance(v, tuple) else v for v in score_breakdown.values()))
+            sign_tot = "+" if total_score_val > 0 else ""
+            # ▲▲▲ 여기까지 추가 ▲▲▲
                 
                 # -------------------------------------------------------------
                 # PDF 지침서 4대 파트 완벽 대응: 찰리 멍거의 가치투자 정량 체크리스트 (전체 너비)
