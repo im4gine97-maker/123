@@ -7327,7 +7327,8 @@ def get_10yr_custom_metrics(stk, tk, kr, cd, is_adr, p, reg_p, t_eps, f_eps, bv,
                     }
 
                     dirs = [1 if fcf_vals_clean[k] > fcf_vals_clean[k-1]*1.3 else (-1 if fcf_vals_clean[k] < fcf_vals_clean[k-1]*0.7 else 0) for k in range(1, len(fcf_vals_clean))]
-                    if 1 in dirs and -1 in dirs: is_zigzag_10y = True
+                    if 1 in dirs and -1 in dirs and (not base_fcf_10y or base_fcf_10y <= 0):
+                        is_zigzag_10y = True
 
                 if a_pe_10y <= 0: a_pe_10y = safe_float(cached_i.get('trailingPE'), 15.0)
                 if a_pbr_10y <= 0: a_pbr_10y = safe_float(cached_i.get('priceToBook'), 1.5)
