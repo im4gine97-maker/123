@@ -10983,12 +10983,13 @@ Frowns slightly, gestures sharply in skepticism, natural blinking, red monitor g
 [Act 6] Long-term investor standing calmly by a tall window watching golden sunrise over the financial district skyline, {master_style_seed}"""
                     st.code(asset_prompts, language="text")
                     st.divider()
-                    st.markdown("#### ③ 🎬 롱폼 제작 5단계 순서 · 길이 제한 분할 질문 · 캐릭터 괴리 방지 가이드")
+                    st.markdown("#### ③ 🎬 롱폼 제작 5단계 순서 · 제미나이 영상 길이 제한 대응 · 캐릭터 고정 가이드")
                     st.info(
-                        "📌 **AI 길이 제한 & 캐릭터 고정 핵심 원칙**\n"
-                        "1. **제미나이 대본 길이 제한**: 10~15분 대본을 한 번에 요청하면 후반부가 요약되거나 끊깁니다. 반드시 아래 **3단계 분할 질문**으로 나눠 받으세요.\n"
-                        "2. **영상 AI(Veo·Kling 등) 길이 제한**: 1클립당 5~8초가 한계입니다. 10분 영상을 한 번에 뽑으려 하지 말고, **5초짜리 캐릭터 루프 클립 4개(해설/버핏/멍거/반론)**만 만들어 2번 탭 업로더에 올리면 AGIE가 자동으로 무한 루프 합성합니다.\n"
-                        "3. **캐릭터 괴리 방지 3철칙**: ① 아래 **캐릭터 고정 앵커(영문 외형 묘사)**를 토씨 하나 바꾸지 말고 고정, ② 이미지 AI로 **기준 이미지(Reference) 1장**을 먼저 확정, ③ 영상 AI에는 반드시 그 기준 이미지를 넣는 **I2V(Image-to-Video)** 방식만 사용하고 급격한 카메라 회전/표정 변화 지시를 금지하세요."
+                        "📌 **제미나이(Gemini) 영상 생성 길이 제한 & 크레딧 절약 원칙 (2026.11 기준)**\n"
+                        "1. **제미나이 앱 (Gemini Omni 1.2 Flash)**: 1클립당 **3~10초** (AI Ultra 요금제 최대 **15초**). 10초짜리를 연속 생성하면 주간 크레딧 한도에 빨리 도달합니다.\n"
+                        "2. **Google Flow / API (Veo 3.1)**: 단일 **4~8초**, `Extend(7초씩 최대 20회)` 연장 시 연속 **최대 약 148초(2분 28초, 720p)**까지 가능하나 길어질수록 캐릭터 얼굴이 틀어질 수 있습니다.\n"
+                        "3. **10~15분 롱폼 최적 전략 (크레딧 90% 절약)**: 10분 영상을 AI로 길게 연장하지 말고, **8~10초 심리스 루프(Seamless Loop) 캐릭터 클립 4개(해설/버핏/멍거/반론)**만 한 번 생성해 2번 탭 업로더에 올리세요. AGIE가 10~15분 전체를 자동 무한 루프 + 풀스크린 재무차트 + 자막으로 합성합니다.\n"
+                        "4. **캐릭터 괴리 방지 3철칙**: ① 아래 영문 고정 앵커 수정 금지, ② 이미지 AI로 기준 이미지 1장 확정, ③ 영상 AI에는 반드시 그 이미지를 넣는 **I2V(Image-to-Video)** + `locked-off steady camera, seamless loop`만 사용하세요."
                     )
 
                     wf_c1, wf_c2 = st.columns(2)
@@ -15785,8 +15786,28 @@ def fetch_sp500_factset_live_data():
     except Exception:
         pass
 
+    # 실시간 섹터 ETF 선행/현재 PER 자동 수집 (실패 시 기존 FactSet 기준치 폴백)
+    live_pe_map = {}
+    def _get_etf_pe(tk_e):
+        try:
+            inf = yf.Ticker(tk_e).info
+            v = safe_float(inf.get("forwardPE") or inf.get("trailingPE"))
+            return tk_e, round(v, 1) if 5.0 <= v <= 60.0 else None
+        except Exception:
+            return tk_e, None
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex_pe:
+            for tk_r, pe_r in ex_pe.map(_get_etf_pe, etf_list):
+                if pe_r:
+                    live_pe_map[tk_r] = pe_r
+    except Exception:
+        pass
+
     for item in sector_data:
         item["price_chg_live"] = live_ytd_map.get(item["etf"], item["price_chg_default"])
+        if item["etf"] in live_pe_map:
+            item["fwd_pe"] = live_pe_map[item["etf"]]
 
     # 2. S&P 500 10년(2016~2026) 주가 vs 12개월 선행 EPS 궤적 생성
     dates_10y = pd.date_range("2016-03-01", "2026-03-27", freq="MS")
@@ -15848,12 +15869,13 @@ with tab_eps_val:
     auto_e26 = auto_data["e26"]
     auto_src = auto_data["source"]
 
-    # 2. 컨트롤 패널 (실시간 주가 토글 및 자동 로드된 수치 확인용)
+    # 2. 컨트롤 패널 (실시간 주가 기본값 + 강제 새로고침 버튼)
     ctrl_c1, ctrl_c2 = st.columns([1.6, 1.4])
     with ctrl_c1:
         fs_data_mode = st.radio(
             "📊 연초 대비(Since Dec 31) 주가 변화율 기준 선택",
-            ["📌 FactSet 리포트 스냅샷 기준 (사진 원본 100% 재현)", "⚡ 실시간 ETF 주가 연동 (Yahoo Finance 실시간 YTD)"],
+            ["⚡ 실시간 ETF 주가·PER 자동 연동 (Yahoo Finance 실시간)", "📌 FactSet 리포트 스냅샷 기준"],
+            index=0,
             horizontal=True,
             key="fs_mode_radio"
         )
@@ -15871,97 +15893,53 @@ with tab_eps_val:
     yoy_2025 = ((eps_2025 - eps_2024) / eps_2024) * 100.0 if eps_2024 > 0 else 12.5
     yoy_2026 = ((eps_2026 - eps_2025) / eps_2025) * 100.0 if eps_2025 > 0 else 14.7
     use_live_p = ("실시간" in fs_data_mode)
+    p_col_dyn = "price_chg_live" if use_live_p else "price_chg_default"
 
-    # 10년물 미국채 금리 대비 현재 S&P 500 이익수익률(Earnings Yield) 점검 배너
-    tnx_now = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
-    if tnx_now <= 0:
-        tnx_now = 4.4
-    sp500_fpe_now = float(df_fs_sec[df_fs_sec["sector_en"] == "S&P 500"]["fwd_pe"].iloc[0])
+    # 10년물 미국채 금리 대비 현재 S&P 500 이익수익률 & IT 섹터 실시간 동적 판독
+    tnx_now = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4) or 4.4
+    sp_row = df_fs_sec[df_fs_sec["sector_en"] == "S&P 500"].iloc[0]
+    it_row = df_fs_sec[df_fs_sec["sector_en"] == "Info. Technology"].iloc[0]
+
+    sp500_fpe_now = float(sp_row["fwd_pe"])
+    sp500_ytd_now = float(sp_row[p_col_dyn])
     sp500_ey_now = (100.0 / sp500_fpe_now) if sp500_fpe_now > 0 else 4.93
     sp500_erp_now = sp500_ey_now - tnx_now
+
+    it_pe_now = float(it_row["fwd_pe"])
+    it_avg5 = float(it_row["avg_5y"])
+    it_avg10 = float(it_row["avg_10y"])
+    it_ytd_now = float(it_row[p_col_dyn])
+
+    # 수치 변화에 따라 헤드라인 및 IT 밸류에이션 문구 자동 전환
+    if yoy_2026 > 0 and sp500_ytd_now < 0:
+        dyn_headline = f'💡 핵심 팩트 체크: "이익 추정치는 성장(+{yoy_2026:.1f}%) 중이나, S&P500 가격({sp500_ytd_now:+.1f}%)만 조정 중입니다."'
+    elif yoy_2026 > 0 and sp500_ytd_now >= 0:
+        dyn_headline = f'💡 핵심 팩트 체크: "이익 성장(+{yoy_2026:.1f}%)과 주가({sp500_ytd_now:+.1f}%)가 동반 상승 중입니다. (밸류에이션 부담 점검)"'
+    else:
+        dyn_headline = f'💡 핵심 팩트 체크: "이익 추정치 둔화({yoy_2026:+.1f}%) 구간입니다. 안전마진과 방어 섹터를 점검하세요."'
+
+    if it_pe_now < it_avg10:
+        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배) 및 10년 평균({it_avg10:.1f}배)을 모두 하회</b>하는 저평가 구간입니다."
+        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년·10년 평균 모두 하회 (할인 구간)"
+    elif it_pe_now < it_avg5:
+        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배)을 하회</b>하며 <b>10년 평균({it_avg10:.1f}배) 부근</b>에 위치합니다."
+        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년 평균 하회, 10년 평균 근접"
+    else:
+        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배) 및 10년 평균({it_avg10:.1f}배)을 상회</b>하는 할증 구간입니다."
+        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년·10년 평균 상회 (프리미엄 주의)"
 
     st.markdown(f"""
     <div style='background: linear-gradient(90deg, rgba(26,115,232,0.12), rgba(46,204,113,0.08)); border-left: 5px solid #1A73E8; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px;'>
         <div style='font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 6px;'>
-            💡 핵심 팩트 체크: "이익 추정치는 양호하고, 가격만 내려오고 있습니다."
+            {dyn_headline}
         </div>
         <div style='font-size: 0.95rem; color: var(--text-color); opacity: 0.9; line-height: 1.6;'>
-            • <b>S&P 500 2026년 추정 EPS:</b> <b>${eps_2026:,.2f}</b> (YoY <b>+{yoy_2026:.1f}%</b> 성장) — 12개월 선행 EPS 사상 최고치 경신 중!<br>
-            • <b>S&P 500 선행 PER 및 이익수익률:</b> 현재 12개월 선행 PER <b>{sp500_fpe_now:.1f}배</b> (5년 평균 20.0배 · 10년 평균 18.9배) ➔ <b>이익수익률(Earnings Yield) {sp500_ey_now:.2f}%</b> vs <b>10년물 미국채 금리 {tnx_now:.2f}%</b> (격차 <b>{sp500_erp_now:+.2f}%p</b>)<br>
-            • <b>빅테크(IT) 밸류에이션:</b> 현재 선행 PER <b>22.5배</b>로 <b>5년 평균(25.9배)을 큰 폭으로 하회</b>하며 <b>10년 평균(22.7배)에 수렴</b>했습니다.
+            • <b>S&P 500 2026년 추정 EPS:</b> <b>${eps_2026:,.2f}</b> (YoY <b>{yoy_2026:+.1f}%</b>) · 연초대비 주가 <b>{sp500_ytd_now:+.1f}%</b><br>
+            • <b>S&P 500 PER 및 이익수익률:</b> 현재 PER <b>{sp500_fpe_now:.1f}배</b> (5년 평균 {sp_row['avg_5y']:.1f}배 · 10년 평균 {sp_row['avg_10y']:.1f}배) ➔ <b>이익수익률 {sp500_ey_now:.2f}%</b> vs <b>10년물 미국채 {tnx_now:.2f}%</b> (격차 <b>{sp500_erp_now:+.2f}%p</b>)<br>
+            • <b>빅테크(IT) 밸류에이션 (YTD {it_ytd_now:+.1f}%):</b> {it_val_desc}
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    # =========================================================================
-    # [상단 섹션] 1. CY 2026 EPS 추정치 리비전 추이 + 2. 연도별 S&P 500 EPS & YoY 성장률 표
-    # =========================================================================
-    st.markdown("#### 1️⃣ S&P 500 이익 추정치 추이 (CY 2026 Earnings Estimate Revision Trend)")
-    top_c1, top_c2 = st.columns([1.25, 1.0])
-
-    with top_c1:
-        rev_dates = ["2025-09-30", "2025-12-31", "2026-02-26", "2026-03-27"]
-        rev_vals = [303.88, 311.25, eps_2026, eps_2026]
-
-        fig_rev = go.Figure()
-        fig_rev.add_trace(go.Scatter(
-            x=rev_dates,
-            y=rev_vals,
-            mode="lines+markers+text",
-            name="CY 2026 Est. EPS ($)",
-            line=dict(color="#3b3869", width=3.5),
-            marker=dict(size=10, color="#3b3869"),
-            text=[f"<b>${v:.2f}</b>" for v in rev_vals],
-            textposition=["top right", "top left", "top center", "top left"],
-            textfont=dict(size=13, color="#facc15", family="Pretendard, Arial Black, sans-serif")
-        ))
-        fig_rev.update_layout(
-            title=dict(text="<b>Revision Trend of S&P 500 CY 2026 Earnings Estimate (FactSet)</b>", font=dict(size=15, color="#ffffff"), x=0.02, y=0.95),
-            height=330,
-            paper_bgcolor="#0f172a",
-            plot_bgcolor="#0f172a",
-            font=dict(color="#e2e8f0", family="Pretendard, sans-serif"),
-            yaxis=dict(title="Estimated EPS ($)", range=[302, max(315.5, eps_2026 + 2.0)], gridcolor="#334155", tickprefix="$"),
-            xaxis=dict(title="Revision Date", gridcolor="#334155"),
-            margin=dict(l=55, r=30, t=50, b=40)
-        )
-        st.plotly_chart(fig_rev, use_container_width=True)
-
-    with top_c2:
-        st.markdown(f"""
-        <div style='background:#0f172a; border:1.5px solid #334155; border-radius:14px; padding:22px 18px; height:330px; display:flex; flex-direction:column; justify-content:center;'>
-            <div style='font-size:1.05rem; font-weight:800; color:#facc15; margin-bottom:16px; text-align:center;'>
-                📋 S&P 500 연도별 EPS 및 YoY 성장률 컨센서스
-            </div>
-            <table style='width:100%; border-collapse:collapse; text-align:center; color:#f8fafc; font-size:0.98rem;'>
-                <thead>
-                    <tr style='border-bottom:2px solid #475569; color:#94a3b8; font-size:0.9rem;'>
-                        <th style='padding:12px 6px;'>구분</th>
-                        <th style='padding:12px 6px;'>2024년 (확정/잠정)</th>
-                        <th style='padding:12px 6px;'>2025년 (추정)</th>
-                        <th style='padding:12px 6px; color:#38bdf8;'>2026년 (추정)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr style='border-bottom:1px solid #334155; font-size:1.1rem;'>
-                        <td style='padding:16px 6px; font-weight:800; color:#cbd5e1;'>S&P 500 EPS</td>
-                        <td style='padding:16px 6px;'>~${eps_2024:,.1f}</td>
-                        <td style='padding:16px 6px;'>~${eps_2025:,.1f}</td>
-                        <td style='padding:16px 6px; font-weight:900; color:#facc15; font-size:1.22rem;'>${eps_2026:,.2f}</td>
-                    </tr>
-                    <tr style='font-size:1.1rem;'>
-                        <td style='padding:16px 6px; font-weight:800; color:#cbd5e1;'>YoY 성장률</td>
-                        <td style='padding:16px 6px; color:#64748b;'>-</td>
-                        <td style='padding:16px 6px; color:#4ade80; font-weight:700;'>+{yoy_2025:.1f}%</td>
-                        <td style='padding:16px 6px; font-weight:900; color:#00e676; font-size:1.22rem;'>+{yoy_2026:.1f}%</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div style='font-size:0.8rem; color:#94a3b8; margin-top:16px; text-align:center;'>
-                * 출처: FactSet Earnings Insight (추정치는 분기 실적 발표에 따라 변동될 수 있어 주기적 확인이 필요한 부분입니다.)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -16005,7 +15983,7 @@ with tab_eps_val:
         st.plotly_chart(fig_10y, use_container_width=True)
 
     with mid_c2:
-        st.markdown("#### 3️⃣ 빅테크 기업의 평가 정도는 5년 평균 하회, 10년 평균 수렴")
+        st.markdown(f"#### {it_chart_title}")
         fig_pe = go.Figure()
 
         x_labels = [f"{r['sector_ko']}<br>({r['sector_en']})" for _, r in df_fs_sec.iterrows()]
@@ -16281,23 +16259,33 @@ def fetch_sp500_cycles_live():
         ("2022 인플레긴축", "Bear", 2022, 2022, -25.4, 0.8)
     ]
 
-    # 2. 현재 진행 중인 사이클(2022년 10월 12일 저점 3,577.03pt 기준) 실시간 연동
-    curr_sp = 6500.0
+    # 2. 현재 진행 중인 사이클(2022.10.12 저점 3,577.03pt 기준) 실시간 연동 + 고점 대비 낙폭(Drawdown) 자동 판독
+    curr_sp, cycle_peak = 6500.0, 6500.0
     try:
         sp_tk = yf.Ticker("^GSPC")
-        hist = sp_tk.history(period="5d")
+        hist = sp_tk.history(start="2022-10-12")
         if not hist.empty:
-            curr_sp = float(hist['Close'].dropna().iloc[-1])
+            closes = hist['Close'].dropna()
+            curr_sp = float(closes.iloc[-1])
+            cycle_peak = float(closes.max())
     except Exception:
         pass
 
     oct_2022_trough = 3577.03
     live_ret = ((curr_sp - oct_2022_trough) / oct_2022_trough) * 100.0
+    dd_from_peak = ((curr_sp - cycle_peak) / cycle_peak) * 100.0 if cycle_peak > 0 else 0.0
     now_dt = datetime.now()
     live_dur = (now_dt - datetime(2022, 10, 12)).days / 365.25
 
     cycles = list(historical_fixed)
-    cycles.append((f"2022~현재 강세장", "Bull", 2022, now_dt.year, round(live_ret, 1), round(live_dur, 1)))
+    if dd_from_peak <= -20.0:
+        cur_label, cur_type, cur_ret = f"현재 약세장 진입({dd_from_peak:.1f}%)", "Bear", round(dd_from_peak, 1)
+    elif dd_from_peak <= -10.0:
+        cur_label, cur_type, cur_ret = f"2022~현재 강세(조정 {dd_from_peak:.1f}%)", "Bull", round(live_ret, 1)
+    else:
+        cur_label, cur_type, cur_ret = "2022~현재 강세장", "Bull", round(live_ret, 1)
+
+    cycles.append((cur_label, cur_type, 2022, now_dt.year, cur_ret, round(live_dur, 1)))
     return cycles, curr_sp
 
 with tab_bull_bear:
@@ -16405,17 +16393,29 @@ with tab_qe:
     df_fed, df_dbt = fetch_fred_liquidity_gap_data()
 
     latest_fed_t = df_fed["WALCL"].iloc[-1] / 1e6 if not df_fed.empty else 6.75
+    prev_fed_3m_t = df_fed["WALCL"].iloc[max(0, len(df_fed) - 13)] / 1e6 if len(df_fed) >= 13 else latest_fed_t
+    fed_3m_chg_pct = ((latest_fed_t - prev_fed_3m_t) / prev_fed_3m_t) * 100.0 if prev_fed_3m_t > 0 else 0.0
     latest_dbt_t = (df_dbt["DEBT"].iloc[-1] * 10.0) / 1e6 if not df_dbt.empty else 120.0
     gap_multiple = latest_dbt_t / latest_fed_t if latest_fed_t > 0 else 17.8
+    latest_fed_dt_str = df_fed["DATE"].iloc[-1].strftime("%Y-%m-%d") if not df_fed.empty else datetime.now().strftime("%Y-%m-%d")
+
+    # 배율 및 최근 3개월 연준 자산 증감에 따른 자동 문구 전환
+    if fed_3m_chg_pct >= 2.0:
+        qe_status_lbl, qe_sub_lbl, qe_col = "유동성 공급 전환 (QE 진행)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% 증가", "#4ade80"
+    elif gap_multiple >= 16.0:
+        qe_status_lbl, qe_sub_lbl, qe_col = "격차 확대 (QT 긴축·QE 압력 높음)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% · 차기 유동성 공급 압력 누적", "#facc15"
+    elif gap_multiple >= 12.0:
+        qe_status_lbl, qe_sub_lbl, qe_col = "중립 구간 (균형 유지)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% 변화", "#38bdf8"
+    else:
+        qe_status_lbl, qe_sub_lbl, qe_col = "유동성 풍부 구간", f"본원통화 대비 부채 배율 안정({gap_multiple:.1f}배)", "#4ade80"
 
     qe_c1, qe_c2, qe_c3 = st.columns(3)
     with qe_c1:
         st.markdown(f"<div style='background:#1e293b; border-left:4px solid #b91c1c; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>미국 전 부문 총부채 (All Sector Debt)</div><div style='font-size:1.6rem; font-weight:900; color:#f87171;'>~${latest_dbt_t:.1f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기(1/10 스케일): {latest_dbt_t*100000:,.0f}M</div></div>", unsafe_allow_html=True)
     with qe_c2:
-        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #2563eb; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>연준 보유자산 / 본원통화 (Fed Assets)</div><div style='font-size:1.6rem; font-weight:900; color:#60a5fa;'>~${latest_fed_t:.2f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기: ${latest_fed_t*1000:,.1f}B ({latest_fed_t*1000000:,.0f}M)</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #2563eb; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>연준 보유자산 / 본원통화 (기준: {latest_fed_dt_str})</div><div style='font-size:1.6rem; font-weight:900; color:#60a5fa;'>~${latest_fed_t:.2f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>최근 3개월 증감: <b>{fed_3m_chg_pct:+.2f}%</b></div></div>", unsafe_allow_html=True)
     with qe_c3:
-        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #facc15; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>총부채 대비 본원통화 배율 (Debt / Fed)</div><div style='font-size:1.6rem; font-weight:900; color:#facc15;'>{gap_multiple:.1f}배 (격차 확대)</div><div style='font-size:0.8rem; color:#cbd5e1;'>이 격차가 벌어질수록 차기 QE(Big Print III) 압력 증가</div></div>", unsafe_allow_html=True)
-
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid {qe_col}; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>총부채 대비 본원통화 배율 (Debt / Fed)</div><div style='font-size:1.5rem; font-weight:900; color:{qe_col};'>{gap_multiple:.1f}배 ({qe_status_lbl})</div><div style='font-size:0.8rem; color:#cbd5e1;'>{qe_sub_lbl}</div></div>", unsafe_allow_html=True)
     fig_qe = go.Figure()
 
     # 1. 경기 침체 및 위기 음영 구간 (2008 금융위기 / 2020 팬데믹)
@@ -16454,7 +16454,7 @@ with tab_qe:
     fig_qe.add_annotation(x="2017-03-01", y=5600000, text="<b>Big Print II</b>", showarrow=False, font=dict(size=13, color="#111827"))
 
     # Big Print III ? (2025~2026)
-    fig_qe.add_annotation(x="2026-03-01", y=11400000, ax="2026-03-01", ay=6700000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#991b1b")
+    fig_qe.add_annotation(x=latest_fed_dt_str, y=latest_dbt_t*100000, ax=latest_fed_dt_str, ay=latest_fed_t*1000000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#991b1b")
     fig_qe.add_annotation(x="2023-06-01", y=9200000, text="<b>Big Print III ?</b>", showarrow=False, font=dict(size=14, color="#991b1b"))
 
     # 우측 하단 핵심 3대 메커니즘 요약 박스
