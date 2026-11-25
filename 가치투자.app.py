@@ -1127,7 +1127,57 @@ def fetch_single_pe(tk, default_pe):
     except:
         return default_pe
 
+@st.cache_data(ttl=43200, show_spinner=False)
+def _fetch_live_dataroma_13f(guru_code):
+    """Dataroma 실시간 13F 보유 종목·비중 자동 수집 (12시간 캐시)"""
+    dr_map = {
+        "BRK": "BRK", "BRK_PER": "PSC", "BAU": "BAUPOST", "HC": "HC",
+        "AKRE": "AC", "PI": "PI", "AQUA": "AQ", "TSMITH": "FS",
+        "MARKS": "OC", "TEPPER": "AM", "DRUCK": "DUQ"
+    }
+    dr_code = dr_map.get(guru_code)
+    if not dr_code:
+        return [], None
+    try:
+        url = f"https://www.dataroma.com/m/holdings.php?m={dr_code}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Referer": "https://www.dataroma.com/m/home.php"
+        }
+        r = requests.get(url, headers=headers, timeout=6)
+        if r.status_code != 200:
+            return [], None
+        soup = BeautifulSoup(r.text, "html.parser")
+        period_el = soup.select_one("#p2 span")
+        period_txt = period_el.text.strip() if period_el else "최신 13F 공시"
+        rows = []
+        for tr in soup.select("table#grid tbody tr")[:20]:
+            tds = tr.find_all("td")
+            if len(tds) < 4:
+                continue
+            stk_a = tds[1].find("a")
+            if not stk_a:
+                continue
+            raw_txt = stk_a.text.strip()
+            parts = raw_txt.split(" - ", 1)
+            tk_live = parts[0].strip().upper().replace(".", "-")
+            en_nm = parts[1].strip() if len(parts) > 1 else tk_live
+            kor_nm = primary_names.get(tk_live, en_nm)
+            w_val = safe_float(re.sub(r'[^\d\.]', '', tds[2].text))
+            if tk_live:
+                rows.append({"티커": tk_live, "기업명": kor_nm, "비중(%)": round(w_val, 2)})
+        if len(rows) >= 3:
+            return rows, period_txt
+    except Exception:
+        pass
+    return [], None
+
 def get_13f_portfolio(guru_code):
+    live_rows, period_txt = _fetch_live_dataroma_13f(guru_code)
+    if live_rows:
+        st.session_state[f"13f_src_{guru_code}"] = f"🟢 실시간 13F 자동 갱신 완료 ({period_txt})"
+        return live_rows
+    st.session_state[f"13f_src_{guru_code}"] = "🟡 내장 13F 스냅샷 사용 (실시간 서버 미지원/지연 시 자동 폴백)"
     return fallback_13f_data.get(guru_code, [])
 # ▼▼▼ [위치 1] def get_13f_portfolio(guru_code): 바로 아래에 붙여넣기 (기존 동명 함수가 있다면 덮어쓰기) ▼▼▼
 def get_guru_holders_for_ticker(tk):
@@ -10932,6 +10982,62 @@ Frowns slightly, gestures sharply in skepticism, natural blinking, red monitor g
 [Act 5] Grand dark corporate boardroom with overhead spotlight illuminating financial documents across a long mahogany table, {master_style_seed}
 [Act 6] Long-term investor standing calmly by a tall window watching golden sunrise over the financial district skyline, {master_style_seed}"""
                     st.code(asset_prompts, language="text")
+                    st.divider()
+                    st.markdown("#### ③ 🎬 롱폼 제작 5단계 순서 · 길이 제한 분할 질문 · 캐릭터 괴리 방지 가이드")
+                    st.info(
+                        "📌 **AI 길이 제한 & 캐릭터 고정 핵심 원칙**\n"
+                        "1. **제미나이 대본 길이 제한**: 10~15분 대본을 한 번에 요청하면 후반부가 요약되거나 끊깁니다. 반드시 아래 **3단계 분할 질문**으로 나눠 받으세요.\n"
+                        "2. **영상 AI(Veo·Kling 등) 길이 제한**: 1클립당 5~8초가 한계입니다. 10분 영상을 한 번에 뽑으려 하지 말고, **5초짜리 캐릭터 루프 클립 4개(해설/버핏/멍거/반론)**만 만들어 2번 탭 업로더에 올리면 AGIE가 자동으로 무한 루프 합성합니다.\n"
+                        "3. **캐릭터 괴리 방지 3철칙**: ① 아래 **캐릭터 고정 앵커(영문 외형 묘사)**를 토씨 하나 바꾸지 말고 고정, ② 이미지 AI로 **기준 이미지(Reference) 1장**을 먼저 확정, ③ 영상 AI에는 반드시 그 기준 이미지를 넣는 **I2V(Image-to-Video)** 방식만 사용하고 급격한 카메라 회전/표정 변화 지시를 금지하세요."
+                    )
+
+                    wf_c1, wf_c2 = st.columns(2)
+                    with wf_c1:
+                        st.markdown(
+                            "**[실전 5단계 제작 순서]**\n"
+                            "1. **1단계 (캐릭터 고정)**: 아래 '캐릭터 고정 앵커'로 호스트·버핏·멍거·반론 기준 이미지 4장 생성 → I2V로 5초 루프 MP4 4개 제작 *(최초 1회만 만들면 평생 재사용)*\n"
+                            "2. **2단계 (대본 분할 생성)**: 위 ①번 풀데이터 프롬프트를 제미나이에 보낼 때 아래 **3단계 분할 질문** 순서대로 대본 완성\n"
+                            "3. **3단계 (B-roll 준비)**: Act별 핵심 장면 이미지만 2~3장 뽑아 2번 탭 Act별 B-roll에 업로드\n"
+                            "4. **4단계 (디스크 분할 렌더링)**: 2번 탭에서 `⚡ 노트북 초고속(720p)` 선택 후 Act 1 → Act 6 순서대로 클릭 *(RAM 폭발 방지)*\n"
+                            "5. **5단계 (최종 마감)**: `🔗 1초 무손실 병합`으로 바로 완성하거나, `📦 캡컷 ZIP`을 내려받아 캡컷에서 효과음·전환만 5분 마무리"
+                        )
+                    with wf_c2:
+                        st.markdown(
+                            "**[캐릭터 괴리 방지 체크리스트]**\n"
+                            "- ❌ 텍스트만으로 매번 새 클립 생성 (얼굴·옷·배경이 매 컷 달라짐)\n"
+                            "- ✅ 기준 이미지 1장을 Reference로 고정 후 I2V 모션만 부여\n"
+                            "- ✅ 모션 프롬프트에 `locked-off steady camera`, `subtle breathing`, `natural blinking` 고정\n"
+                            "- ✅ 조명 색온도 통일: 호스트(다크 네이비+블루 림라이트), 버핏(따뜻한 텅스텐 서재), 멍거(클래식 서재), 반론(어두운 레드 모니터)"
+                        )
+
+                    split_guide_prompts = f"""=== [제미나이 3단계 분할 질문 템플릿 (출력 끊김 방지용)] ===
+
+▶ [1차 질문] — 위 ①번 풀데이터 프롬프트 맨 끝에 아래 문장을 붙여서 전송:
+"분량이 길어 중간에 끊기지 않게 3번에 나눠서 작업할 거야. 이번 답변에서는 [파트 A: 썸네일·제목 5쌍, 30초 오프닝 훅 3종]과 [파트 B 중 Act 1, Act 2]까지만 아주 디테일하고 풍부하게 써줘. Act 3부터는 다음 질문에서 이어서 쓸게."
+
+▶ [2차 질문] — 1차 답변을 확인한 뒤 그대로 복사해 전송:
+"좋아, 방금 잡은 다큐멘터리 톤앤매너와 태그 규칙([해설], [버핏], [멍거], [반론], [충격], [차트:10년/ROIC/역산/현금])을 그대로 유지해서 [Act 3(현금흐름·설비투자)]과 [Act 4(버핏 10초 역산·미국채 비교)] 대본을 이어서 써줘. Act 끝에 다음 파트가 궁금해지는 Open Loop 멘트도 꼭 넣어줘."
+
+▶ [3차 질문] — 2차 답변을 확인한 뒤 그대로 복사해 전송:
+"이제 마지막으로 [Act 5(경영진 거버넌스·반론 3가지)]과 [Act 6(최후의 결단·매도 3대 철칙)] 대본을 완성해 줘. 이어서 [파트 C: 30~40초 간격 시각 큐시트 표]와 [파트 D: 본편 연동 40초 파생 쇼츠 3편]까지 출력하고, 마지막에 YMYL/명예훼손 표현이 없는지 자체 검수 결과도 알려줘."
+"""
+                    st.code(split_guide_prompts, language="text")
+
+                    char_anchor_sheet = f"""=== [캐릭터 괴리 방지용 고정 앵커 시트 (Character Anchor Sheet)] ===
+※ 같은 캐릭터를 여러 컷에 등장시킬 때 아래 [영문 외형 앵커]를 절대 수정하지 말고 그대로 유지하세요.
+
+[HOST_ANCHOR — 메인 스튜디오 호스트]
+Same character: 30-year-old Korean male financial documentary host, neat short dark hair, clean-shaven, wearing matte black over-ear studio headphones and a charcoal knit sweater over a white collared shirt, sitting behind a black broadcast condenser mic in a dark navy studio with glowing translucent blue stock charts behind him.
+
+[BUFFETT_ANCHOR — 워런 버핏]
+Same character: Wise elderly American male investor in his 80s, silver-white side-parted hair, classic amber-tinted aviator eyeglasses, dark navy tailored suit, white shirt, silk red striped tie, warm mahogany library background with annual reports and a red soda can on the desk.
+
+[MUNGER_ANCHOR — 찰리 멍거]
+Same character: Sharp-minded elderly American male investor with white hair, thick dark horn-rimmed eyeglasses, dark charcoal suit jacket, white shirt, subtle witty analytical expression, classic wooden study filled with science and psychology books.
+
+[CRITIC_ANCHOR — 월가 회의론자 / 공매도 애널리스트]
+Same character: 35-year-old sharp Wall Street male analyst with thin rectangular metal glasses, dark blue dress shirt with loosened tie, single-ear studio headset, sitting in a dimly lit trading room with blurred red candlestick charts on monitors behind him."""
+                    st.code(char_anchor_sheet, language="text")
 
                 # -----------------------------------------------------------------
                 # [서브탭 2] 시네마틱 롱폼 조립기 (디스크 캐싱 · BGM 덕킹 · [충격] 흑백 · 캡컷 ZIP)
@@ -12429,9 +12535,17 @@ with tab2:
     elif guru_option == "가이 스피어 (Aquamarine Capital)":
         st.write("**가이 스피어(Guy Spier):** 내면의 판단 기준을 중시하며, 미스터 마켓의 소음을 철저히 배제하고 장기적이고 안전한 기회를 매입합니다.")
 
-    with st.spinner(t("최신 포트폴리오 데이터 연동 중...", "Fetching latest portfolio data...")):
+    c_13f_1, c_13f_2 = st.columns([3, 1])
+    with c_13f_2:
+        if st.button("🔄 13F 최신 공시 강제 갱신", key="btn_refresh_13f", use_container_width=True):
+            _fetch_live_dataroma_13f.clear()
+            st.rerun()
+
+    with st.spinner(t("최신 13F 포트폴리오 자동 연동 중...", "Fetching latest 13F portfolio...")):
         code = guru_map[guru_option]
         scraped_data = get_13f_portfolio(code)
+    with c_13f_1:
+        st.caption(st.session_state.get(f"13f_src_{code}", ""))
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
@@ -12483,21 +12597,111 @@ with tab2:
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                         st.rerun()
 # ==========================================
-# 탭 3: 시가총액 랭킹 TOP 30
+# 탭 3: 시가총액 랭킹 TOP 100 (실시간 자동 업데이트 + 폴백)
 # ==========================================
+@st.cache_data(ttl=1800, show_spinner=False)
+def fetch_live_mcap_top100(mkt_key):
+    """TradingView 공개 스캐너 기반 미국·한국·글로벌(ADR) 시가총액 TOP 100 실시간 자동 갱신"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    try:
+        if mkt_key == "US":
+            url = "https://scanner.tradingview.com/america/scan"
+            payload = {
+                "filter": [
+                    {"left": "market_cap_basic", "operation": "nempty"},
+                    {"left": "type", "operation": "equal", "right": "stock"},
+                    {"left": "subtype", "operation": "in_range", "right": ["common", ""]},
+                    {"left": "exchange", "operation": "in_range", "right": ["NASDAQ", "NYSE"]}
+                ],
+                "options": {"lang": "ko"}, "markets": ["america"],
+                "columns": ["name", "description", "market_cap_basic"],
+                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
+                "range": [0, 120]
+            }
+        elif mkt_key == "KR":
+            url = "https://scanner.tradingview.com/korea/scan"
+            payload = {
+                "filter": [
+                    {"left": "market_cap_basic", "operation": "nempty"},
+                    {"left": "type", "operation": "equal", "right": "stock"}
+                ],
+                "options": {"lang": "ko"}, "markets": ["korea"],
+                "columns": ["name", "description", "market_cap_basic"],
+                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
+                "range": [0, 125]
+            }
+        else:
+            url = "https://scanner.tradingview.com/america/scan"
+            payload = {
+                "filter": [
+                    {"left": "market_cap_basic", "operation": "nempty"},
+                    {"left": "type", "operation": "equal", "right": "dr"}
+                ],
+                "options": {"lang": "ko"}, "markets": ["america"],
+                "columns": ["name", "description", "market_cap_basic"],
+                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
+                "range": [0, 110]
+            }
+
+        r = requests.post(url, json=payload, headers=headers, timeout=6)
+        if r.status_code == 200:
+            raw_items = r.json().get("data", [])
+            rows, seen = [], set()
+            for item in raw_items:
+                d = item.get("d", [])
+                if len(d) < 3:
+                    continue
+                tk_r = str(d[0]).strip()
+                desc_r = str(d[1] or tk_r).strip()
+                mc_v = safe_float(d[2])
+                if mc_v <= 0:
+                    continue
+                if mkt_key == "KR":
+                    if desc_r.endswith("우") or desc_r.endswith("우B"):
+                        continue
+                    tk_key = tk_r + ".KS"
+                    disp_tk = tk_r
+                    kor_nm = primary_names.get(tk_key, desc_r)
+                    mc_str = f"{mc_v / 1e12:,.1f}조 원" if mc_v >= 1e12 else f"{mc_v / 1e8:,.0f}억 원"
+                else:
+                    if tk_r in ["GOOG", "BRK.A", "BRK-A"]:
+                        continue
+                    disp_tk = tk_r.replace(".", "-")
+                    kor_nm = primary_names.get(disp_tk, desc_r)
+                    mc_str = f"${mc_v / 1e12:,.2f}T" if mc_v >= 1e12 else f"${mc_v / 1e9:,.1f}B"
+                if disp_tk in seen:
+                    continue
+                seen.add(disp_tk)
+                rows.append({"순위": len(rows) + 1, "티커": disp_tk, "기업명": kor_nm, "시가총액": mc_str})
+                if len(rows) >= 100:
+                    break
+            if len(rows) >= 20:
+                return pd.DataFrame(rows), f"🟢 실시간 시가총액 자동 갱신 완료 ({datetime.now().strftime('%Y.%m.%d %H:%M')})"
+    except Exception:
+        pass
+
+    fb_map = {"US": us_top30, "KR": kr_top30, "GLOBAL": global_top30}
+    return pd.DataFrame(fb_map[mkt_key]), "🟡 내장 시가총액 스냅샷 사용 (실시간 연결 지연 시 폴백)"
+
 with tab3:
-    st.subheader(t("글로벌 시가총액 TOP 100 (미국/한국/기타)", "Global Market Cap TOP 100"))
-    st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
-    
-    # [핵심] 유럽/아시아 버튼 추가!
-    mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 (US)", "US"), t("한국 (KR)", "KR"), t("유럽/아시아 (EU/Asia)", "EU/Asia")], horizontal=True, label_visibility="collapsed")
-    
-    if "US" in mkt or "미국" in mkt:
-        df_mkt = pd.DataFrame(us_top30)
-    elif "KR" in mkt or "한국" in mkt:
-        df_mkt = pd.DataFrame(kr_top30)
-    else:
-        df_mkt = pd.DataFrame(global_top30)
+    st.subheader(t("글로벌 시가총액 TOP 100 (실시간 자동 갱신)", "Global Market Cap TOP 100 (Live)"))
+
+    c_m1, c_m2 = st.columns([3, 1])
+    with c_m1:
+        mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 (US)", "US"), t("한국 (KR)", "KR"), t("유럽/아시아 (EU/Asia)", "EU/Asia")], horizontal=True, label_visibility="collapsed")
+    with c_m2:
+        if st.button("🔄 시총 순위 새로고침", key="btn_refresh_mcap", use_container_width=True):
+            fetch_live_mcap_top100.clear()
+            st.rerun()
+
+    mkt_code_t3 = "US" if ("US" in mkt or "미국" in mkt) else ("KR" if ("KR" in mkt or "한국" in mkt) else "GLOBAL")
+    with st.spinner("실시간 시가총액 TOP 100 순위를 불러오는 중입니다..."):
+        df_mkt, mcap_src_msg = fetch_live_mcap_top100(mkt_code_t3)
+    st.caption(f"{mcap_src_msg} · 종목 행을 클릭하면 즉시 AI 분석이 실행됩니다.")
         
     # ▼▼ 교체할 탭 3 코드 ▼▼
     st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
