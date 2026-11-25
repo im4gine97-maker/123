@@ -10,16 +10,20 @@ import re
 import concurrent.futures
 import plotly.graph_objects as go
 import zipfile
-import io
-import xml.etree.ElementTree as ET
+import os
 
-# 스트림릿 Secrets에서 키를 불러옵니다.
-try:
-    DART_API_KEY = st.secrets["DART_API_KEY"]
-    FMP_API_KEY = st.secrets["FMP_API_KEY"]
-except:
-    DART_API_KEY = "102371dc99e43c0ea0a70f8ec5a6b04440766798"
-    FMP_API_KEY = "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4"
+# 스트림릿 Secrets 또는 환경변수에서 키를 안전하게 불러옵니다. (평문 하드코딩 제거)
+def _get_secret_key(key_name):
+    try:
+        val = st.secrets.get(key_name, "")
+        if val:
+            return str(val).strip()
+    except Exception:
+        pass
+    return os.getenv(key_name, "").strip()
+
+DART_API_KEY = _get_secret_key("DART_API_KEY")
+FMP_API_KEY = _get_secret_key("FMP_API_KEY")
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
