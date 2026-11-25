@@ -410,7 +410,7 @@ tmap = {
     "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
     "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
     "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
-    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", " 듀오링고": "DUOL"
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", "듀오링고": "DUOL"
 }    
     # ▼▼▼ 기존 tmap = { ... } 끝나는 괄호 밑에 붙여넣기 ▼▼▼
 new_tickers_100 = {
@@ -1910,15 +1910,7 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
         elif fcf_existing == 0.0 and ocf_v != 0 and icf_v != 0:
             pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v + icf_v
 
-    avail_cols = sorted(pivot_df.columns, reverse=True)
-    if 2 <= len(avail_cols) < 6:
-        oldest_y = int(avail_cols[-1])
-        oldest_col = avail_cols[-1]
-        for step_back in range(1, 7 - len(avail_cols) + 1):
-            prev_y_str = str(oldest_y - step_back)
-            if prev_y_str not in pivot_df.columns:
-                pivot_df[prev_y_str] = pivot_df[oldest_col] * (0.94 ** step_back)
-
+    # [팩트체크 원칙] 과거 미공시 연도를 임의 배수(0.94**)로 생성하지 않고 실제 공시 연도만 유지
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]]
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -2026,7 +2018,9 @@ def _fetch_pure_dart_10yr_cached_v5(corp_code, clean_code, api_key):
     - 현금흐름표(OCF/CAPEX/FCF)는 FnGuide + yfinance + DART에서 병렬 결합하여 속도 저하 원천 차단
     - 발행주식수는 DART stockTotqySttus.json에서 10년치 병렬 수집 및 액면분할 자동 정규화
     """
-    base_y = 2025 if datetime.now().year >= 2026 else 2024
+    now_dt = datetime.now()
+    # 4월 이전에는 직전년도 사업보고서 미공시 기업을 감안하되, 2027년 이후에도 자동 대응
+    base_y = (now_dt.year - 1) if now_dt.month >= 4 else (now_dt.year - 2)
     # 2016년부터 2025년까지 10개년을 한 해의 누락도 없이 모두 타겟팅!
     target_10_years = [base_y, base_y - 2, base_y - 4, base_y - 6, base_y - 8, base_y - 9]
     share_10_years = list(range(base_y - 9, base_y + 1))
@@ -2185,48 +2179,29 @@ def _fetch_pure_dart_10yr_cached_v5(corp_code, clean_code, api_key):
                                 pivot_df[c_y] = pivot_df[c_y] / 1000.0
                             elif 0.0005 <= ratio_u <= 0.002:
                                 pivot_df[c_y] = pivot_df[c_y] * 1000.0
-    # 최근 10개 연도 컬럼(예: 2025 ~ 2016)이 모두 존재하도록 보장
-    expected_10_cols = [str(y) for y in range(base_y, base_y - 10, -1)]
-    existing_cols = sorted([c for c in pivot_df.columns if str(c).isdigit() and int(c) >= base_y - 9], reverse=True)
-    for col_y in expected_10_cols:
-        if col_y not in pivot_df.columns and existing_cols:
-            # 만약 특정 과거 연도(예: 2016~2018)가 DART에 없으면 가장 가까운 연도 기준으로 안전 보간
-            nearest_col = min(existing_cols, key=lambda x: abs(int(x) - int(col_y)))
-            diff_yr = int(nearest_col) - int(col_y)
-            pivot_df[col_y] = pivot_df[nearest_col] * (0.95 ** diff_yr)
+    # [팩트체크 원칙] 실제 DART/공시에 존재하는 연도만 유지 (임의 0.95** 보간 전면 삭제)
+    valid_cols = sorted([c for c in pivot_df.columns if str(c).isdigit()], reverse=True)[:10]
+    pivot_df = pivot_df[valid_cols]
 
-    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]]
-
-    # 15. 발행주식수 10년치 액면분할 완벽 정규화 및 빈 연도 채우기
+    # 15. 발행주식수 10년치 액면분할 정규화 (결측 연도는 추정하지 않고 NaN 유지)
     if '15. 발행주식수 (Shares, 분할보정)' in pivot_df.index:
         sh_series = pivot_df.loc['15. 발행주식수 (Shares, 분할보정)'].dropna()
         if not sh_series.empty:
             latest_sh = float(sh_series.iloc[0])
             for c_y in pivot_df.columns:
                 v_sh = pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y]
-                if pd.isna(v_sh) or v_sh <= 0:
-                    pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y] = latest_sh
-                else:
+                if pd.notna(v_sh) and v_sh > 0:
                     ratio = latest_sh / float(v_sh)
-                    # 액면분할(예: 삼성전자 50:1 분할 전 0.01억 주 -> 59.6억 주) 자동 배수 보정
                     if ratio >= 4.0:
                         split_mult = round(ratio)
                         pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y] = float(v_sh) * split_mult
 
-    # 12. 잉여현금흐름 (FCF) = 9. 영업현금흐름 - 10. 설비투자(CAPEX) 전 연도 채우기
+    # 12. 잉여현금흐름 (FCF) = 실제 OCF - CAPEX만 산출 (순이익*0.75 가짜 주입 전면 삭제)
     for col_y in pivot_df.columns:
-        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y]) if '9. 영업현금흐름' in pivot_df.index else 0.0
-        capex_v = abs(safe_float(pivot_df.loc['10. 설비투자 (CAPEX)', col_y])) if '10. 설비투자 (CAPEX)' in pivot_df.index else 0.0
-        icf_v = safe_float(pivot_df.loc['11. 투자현금흐름', col_y]) if '11. 투자현금흐름' in pivot_df.index else 0.0
-        ni_v = safe_float(pivot_df.loc['4. 당기순이익', col_y]) if '4. 당기순이익' in pivot_df.index else 0.0
-
-        if ocf_v != 0 and capex_v > 0:
-            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - capex_v
-        elif ocf_v != 0 and icf_v != 0:
-            raw_fcf = ocf_v + icf_v
-            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = min(ocf_v * 0.70, ni_v * 0.85) if (raw_fcf <= 0 and ocf_v > 0 and ni_v > 0) else raw_fcf
-        elif ni_v != 0 and ('12. 잉여현금흐름 (FCF)' not in pivot_df.index or pd.isna(pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y])):
-            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ni_v * 0.75
+        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y], None) if '9. 영업현금흐름' in pivot_df.index else None
+        capex_raw = pivot_df.loc['10. 설비투자 (CAPEX)', col_y] if '10. 설비투자 (CAPEX)' in pivot_df.index else None
+        if ocf_v is not None and pd.notna(capex_raw) and safe_float(capex_raw) > 0:
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - abs(safe_float(capex_raw))
 
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -2260,7 +2235,7 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
     except Exception:
         pass
 
-    effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
+    effective_key = api_key if api_key else os.getenv("DART_API_KEY", "")
     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
     corp_code = mapping.get(clean_code)
 
@@ -3210,7 +3185,8 @@ def get_base_dcf_data(stk, i):
                     common_idx = ocf_s.index.intersection(cap_s.index)
                     fcf_s = pd.Series([safe_float(ocf_s[c]) - abs(safe_float(cap_s[c])) for c in common_idx], index=common_idx)
                 else:
-                    fcf_s = ocf_s * 0.75
+                    # CAPEX 누락 시 OCF*0.75로 임의 추정하지 않고 None 처리
+                    fcf_s = None
 
         # 최근 FCF 체력 산출 (최근 연도 60% 가중)
         weighted_fcf = None
@@ -6298,8 +6274,8 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     # ▲▲▲ 여기까지 추가 ▲▲▲
 
     pron_map = [
+        # --- 국내/글로벌 기업명 ---
         ("SK하이닉스", "에스케이 하이닉스"), ("SK스퀘어", "에스케이 스퀘어"), ("SK이노베이션", "에스케이 이노베이션"),
-        # ... (이하 기존 pron_map 코드 유지)
         ("SK텔레콤", "에스케이 텔레콤"), ("SK바이오팜", "에스케이 바이오팜"), ("SK이터닉스", "에스케이 이터닉스"),
         ("LG에너지솔루션", "엘지 에너지솔루션"), ("LG엔솔", "엘지 엔솔"), ("LG전자", "엘지 전자"),
         ("LG화학", "엘지 화학"), ("LG생활건강", "엘지 생활건강"), ("LG이노텍", "엘지 이노텍"),
@@ -6311,13 +6287,24 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
         ("SAMSUNG", "삼성"), ("CELLTRION", "셀트리온"), ("KRAFTON", "크래프톤"),
         ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"), ("NVIDIA", "엔비디아"),
         ("LVMH", "엘브이엠에이치"), ("HSBC", "에이치에스비씨"), ("BYD", "비야디"),
-        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"),
-        ("PER", "피이알"), ("PBR", "피비알"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
-        ("BPS", "비피에스"), ("FCF", "잉여현금흐름"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
-        ("EBITDA", "에비타"), ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
-        ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
+        ("PDD", "피디디"), ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
         ("OCI", "오씨아이"), ("LIG", "엘아이지"), ("BGF", "비지에프"), ("KCC", "케이씨씨"),
         ("JYP", "제이와이피"), ("F&F", "에프앤에프"), ("AMD", "에이엠디"), ("IBM", "아이비엠"),
+        # --- 롱폼 핵심 재무·밸류에이션 약어 (긴 단어 우선 배치) ---
+        ("EV/EBITDA", "이브이 에비타"), ("EBITDA", "에비타"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
+        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"), ("ROA", "총자산수익률"),
+        ("CAGR", "연평균 성장률"), ("WACC", "가중평균자본비용"), ("FOMC", "에프오엠씨"), ("FRED", "프레드"),
+        ("SaaS", "사스"), ("10-K", "텐케이 사업보고서"), ("10-Q", "텐큐 분기보고서"), ("20-F", "트웬티에프 공시"),
+        ("DART", "다트"), ("SEC", "미국 증권거래위원회"), ("PER", "피이알"), ("PBR", "피비알"),
+        ("PSR", "피에스알"), ("PEG", "피이지"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
+        ("BPS", "비피에스"), ("DPS", "주당배당금"), ("FCF", "잉여현금흐름"), ("OCF", "영업현금흐름"),
+        ("OPM", "영업이익률"), ("GPM", "매출총이익률"), ("TTM", "최근 4분기 합산"), ("YoY", "전년 대비"),
+        ("QoQ", "전분기 대비"), ("ERP", "주식위험프리미엄"), ("SBC", "주식보상비용"), ("ADR", "에이디알"),
+        ("VIE", "브이아이이"), ("ETF", "이티에프"), ("GDP", "지디피"), ("CPI", "소비자물가지수"),
+        ("HBM", "에이치비엠"), ("EUV", "이유브이"), ("GPU", "지피유"), ("B2B", "비투비"), ("B2C", "비투씨"),
+        ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
+        ("QE", "양적완화"), ("QT", "양적긴축"), ("AI", "에이아이"),
+        # --- 2글자 영문 접두사 (마지막에 적용) ---
         ("SK", "에스케이 "), ("LG", "엘지 "), ("KT", "케이티 "), ("KB", "케이비 "),
         ("CJ", "씨제이 "), ("HD", "에이치디 "), ("LS", "엘에스 "), ("DB", "디비 "),
         ("GS", "지에스 "), ("NH", "엔에이치 "), ("vs", "대"), ("VS", "대")
@@ -9426,15 +9413,7 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     except Exception:
                         pass
 
-                if 2 <= len(fcf_vals_10y) < 10 and fcf_status_auto not in ["TURNAROUND", "TURNAROUND_1Y"]:
-                    first_y = int(fcf_yrs_10y[0]) if str(fcf_yrs_10y[0]).isdigit() else (datetime.now().year - len(fcf_vals_10y))
-                    first_v = fcf_vals_10y[0]
-                    while len(fcf_vals_10y) < 10:
-                        first_y -= 1
-                        first_v = first_v / (1.0 + max(-0.2, min(0.2, final_g)))
-                        fcf_vals_10y.insert(0, first_v)
-                        fcf_yrs_10y.insert(0, str(first_y))
-
+                # [팩트체크 원칙] 10년 미만 기업의 과거 FCF를 역산해 가짜로 채우지 않고 실제 공시 연수만 사용
                 _, fcf_status_auto, fcf_span_auto, _ = calc_smart_cagr(fcf_vals_10y, fcf_yrs_10y)
                 if fcf_status_auto not in ["TURNAROUND", "TURNAROUND_1Y"] and fcf_span_auto >= 8:
                     fcf_span_auto = 10
@@ -10975,18 +10954,58 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     ledger_md_table, ledger_yr_cnt, ledger_unit_str = _extract_full_ledger_for_prompt()
 
                     # -------------------------------------------------------------
-                    # [최종 조립] 제미나이 전송용 올인원 풀데이터 롱폼 프롬프트
+                    # [자동 판별 플래그] 배당 일관성 · 자사주 소각 · CAPEX/OCF 비중
+                    # -------------------------------------------------------------
+                    _div_flag = "배당 지급 중 (지속성 확인 필요)" if doc_div_val > 0 else "무배당 (사내 유보/성장 재투자형)"
+                    try:
+                        _divs_s = stk.dividends if stk is not None else pd.Series(dtype=float)
+                        if _divs_s is not None and not _divs_s.empty:
+                            _yr_divs = _divs_s.groupby(_divs_s.index.year).sum().tail(10)
+                            _paid_yrs = int((_yr_divs > 0).sum())
+                            _inc_3y = len(_yr_divs) >= 3 and _yr_divs.tail(3).is_monotonic_increasing
+                            _div_flag = f"최근 10년 중 {_paid_yrs}년 배당 지급" + (" · 최근 3년 연속 증배(우수)" if _inc_3y else "")
+                    except Exception:
+                        pass
+
+                    _bb_flag = (
+                        f"주주친화 소각 우수 (연 {doc_bb_val:+.1f}%)" if doc_bb_val >= 1.0
+                        else (f"희석 경고 (주식수 연 {abs(doc_bb_val):.1f}% 증가)" if doc_bb_val <= -1.5 else f"변동 미미 (연 {doc_bb_val:+.1f}%)")
+                    )
+
+                    _capex_ocf_flag = "확인 필요 (현금흐름표 CAPEX/OCF 데이터 부족)"
+                    try:
+                        if stk is not None and stk.cash_flow is not None and not stk.cash_flow.empty:
+                            _cf_chk = stk.cash_flow
+                            if 'Operating Cash Flow' in _cf_chk.index:
+                                _ocf_recent = safe_float(_cf_chk.loc['Operating Cash Flow'].dropna().iloc[0])
+                                _cap_recent = 0.0
+                                for _ck_f in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                    if _ck_f in _cf_chk.index and not _cf_chk.loc[_ck_f].dropna().empty:
+                                        _cap_recent = abs(safe_float(_cf_chk.loc[_ck_f].dropna().iloc[0]))
+                                        break
+                                if _ocf_recent > 0 and _cap_recent > 0:
+                                    _cap_ratio = (_cap_recent / _ocf_recent) * 100.0
+                                    _cap_grade = "자본경량 최상(<20%)" if _cap_ratio < 20 else ("양호(20~50%)" if _cap_ratio < 50 else "설비투자 부담 높음(>=50%)")
+                                    _capex_ocf_flag = f"OCF 대비 CAPEX 비중 {_cap_ratio:.1f}% ({_cap_grade})"
+                    except Exception:
+                        pass
+
+                    # -------------------------------------------------------------
+                    # [최종 조립] 제미나이 전송용 올인원 풀데이터 롱폼 프롬프트 (리텐션·반론·큐시트·법적검수 통합)
                     # -------------------------------------------------------------
                     gemini_script_prompt = f"""너는 구독자 수십만 명을 보유한 유튜브 다큐멘터리 채널 '체스막타' 스타일의 가치투자 스토리텔링 작가다.
-아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 **AGIE 전체 정량·정성·10년 장부 팩트 데이터**를 단 하나도 누락하거나 왜곡하지 말고, 8~10분 분량의 몰입감 있는 6막(Act 1~6) 유튜브 다큐멘터리 대본을 작성해 줘.
+아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 **AGIE 전체 정량·정성·10년 장부 팩트 데이터**만 근거로 삼아, 10~15분 분량의 6막(Act 1~6) 유튜브 롱폼 대본과 제작 패키지를 작성해 줘.
 
 ==================================================
-[0. 기본 메타 및 통화 검증]
+[0. 기본 메타 · 통화 검증 · 자동 판별 플래그]
 ==================================================
 - 기업명 / 티커: {doc_comp_nm} ({doc_clean_tk}) | 기준일: {doc_today}
 - 재무 기준 시점: 연간 [{locals().get('latest_annual_period', '확인 중')}] / 최신분기 [{locals().get('latest_qtr_period', '확인 중')}]
 - 월가 거장 13F 보유 현황: {guru_prompt_txt}
 - 통화 상태: {_curr_warn_note}
+- 배당 일관성 플래그: {_div_flag}
+- 자사주 소각/희석 플래그: {_bb_flag}
+- OCF 대비 CAPEX 비중 플래그: {_capex_ocf_flag}
 - AGIE AI 종합 판정: {op_title} ({total_score_val}점)
 - AI 스코어링 세부 내역:
 {score_breakdown_block}
@@ -11043,19 +11062,32 @@ AI Opinion: {op_title} ({total_score_val} pts)
 {ledger_md_table}
 
 ==================================================
-[필수 연출 규칙 - 체스막타 스타일]
+[필수 출력 구성 (아래 4개 파트를 순서대로 모두 출력)]
 ==================================================
-1. 딱딱한 AI 브리핑 말투 금지. 체스막타 다큐멘터리처럼 흡입력 있는 스토리텔링 구어체("~였어요", "도대체 왜 이런 숫자가 나왔을까요?", "하지만 여기엔 치명적인 그림자가 있었습니다")로 작성할 것.
-2. 위 1~6번 데이터의 핵심 수치(체크리스트 통과/탈락 사유, 13F 거장 보유 여부, 이익의 질과 SBC, 주식 희석 여부, 버핏 10초 역산, 실제 연도별 장부 변화, 경영진 비판 리스크)를 이야기의 기승전결 속에 자연스럽게 녹여낼 것.
-3. 멀티 보이스 태그 규칙 — 모든 줄 맨 앞에 아래 5개 태그 중 하나만 반드시 붙일 것 (AGIE 2번 탭 조립기 자동 파싱용):
-- [해설] : 스튜디오 마이크 앞 메인 호스트 씬 (부드럽고 흡입력 있는 존댓말)
-- [장면] : 드라마틱한 B-roll 일러스트/영상 클립 씬
-- [버핏] : 워런 버핏의 철학·역산 조언 씬 (좌측 하단 명패 + 중저음 성우)
-- [반론] : 월가 회의론자·공매도·지배구조 비판 씬 (좌측 하단 명패 + 날카로운 반박 톤)
-- [차트:ROIC] / [차트:역산] / [차트:현금] : 풀스크린 재무 데이터 그래프를 띄우는 씬
-4. 한 줄은 1~2문장 이내로 쓰고, 자막 호흡을 끊고 싶은 곳마다 '/' 기호를 넣을 것.
-5. Act 1(왕관의 무게와 13F 거장의 시선) ~ Act 6(최후의 결단: 매수 타이밍과 매도 3철칙)으로 구성하고, 각 Act마다 5~7줄씩 출력할 것.
-6. 통화 불일치 경고가 있는 경우(예: ADR 위안화 장부), 절대로 위안화를 달러로 착각해 말하지 말고 정확한 통화 단위나 환산 수치를 사용할 것."""
+[파트 A. 기획 & 클릭률 패키지]
+1) 어그로 없이 클릭률을 높이는 썸네일 문구(4~7자) + 제목 조합 5쌍
+2) 초반 30초 이탈을 막는 질문형 오프닝 훅 3가지
+
+[파트 B. 10~15분 본편 대본 (Act 1 ~ Act 6)]
+- 스토리 전개: 시장의 오해 → 10년 재무제표·ROIC·현금흐름 검증 → 기관/공매도 관점의 치명적 반론(Bear Case) 3가지 및 확증 편향 점검 → 버핏 10초 역산과 매도 3대 철칙 결론
+- 3분마다 시청자 주의를 다시 잡는 챕터 전환 멘트(Open Loop)를 각 Act 끝에 반드시 삽입
+- 전문 용어(ROIC, FCF, 운전자본, SBC 등)는 등장할 때마다 비전공자도 바로 이해하는 1문장 생활 비유를 덧붙일 것
+- 멀티 보이스 태그 규칙 (AGIE 2번 탭 조립기 자동 파싱용 — 모든 대본 줄 맨 앞에 필수 부착):
+  [해설] / [장면] / [버핏] / [반론] / [차트:ROIC] / [차트:역산] / [차트:현금]
+- 한 줄은 1~2문장 이내, 자막 호흡을 끊을 곳에 '/' 기호 삽입
+
+[파트 C. 30~40초 간격 시각 큐시트 표]
+- 타임라인 / 화면에 띄울 AGIE 차트·표 종류 / 10자 이내 강조 숫자 자막 / 도식·B-roll 아이디어를 표로 정리
+
+[파트 D. 본편 연동 파생 쇼츠 3편 (각 35~45초)]
+- 본편에서 반응이 가장 셀 구간 3개를 뽑아 쇼츠 대본 3편 작성 (마지막 문장은 본편 롱폼으로 자연스럽게 유도)
+
+==================================================
+[절대 준수 제약 조건 (팩트체크 & 법적 안전)]
+==================================================
+1. 위 데이터에 없는 최신 재무 수치나 공시 내용은 절대 추측하거나 지어내지 말고 '확인 필요'로 표시할 것.
+2. 대본에 쓰는 모든 수치는 공시 기준 시점(예: {locals().get('latest_annual_period', '연간')}, {locals().get('latest_qtr_period', '분기')})과 통화 단위를 일치시킬 것.
+3. 특정 기업/경영진에 대한 단정적 비방(명예훼손 소지)과 매수·매도 권유·수익 단정 표현(유사투자자문 리스크)을 금지하고 객관적 정보 전달형으로 작성할 것."""
 
                     st.success(f"✅ 풀데이터 프롬프트 조립 완료! (체크리스트 {_m_tot}항목 · 심층 9대 지표 · 역산/DCF · 장부 {ledger_yr_cnt}개년 · 뉴스/거버넌스 전부 포함)")
                     st.code(gemini_script_prompt, language="text")
@@ -11426,11 +11458,21 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
 
                                 tts_s = fix_global_tts_pronunciation(p_txt, is_en=False)
                                 import edge_tts, asyncio
-                                loop = asyncio.new_event_loop()
-                                try:
-                                    loop.run_until_complete(edge_tts.Communicate(str(tts_s), voice=v_id, rate=v_rate, pitch=v_pitch).save(f_mp3))
-                                finally:
-                                    loop.close()
+                                _tts_ok = False
+                                for _retry in range(2):
+                                    loop = asyncio.new_event_loop()
+                                    try:
+                                        loop.run_until_complete(edge_tts.Communicate(str(tts_s), voice=v_id, rate=v_rate, pitch=v_pitch).save(f_mp3))
+                                        if os.path.exists(f_mp3) and os.path.getsize(f_mp3) > 500:
+                                            _tts_ok = True
+                                            break
+                                    except Exception:
+                                        time.sleep(0.6)
+                                    finally:
+                                        loop.close()
+                                if not _tts_ok:
+                                    from gtts import gTTS
+                                    gTTS(text=str(tts_s), lang='ko', slow=False).save(f_mp3)
 
                                 subprocess.run([
                                     ffmpeg_exe, "-y", "-threads", "2", "-i", f_mp3,
@@ -11854,7 +11896,7 @@ Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and
                     except Exception:
                         pass
 
-                    effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
+                    effective_key = api_key if api_key else os.getenv("DART_API_KEY", "")
                     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
                     corp_code = mapping.get(clean_code)
                     if not corp_code:
@@ -13691,7 +13733,7 @@ with tab6:
             text = fetch_governance_criticism(tk, cd, "CEO")
             
             # 평가가 안 된 기본 텍스트는 순위에서 제외
-            if "위키 및 공공 기록 스크리닝 결과" in text: continue
+            if "공개 공시 및 공공 기록 스크리닝 결과" in text or "위키 및 공공 기록 스크리닝 결과" in text: continue
                 
             # --- [수정된 랭킹용 문맥 분석 엔진] ---
             kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
