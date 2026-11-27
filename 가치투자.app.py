@@ -2885,6 +2885,16 @@ def get_finviz_data(cd):
             if eps_ttm: res['trailingEps'] = safe_float(eps_ttm)
             pb = get_fv("P/B")
             if pb: res['priceToBook'] = safe_float(pb)
+            roe_fv = get_fv("ROE")
+            if roe_fv: res['returnOnEquity'] = safe_float(roe_fv) / 100.0
+            roi_fv = get_fv("ROI")
+            if roi_fv: res['finviz_roi'] = safe_float(roi_fv)
+            opm_fv = get_fv("Oper. Margin")
+            if opm_fv: res['operatingMargins'] = safe_float(opm_fv) / 100.0
+            gm_fv = get_fv("Gross Margin")
+            if gm_fv: res['grossMargins'] = safe_float(gm_fv) / 100.0
+            cr_fv = get_fv("Current Ratio")
+            if cr_fv: res['currentRatio'] = safe_float(cr_fv)
 
             # [핵심 추가] Finviz에서 배당수익률(Dividend % / Dividend TTM / Dividend Est.) 백업 추출
             for div_lbl in ["Dividend %", "Dividend TTM", "Dividend Est."]:
@@ -3048,6 +3058,9 @@ def fetch_cached_info(tk, kr, cd):
             
             if 'priceToBook' not in i or not i.get('priceToBook'):
                 if 'priceToBook' in fv_res: i['priceToBook'] = fv_res['priceToBook']
+            if 'finviz_roi' in fv_res: i['finviz_roi'] = fv_res['finviz_roi']
+            if 'returnOnEquity' in fv_res and fv_res['returnOnEquity'] != 0: i['returnOnEquity'] = fv_res['returnOnEquity']
+            if 'operatingMargins' in fv_res and fv_res['operatingMargins'] != 0: i['operatingMargins'] = fv_res['operatingMargins']  
             
             if 'longBusinessSummary' not in i and 'longBusinessSummary' in yh_res:
                 i['longBusinessSummary'] = yh_res['longBusinessSummary']
@@ -3375,6 +3388,7 @@ def get_real_roic(stk, i):
     3. PDD처럼 현금+단기투자가 총자본의 75%를 초과해 순투하자본이 음수거나 극소화되는 경우,
        400%~1000% 폭주 착시를 차단하고 '총투하자본(차입금+자본)' 기준으로 자동 보정
     """
+    if i.get('finviz_roi'): return safe_float(i['finviz_roi'])
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
             val_roce = safe_float(i['returnOnCapitalEmployed']) * 100
