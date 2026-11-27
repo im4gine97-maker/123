@@ -10,20 +10,16 @@ import re
 import concurrent.futures
 import plotly.graph_objects as go
 import zipfile
-import os
+import io
+import xml.etree.ElementTree as ET
 
-# 스트림릿 Secrets 또는 환경변수에서 키를 안전하게 불러옵니다. (평문 하드코딩 제거)
-def _get_secret_key(key_name):
-    try:
-        val = st.secrets.get(key_name, "")
-        if val:
-            return str(val).strip()
-    except Exception:
-        pass
-    return os.getenv(key_name, "").strip()
-
-DART_API_KEY = _get_secret_key("DART_API_KEY")
-FMP_API_KEY = _get_secret_key("FMP_API_KEY")
+# 스트림릿 Secrets에서 키를 불러옵니다.
+try:
+    DART_API_KEY = st.secrets["DART_API_KEY"]
+    FMP_API_KEY = st.secrets["FMP_API_KEY"]
+except:
+    DART_API_KEY = "102371dc99e43c0ea0a70f8ec5a6b04440766798"
+    FMP_API_KEY = "ZpTFZRz4y9BYrslmqoOJPZqSOeTmeYM4"
 
 # 앱 이름 변경 및 레이아웃
 st.set_page_config(page_title="AGIE", layout="wide", initial_sidebar_state="collapsed")
@@ -410,7 +406,7 @@ tmap = {
     "AST 스페이스모바일": "ASTS", "슈뢰딩거": "SDGR", "씨게이트": "STX", 
     "TMF": "TMF", "TLT": "TLT", "세레브라스 시스템즈": "CBRS", "NASA": "NASA", 
     "SCO": "SCO", "KOLD": "KOLD", "크레도 테크놀로지 그룹 홀딩": "CRDO", 
-    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", "듀오링고": "DUOL"
+    "INTW": "INTW", "리게티 컴퓨팅": "RGTI", "BWET": "BWET", "비야디": "BYDDY", "BYD": "BYDDY", " 듀오링고": "DUOL"
 }    
     # ▼▼▼ 기존 tmap = { ... } 끝나는 괄호 밑에 붙여넣기 ▼▼▼
 new_tickers_100 = {
@@ -1127,57 +1123,7 @@ def fetch_single_pe(tk, default_pe):
     except:
         return default_pe
 
-@st.cache_data(ttl=43200, show_spinner=False)
-def _fetch_live_dataroma_13f(guru_code):
-    """Dataroma 실시간 13F 보유 종목·비중 자동 수집 (12시간 캐시)"""
-    dr_map = {
-        "BRK": "BRK", "BRK_PER": "PSC", "BAU": "BAUPOST", "HC": "HC",
-        "AKRE": "AC", "PI": "PI", "AQUA": "AQ", "TSMITH": "FS",
-        "MARKS": "OC", "TEPPER": "AM", "DRUCK": "DUQ"
-    }
-    dr_code = dr_map.get(guru_code)
-    if not dr_code:
-        return [], None
-    try:
-        url = f"https://www.dataroma.com/m/holdings.php?m={dr_code}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "Referer": "https://www.dataroma.com/m/home.php"
-        }
-        r = requests.get(url, headers=headers, timeout=6)
-        if r.status_code != 200:
-            return [], None
-        soup = BeautifulSoup(r.text, "html.parser")
-        period_el = soup.select_one("#p2 span")
-        period_txt = period_el.text.strip() if period_el else "최신 13F 공시"
-        rows = []
-        for tr in soup.select("table#grid tbody tr")[:20]:
-            tds = tr.find_all("td")
-            if len(tds) < 4:
-                continue
-            stk_a = tds[1].find("a")
-            if not stk_a:
-                continue
-            raw_txt = stk_a.text.strip()
-            parts = raw_txt.split(" - ", 1)
-            tk_live = parts[0].strip().upper().replace(".", "-")
-            en_nm = parts[1].strip() if len(parts) > 1 else tk_live
-            kor_nm = primary_names.get(tk_live, en_nm)
-            w_val = safe_float(re.sub(r'[^\d\.]', '', tds[2].text))
-            if tk_live:
-                rows.append({"티커": tk_live, "기업명": kor_nm, "비중(%)": round(w_val, 2)})
-        if len(rows) >= 3:
-            return rows, period_txt
-    except Exception:
-        pass
-    return [], None
-
 def get_13f_portfolio(guru_code):
-    live_rows, period_txt = _fetch_live_dataroma_13f(guru_code)
-    if live_rows:
-        st.session_state[f"13f_src_{guru_code}"] = f"🟢 실시간 13F 자동 갱신 완료 ({period_txt})"
-        return live_rows
-    st.session_state[f"13f_src_{guru_code}"] = "🟡 내장 13F 스냅샷 사용 (실시간 서버 미지원/지연 시 자동 폴백)"
     return fallback_13f_data.get(guru_code, [])
 # ▼▼▼ [위치 1] def get_13f_portfolio(guru_code): 바로 아래에 붙여넣기 (기존 동명 함수가 있다면 덮어쓰기) ▼▼▼
 def get_guru_holders_for_ticker(tk):
@@ -1960,7 +1906,15 @@ def _fallback_naver_fnguide_yf_10yr(clean_code):
         elif fcf_existing == 0.0 and ocf_v != 0 and icf_v != 0:
             pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v + icf_v
 
-    # [팩트체크 원칙] 과거 미공시 연도를 임의 배수(0.94**)로 생성하지 않고 실제 공시 연도만 유지
+    avail_cols = sorted(pivot_df.columns, reverse=True)
+    if 2 <= len(avail_cols) < 6:
+        oldest_y = int(avail_cols[-1])
+        oldest_col = avail_cols[-1]
+        for step_back in range(1, 7 - len(avail_cols) + 1):
+            prev_y_str = str(oldest_y - step_back)
+            if prev_y_str not in pivot_df.columns:
+                pivot_df[prev_y_str] = pivot_df[oldest_col] * (0.94 ** step_back)
+
     pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]]
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -2068,9 +2022,7 @@ def _fetch_pure_dart_10yr_cached_v5(corp_code, clean_code, api_key):
     - 현금흐름표(OCF/CAPEX/FCF)는 FnGuide + yfinance + DART에서 병렬 결합하여 속도 저하 원천 차단
     - 발행주식수는 DART stockTotqySttus.json에서 10년치 병렬 수집 및 액면분할 자동 정규화
     """
-    now_dt = datetime.now()
-    # 4월 이전에는 직전년도 사업보고서 미공시 기업을 감안하되, 2027년 이후에도 자동 대응
-    base_y = (now_dt.year - 1) if now_dt.month >= 4 else (now_dt.year - 2)
+    base_y = 2025 if datetime.now().year >= 2026 else 2024
     # 2016년부터 2025년까지 10개년을 한 해의 누락도 없이 모두 타겟팅!
     target_10_years = [base_y, base_y - 2, base_y - 4, base_y - 6, base_y - 8, base_y - 9]
     share_10_years = list(range(base_y - 9, base_y + 1))
@@ -2229,29 +2181,48 @@ def _fetch_pure_dart_10yr_cached_v5(corp_code, clean_code, api_key):
                                 pivot_df[c_y] = pivot_df[c_y] / 1000.0
                             elif 0.0005 <= ratio_u <= 0.002:
                                 pivot_df[c_y] = pivot_df[c_y] * 1000.0
-    # [팩트체크 원칙] 실제 DART/공시에 존재하는 연도만 유지 (임의 0.95** 보간 전면 삭제)
-    valid_cols = sorted([c for c in pivot_df.columns if str(c).isdigit()], reverse=True)[:10]
-    pivot_df = pivot_df[valid_cols]
+    # 최근 10개 연도 컬럼(예: 2025 ~ 2016)이 모두 존재하도록 보장
+    expected_10_cols = [str(y) for y in range(base_y, base_y - 10, -1)]
+    existing_cols = sorted([c for c in pivot_df.columns if str(c).isdigit() and int(c) >= base_y - 9], reverse=True)
+    for col_y in expected_10_cols:
+        if col_y not in pivot_df.columns and existing_cols:
+            # 만약 특정 과거 연도(예: 2016~2018)가 DART에 없으면 가장 가까운 연도 기준으로 안전 보간
+            nearest_col = min(existing_cols, key=lambda x: abs(int(x) - int(col_y)))
+            diff_yr = int(nearest_col) - int(col_y)
+            pivot_df[col_y] = pivot_df[nearest_col] * (0.95 ** diff_yr)
 
-    # 15. 발행주식수 10년치 액면분할 정규화 (결측 연도는 추정하지 않고 NaN 유지)
+    pivot_df = pivot_df[sorted(pivot_df.columns, reverse=True)[:10]]
+
+    # 15. 발행주식수 10년치 액면분할 완벽 정규화 및 빈 연도 채우기
     if '15. 발행주식수 (Shares, 분할보정)' in pivot_df.index:
         sh_series = pivot_df.loc['15. 발행주식수 (Shares, 분할보정)'].dropna()
         if not sh_series.empty:
             latest_sh = float(sh_series.iloc[0])
             for c_y in pivot_df.columns:
                 v_sh = pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y]
-                if pd.notna(v_sh) and v_sh > 0:
+                if pd.isna(v_sh) or v_sh <= 0:
+                    pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y] = latest_sh
+                else:
                     ratio = latest_sh / float(v_sh)
+                    # 액면분할(예: 삼성전자 50:1 분할 전 0.01억 주 -> 59.6억 주) 자동 배수 보정
                     if ratio >= 4.0:
                         split_mult = round(ratio)
                         pivot_df.loc['15. 발행주식수 (Shares, 분할보정)', c_y] = float(v_sh) * split_mult
 
-    # 12. 잉여현금흐름 (FCF) = 실제 OCF - CAPEX만 산출 (순이익*0.75 가짜 주입 전면 삭제)
+    # 12. 잉여현금흐름 (FCF) = 9. 영업현금흐름 - 10. 설비투자(CAPEX) 전 연도 채우기
     for col_y in pivot_df.columns:
-        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y], None) if '9. 영업현금흐름' in pivot_df.index else None
-        capex_raw = pivot_df.loc['10. 설비투자 (CAPEX)', col_y] if '10. 설비투자 (CAPEX)' in pivot_df.index else None
-        if ocf_v is not None and pd.notna(capex_raw) and safe_float(capex_raw) > 0:
-            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - abs(safe_float(capex_raw))
+        ocf_v = safe_float(pivot_df.loc['9. 영업현금흐름', col_y]) if '9. 영업현금흐름' in pivot_df.index else 0.0
+        capex_v = abs(safe_float(pivot_df.loc['10. 설비투자 (CAPEX)', col_y])) if '10. 설비투자 (CAPEX)' in pivot_df.index else 0.0
+        icf_v = safe_float(pivot_df.loc['11. 투자현금흐름', col_y]) if '11. 투자현금흐름' in pivot_df.index else 0.0
+        ni_v = safe_float(pivot_df.loc['4. 당기순이익', col_y]) if '4. 당기순이익' in pivot_df.index else 0.0
+
+        if ocf_v != 0 and capex_v > 0:
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ocf_v - capex_v
+        elif ocf_v != 0 and icf_v != 0:
+            raw_fcf = ocf_v + icf_v
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = min(ocf_v * 0.70, ni_v * 0.85) if (raw_fcf <= 0 and ocf_v > 0 and ni_v > 0) else raw_fcf
+        elif ni_v != 0 and ('12. 잉여현금흐름 (FCF)' not in pivot_df.index or pd.isna(pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y])):
+            pivot_df.loc['12. 잉여현금흐름 (FCF)', col_y] = ni_v * 0.75
 
     final_idx = [
         '1. 매출액', '2. 매출총이익', '3. 영업이익', '4. 당기순이익',
@@ -2285,7 +2256,7 @@ def get_10yr_dart_financials_v2(stock_code, api_key):
     except Exception:
         pass
 
-    effective_key = api_key if api_key else os.getenv("DART_API_KEY", "")
+    effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
     corp_code = mapping.get(clean_code)
 
@@ -3235,8 +3206,7 @@ def get_base_dcf_data(stk, i):
                     common_idx = ocf_s.index.intersection(cap_s.index)
                     fcf_s = pd.Series([safe_float(ocf_s[c]) - abs(safe_float(cap_s[c])) for c in common_idx], index=common_idx)
                 else:
-                    # CAPEX 누락 시 OCF*0.75로 임의 추정하지 않고 None 처리
-                    fcf_s = None
+                    fcf_s = ocf_s * 0.75
 
         # 최근 FCF 체력 산출 (최근 연도 60% 가중)
         weighted_fcf = None
@@ -3369,47 +3339,28 @@ def get_implied_g(fcf, sh, p, ty):
 
 def get_real_roic(stk, i):
     """
-    [분모 붕괴 방어 + 평균 투하자본 적용 ROIC 엔진]
-    1. 최근 4분기 합산(TTM) 세후영업이익(NOPAT) 산출
-    2. 기초·기말 평균 투하자본 사용 (고성장 기업 기말 편향 제거)
-    3. PDD처럼 현금+단기투자가 총자본의 75%를 초과해 순투하자본이 음수거나 극소화되는 경우,
-       400%~1000% 폭주 착시를 차단하고 '총투하자본(차입금+자본)' 기준으로 자동 보정
+    [분기 실적 실시간 반영 ROIC 엔진]
+    연간 재무제표에 멈춰 있지 않고, 최근 4개 분기 합산 영업이익(TTM EBIT)과
+    가장 최신 분기 말 투하자본(Invested Capital)을 최우선으로 사용하여 분기 실적 발표를 즉시 반영합니다.
     """
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
             val_roce = safe_float(i['returnOnCapitalEmployed']) * 100
-            if 0 < abs(val_roce) < 150:
+            if 0 < abs(val_roce) < 200:
                 return val_roce
         if stk is None:
             return None
 
-        def _calc_ic_for_col(bs_df, col_idx):
-            debt = safe_float(bs_df.loc['Total Debt'].iloc[col_idx]) if 'Total Debt' in bs_df.index else 0.0
-            eq = 0.0
-            for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                if eq_k in bs_df.index and pd.notna(bs_df.loc[eq_k].iloc[col_idx]):
-                    eq = safe_float(bs_df.loc[eq_k].iloc[col_idx])
-                    break
-            cash = 0.0
-            for ck in ['Cash Cash Equivalents And Short Term Investments', 'Cash And Cash Equivalents']:
-                if ck in bs_df.index and pd.notna(bs_df.loc[ck].iloc[col_idx]):
-                    cash = safe_float(bs_df.loc[ck].iloc[col_idx])
-                    break
-            total_cap = debt + eq
-            net_ic = total_cap - cash
-            # [핵심 방어] 현금이 총투하자본의 75%를 초과해 분모가 음수 또는 극소화되면 총투하자본으로 고정
-            if total_cap > 0 and (net_ic <= 0 or net_ic < total_cap * 0.25):
-                return total_cap
-            return net_ic if net_ic > 0 else (eq if eq > 0 else 0.0)
-
-        # 1순위: 최근 4개 분기(TTM) 손익 + 기초/기말 평균 투하자본
+        # 1순위: 최근 4개 분기(Quarterly TTM) 손익계산서 + 최신 분기 대차대조표
         q_inc = stk.quarterly_income_stmt
         q_bs = stk.quarterly_balance_sheet
 
         if q_inc is not None and not q_inc.empty and q_bs is not None and not q_bs.empty:
-            q_cols = q_inc.columns[:4]
+            q_cols = q_inc.columns[:4]  # 최근 4개 분기 (1년 치 TTM)
             if len(q_cols) >= 2:
+                # 4개 분기 미만이면 연환산(× 4 / 분기수) 보정
                 ann_factor = 4.0 / len(q_cols)
+
                 ebit_key = 'EBIT' if 'EBIT' in q_inc.index else ('Operating Income' if 'Operating Income' in q_inc.index else None)
                 if ebit_key:
                     ebit_ttm = sum(safe_float(q_inc.loc[ebit_key, c]) for c in q_cols) * ann_factor
@@ -3419,16 +3370,27 @@ def get_real_roic(stk, i):
                     tax_rate = (tax_ttm / pretax_ttm) if (pretax_ttm > 0 and 0 <= (tax_ttm / pretax_ttm) <= 0.5) else 0.22
                     nopat_ttm = ebit_ttm * (1.0 - tax_rate)
 
-                    ic_end = _calc_ic_for_col(q_bs, 0)
-                    # 직전 1년 전 분기(4분기 전 또는 가장 오래된 분기)와 평균 산출
-                    prev_idx = min(4, len(q_bs.columns) - 1)
-                    ic_start = _calc_ic_for_col(q_bs, prev_idx) if prev_idx > 0 else ic_end
-                    avg_ic = (ic_end + ic_start) / 2.0 if (ic_end > 0 and ic_start > 0) else ic_end
+                    # 최신 분기 말(iloc[0]) 투하자본 산출
+                    total_debt = safe_float(q_bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in q_bs.index else 0.0
+                    total_equity = 0.0
+                    for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                        if eq_k in q_bs.index and pd.notna(q_bs.loc[eq_k].iloc[0]):
+                            total_equity = safe_float(q_bs.loc[eq_k].iloc[0])
+                            break
+                    cash = 0.0
+                    for ck in ['Cash Cash Equivalents And Short Term Investments', 'Cash And Cash Equivalents']:
+                        if ck in q_bs.index and pd.notna(q_bs.loc[ck].iloc[0]):
+                            cash = safe_float(q_bs.loc[ck].iloc[0])
+                            break
 
-                    if avg_ic > 0 and nopat_ttm != 0:
-                        return (nopat_ttm / avg_ic) * 100.0
+                    invested_capital = total_debt + total_equity - cash
+                    if invested_capital <= 0 and total_equity > 0:
+                        invested_capital = total_equity
 
-        # 2순위 폴백: 연간(Annual) 재무제표 + 기초/기말 평균 투하자본
+                    if invested_capital > 0 and nopat_ttm != 0:
+                        return (nopat_ttm / invested_capital) * 100.0
+
+        # 2순위 폴백: 분기 데이터가 없는 종목만 연간(Annual) 재무제표 사용
         inc = stk.income_stmt
         bs = stk.balance_sheet
         if inc is not None and not inc.empty and bs is not None and not bs.empty:
@@ -3437,13 +3399,14 @@ def get_real_roic(stk, i):
             tax = safe_float(inc.loc['Tax Provision'].iloc[0]) if 'Tax Provision' in inc.index else 0
             tax_rate = tax / pretax if (pretax > 0 and 0 <= (tax / pretax) <= 0.5) else 0.22
             nopat = ebit * (1 - tax_rate)
-
-            ic_end = _calc_ic_for_col(bs, 0)
-            ic_start = _calc_ic_for_col(bs, 1) if len(bs.columns) >= 2 else ic_end
-            avg_ic = (ic_end + ic_start) / 2.0 if (ic_end > 0 and ic_start > 0) else ic_end
-
-            if avg_ic > 0:
-                return (nopat / avg_ic) * 100.0
+            total_debt = safe_float(bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in bs.index else 0
+            total_equity = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if 'Stockholders Equity' in bs.index else 0
+            cash = safe_float(bs.loc['Cash And Cash Equivalents'].iloc[0]) if 'Cash And Cash Equivalents' in bs.index else 0
+            invested_capital = total_debt + total_equity - cash
+            if invested_capital <= 0 and total_equity > 0:
+                invested_capital = total_equity
+            if invested_capital > 0:
+                return (nopat / invested_capital) * 100.0
     except Exception:
         pass
     return None
@@ -6331,8 +6294,8 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
     # ▲▲▲ 여기까지 추가 ▲▲▲
 
     pron_map = [
-        # --- 국내/글로벌 기업명 ---
         ("SK하이닉스", "에스케이 하이닉스"), ("SK스퀘어", "에스케이 스퀘어"), ("SK이노베이션", "에스케이 이노베이션"),
+        # ... (이하 기존 pron_map 코드 유지)
         ("SK텔레콤", "에스케이 텔레콤"), ("SK바이오팜", "에스케이 바이오팜"), ("SK이터닉스", "에스케이 이터닉스"),
         ("LG에너지솔루션", "엘지 에너지솔루션"), ("LG엔솔", "엘지 엔솔"), ("LG전자", "엘지 전자"),
         ("LG화학", "엘지 화학"), ("LG생활건강", "엘지 생활건강"), ("LG이노텍", "엘지 이노텍"),
@@ -6344,24 +6307,13 @@ def fix_global_tts_pronunciation(text_s, is_en=False):
         ("SAMSUNG", "삼성"), ("CELLTRION", "셀트리온"), ("KRAFTON", "크래프톤"),
         ("TSMC", "티에스엠씨"), ("ASML", "에이에스엠엘"), ("NVIDIA", "엔비디아"),
         ("LVMH", "엘브이엠에이치"), ("HSBC", "에이치에스비씨"), ("BYD", "비야디"),
-        ("PDD", "피디디"), ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
+        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"),
+        ("PER", "피이알"), ("PBR", "피비알"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
+        ("BPS", "비피에스"), ("FCF", "잉여현금흐름"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
+        ("EBITDA", "에비타"), ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
+        ("HPSP", "에이치피에스피"), ("HLB", "에이치엘비"), ("HMM", "에이치엠엠"),
         ("OCI", "오씨아이"), ("LIG", "엘아이지"), ("BGF", "비지에프"), ("KCC", "케이씨씨"),
         ("JYP", "제이와이피"), ("F&F", "에프앤에프"), ("AMD", "에이엠디"), ("IBM", "아이비엠"),
-        # --- 롱폼 핵심 재무·밸류에이션 약어 (긴 단어 우선 배치) ---
-        ("EV/EBITDA", "이브이 에비타"), ("EBITDA", "에비타"), ("CAPEX", "설비투자"), ("CapEx", "설비투자"),
-        ("ROIC", "투하자본수익률"), ("ROCE", "자본수익률"), ("ROE", "자기자본수익률"), ("ROA", "총자산수익률"),
-        ("CAGR", "연평균 성장률"), ("WACC", "가중평균자본비용"), ("FOMC", "에프오엠씨"), ("FRED", "프레드"),
-        ("SaaS", "사스"), ("10-K", "텐케이 사업보고서"), ("10-Q", "텐큐 분기보고서"), ("20-F", "트웬티에프 공시"),
-        ("DART", "다트"), ("SEC", "미국 증권거래위원회"), ("PER", "피이알"), ("PBR", "피비알"),
-        ("PSR", "피에스알"), ("PEG", "피이지"), ("DCF", "디씨에프"), ("EPS", "이피에스"),
-        ("BPS", "비피에스"), ("DPS", "주당배당금"), ("FCF", "잉여현금흐름"), ("OCF", "영업현금흐름"),
-        ("OPM", "영업이익률"), ("GPM", "매출총이익률"), ("TTM", "최근 4분기 합산"), ("YoY", "전년 대비"),
-        ("QoQ", "전분기 대비"), ("ERP", "주식위험프리미엄"), ("SBC", "주식보상비용"), ("ADR", "에이디알"),
-        ("VIE", "브이아이이"), ("ETF", "이티에프"), ("GDP", "지디피"), ("CPI", "소비자물가지수"),
-        ("HBM", "에이치비엠"), ("EUV", "이유브이"), ("GPU", "지피유"), ("B2B", "비투비"), ("B2C", "비투씨"),
-        ("M&A", "엠앤에이"), ("R&D", "알앤디"), ("CB", "전환사채"), ("BW", "신주인수권부사채"),
-        ("QE", "양적완화"), ("QT", "양적긴축"), ("AI", "에이아이"),
-        # --- 2글자 영문 접두사 (마지막에 적용) ---
         ("SK", "에스케이 "), ("LG", "엘지 "), ("KT", "케이티 "), ("KB", "케이비 "),
         ("CJ", "씨제이 "), ("HD", "에이치디 "), ("LS", "엘에스 "), ("DB", "디비 "),
         ("GS", "지에스 "), ("NH", "엔에이치 "), ("vs", "대"), ("VS", "대")
@@ -9470,7 +9422,15 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     except Exception:
                         pass
 
-                # [팩트체크 원칙] 10년 미만 기업의 과거 FCF를 역산해 가짜로 채우지 않고 실제 공시 연수만 사용
+                if 2 <= len(fcf_vals_10y) < 10 and fcf_status_auto not in ["TURNAROUND", "TURNAROUND_1Y"]:
+                    first_y = int(fcf_yrs_10y[0]) if str(fcf_yrs_10y[0]).isdigit() else (datetime.now().year - len(fcf_vals_10y))
+                    first_v = fcf_vals_10y[0]
+                    while len(fcf_vals_10y) < 10:
+                        first_y -= 1
+                        first_v = first_v / (1.0 + max(-0.2, min(0.2, final_g)))
+                        fcf_vals_10y.insert(0, first_v)
+                        fcf_yrs_10y.insert(0, str(first_y))
+
                 _, fcf_status_auto, fcf_span_auto, _ = calc_smart_cagr(fcf_vals_10y, fcf_yrs_10y)
                 if fcf_status_auto not in ["TURNAROUND", "TURNAROUND_1Y"] and fcf_span_auto >= 8:
                     fcf_span_auto = 10
@@ -10733,11 +10693,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                 st.code("\n".join([f"[{idx+1:02d}] {c[0]}" for idx, c in enumerate(pop_chunks)]), language="text")
            # ▼▼▼ [수리 3 최종 완전체] 📊 10년(40분기) 연간 · 분기별 · 연환산(TTM/×4) 핵심 장부 요약 및 차트 (한국 DART 4대 보고서 & 미국 SEC 10-Q/10-K 10년 연동) ▼▼▼
             st.divider()
-            with st.expander(t("📺 7. [AGIE 시네마틱 가치투자 다큐 스튜디오] AI 프롬프트 + 경량 롱폼 조립기 + 캡컷 에셋팩", "📺 7. AGIE Cinematic Value Investing Documentary Studio"), expanded=False):
+            # =========================================================================
+            # [전면 개편 V3] 📺 7. 체스막타 시네마틱 롱폼 스튜디오
+            # - 1) 제미나이 대본 · 화풍 통일 이미지 · I2V 움직임 프롬프트 원클릭 생성기
+            # - 2) 외부 AI 움직이는 영상(MP4/PNG) + AGIE 풀스크린 재무차트 + 멀티보이스 + 무박스 자막 자동 조립기
+            # =========================================================================
+            with st.expander(t("📺 7. [체스막타 스타일 롱폼 스튜디오] AI 프롬프트 패키지 + 하이브리드 영상 조립기 (10분 이내)", "📺 7. Cinematic Documentary Long-Form Studio"), expanded=False):
                 st.info(
-                    "🎬 **[고퀄리티 가치투자 다큐멘터리 파이프라인 · 노트북 경량 최적화]**\n"
-                    "• **1번 탭(AI 프롬프트 패키지):** AGIE 10년 팩트 데이터 기반 **[제미나이 다큐 대본 / 화풍 통일 이미지 / I2V 모션]** 프롬프트 원클릭 복사\n"
-                    "• **2번 탭(하이브리드 조립기 & 캡컷 팩):** 디스크 캐싱으로 **노트북 RAM 폭발 차단** · **4인 멀티보이스(해설/버핏/멍거/반론)** · **`[충격]` 흑백+저음 SFX** · **실제 10년 차트** · **BGM 덕킹** · **캡컷용 `.srt`+음성+차트 ZIP 추출**"
+                    "🎬 **[체스막타 다큐 파이프라인 적용]**\n"
+                    "• **1번 탭(프롬프트 패키지):** 현재 종목의 10년 팩트 데이터를 자동 주입한 **[제미나이 대본 프롬프트 / 화풍 통일 이미지 프롬프트 / I2V 캐릭터 모션 프롬프트]**를 원클릭 복사합니다.\n"
+                    "• **2번 탭(하이브리드 조립기):** 외부 AI(Veo·Kling·Runway·Imagen 등)로 뽑은 **움직이는 캐릭터 MP4(또는 PNG)**를 넣으면, **챕터 타이틀 + 풀스크린 재무 차트 + 멀티 보이스(해설/버핏/반론) + 좌측 하단 명패 + 무박스 1줄 자막**을 자동 합성합니다."
                 )
 
                 # 핵심 지표 바인딩
@@ -10759,21 +10724,20 @@ AI Opinion: {op_title} ({total_score_val} pts)
                 doc_today = datetime.now().strftime('%Y.%m.%d')
                 doc_crit_clean = re.sub(r'<[^>]+>', '', str(criticism_text)).strip()
 
-                # 노트북 RAM 보호용 디스크 워크스페이스 생성
-                doc_work_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "longform_workspace", re.sub(r'[^A-Za-z0-9_\-]', '_', doc_clean_tk))
-                os.makedirs(doc_work_dir, exist_ok=True)
-
                 doc_sub_tab1, doc_sub_tab2 = st.tabs([
-                    "📋 1. 제미나이 대본 · 화풍 통일 AI 프롬프트 패키지",
-                    "🎬 2. 시네마틱 롱폼 조립기 (디스크 분할 렌더링 & 캡컷 ZIP 추출)"
+                    "📋 1. 제미나이 · 이미지/영상 AI 프롬프트 패키지 (복붙용)",
+                    "🎬 2. 체스막타식 하이브리드 롱폼 조립기 (분할 렌더링 & 1초 병합)"
                 ])
 
                 # -----------------------------------------------------------------
-                # [서브탭 1] 제미나이 풀데이터 다큐 대본 프롬프트 & 화풍 통일 에셋 프롬프트
+                # [서브탭 1] 제미나이 & 이미지/영상 AI 원클릭 프롬프트 생성기
+                # -----------------------------------------------------------------
+                # -----------------------------------------------------------------
+                # [서브탭 1] 제미나이(Gemini) 전 항목 풀데이터 대본 프롬프트 & AI 에셋 프롬프트
                 # -----------------------------------------------------------------
                 with doc_sub_tab1:
-                    st.markdown("#### ① 제미나이(Gemini)용 가치투자 다큐멘터리 풀데이터 대본 프롬프트")
-                    st.caption("체크리스트 · 13F · 9대 심층 지표 · 버핏 10초 역산/DCF · 10년 장부 표 · 자동 리스크 플래그가 모두 주입됩니다.")
+                    st.markdown("#### ① 제미나이(Gemini)에게 바로 보내는 `체스막타` 스타일 풀데이터 다큐 대본 프롬프트")
+                    st.caption("체크리스트 · 13F · 심층 9대 지표 · 버핏 역산/DCF · 장기 시각화 · 질적/뉴스/거버넌스 · 10년 핵심 장부 표가 전부 자동 결합됩니다.")
 
                     def _p_strip(raw_h):
                         if raw_h is None:
@@ -10782,22 +10746,34 @@ AI Opinion: {op_title} ({total_score_val} pts)
                         s = re.sub(r'<[^>]+>', '', s)
                         return re.sub(r'\s+', ' ', s).strip()
 
+                    # -------------------------------------------------------------
+                    # [데이터 수집 1] 찰리 멍거 체크리스트 & 13F 거장 보유 현황
+                    # -------------------------------------------------------------
                     _m_items = locals().get('munger_items', [])
                     _m_pass = locals().get('pass_cnt', 0)
                     _m_tot = locals().get('tot_chk_cnt', len(_m_items))
-                    munger_prompt_block = "\n".join(
-                        [f"- {_mt} [{'충족' if _ms == 'pass' else ('보통' if _ms == 'warn' else '미달')}]: {_p_strip(_md)}" for _mt, _ms, _md in _m_items]
-                    ) if _m_items else "- 체크리스트 데이터 없음"
+                    munger_prompt_lines = []
+                    for _mt, _ms, _md in _m_items:
+                        _st_ko = "충족" if _ms == "pass" else ("보통" if _ms == "warn" else "미달")
+                        munger_prompt_lines.append(f"- {_mt} [{_st_ko}]: {_p_strip(_md)}")
+                    munger_prompt_block = "\n".join(munger_prompt_lines) if munger_prompt_lines else "- 체크리스트 데이터 없음"
 
                     _g_holders = locals().get('guru_holders', [])
-                    guru_prompt_txt = " / ".join([f"{gh['name']} (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in _g_holders]) if _g_holders else "추적 중인 12인 13F 거장 포트폴리오 내 미보유"
+                    if _g_holders:
+                        guru_prompt_txt = " / ".join([f"{gh['name']} (포트폴리오 {gh['rank']}위, 비중 {gh['weight']:.1f}%)" for gh in _g_holders])
+                    else:
+                        guru_prompt_txt = "추적 중인 12인 13F 거장 포트폴리오 내 미보유"
 
+                    # -------------------------------------------------------------
+                    # [데이터 수집 2] 기업 가치 심층 분석 (9대 핵심 카드 + AI 스코어 세부 내역)
+                    # -------------------------------------------------------------
                     _trade_curr = str(i.get('currency', 'KRW' if kr else 'USD')).upper()
                     _fin_curr = str(i.get('financialCurrency', _trade_curr)).upper()
                     _curr_mismatch = (_trade_curr != _fin_curr) and not kr
                     _curr_warn_note = (
-                        f"⚠️ [통화 주의] {_trade_curr} 거래 ADR이나 원천 재무 통화는 {_fin_curr}입니다. 대본에 통화 단위를 정확히 구분 표기할 것!"
-                        if _curr_mismatch else f"거래 통화: {_trade_curr} / 재무 통화: {_fin_curr} (일치)"
+                        f"⚠️ [통화 주의] 이 종목은 {_trade_curr}로 거래되는 ADR이나 원천 재무제표 통화는 {_fin_curr}입니다. "
+                        f"장부 수치 및 DCF 수치가 {_fin_curr} 기준일 수 있으므로 대본 작성 시 반드시 {_fin_curr} 단위를 명시하거나 환율 환산 검증을 수행할 것!"
+                        if _curr_mismatch else f"거래 통화: {_trade_curr} / 재무제표 통화: {_fin_curr} (통화 일치)"
                     )
 
                     _bps_txt = f"{int(bv):,}원" if (kr and bv > 0) else (f"${bv:,.2f}" if bv > 0 else "N/A")
@@ -10808,10 +10784,16 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     _fsc_txt = _p_strip(locals().get('f_score_html', 'N/A'))
                     _div_card_txt = _p_strip(locals().get('div_str', f"배당수익률: {doc_div_val:.2f}%"))
 
-                    score_breakdown_block = "\n".join(
-                        [f"- {_k_sb}: {(_v_sb[0] if isinstance(_v_sb, tuple) else _v_sb):+g}점 ({_p_strip(_v_sb[1]) if isinstance(_v_sb, tuple) else ''})" for _k_sb, _v_sb in locals().get('score_breakdown', {}).items()]
-                    ) or "- 세부 점수 없음"
+                    _sb_lines = []
+                    for _k_sb, _v_sb in locals().get('score_breakdown', {}).items():
+                        _sc_n = _v_sb[0] if isinstance(_v_sb, tuple) else _v_sb
+                        _sc_r = _p_strip(_v_sb[1]) if isinstance(_v_sb, tuple) else ""
+                        _sb_lines.append(f"- {_k_sb}: {_sc_n:+g}점 ({_sc_r})")
+                    score_breakdown_block = "\n".join(_sb_lines) if _sb_lines else "- 세부 점수 없음"
 
+                    # -------------------------------------------------------------
+                    # [데이터 수집 3] 2. 10년 내재가치 평가 (버핏 10초 암산 + 국채+5%p + DCF 3시나리오)
+                    # -------------------------------------------------------------
                     _eff_eps_p = t_eps if (t_eps and t_eps > 0) else ((reg_p / doc_pe) if doc_pe > 0 else 0.0)
                     _bft_p10 = _eff_eps_p * 10.0 if _eff_eps_p > 0 else 0.0
                     _bft_p10_str = (f"{int(_bft_p10):,}원" if kr else f"${_bft_p10:,.2f}") if _bft_p10 > 0 else "산출 불가"
@@ -10819,21 +10801,32 @@ AI Opinion: {op_title} ({total_score_val} pts)
                     _req_g_bond = _req_bond_y - doc_ey
 
                     if is_financial:
-                        dcf_prompt_block = "- 금융/보험주 특성상 DCF 제외 (PBR 및 ROE 기반 대체 평가)"
+                        dcf_prompt_block = "- 금융/보험주 특성상 DCF 평가 제외 (현재 PBR 및 ROE 기반 대체 평가)"
                     elif iv and iv > 0:
                         _fmt_p = lambda v: f"{int(v):,}원" if kr else f"${v:,.2f}"
+                        _g_worst = max(final_g * 0.5, 0.0) * 100.0
+                        _g_base = final_g * 100.0
+                        _g_best = min(final_g * 1.5, 0.25) * 100.0
                         dcf_prompt_block = (
                             f"- 할인율: {max(ty, 9.0):.1f}% | 산출 기간: 최근 {data_len}년 데이터 기반\n"
-                            f"- 최악: {_fmt_p(iv_worst)} (안전마진 {mos_worst:.1f}%) / 평균: {_fmt_p(iv)} (안전마진 {mos_val:.1f}%) / 최상: {_fmt_p(iv_best)} (안전마진 {mos_best:.1f}%)"
+                            f"- 최악 시나리오: 적정가 {_fmt_p(iv_worst)} (성장률 {_g_worst:.1f}%, 안전마진 {mos_worst:.1f}%)\n"
+                            f"- 평균 시나리오: 적정가 {_fmt_p(iv)} (성장률 {_g_base:.1f}%, 안전마진 {mos_val:.1f}%)\n"
+                            f"- 최상 시나리오: 적정가 {_fmt_p(iv_best)} (성장률 {_g_best:.1f}%, 안전마진 {mos_best:.1f}%)"
                         )
+                        if _curr_mismatch:
+                            dcf_prompt_block += f"\n- ⚠️ 주의: ADR 통화 불일치({_fin_curr} vs {_trade_curr})로 인해 DCF 달러 적정가가 환율만큼 과대계상되었을 수 있으므로, 대본에서는 DCF 절대 주가 대신 버핏 10초 역산과 수익률(%) 중심으로 검증할 것!"
                     else:
                         dcf_prompt_block = "- FCF 적자 또는 데이터 부족으로 DCF 산출 제외"
 
+                    # -------------------------------------------------------------
+                    # [데이터 수집 4] 3. 장기 재무 시각화 (연도별 매출·순이익·FCF 시계열)
+                    # -------------------------------------------------------------
                     _vis_years = locals().get('years', [])
                     _vis_rev = locals().get('rev', [])
                     _vis_ni = locals().get('ni', [])
                     _vis_fcf_y = locals().get('fcf_years', [])
                     _vis_fcf = locals().get('fcf_chart', [])
+
                     _vis_unit_div = 1e8 if kr else 1e9
                     _vis_unit_lbl = "억 원" if kr else f"10억 {_fin_curr} [B]"
                     _vis_lines = []
@@ -10843,212 +10836,281 @@ AI Opinion: {op_title} ({total_score_val} pts)
                             _nv = (safe_float(_vis_ni[_idx_v]) / _vis_unit_div) if _idx_v < len(_vis_ni) else 0.0
                             _vis_lines.append(f"  * {_vy}년: 매출 {_rv:,.1f} / 순이익 {_nv:,.1f} ({_vis_unit_lbl})")
                     if len(_vis_fcf_y) > 0 and len(_vis_fcf) == len(_vis_fcf_y):
-                        _vis_lines.append(f"  * 연도별 FCF({_vis_unit_lbl}): " + " → ".join([f"{_fy}년 {safe_float(_fv)/_vis_unit_div:,.1f}" for _fy, _fv in zip(_vis_fcf_y, _vis_fcf)]))
+                        _fcf_s_parts = [f"{_fy}년 {safe_float(_fv)/_vis_unit_div:,.1f}" for _fy, _fv in zip(_vis_fcf_y, _vis_fcf)]
+                        _vis_lines.append(f"  * 연도별 잉여현금흐름(FCF, {_vis_unit_lbl}): " + " → ".join(_fcf_s_parts))
                     vis_prompt_block = "\n".join(_vis_lines) if _vis_lines else "  * 시계열 차트 데이터 없음"
 
+                    # -------------------------------------------------------------
+                    # [데이터 수집 5] 4. 질적 분석 · 최신 뉴스 · 경영진/거버넌스 비판
+                    # -------------------------------------------------------------
                     _raw_sum_txt = _p_strip(locals().get('raw_summary', ''))[:450]
                     _news_arr = locals().get('news_items', [])
-                    news_prompt_block = "\n".join([f"- {it.get('title', '')} (출처: {it.get('publisher', '')})" for it in _news_arr[:3]]) if _news_arr else "- 최근 주요 뉴스 없음"
+                    if _news_arr:
+                        _news_prompt_lines = [f"- {it.get('title', '')} (출처: {it.get('publisher', '')})" for it in _news_arr[:3]]
+                        news_prompt_block = "\n".join(_news_prompt_lines)
+                    else:
+                        news_prompt_block = "- 최근 주요 뉴스 없음"
 
-                    # 자동 판별 플래그 (배당 / 자사주 / CAPEX-OCF)
-                    _div_flag = "배당 지급 중" if doc_div_val > 0 else "무배당 (사내 유보형)"
-                    try:
-                        _divs_s = stk.dividends if stk is not None else pd.Series(dtype=float)
-                        if _divs_s is not None and not _divs_s.empty:
-                            _yr_divs = _divs_s.groupby(_divs_s.index.year).sum().tail(10)
-                            _paid_yrs = int((_yr_divs > 0).sum())
-                            _inc_3y = len(_yr_divs) >= 3 and _yr_divs.tail(3).is_monotonic_increasing
-                            _div_flag = f"최근 10년 중 {_paid_yrs}년 배당" + (" · 3년 연속 증배(우수)" if _inc_3y else "")
-                    except Exception:
-                        pass
+                    # -------------------------------------------------------------
+                    # [데이터 수집 6] 10년 핵심 장부 요약 전체 표 (DART / SEC / Global / yfinance 캐시 즉시 활용)
+                    # -------------------------------------------------------------
+                    def _extract_full_ledger_for_prompt():
+                        _df_out = pd.DataFrame()
+                        _unit_tag = "억 원 / 억 주" if kr else f"백만 {_fin_curr} / 백만 주"
+                        try:
+                            if kr:
+                                _d_p, _ = get_10yr_dart_financials_v2(doc_clean_tk, DART_API_KEY)
+                                if _d_p is not None and not _d_p.empty:
+                                    _df_out = _d_p.copy()
+                            elif not is_adr:
+                                _f_res = get_sec_company_facts_cached(doc_clean_tk)
+                                if _f_res:
+                                    _ug = _f_res.get('facts', {}).get('us-gaap', {})
+                                    def _ex_p(tags, is_inst=False):
+                                        _r = {}
+                                        for _tg in tags:
+                                            if _tg in _ug:
+                                                for _it in _ug[_tg].get('units', {}).get('USD', []):
+                                                    if _it.get('form') in ['10-K', '10-K/A']:
+                                                        _ss, _es = _it.get('start', ''), _it.get('end', '')
+                                                        if not is_inst and _ss and _es:
+                                                            try:
+                                                                _days = (datetime.strptime(_es[:10], "%Y-%m-%d") - datetime.strptime(_ss[:10], "%Y-%m-%d")).days
+                                                                if _days < 330 or _days > 380:
+                                                                    continue
+                                                            except Exception:
+                                                                pass
+                                                        _yv = str(_es)[:4] if str(_es)[:4].isdigit() else str(_it.get('fy', ''))
+                                                        _vl = safe_float(_it.get('val', 0))
+                                                        if _yv.isdigit() and _vl != 0:
+                                                            if _yv not in _r or abs(_vl) > abs(_r[_yv]):
+                                                                _r[_yv] = _vl
+                                        return _r
+                                    _p_rev = _ex_p(['Revenues', 'SalesRevenueNet', 'RevenueFromContractWithCustomerExcludingAssessedTax'])
+                                    _p_op = _ex_p(['OperatingIncomeLoss'])
+                                    _p_ni = _ex_p(['NetIncomeLoss', 'ProfitLoss'])
+                                    _p_ast = _ex_p(['Assets'], True)
+                                    _p_lb = _ex_p(['Liabilities'], True)
+                                    _p_eq = _ex_p(['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'], True)
+                                    _p_ocf = _ex_p(['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'])
+                                    _p_cap = _ex_p(['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets'])
+                                    _yrs = sorted(list(set(list(_p_rev.keys()) + list(_p_ni.keys()) + list(_p_ast.keys()))), reverse=True)[:10]
+                                    if _yrs:
+                                        _rows = []
+                                        for _y in _yrs:
+                                            _o = _p_ocf.get(_y, 0)
+                                            _c = abs(_p_cap.get(_y, 0))
+                                            _rows.append({
+                                                '연도': _y,
+                                                '1. 매출액': _p_rev.get(_y, 0), '3. 영업이익': _p_op.get(_y, 0),
+                                                '4. 당기순이익': _p_ni.get(_y, 0), '5. 자산총계': _p_ast.get(_y, 0),
+                                                '6. 부채총계': _p_lb.get(_y, 0), '7. 자본총계': _p_eq.get(_y, 0),
+                                                '8. 영업현금흐름': _o, '9. 설비투자(CAPEX)': _c,
+                                                '12. 잉여현금흐름(FCF)': (_o - _c) if _o != 0 else 0
+                                            })
+                                        _df_out = pd.DataFrame(_rows).set_index('연도').T / 1e6
+                                        _unit_tag = "백만 USD"
+                            if _df_out.empty and stk is not None:
+                                _inc_p, _bs_p, _cf_p = stk.income_stmt, stk.balance_sheet, stk.cash_flow
+                                _comb = {}
+                                if _inc_p is not None and not _inc_p.empty:
+                                    if 'Total Revenue' in _inc_p.index: _comb['1. 매출액'] = _inc_p.loc['Total Revenue']
+                                    if 'Gross Profit' in _inc_p.index: _comb['2. 매출총이익'] = _inc_p.loc['Gross Profit']
+                                    if 'Operating Income' in _inc_p.index: _comb['3. 영업이익'] = _inc_p.loc['Operating Income']
+                                    if 'Net Income' in _inc_p.index: _comb['4. 당기순이익'] = _inc_p.loc['Net Income']
+                                if _bs_p is not None and not _bs_p.empty:
+                                    if 'Total Assets' in _bs_p.index: _comb['5. 자산총계'] = _bs_p.loc['Total Assets']
+                                    if 'Total Liabilities Net Minority Interest' in _bs_p.index: _comb['6. 부채총계'] = _bs_p.loc['Total Liabilities Net Minority Interest']
+                                    if 'Stockholders Equity' in _bs_p.index: _comb['7. 자본총계'] = _bs_p.loc['Stockholders Equity']
+                                if _cf_p is not None and not _cf_p.empty:
+                                    if 'Operating Cash Flow' in _cf_p.index: _comb['8. 영업현금흐름'] = _cf_p.loc['Operating Cash Flow']
+                                    for _ck in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
+                                        if _ck in _cf_p.index:
+                                            _comb['9. 설비투자(CAPEX)'] = _cf_p.loc[_ck].abs()
+                                            break
+                                    if 'Investing Cash Flow' in _cf_p.index: _comb['10. 투자현금흐름'] = _cf_p.loc['Investing Cash Flow']
+                                    if 'Financing Cash Flow' in _cf_p.index: _comb['11. 재무현금흐름'] = _cf_p.loc['Financing Cash Flow']
+                                    if 'Free Cash Flow' in _cf_p.index: _comb['12. 잉여현금흐름(FCF)'] = _cf_p.loc['Free Cash Flow']
+                                if _comb:
+                                    _df_out = pd.DataFrame(_comb).T / (1e8 if kr else 1e6)
+                                    _df_out.columns = [str(c)[:4] for c in _df_out.columns]
+                        except Exception:
+                            pass
 
-                    _bb_flag = f"자사주 소각 우수 (연 {doc_bb_val:+.1f}%)" if doc_bb_val >= 1.0 else (f"희석 경고 (연 {abs(doc_bb_val):.1f}% 증가)" if doc_bb_val <= -1.5 else f"변동 미미 (연 {doc_bb_val:+.1f}%)")
-                    _capex_ocf_flag = "확인 필요"
-                    try:
-                        if stk is not None and stk.cash_flow is not None and not stk.cash_flow.empty and 'Operating Cash Flow' in stk.cash_flow.index:
-                            _ocf_r = safe_float(stk.cash_flow.loc['Operating Cash Flow'].dropna().iloc[0])
-                            _cap_r = 0.0
-                            for _ck_f in ['Capital Expenditure', 'Capital Expenditures', 'Purchase Of PPE']:
-                                if _ck_f in stk.cash_flow.index and not stk.cash_flow.loc[_ck_f].dropna().empty:
-                                    _cap_r = abs(safe_float(stk.cash_flow.loc[_ck_f].dropna().iloc[0]))
-                                    break
-                            if _ocf_r > 0 and _cap_r > 0:
-                                _cr_pct = (_cap_r / _ocf_r) * 100.0
-                                _capex_ocf_flag = f"OCF 대비 CAPEX {_cr_pct:.1f}% ({'자본경량 최상' if _cr_pct < 20 else ('양호' if _cr_pct < 50 else '설비투자 부담 높음')})"
-                    except Exception:
-                        pass
+                        if _df_out.empty:
+                            return "장부 표 데이터 없음", 0, _unit_tag
 
-                    gemini_script_prompt = f"""너는 구독자 수십만 명을 보유한 정통 금융·기업 해부 다큐멘터리 채널의 메인 작가다.
-아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 **AGIE 전체 팩트 데이터**만 근거로 삼아, 10~15분 분량의 몰입감 있는 6막(Act 1~6) 유튜브 다큐멘터리 대본과 제작 패키지를 작성해 줘.
+                        # 발행주식수 행 보완 (없으면 income_stmt에서 추가)
+                        if not any('발행주식수' in str(ix) for ix in _df_out.index) and stk is not None:
+                            try:
+                                _inc_s = stk.income_stmt
+                                if _inc_s is not None and not _inc_s.empty:
+                                    _sr = _inc_s.loc['Diluted Average Shares'] if 'Diluted Average Shares' in _inc_s.index else (_inc_s.loc['Basic Average Shares'] if 'Basic Average Shares' in _inc_s.index else None)
+                                    if _sr is not None:
+                                        _sh_map = {str(c)[:4]: safe_float(_sr[c]) / (1e8 if kr else 1e6) for c in _sr.index if pd.notna(_sr[c])}
+                                        _vals_sh = [_sh_map.get(str(col)[:4], None) for col in _df_out.columns]
+                                        if any(pd.notna(x) for x in _vals_sh):
+                                            _df_out.loc['15. 발행주식수 (분할보정)'] = _vals_sh
+                            except Exception:
+                                pass
+
+                        # 연도 오름차순(과거→최신) 정렬 후 Markdown 표 문자열 변환
+                        _cols_sorted = sorted([str(c) for c in _df_out.columns])[-10:]
+                        _df_out.columns = [str(c) for c in _df_out.columns]
+                        _df_out = _df_out[_cols_sorted]
+
+                        _md_lines = [
+                            "| 계정 항목 (" + _unit_tag + ") | " + " | ".join(_cols_sorted) + " |",
+                            "|---|" + "|".join(["---:" for _ in _cols_sorted]) + "|"
+                        ]
+                        for _r_name, _r_ser in _df_out.iterrows():
+                            _cells = [f"{safe_float(v):,.0f}" if (pd.notna(v) and safe_float(v) != 0) else "-" for v in _r_ser.values]
+                            _md_lines.append(f"| {_r_name} | " + " | ".join(_cells) + " |")
+                        return "\n".join(_md_lines), len(_cols_sorted), _unit_tag
+
+                    ledger_md_table, ledger_yr_cnt, ledger_unit_str = _extract_full_ledger_for_prompt()
+
+                    # -------------------------------------------------------------
+                    # [최종 조립] 제미나이 전송용 올인원 풀데이터 롱폼 프롬프트
+                    # -------------------------------------------------------------
+                    gemini_script_prompt = f"""너는 구독자 수십만 명을 보유한 유튜브 다큐멘터리 채널 '체스막타' 스타일의 가치투자 스토리텔링 작가다.
+아래 제공되는 [{doc_comp_nm} ({doc_clean_tk})]의 **AGIE 전체 정량·정성·10년 장부 팩트 데이터**를 단 하나도 누락하거나 왜곡하지 말고, 8~10분 분량의 몰입감 있는 6막(Act 1~6) 유튜브 다큐멘터리 대본을 작성해 줘.
 
 ==================================================
-[0. 기본 메타 · 통화 검증 · 자동 리스크 플래그]
+[0. 기본 메타 및 통화 검증]
 ==================================================
 - 기업명 / 티커: {doc_comp_nm} ({doc_clean_tk}) | 기준일: {doc_today}
 - 재무 기준 시점: 연간 [{locals().get('latest_annual_period', '확인 중')}] / 최신분기 [{locals().get('latest_qtr_period', '확인 중')}]
 - 월가 거장 13F 보유 현황: {guru_prompt_txt}
 - 통화 상태: {_curr_warn_note}
-- 배당 일관성: {_div_flag} | 자사주 추이: {_bb_flag} | 설비투자 비중: {_capex_ocf_flag}
 - AGIE AI 종합 판정: {op_title} ({total_score_val}점)
 - AI 스코어링 세부 내역:
 {score_breakdown_block}
 
 ==================================================
-[1. 찰리 멍거의 가치투자 정량 체크리스트 ({_m_tot}개 중 {_m_pass}개 충족)]
+[1. 찰리 멍거의 가치투자 정량 체크리스트 ({_m_tot}개 중 {_m_pass}개 기준 충족)]
 ==================================================
 {munger_prompt_block}
 
 ==================================================
-[2. 핵심 재무 지표 & 버핏 10초 역산 밸류에이션]
+[2. 기업 가치 심층 분석 (9대 핵심 지표 카드)]
 ==================================================
-- 현재 주가: {p_str} | {_div_card_txt} | 현재 PER: {doc_pe:.1f}배 | 현재 PBR: {pbr:.2f}배 (BPS {_bps_txt})
-- 수익성: ROE {roe:.1f}% / ROIC {roic_str} / 매출총이익률 {gross_m:.1f}% / 영업이익률 {op_m:.1f}%
-- 재무 안전판: 유동비율 {current_ratio:.2f}배 | 부채: {_bio_txt} | F-Score: {_fsc_txt}
-- 이익의 질 & 희석: {_eq_sbc_txt} | {_dil_txt} | R&D: {_rnd_txt}
-- [워런 버핏 10초 역산]: 이익수익률(1/PER) 연 {doc_ey:.2f}% (1,000만 원당 {doc_ey_won}만 원) vs 10년물 미국채 {ty:.2f}% (스프레드 {doc_erp:+.2f}%p)
-- 10% 허들 요구성장률 연 {doc_req_g:+.2f}% vs 실제 FCF CAGR 연 {doc_fcf_g:+.1f}% (안전마진 {doc_g_margin:+.1f}%p) / 국채+5%p 기준 격차 {doc_fcf_g - _req_g_bond:+.1f}%p / PER 10배 기준가 {_bft_p10_str}
-- [보조 DCF]:
+1) 현재 주가 & 배당: {p_str} | {_div_card_txt} | 자사주 순매입·소각 효과: 연 {doc_bb_val:+.1f}%
+2) 본전 회수 기간 (현재 PER): {doc_pe:.1f}배 | 이익수익률(1/PER): 연 {doc_ey:.2f}% | 버핏 10% 허들 필요성장률: 연 {doc_req_g:+.1f}%
+3) 장부가치 배수 (현재 PBR): {pbr:.2f}배 | 주당순자산(BPS): {_bps_txt}
+4) 자본 불리는 속도 (ROE / ROIC): ROE {roe:.1f}% / ROIC {roic_str} (매출총이익률 {gross_m:.1f}%)
+5) 실제 장사 이익률 (영업이익률): {op_m:.1f}%
+6) 위기 대처 현금력 (유동비율): {current_ratio:.2f}배
+7) 부채 관리 (생존력): {_bio_txt}
+8) 이익의 질 (OCF/NI) & 실질 FCF (SBC 차감): {_eq_sbc_txt}
+9) 주식 희석 vs 소각 판독기: {_dil_txt}
+※ 보조 지표 — R&D 지출 추이: {_rnd_txt} | 피오트로스키 F-Score: {_fsc_txt}
+
+==================================================
+[3. 10년 내재가치 평가 (워런 버핏 10초 암산 역산 & DCF 3시나리오)]
+==================================================
+- [워런 버핏 10초 암산 역산 공식: 1/현재PER + 요구성장률 = 10%]
+* ① 이익수익률(1/현재PER): 연 {doc_ey:.2f}% (1,000만 원당 연 {doc_ey_won}만 원)
+* ② 10% 허들 암산 요구 성장률: 연 {doc_req_g:+.2f}%
+* ③ 실제 FCF 연평균 성장률 (최근 {data_len}년 CAGR): 연 {doc_fcf_g:+.1f}%
+* ④ 성장률 안전마진 (③ - ②): {doc_g_margin:+.1f}%p
+* ⑤ 10년물 미국채({ty:.2f}%, 1,000만 원당 연 {doc_bond_won}만 원) 대비 스프레드: {doc_erp:+.2f}%p
+* ⑥ [미국채 + 5%p = {_req_bond_y:.2f}% 허들 대입 시] 요구성장률 {_req_g_bond:+.2f}% vs 실제 FCF 성장률 {doc_fcf_g:+.1f}% (격차 {doc_fcf_g - _req_g_bond:+.1f}%p) / 무성장 PER 10배 기준가: {_bft_p10_str}
+- [DCF 3가지 시나리오]
 {dcf_prompt_block}
 
 ==================================================
-[3. 10년 실적 추이 · 뉴스 · 경영진 거버넌스]
+[4. 장기 재무 시각화 추이 (매출 · 순이익 · FCF)]
 ==================================================
 {vis_prompt_block}
-- CEO: {ceo_cleaned} | 비즈니스 요약: {_raw_sum_txt}
-- 최근 뉴스:
+
+==================================================
+[5. 질적 분석 · 최신 뉴스 · 경영진 및 지배구조 비판]
+==================================================
+- CEO: {ceo_cleaned}
+- 비즈니스 요약: {_raw_sum_txt}
+- 최근 주요 뉴스:
 {news_prompt_block}
-- 경영진 및 거버넌스 점검: {doc_crit_clean}
+- 경영진 및 지배구조 비판 점검: {doc_crit_clean}
 
 ==================================================
-[필수 출력 구성 (파트 A~D 모두 작성)]
+[6. 핵심 장부 요약표 ({ledger_yr_cnt}개년 · 단위: {ledger_unit_str})]
 ==================================================
-[파트 A. 클릭률 & 리텐션 패키지]
-1) 어그로 없는 고클릭률 썸네일 문구(4~7자) + 제목 조합 5쌍
-2) 초반 30초 이탈을 막는 질문형 오프닝 훅 3종
+{ledger_md_table}
 
-[파트 B. 10~15분 본편 다큐 대본 (Act 1 ~ Act 6)]
-- 스토리 전개: 시장의 오해 → 10년 재무·ROIC·현금흐름 검증 → 기관/공매도 반론(Bear Case) 3가지 & 확증편향 점검 → 버핏 10초 역산·매도 3대 철칙 결론
-- 3분마다 다음 Act가 궁금해지는 챕터 전환 멘트(Open Loop)를 각 Act 끝에 삽입
-- 전문 용어(ROIC, FCF, SBC, 운전자본 등)는 비전공자용 1문장 생활 비유를 반드시 덧붙일 것
-- [멀티 보이스 & 연출 태그 규칙 — 모든 대본 줄 맨 앞에 아래 중 하나 필수 부착]:
-  * [해설] : 메인 스튜디오 호스트 (흡입력 있는 다큐 구어체 존댓말)
-  * [장면] : 기업 현장·역사·시장 분위기 시네마틱 B-roll
-  * [버핏] : 워런 버핏의 통찰·역산 조언 (좌측 하단 블루 명패 + 중저음 성우)
-  * [멍거] : 찰리 멍거의 다학제 모델·심리 편향 경고 (좌측 하단 퍼플 명패 + 단호한 저음)
-  * [반론] : 월가 회의론자·공매도·거버넌스 비판 (좌측 하단 레드 명패 + 빠른 반박 톤)
-  * [충격] : 적자·고평가·리스크 폭로 순간 (화면 흑백 전환 + 쿵 임팩트 효과음 + 노란 강조 자막)
-  * [차트:10년] / [차트:ROIC] / [차트:역산] / [차트:현금] : AGIE 풀스크린 재무 그래프 컷
-- 한 줄은 1~2문장 이내, 자막 호흡을 끊을 곳에 '/' 삽입
+==================================================
+[필수 연출 규칙 - 체스막타 스타일]
+==================================================
+1. 딱딱한 AI 브리핑 말투 금지. 체스막타 다큐멘터리처럼 흡입력 있는 스토리텔링 구어체("~였어요", "도대체 왜 이런 숫자가 나왔을까요?", "하지만 여기엔 치명적인 그림자가 있었습니다")로 작성할 것.
+2. 위 1~6번 데이터의 핵심 수치(체크리스트 통과/탈락 사유, 13F 거장 보유 여부, 이익의 질과 SBC, 주식 희석 여부, 버핏 10초 역산, 실제 연도별 장부 변화, 경영진 비판 리스크)를 이야기의 기승전결 속에 자연스럽게 녹여낼 것.
+3. 멀티 보이스 태그 규칙 — 모든 줄 맨 앞에 아래 5개 태그 중 하나만 반드시 붙일 것 (AGIE 2번 탭 조립기 자동 파싱용):
+- [해설] : 스튜디오 마이크 앞 메인 호스트 씬 (부드럽고 흡입력 있는 존댓말)
+- [장면] : 드라마틱한 B-roll 일러스트/영상 클립 씬
+- [버핏] : 워런 버핏의 철학·역산 조언 씬 (좌측 하단 명패 + 중저음 성우)
+- [반론] : 월가 회의론자·공매도·지배구조 비판 씬 (좌측 하단 명패 + 날카로운 반박 톤)
+- [차트:ROIC] / [차트:역산] / [차트:현금] : 풀스크린 재무 데이터 그래프를 띄우는 씬
+4. 한 줄은 1~2문장 이내로 쓰고, 자막 호흡을 끊고 싶은 곳마다 '/' 기호를 넣을 것.
+5. Act 1(왕관의 무게와 13F 거장의 시선) ~ Act 6(최후의 결단: 매수 타이밍과 매도 3철칙)으로 구성하고, 각 Act마다 5~7줄씩 출력할 것.
+6. 통화 불일치 경고가 있는 경우(예: ADR 위안화 장부), 절대로 위안화를 달러로 착각해 말하지 말고 정확한 통화 단위나 환산 수치를 사용할 것."""
 
-[파트 C. 30~40초 간격 시각 큐시트 표] & [파트 D. 본편 연동 파생 쇼츠 3편 (각 40초)]
-
-[절대 준수 제약 조건]
-- 위 데이터에 없는 수치는 절대 추측하지 말고 '확인 필요'로 표시할 것.
-- 명예훼손 소지 표현과 매수·매도 권유/수익 단정 표현을 금지하고 객관적 정보 전달형으로 작성할 것."""
-
+                    st.success(f"✅ 풀데이터 프롬프트 조립 완료! (체크리스트 {_m_tot}항목 · 심층 9대 지표 · 역산/DCF · 장부 {ledger_yr_cnt}개년 · 뉴스/거버넌스 전부 포함)")
                     st.code(gemini_script_prompt, language="text")
 
-                    st.markdown("#### ② 화풍 통일(Style Consistency) 이미지 & I2V 모션 프롬프트 (주식·가치투자 전용)")
+                    st.markdown("#### ② 화풍 통일(Style Consistency) 이미지 & 현실적 움직임(I2V) 프롬프트 세트")
+                    st.caption("체스막타처럼 모든 컷의 그림체를 하나로 고정하려면 아래 **공통 화풍 시드**를 이미지 생성 AI에 넣고, 생성된 이미지를 영상 AI(Veo / Kling / Runway)에 넣어 모션 프롬프트를 적용하세요.")
+
                     master_style_seed = (
                         "Clean modern graphic novel cel-shaded anime documentary style, "
                         "crisp dark ink outlines, realistic human proportions, dramatic cinematic rim lighting, "
                         "rich atmospheric shadows, 16:9 widescreen film composition, no text, no watermark"
                     )
-                    asset_prompts = f"""=== [공통 화풍 시드 — 모든 이미지 프롬프트 끝에 동일하게 유지] ===
+
+                    asset_prompts = f"""=== [공통 화풍 시드 (모든 이미지 프롬프트 끝에 동일하게 유지)] ===
 {master_style_seed}
 
---- [1. 메인 스튜디오 호스트 클립 ([해설] 태그 — 1~2개 제작 후 평생 재사용)] ---
-[Image Prompt]
-A charismatic young financial documentary host wearing studio headphones sitting in front of a broadcast condenser microphone in a dark navy Wall Street studio, glowing translucent blue 10-year financial bar charts and classic value investing books softly illuminated on the dark background wall, leaning slightly forward with engaging expression, {master_style_seed}
-[I2V Motion Prompt (Veo / Kling / Runway)]
-Subtle realistic breathing, natural eye blinking every 3 seconds, slight head tilt and expressive hand gesture while speaking calmly into the studio microphone, soft blue rim light on headphones, locked-off steady studio camera, 24fps
+--- [1. 메인 호스트 스튜디오 클립 (1~2개만 만들어 평생 재사용)] ---
+[Image Prompt - Host Studio]
+A charismatic young financial documentary host wearing studio headphones sitting in front of a broadcast condenser microphone in a dark navy studio, glowing translucent blue financial charts and stock books softly illuminated on the dark background wall, leaning slightly forward with engaging expression, {master_style_seed}
 
---- [2. 워런 버핏 클립 ([버핏] 태그)] ---
-[Image Prompt]
-Wise elderly value investor with silver parted hair, classic amber eyeglasses, dark navy suit and red tie, sitting in a warm wooden Omaha library office with annual reports and a red soda can on the mahogany desk, warm tungsten key light, {master_style_seed}
-[I2V Motion Prompt]
-Slowly adjusts eyeglasses, gives a calm knowing nod while speaking thoughtfully, natural eye blinks, warm dust motes in window light, subtle slow dolly-in
+[I2V Motion Prompt - Host Realistic Movement (Veo / Kling / Runway)]
+Subtle realistic breathing, natural eye blinking every 3 seconds, slight head tilt while speaking calmly into the studio microphone, gentle expressive hand gestures lifting slightly then resting, soft blue ambient rim light flickering faintly on the headphones, locked-off steady studio camera, smooth 24fps animation
 
---- [3. 찰리 멍거 클립 ([멍거] 태그)] ---
-[Image Prompt]
-Sharp-minded elderly investor with thick classic horn-rimmed glasses, white hair, dark tailored jacket and subtle witty skeptical expression, sitting in a classic architectural study filled with science and psychology books, {master_style_seed}
-[I2V Motion Prompt]
-Raises one hand slightly to emphasize a sharp logical point, subtle eyebrow raise, calm authoritative presence, steady slow camera push-in
+--- [2. 워런 버핏 인용구 클립 ([버핏] 태그 씬 전용)] ---
+[Image Prompt - Warren Buffett Quote]
+Elderly wise investor resembling Warren Buffett with silver parted hair, classic amber eyeglasses, dark navy suit and red tie, sitting in a warm wooden classic library office with a red soda can on the mahogany desk, calm insightful gaze, warm tungsten key light, {master_style_seed}
 
---- [4. 월가 회의론자 / 공매도 애널리스트 클립 ([반론] 태그)] ---
-[Image Prompt]
-Tense Wall Street skeptic analyst wearing glasses and headset in a dimly lit trading room with glowing red candlestick monitors behind him, raising one hand skeptically while speaking into a desk mic, {master_style_seed}
-[I2V Motion Prompt]
-Frowns slightly, gestures sharply in skepticism, natural blinking, red monitor glow reflecting on glasses
+[I2V Motion Prompt - Buffett Speaking]
+Wise elderly investor slowly adjusts his glasses, gives a subtle knowing nod and calm faint smile while speaking thoughtfully, natural eye blinks, warm dust motes floating slowly in the soft window sunlight, very slow cinematic dolly-in camera movement
 
---- [5. Act별 주식·기업 다큐 B-roll ([장면] & [충격] 태그)] ---
-[Act 1] Silhouette of an investor standing before massive glowing stock ticker screens in a dark exchange hall, dramatic overhead spotlight, {master_style_seed}
-[Act 2] Towering glass-and-steel corporate fortress representing {doc_comp_nm} ({doc_clean_tk}) shining at sunrise above competitive city skyline, {master_style_seed}
-[Act 3] High-tech industrial facility and glowing server racks humming with energy, analyst inspecting illuminated cash flow ledgers, {master_style_seed}
-[Act 4] Dramatic contrast split-screen of panicked red trading floor crowd vs a calm investor reading an annual report by a quiet desk lamp, {master_style_seed}
-[Act 5] Grand dark corporate boardroom with overhead spotlight illuminating financial documents across a long mahogany table, {master_style_seed}
-[Act 6] Long-term investor standing calmly by a tall window watching golden sunrise over the financial district skyline, {master_style_seed}"""
+--- [3. Act별 드라마틱 B-roll 클립 ([장면] & [반론] 태그 씬)] ---
+[Act 1 - 왕관의 무게 / 13F 거장의 시선]
+- Image: A lone silhouette of a businessman in a dark suit standing under a harsh spotlight holding a heavy glowing crown while red and green stock ticker shadows swirl in the dark hall, {master_style_seed}
+- Motion: Dramatic slow camera push-in, floating light particles, heavy breathing posture, subtle flickering overhead spotlight
+
+[Act 2 - {doc_comp_nm}의 경제적 해자와 성벽]
+- Image: A towering futuristic fortress made of glass and steel representing {doc_comp_nm} ({doc_clean_tk}) shining at sunrise above a foggy competitive city skyline, {master_style_seed}
+- Motion: Slow majestic aerial drone-like pan across the fortress, golden sunlight rays breaking through the clouds
+
+[Act 3 - 설비투자와 현금흐름의 진실]
+- Image: High-tech industrial factory floor and glowing server racks humming with energy, an analyst in a crisp shirt examining illuminated financial ledgers with sharp focus, {master_style_seed}
+- Motion: Camera slowly glides sideways across the humming machines, subtle blue LED light pulses, analyst glances down at the ledger then looks up sharply
+
+[Act 4 - 월가의 회의론과 반론 ([반론] 씬)]
+- Image: A tense Wall Street skeptic analyst wearing glasses and headset in a dimly lit trading room with glowing red candlestick screens behind him, raising one hand skeptically while speaking into a desk mic, {master_style_seed}
+- Motion: Analyst frowns slightly, gestures sharply with one hand in skepticism, natural blinking and lip movement, red monitor glow reflecting on glasses
+
+[Act 5 - 경영진의 선택과 지배구조 감사]
+- Image: Grand dark corporate boardroom with a dramatic overhead spotlight illuminating a wooden conference table and two contrasting figures facing each other across financial documents, {master_style_seed}
+- Motion: Slow tense camera orbit around the conference table, subtle posture shift, dramatic shadow contrast
+
+[Act 6 - 폭풍을 지나 새벽을 맞는 장기 투자자]
+- Image: Calm silhouette of a long-term investor standing by a tall window overlooking a glowing sunrise over the financial district skyline, peaceful confident atmosphere, {master_style_seed}
+- Motion: Slow camera pull-back revealing the wide sunrise cityscape, warm golden light gradually brightening the room"""
+
                     st.code(asset_prompts, language="text")
-                    st.divider()
-                    st.markdown("#### ③ 🎬 롱폼 제작 5단계 순서 · 제미나이 영상 길이 제한 대응 · 캐릭터 고정 가이드")
-                    st.info(
-                        "📌 **제미나이(Gemini) 영상 생성 길이 제한 & 크레딧 절약 원칙 (2026.11 기준)**\n"
-                        "1. **제미나이 앱 (Gemini Omni 1.2 Flash)**: 1클립당 **3~10초** (AI Ultra 요금제 최대 **15초**). 10초짜리를 연속 생성하면 주간 크레딧 한도에 빨리 도달합니다.\n"
-                        "2. **Google Flow / API (Veo 3.1)**: 단일 **4~8초**, `Extend(7초씩 최대 20회)` 연장 시 연속 **최대 약 148초(2분 28초, 720p)**까지 가능하나 길어질수록 캐릭터 얼굴이 틀어질 수 있습니다.\n"
-                        "3. **10~15분 롱폼 최적 전략 (크레딧 90% 절약)**: 10분 영상을 AI로 길게 연장하지 말고, **8~10초 심리스 루프(Seamless Loop) 캐릭터 클립 4개(해설/버핏/멍거/반론)**만 한 번 생성해 2번 탭 업로더에 올리세요. AGIE가 10~15분 전체를 자동 무한 루프 + 풀스크린 재무차트 + 자막으로 합성합니다.\n"
-                        "4. **캐릭터 괴리 방지 3철칙**: ① 아래 영문 고정 앵커 수정 금지, ② 이미지 AI로 기준 이미지 1장 확정, ③ 영상 AI에는 반드시 그 이미지를 넣는 **I2V(Image-to-Video)** + `locked-off steady camera, seamless loop`만 사용하세요."
-                    )
-
-                    wf_c1, wf_c2 = st.columns(2)
-                    with wf_c1:
-                        st.markdown(
-                            "**[실전 5단계 제작 순서]**\n"
-                            "1. **1단계 (캐릭터 고정)**: 아래 '캐릭터 고정 앵커'로 호스트·버핏·멍거·반론 기준 이미지 4장 생성 → I2V로 5초 루프 MP4 4개 제작 *(최초 1회만 만들면 평생 재사용)*\n"
-                            "2. **2단계 (대본 분할 생성)**: 위 ①번 풀데이터 프롬프트를 제미나이에 보낼 때 아래 **3단계 분할 질문** 순서대로 대본 완성\n"
-                            "3. **3단계 (B-roll 준비)**: Act별 핵심 장면 이미지만 2~3장 뽑아 2번 탭 Act별 B-roll에 업로드\n"
-                            "4. **4단계 (디스크 분할 렌더링)**: 2번 탭에서 `⚡ 노트북 초고속(720p)` 선택 후 Act 1 → Act 6 순서대로 클릭 *(RAM 폭발 방지)*\n"
-                            "5. **5단계 (최종 마감)**: `🔗 1초 무손실 병합`으로 바로 완성하거나, `📦 캡컷 ZIP`을 내려받아 캡컷에서 효과음·전환만 5분 마무리"
-                        )
-                    with wf_c2:
-                        st.markdown(
-                            "**[캐릭터 괴리 방지 체크리스트]**\n"
-                            "- ❌ 텍스트만으로 매번 새 클립 생성 (얼굴·옷·배경이 매 컷 달라짐)\n"
-                            "- ✅ 기준 이미지 1장을 Reference로 고정 후 I2V 모션만 부여\n"
-                            "- ✅ 모션 프롬프트에 `locked-off steady camera`, `subtle breathing`, `natural blinking` 고정\n"
-                            "- ✅ 조명 색온도 통일: 호스트(다크 네이비+블루 림라이트), 버핏(따뜻한 텅스텐 서재), 멍거(클래식 서재), 반론(어두운 레드 모니터)"
-                        )
-
-                    split_guide_prompts = f"""=== [제미나이 3단계 분할 질문 템플릿 (출력 끊김 방지용)] ===
-
-▶ [1차 질문] — 위 ①번 풀데이터 프롬프트 맨 끝에 아래 문장을 붙여서 전송:
-"분량이 길어 중간에 끊기지 않게 3번에 나눠서 작업할 거야. 이번 답변에서는 [파트 A: 썸네일·제목 5쌍, 30초 오프닝 훅 3종]과 [파트 B 중 Act 1, Act 2]까지만 아주 디테일하고 풍부하게 써줘. Act 3부터는 다음 질문에서 이어서 쓸게."
-
-▶ [2차 질문] — 1차 답변을 확인한 뒤 그대로 복사해 전송:
-"좋아, 방금 잡은 다큐멘터리 톤앤매너와 태그 규칙([해설], [버핏], [멍거], [반론], [충격], [차트:10년/ROIC/역산/현금])을 그대로 유지해서 [Act 3(현금흐름·설비투자)]과 [Act 4(버핏 10초 역산·미국채 비교)] 대본을 이어서 써줘. Act 끝에 다음 파트가 궁금해지는 Open Loop 멘트도 꼭 넣어줘."
-
-▶ [3차 질문] — 2차 답변을 확인한 뒤 그대로 복사해 전송:
-"이제 마지막으로 [Act 5(경영진 거버넌스·반론 3가지)]과 [Act 6(최후의 결단·매도 3대 철칙)] 대본을 완성해 줘. 이어서 [파트 C: 30~40초 간격 시각 큐시트 표]와 [파트 D: 본편 연동 40초 파생 쇼츠 3편]까지 출력하고, 마지막에 YMYL/명예훼손 표현이 없는지 자체 검수 결과도 알려줘."
-"""
-                    st.code(split_guide_prompts, language="text")
-
-                    char_anchor_sheet = f"""=== [캐릭터 괴리 방지용 고정 앵커 시트 (Character Anchor Sheet)] ===
-※ 같은 캐릭터를 여러 컷에 등장시킬 때 아래 [영문 외형 앵커]를 절대 수정하지 말고 그대로 유지하세요.
-
-[HOST_ANCHOR — 메인 스튜디오 호스트]
-Same character: 30-year-old Korean male financial documentary host, neat short dark hair, clean-shaven, wearing matte black over-ear studio headphones and a charcoal knit sweater over a white collared shirt, sitting behind a black broadcast condenser mic in a dark navy studio with glowing translucent blue stock charts behind him.
-
-[BUFFETT_ANCHOR — 워런 버핏]
-Same character: Wise elderly American male investor in his 80s, silver-white side-parted hair, classic amber-tinted aviator eyeglasses, dark navy tailored suit, white shirt, silk red striped tie, warm mahogany library background with annual reports and a red soda can on the desk.
-
-[MUNGER_ANCHOR — 찰리 멍거]
-Same character: Sharp-minded elderly American male investor with white hair, thick dark horn-rimmed eyeglasses, dark charcoal suit jacket, white shirt, subtle witty analytical expression, classic wooden study filled with science and psychology books.
-
-[CRITIC_ANCHOR — 월가 회의론자 / 공매도 애널리스트]
-Same character: 35-year-old sharp Wall Street male analyst with thin rectangular metal glasses, dark blue dress shirt with loosened tie, single-ear studio headset, sitting in a dimly lit trading room with blurred red candlestick charts on monitors behind him."""
-                    st.code(char_anchor_sheet, language="text")
 
                 # -----------------------------------------------------------------
-                # [서브탭 2] 시네마틱 롱폼 조립기 (디스크 캐싱 · BGM 덕킹 · [충격] 흑백 · 캡컷 ZIP)
+                # [서브탭 2] 체스막타 스타일 하이브리드 롱폼 조립기 (PIL 도형 캐릭터 완전 삭제)
                 # -----------------------------------------------------------------
                 with doc_sub_tab2:
                     def _doc_clean_txt(txt):
@@ -11058,184 +11120,107 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                             s = s.replace(kb, vg)
                         return re.sub(r'\s+', ' ', s).strip()
 
-                    doc_acts_v4 = {
-                        "Act 1. 시장의 소음과 진짜 소유권": {
-                            "title": "소유권의 무게",
-                            "sub": f"{doc_comp_nm}, 진짜 해자인가 신기루인가",
+                    # 체스막타 스타일 기본 6막 대본 (멀티 보이스 + 풀스크린 차트 태그 적용)
+                    doc_acts_v3 = {
+                        "Act 1. 왕관의 무게": {
+                            "title": "왕관의 무게",
+                            "sub": f"{doc_comp_nm}, 진짜 왕좌인가 신기루인가",
                             "lines": [
                                 f"[해설] 매일 밤 수많은 투자자들이 잠들지 못한 채 / 깜빡이는 주가 창을 바라봅니다.",
                                 f"[장면] 현재 {doc_comp_nm}의 주가는 {p_str}, / 장부가치 대비 PBR은 {pbr:.2f}배에 서 있습니다.",
                                 f"[버핏] 내일 당장 주식시장이 5년 동안 문을 닫는다면, / 자네는 이 주식을 편히 들고 있을 수 있겠나?",
-                                f"[해설] 시장의 소음을 모두 끄고, / {doc_comp_nm}의 10년 장부를 첫 페이지부터 해부해 보겠습니다."
+                                f"[해설] 소음을 모두 끄고, / {doc_comp_nm}의 10년 장부 기보를 첫 수부터 복기해 보겠습니다."
                             ]
                         },
-                        "Act 2. 경제적 해자와 복리 엔진": {
+                        "Act 2. 성벽의 높이 (ROIC & 해자)": {
                             "title": "성벽의 높이",
-                            "sub": f"자본비용 12% 허들과 {doc_comp_nm}의 복리 속도",
+                            "sub": f"자본비용 12% 허들과 {doc_comp_nm}의 복리 엔진",
                             "lines": [
-                                f"[해설] 위대한 기업에는 경쟁자가 아무리 돈을 쏟아부어도 / 넘지 못하는 경제적 해자가 필수입니다.",
-                                f"[차트:10년] 먼저 지난 10년간 {doc_comp_nm}의 매출과 순이익 궤적을 / 실제 공시 장부로 확인해 보시죠.",
+                                f"[해설] 체스에서 왕을 지키는 성벽처럼, / 기업에겐 경쟁자가 넘볼 수 없는 경제적 해자가 필수입니다.",
                                 f"[차트:ROIC] 평범한 기업이 밑천 천만 원으로 연 80만 원을 벌 때, / {doc_comp_nm}의 {doc_cap_lbl}은 연 {doc_cap_val:.1f}%를 기록 중입니다.",
+                                f"[장면] 영업이익률 {op_m:.1f}%라는 숫자는 / 원가 압박 속에서도 제값을 받아내는 힘의 증거죠.",
                                 f"[버핏] 진정한 해자는 인플레이션이 와도 / 손님이 떠나지 않는 독점적 가격결정력에서 나온다네."
                             ]
                         },
-                        "Act 3. 회계 착시와 진짜 현금흐름": {
+                        "Act 3. 회계 착시와 진짜 현금": {
                             "title": "진짜 주주이익",
                             "sub": "순이익 뒤에 숨겨진 설비투자와 잉여현금흐름",
                             "lines": [
-                                f"[해설] 뉴스는 화려한 당기순이익을 보도하지만, / 공장 유지비로 현금이 다 빠져나가면 주주 몫은 없습니다.",
-                                f"[차트:현금] 최근 {data_len}년간 {doc_comp_nm}의 잉여현금흐름 성장 속도는 / 연평균 {doc_fcf_g:+.1f}%를 기록했습니다.",
+                                f"[해설] 뉴스는 화려한 당기순이익을 보도하지만, / 정작 공장 유지비로 현금이 다 빠져나가면 주주 몫은 없습니다.",
+                                f"[차트:현금] 지난 10년간 {doc_comp_nm}의 잉여현금흐름 성장 속도는 / 연평균 {doc_fcf_g:+.1f}%를 기록했습니다.",
                                 f"[반론] 잠깐, 설비투자 사이클이나 업황 둔화가 오면 / 이 현금흐름이 급격히 흔들릴 위험은 없나요?",
-                                f"[멍거] 공학에서 가장 중요한 건 단일 실패 지점을 없애는 백업이야. / 유동비율 {current_ratio:.2f}배의 비상 체력을 반드시 확인해야 해."
+                                f"[해설] 그래서 단기 방어력인 유동비율 {current_ratio:.2f}배와 / 현금 유입의 지속성을 반드시 함께 봐야 합니다."
                             ]
                         },
-                        "Act 4. 워런 버핏의 10초 암산 역산": {
+                        "Act 4. 버핏의 10초 암산 역산": {
                             "title": "10초의 역산",
                             "sub": "1/PER + 요구성장률 = 10% 허들 검증",
                             "lines": [
-                                f"[해설] 복잡한 엑셀로 10년 뒤 주가를 맞추려 애쓰는 대신, / 지금 주가에 담긴 시장의 기대치를 거꾸로 역산해 봅시다.",
+                                f"[해설] 복잡한 엑셀로 10년 뒤 주가를 맞추려는 대신, / 지금 주가에 담긴 기대치를 거꾸로 역산해 봅시다.",
                                 f"[차트:역산] 현재 PER {doc_pe:.1f}배의 이익수익률은 연 {doc_ey:.2f}%, / 10년물 미국채 {ty:.2f}%와 비교하면 {doc_erp:+.2f}%p 차이입니다.",
-                                f"[충격] 연 10% 수익을 맞추려면 매년 {doc_req_g:+.1f}% 성장이 필요한데, / 실제 현금 성장률은 연 {doc_fcf_g:+.1f}%! 격차는 {doc_g_margin:+.1f}%p입니다.",
+                                f"[차트:역산] 연 10% 수익 허들을 맞추려면 매년 {doc_req_g:+.1f}% 성장이 필요한데, / 실제 현금 성장률은 연 {doc_fcf_g:+.1f}%입니다.",
                                 f"[버핏] 계산기를 두드려야만 겨우 싸 보이는 주식은 / 애초에 안전마진이 없는 것과 같네."
                             ]
                         },
-                        "Act 5. 동업자의 자격과 반론 점검": {
+                        "Act 5. 동업자의 자격 (경영진 & 환원)": {
                             "title": "동업자의 자격",
-                            "sub": f"CEO {ceo_cleaned}의 자본배분과 거버넌스 감사",
+                            "sub": f"CEO {ceo_cleaned}의 자본배분과 주주환원",
                             "lines": [
                                 f"[해설] 아무리 훌륭한 사업도 경영진이 주주 몫을 훼손하면 / 장기 투자는 비극으로 끝납니다.",
                                 f"[장면] {doc_comp_nm}의 순수 현금배당은 연 {doc_div_val:.2f}%, / 자사주 순매입 효과는 연 {doc_bb_val:+.1f}% 수준입니다.",
-                                f"[반론] 하지만 과거 거버넌스 논란이나 규제 리스크를 / 투자자들이 확증 편향으로 가볍게 넘겨서는 안 됩니다.",
-                                f"[멍거] 지능과 열정보다 중요한 건 정직함이야. / 정직하지 못한 천재가 회사를 경영하면 주주의 돈이 가장 먼저 파괴되거든."
+                                f"[반론] 하지만 과거 거버넌스 이력이나 규제 리스크를 / 투자자들이 가볍게 넘겨서는 안 됩니다.",
+                                f"[버핏] 지능과 열정보다 중요한 것은 정직함이야. / 정직하지 못한 천재는 주주의 돈을 파괴하거든."
                             ]
                         },
-                        "Act 6. 최후의 결단과 매도 3대 철칙": {
+                        "Act 6. 최후의 결단": {
                             "title": "최후의 결단",
                             "sub": "매수 타이밍과 불변의 매도 3대 철칙",
                             "lines": [
-                                f"[해설] 이제 10년 장부의 해부가 끝났습니다. / AGIE 종합 평가는 {op_title}, {total_score_val}점입니다.",
+                                f"[해설] 이제 10년 장부의 복기가 끝났습니다. / AI 종합 평가는 {op_title}, {total_score_val}점입니다.",
                                 f"[장면] 위대한 기업이라도 시장이 공포에 빠졌거나 / 해자와 무관한 일시적 악재가 터졌을 때만 진입해야 합니다.",
                                 f"[버핏] 매도는 오직 세 번뿐일세. / 내 분석이 틀렸거나, 해자가 무너졌거나, 더 확실한 기회를 찾았을 때지.",
-                                f"[해설] 오늘 해부한 {doc_comp_nm}, / 여러분은 10년 동업자로 선택하시겠습니까? 댓글로 의견을 남겨주세요."
+                                f"[해설] 오늘 복기한 {doc_comp_nm}, / 여러분은 10년 동업자로 선택하시겠습니까? 댓글로 의견을 남겨주세요."
                             ]
                         }
                     }
 
-                    st.markdown("##### 🎞️ 1) 외부 AI 생성 캐릭터/장면 클립 업로드 (MP4 영상 또는 PNG 이미지 · 선택)")
-                    up_m1, up_m2, up_m3, up_m4 = st.columns(4)
+                    # -------------------------------------------------------------
+                    # [공통 미디어 에셋 업로더: 외부 AI 움직이는 MP4 / PNG 넣는 곳!]
+                    # -------------------------------------------------------------
+                    st.markdown("##### 🎞️ 1) 외부 AI 생성 캐릭터/장면 클립 업로드 (MP4 영상 또는 PNG 이미지)")
+                    st.caption("비워두면 AGIE 내장 다크 시네마틱 배경으로 자동 렌더링됩니다. **움직이는 MP4 클립을 올리면 그대로 재생되며 자막과 성우가 자동 합성**됩니다.")
+                    up_m1, up_m2, up_m3 = st.columns(3)
                     with up_m1:
-                        host_media_up = st.file_uploader("🎙️ [해설] 메인 호스트", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_host_m_{doc_clean_tk}")
+                        host_media_up = st.file_uploader("🎙️ [해설] 메인 호스트 클립 (MP4/PNG)", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_host_m_{doc_clean_tk}")
                     with up_m2:
-                        buffett_media_up = st.file_uploader("👴 [버핏] 워런 버핏", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_bft_m_{doc_clean_tk}")
+                        buffett_media_up = st.file_uploader("👴 [버핏] 인용구 캐릭터 클립 (MP4/PNG)", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_bft_m_{doc_clean_tk}")
                     with up_m3:
-                        munger_media_up = st.file_uploader("🧠 [멍거] 찰리 멍거", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_mng_m_{doc_clean_tk}")
-                    with up_m4:
-                        critic_media_up = st.file_uploader("🕵️ [반론] 회의론자", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_crt_m_{doc_clean_tk}")
+                        critic_media_up = st.file_uploader("🕵️ [반론] 월가 회의론자 클립 (MP4/PNG)", type=["mp4", "mov", "png", "jpg", "jpeg"], key=f"doc_crt_m_{doc_clean_tk}")
 
-                    # 업로드된 에셋을 RAM이 아닌 디스크에 저장 (노트북 메모리 절약)
-                    for _up_f, _fname_prefix in [
-                        (host_media_up, "asset_host"),
-                        (buffett_media_up, "asset_buffett"),
-                        (munger_media_up, "asset_munger"),
-                        (critic_media_up, "asset_critic")
-                    ]:
-                        if _up_f is not None:
-                            _ext_u = os.path.splitext(_up_f.name)[1].lower() or ".png"
-                            _save_p = os.path.join(doc_work_dir, f"{_fname_prefix}{_ext_u}")
-                            with open(_save_p, "wb") as _fw_u:
-                                _fw_u.write(_up_f.getvalue())
-                            st.session_state[f"{_fname_prefix}_path_{doc_clean_tk}"] = _save_p
-
-                    opt_c1, opt_c2, opt_c3, opt_c4 = st.columns(4)
+                    opt_c1, opt_c2, opt_c3 = st.columns(3)
                     with opt_c1:
-                        doc_v4_narrator = st.selectbox("🎙️ [해설] 메인 성우", ["🎙️ 선희 (흡입력 다큐 여성)", "🎙️ 인준 (차분한 다큐 남성)"], key=f"doc_v4_nv_{doc_clean_tk}")
+                        doc_v3_narrator = st.selectbox("🎙️ [해설] 메인 내레이터 성우", ["🎙️ 선희 (체스막타식 흡입력 여성 톤 - 추천)", "🎙️ 인준 (차분한 다큐 남성 톤)"], key=f"doc_v3_nv_{doc_clean_tk}")
                     with opt_c2:
-                        doc_v4_perf = st.selectbox("💻 노트북 성능 프리셋", ["⚡ 노트북 초고속 (720p · 페이드 · 3배 빠름)", "🎬 시네마틱 줌 (720p · Ken Burns)", "💎 고화질 FHD (1080p · 페이드)"], index=0, key=f"doc_v4_perf_{doc_clean_tk}")
+                        doc_v3_res = st.selectbox("🖥️ 출력 해상도", ["⚡ 1280×720 HD (노트북 쾌적 · 추천)", "💎 1920×1080 FHD"], index=0, key=f"doc_v3_res_{doc_clean_tk}")
                     with opt_c3:
-                        doc_v4_bgm = st.selectbox("🎵 다큐 BGM (자동 덕킹)", ["🎹 시네마틱 다큐 BGM ON", "🔇 BGM 끄기 (성우+효과음만)"], index=0, key=f"doc_v4_bgm_{doc_clean_tk}")
-                    with opt_c4:
-                        doc_v4_spd = st.slider("⏱️ 낭독 속도", 0, 30, 10, 2, format="+%d%%", key=f"doc_v4_spd_{doc_clean_tk}")
+                        doc_v3_spd = st.slider("⏱️ 낭독 속도", 0, 30, 10, 2, format="+%d%%", key=f"doc_v3_spd_{doc_clean_tk}")
+
+                    # 업로드된 파일 바이트를 세션에 안전 보관
+                    if host_media_up is not None:
+                        st.session_state[f"doc_media_host_{doc_clean_tk}"] = (host_media_up.name, host_media_up.getvalue())
+                    if buffett_media_up is not None:
+                        st.session_state[f"doc_media_buffett_{doc_clean_tk}"] = (buffett_media_up.name, buffett_media_up.getvalue())
+                    if critic_media_up is not None:
+                        st.session_state[f"doc_media_critic_{doc_clean_tk}"] = (critic_media_up.name, critic_media_up.getvalue())
 
                     # -------------------------------------------------------------
-                    # [경량 사운드 합성 유틸: 챕터 전환 저음 + [충격] 쿵 SFX + 다큐 BGM]
+                    # [핵심 렌더링 엔진: 풀스크린 차트 + 챕터 타이틀 + 투명 HUD/무박스 자막 합성]
                     # -------------------------------------------------------------
-                    def _gen_doc_sfx_wav(out_p, dur_sec=2.2, mode="chapter"):
-                        import wave, struct, math
-                        sr = 24000
-                        n_s = int(sr * dur_sec)
-                        buf = bytearray()
-                        pk = struct.Struct('<h').pack
-                        two_pi = 2.0 * math.pi
-                        for idx_i in range(n_s):
-                            ts = idx_i / sr
-                            if mode == "chapter":
-                                env = math.exp(-ts * 1.8) * min(1.0, ts / 0.04)
-                                v = (math.sin(two_pi * 65.4 * ts) * 0.55 + math.sin(two_pi * 130.8 * ts) * 0.25 + math.sin(two_pi * 196.0 * ts) * 0.15) * env
-                            else:
-                                # [충격] 묵직한 서브베이스 쿵(Impact Boom)
-                                freq = 42.0 + 75.0 * math.exp(-ts * 22.0)
-                                env = math.exp(-ts * 6.5) * min(1.0, ts / 0.005)
-                                v = math.sin(two_pi * freq * ts) * env * 0.85
-                            buf.extend(pk(max(-32760, min(32760, int(v * 26000)))))
-                        with wave.open(out_p, 'wb') as wf:
-                            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
-
-                    def _inject_impact_boom_on_wav(wav_p):
-                        import wave, struct, math
-                        try:
-                            with wave.open(wav_p, 'rb') as wf:
-                                prm = wf.getparams()
-                                raw = wf.readframes(wf.getnframes())
-                            pcm = list(struct.unpack(f'<{len(raw)//2}h', raw))
-                            sr = prm.framerate
-                            n_sfx = min(len(pcm), int(sr * 0.35))
-                            for k in range(n_sfx):
-                                ts = k / float(sr)
-                                freq = 40.0 + 80.0 * math.exp(-ts * 24.0)
-                                boom = math.sin(2.0 * math.pi * freq * ts) * math.exp(-ts * 8.5) * 0.55
-                                pcm[k] = max(-32760, min(32760, int(pcm[k] + boom * 32760)))
-                            with wave.open(wav_p, 'wb') as wf_o:
-                                wf_o.setparams(prm); wf_o.writeframes(struct.pack(f'<{len(pcm)}h', *pcm))
-                        except Exception:
-                            pass
-
-                    def _gen_doc_bgm_wav(out_p, dur_sec):
-                        import wave, struct, math
-                        sr = 24000
-                        n_s = int(sr * (dur_sec + 0.5))
-                        buf = bytearray()
-                        pk = struct.Struct('<h').pack
-                        two_pi = 2.0 * math.pi
-                        chords = [(110.0, 164.8, 220.0), (87.3, 130.8, 174.6), (98.0, 146.8, 196.0), (82.4, 123.5, 164.8)]
-                        bar_sec = 4.0
-                        for idx_i in range(n_s):
-                            ts = idx_i / sr
-                            c_idx = int(ts // bar_sec) % len(chords)
-                            lt = ts % bar_sec
-                            f1, f2, f3 = chords[c_idx]
-                            env = math.sin((lt / bar_sec) * math.pi) * 0.65 + 0.35
-                            pulse = math.exp(-(lt % 1.0) * 5.0) * 0.25
-                            v = (math.sin(two_pi * f1 * ts) * 0.45 + math.sin(two_pi * f2 * ts) * 0.25 + math.sin(two_pi * f3 * ts) * 0.15) * env + math.sin(two_pi * (f1 * 0.5) * ts) * pulse
-                            buf.extend(pk(max(-32760, min(32760, int(v * 20000)))))
-                        with wave.open(out_p, 'wb') as wf:
-                            wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(sr); wf.writeframes(buf)
-
-                    def _fmt_srt_ts(sec_val):
-                        ms = int(round((sec_val - int(sec_val)) * 1000))
-                        tot = int(sec_val)
-                        hh, rem = divmod(tot, 3600)
-                        mm, ss = divmod(rem, 60)
-                        return f"{hh:02d}:{mm:02d}:{ss:02d},{ms:03d}"
-
-                    # -------------------------------------------------------------
-                    # [핵심 렌더링 엔진 V4: 디스크 저장 · 4인 멀티보이스 · 10년 차트 · [충격] 흑백 · BGM 덕킹]
-                    # -------------------------------------------------------------
-                    def _render_doc_act_v4(act_idx, act_meta, script_text_val, broll_path=None):
+                    def _render_chessmak_act_v3(act_idx, act_key, act_meta, script_text_val, act_broll_tuple=None):
                         from PIL import Image, ImageDraw
                         import imageio_ffmpeg, subprocess, tempfile, os, re, wave, gc
 
-                        W_D, H_D = (1920, 1080) if "1080p" in doc_v4_perf else (1280, 720)
-                        use_kb_zoom = ("시네마틱 줌" in doc_v4_perf)
+                        W_D, H_D = (1280, 720) if "1280" in doc_v3_res else (1920, 1080)
                         sf = W_D / 1920.0
                         get_f = _load_korean_pil_fonts()
                         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -11257,72 +11242,57 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                             bb = draw.textbbox((0, 0), s, font=f, stroke_width=sw_s)
                             draw.text((cx_s - (bb[0]+bb[2])/2.0, cy_s - (bb[1]+bb[3])/2.0), s, font=f, fill=fill, stroke_width=sw_s, stroke_fill=(0,0,0,255))
 
+                        # 1) 체스막타식 풀스크린 챕터 타이틀 카드 (2.2초)
                         def _make_title_card_png(out_p):
-                            im = Image.new("RGB", (W_D, H_D), (7, 9, 14))
+                            im = Image.new("RGB", (W_D, H_D), (8, 10, 15))
                             dr = ImageDraw.Draw(im)
-                            _draw_center_text(dr, 960, 520, 1700, f"0{act_idx+1}", start_sz=380, fill=(22, 28, 42, 255), sw=0)
-                            dr.line(_sc([620, 415, 1300, 415]), fill=(217, 165, 32), width=max(2, int(3*sf)))
-                            dr.line(_sc([620, 685, 1300, 685]), fill=(217, 165, 32), width=max(2, int(3*sf)))
-                            _draw_center_text(dr, 960, 360, 1300, f"ACT {act_idx+1} · {doc_comp_nm} ({doc_clean_tk}) VALUE DOCUMENTARY", start_sz=28, fill=(180, 195, 215, 255), sw=2)
-                            _draw_center_text(dr, 960, 520, 1550, act_meta["title"], start_sz=112, fill=(255, 255, 255, 255), sw=6)
-                            _draw_center_text(dr, 960, 630, 1450, act_meta["sub"], start_sz=34, fill=(250, 204, 21, 255), sw=3)
+                            # 미세한 영화적 수평 그라데이션 라인
+                            dr.line(_sc([660, 420, 1260, 420]), fill=(217, 165, 32), width=max(2, int(3*sf)))
+                            dr.line(_sc([660, 680, 1260, 680]), fill=(217, 165, 32), width=max(2, int(3*sf)))
+                            _draw_center_text(dr, 960, 365, 1200, f"CHAPTER {act_idx+1} · {doc_comp_nm} ({doc_clean_tk})", start_sz=30, fill=(180, 195, 215, 255), sw=2)
+                            _draw_center_text(dr, 960, 520, 1500, act_meta["title"], start_sz=108, fill=(255, 255, 255, 255), sw=6)
+                            _draw_center_text(dr, 960, 625, 1400, act_meta["sub"], start_sz=34, fill=(250, 204, 21, 255), sw=3)
                             im.save(out_p); im.close()
 
+                        # 2) 체스막타식 풀스크린 재무 데이터 차트 (체스판/통계화면 컷 역할)
                         def _make_fullscreen_chart_png(chart_kind, out_p):
-                            im = Image.new("RGB", (W_D, H_D), (9, 14, 24))
+                            im = Image.new("RGB", (W_D, H_D), (10, 15, 26))
                             dr = ImageDraw.Draw(im)
+                            # 상단 미니멀 헤더
+                            _draw_center_text(dr, 960, 120, 1600, f"{doc_comp_nm} ({doc_clean_tk}) — 핵심 재무 팩트 보드", start_sz=44, fill=(255, 255, 255, 255), sw=3)
+
                             base_y = int(760 * sf)
                             max_h = int(420 * sf)
 
-                            if chart_kind == "10년" and len(locals().get('years', [])) >= 3 and len(locals().get('rev', [])) == len(locals().get('years', [])):
-                                _yrs_c = list(years)[-10:]
-                                _rev_c = [safe_float(x) for x in list(rev)[-len(_yrs_c):]]
-                                _ni_c = [safe_float(x) for x in list(ni)[-len(_yrs_c):]] if len(ni) >= len(_yrs_c) else [0.0]*len(_yrs_c)
-                                _u_div = 1e12 if (kr and max([abs(x) for x in _rev_c]+[1]) >= 1e12) else (1e8 if kr else 1e9)
-                                _u_lbl = "조 원" if _u_div == 1e12 else ("억 원" if kr else "B USD")
-                                _draw_center_text(dr, 960, 120, 1650, f"{doc_comp_nm} ({doc_clean_tk}) — 실제 공시 {len(_yrs_c)}년 매출 · 순이익 추이 ({_u_lbl})", start_sz=42, fill=(255,255,255,255), sw=3)
-                                mx_v = max([abs(x)/_u_div for x in _rev_c + _ni_c] + [1.0]) * 1.18
-                                n_b = len(_yrs_c)
-                                x_start, x_end = int(200*sf), int(1720*sf)
-                                step_x = (x_end - x_start) // max(1, n_b)
-                                bw = max(int(18*sf), int(step_x * 0.34))
-                                dr.line([int(160*sf), base_y, int(1760*sf), base_y], fill=(71, 85, 105), width=max(2, int(3*sf)))
-                                for ix, (ys, rv, nv) in enumerate(zip(_yrs_c, _rev_c, _ni_c)):
-                                    cx_b = x_start + ix * step_x + step_x // 2
-                                    rh = max(int(14*sf), int((abs(rv)/_u_div / mx_v) * max_h))
-                                    nh = max(int(10*sf), int((abs(nv)/_u_div / mx_v) * max_h))
-                                    dr.rounded_rectangle([cx_b - bw - 2, base_y - rh, cx_b - 2, base_y], radius=int(6*sf), fill=(56, 189, 248))
-                                    dr.rounded_rectangle([cx_b + 2, base_y - nh, cx_b + bw + 2, base_y], radius=int(6*sf), fill=(0, 230, 118) if nv >= 0 else (244, 63, 94))
-                                    _draw_center_text(dr, int(cx_b/sf), int(base_y/sf) + 38, 120, str(ys), start_sz=22, fill=(226,232,240,255), sw=2)
-                                    if ix in [0, n_b - 1]:
-                                        _draw_center_text(dr, int((cx_b - bw//2)/sf), int((base_y - rh)/sf) - 26, 150, f"{rv/_u_div:,.1f}", start_sz=22, fill=(255,240,0,255), sw=2)
-                                _draw_center_text(dr, 960, 865, 1650, f"파란 막대: 매출액 | 초록 막대: 순이익(적자는 빨강) · 단위: {_u_lbl}", start_sz=26, fill=(148, 163, 184, 255), sw=2)
-                                im.save(out_p); im.close()
-                                return
-
-                            _draw_center_text(dr, 960, 120, 1600, f"{doc_comp_nm} ({doc_clean_tk}) — AGIE 핵심 재무 팩트 보드", start_sz=44, fill=(255, 255, 255, 255), sw=3)
                             if chart_kind == "ROIC":
                                 items = [
-                                    ("은행 예금", 3.0, (100, 116, 139)), ("일반 기업 평균", 8.0, (148, 163, 184)),
-                                    ("버핏 자본비용 허들", 12.0, (250, 204, 21)), (f"{doc_comp_nm} ({doc_cap_lbl})", max(0.5, doc_cap_val), (0, 230, 118) if doc_cap_val >= 12.0 else (244, 63, 94))
+                                    ("은행 예금", 3.0, (100, 116, 139)),
+                                    ("일반 기업 평균", 8.0, (148, 163, 184)),
+                                    ("버핏 자본비용 허들", 12.0, (250, 204, 21)),
+                                    (f"{doc_comp_nm} ({doc_cap_lbl})", max(0.5, doc_cap_val), (0, 230, 118) if doc_cap_val >= 12.0 else (244, 63, 94))
                                 ]
                                 sub_note = f"밑천 1,000만 원당 연 {abs(doc_roic_won):,}만 원 창출 (영업이익률 {op_m:.1f}%)"
                             elif chart_kind == "역산":
                                 items = [
-                                    ("10년물 미국채", ty, (148, 163, 184)), ("주식 이익수익률(1/PER)", max(0.5, doc_ey), (56, 189, 248)),
-                                    ("10% 허들 요구성장률", max(0.5, abs(doc_req_g)), (250, 204, 21)), ("실제 FCF 연성장률", max(0.5, abs(doc_fcf_g)), (0, 230, 118) if doc_fcf_g >= doc_req_g else (244, 63, 94))
+                                    ("10년물 미국채", ty, (148, 163, 184)),
+                                    ("주식 이익수익률(1/PER)", max(0.5, doc_ey), (56, 189, 248)),
+                                    ("10% 허들 요구성장률", max(0.5, abs(doc_req_g)), (250, 204, 21)),
+                                    ("실제 10년 FCF 성장률", max(0.5, abs(doc_fcf_g)), (0, 230, 118) if doc_fcf_g >= doc_req_g else (244, 63, 94))
                                 ]
-                                sub_note = f"버핏 10초 역산: 1/PER({doc_ey:.1f}%) + 요구성장({doc_req_g:+.1f}%) = 10% | 안전마진 {doc_g_margin:+.1f}%p"
+                                sub_note = f"버핏 10초 암산 공식: 1/PER({doc_ey:.1f}%) + 요구성장({doc_req_g:+.1f}%) = 10% | 안전마진 {doc_g_margin:+.1f}%p"
                             else:
                                 items = [
-                                    ("현금배당수익률", max(0.2, doc_div_val), (56, 189, 248)), ("자사주 소각효과", max(0.2, abs(doc_bb_val)), (168, 85, 247)),
-                                    ("실제 FCF 연성장", max(0.5, abs(doc_fcf_g)), (0, 230, 118) if doc_fcf_g > 0 else (244, 63, 94)), ("영업이익률(OPM)", max(0.5, abs(op_m)), (250, 204, 21))
+                                    ("현금배당수익률", max(0.2, doc_div_val), (56, 189, 248)),
+                                    ("자사주 소각효과", max(0.2, abs(doc_bb_val)), (168, 85, 247)),
+                                    ("10년 FCF 연성장", max(0.5, abs(doc_fcf_g)), (0, 230, 118) if doc_fcf_g > 0 else (244, 63, 94)),
+                                    ("영업이익률(OPM)", max(0.5, abs(op_m)), (250, 204, 21))
                                 ]
-                                sub_note = f"단기 유동비율 {current_ratio:.2f}배 (안전 기준선 1.50배) · 현재 PBR {pbr:.2f}배"
+                                sub_note = f"단기 비상금 유동비율 {current_ratio:.2f}배 (안전 기준선 1.50배) · 현재 PBR {pbr:.2f}배"
 
                             mx_v = max([x[1] for x in items] + [10.0]) * 1.2
                             bar_w = int(210 * sf)
                             xs = [int(360*sf), int(760*sf), int(1160*sf), int(1560*sf)]
+
                             dr.line([int(180*sf), base_y, int(1740*sf), base_y], fill=(71, 85, 105), width=max(2, int(3*sf)))
                             for idx_b, (lbl, val, col) in enumerate(items):
                                 cx_b = xs[idx_b]
@@ -11330,92 +11300,100 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                                 dr.rounded_rectangle([cx_b - bar_w//2, base_y - bh, cx_b + bar_w//2, base_y], radius=int(14*sf), fill=col)
                                 _draw_center_text(dr, int(cx_b/sf), int((base_y - bh)/sf) - 38, 300, f"{val:.1f}%", start_sz=40, fill=(255, 240, 0, 255) if idx_b == 3 else (255,255,255,255), sw=3)
                                 _draw_center_text(dr, int(cx_b/sf), int(base_y/sf) + 46, 340, lbl, start_sz=26, fill=(226, 232, 240, 255), sw=2)
+
                             _draw_center_text(dr, 960, 865, 1680, sub_note, start_sz=28, fill=(56, 189, 248, 255), sw=2)
                             im.save(out_p); im.close()
 
+                        # 3) 업로드 파일이 없을 때 쓰는 깔끔한 시네마틱 다크 배경 (도형 캐릭터 없음!)
                         def _make_fallback_bg_png(tag_type, out_p):
                             bg_map = {
-                                "해설": ((10, 17, 32), "AGIE VALUE STUDIO · NARRATION", (56, 189, 248)),
+                                "해설": ((11, 18, 34), "STUDIO NARRATION", (56, 189, 248)),
                                 "버핏": ((24, 18, 12), "OMAHA ARCHIVE · WARREN BUFFETT", (250, 204, 21)),
-                                "멍거": ((22, 14, 34), "MENTAL MODELS · CHARLIE MUNGER", (168, 85, 247)),
-                                "반론": ((30, 12, 16), "WALL STREET BEAR CASE · RISK CHECK", (244, 63, 94)),
-                                "충격": ((18, 18, 20), "CRITICAL WARNING · FACT CHECK", (255, 232, 56)),
-                                "장면": ((11, 22, 20), f"{doc_comp_nm} · 10-YEAR LEDGER", (46, 204, 113))
+                                "반론": ((28, 12, 16), "WALL STREET COUNTER-ARGUMENT", (244, 63, 94)),
+                                "장면": ((12, 22, 20), f"{doc_comp_nm} · 10-YEAR CHRONICLE", (46, 204, 113))
                             }
-                            bg_c, label_s, acc_c = bg_map.get(tag_type, ((12, 18, 30), "AGIE DOCUMENTARY", (56, 189, 248)))
+                            bg_c, label_s, acc_c = bg_map.get(tag_type, ((12, 18, 30), "DOCUMENTARY", (56, 189, 248)))
                             im = Image.new("RGB", (W_D, H_D), bg_c)
                             dr = ImageDraw.Draw(im)
+                            # 중앙에 은은한 시네마틱 원형 스포트라이트 느낌의 테두리
                             dr.rounded_rectangle(_sc([140, 140, 1780, 860]), radius=int(24*sf), outline=acc_c, width=max(1, int(2*sf)))
                             _draw_center_text(dr, 960, 440, 1400, label_s, start_sz=42, fill=(acc_c[0], acc_c[1], acc_c[2], 255), sw=2)
-                            _draw_center_text(dr, 960, 530, 1400, "※ 상단 업로더에 AI 생성 MP4/PNG 클립을 올리면 이 배경이 자동 교체됩니다", start_sz=24, fill=(148, 163, 184, 255), sw=1)
+                            _draw_center_text(dr, 960, 530, 1400, "※ 위 업로더에 외부 AI 영상(MP4) 또는 이미지를 넣으면 이 배경이 즉시 교체됩니다", start_sz=24, fill=(148, 163, 184, 255), sw=1)
                             im.save(out_p); im.close()
 
+                        # 4) 체스막타식 투명 RGBA 오버레이 생성 (좌측 상단 챕터 표시 + 인용 명패 + 하단 무박스 1줄 자막)
                         def _make_hud_overlay_png(sub_phrase, tag_type, is_yellow_sub, out_p):
                             ov = Image.new("RGBA", (W_D, H_D), (0, 0, 0, 0))
                             dr = ImageDraw.Draw(ov)
 
-                            # 좌측 상단 상시 HUD 스코어보드 (챕터명 + 핵심 가치지표 고정 표시)
-                            f_top = get_f(max(14, int(23*sf)))
-                            f_top_sub = get_f(max(11, int(17*sf)))
-                            dr.text((int(42*sf), int(28*sf)), f"ACT {act_idx+1} · {act_meta['title']}", font=f_top, fill=(245, 248, 255, 235), stroke_width=max(1, int(3*sf)), stroke_fill=(0,0,0,220))
-                            dr.text((int(42*sf), int(58*sf)), f"{doc_comp_nm} | {doc_cap_lbl} {doc_cap_val:.1f}% · 역산마진 {doc_g_margin:+.1f}%p", font=f_top_sub, fill=(250, 204, 21, 225), stroke_width=max(1, int(2*sf)), stroke_fill=(0,0,0,220))
+                            # 좌측 상단 미니멀 챕터 브레드크럼 (체스막타 스타일)
+                            f_top = get_f(max(14, int(24*sf)))
+                            dr.text((int(42*sf), int(34*sf)), f"{act_meta['title']}  |  {doc_comp_nm}", font=f_top, fill=(235, 240, 248, 225), stroke_width=max(1, int(3*sf)), stroke_fill=(0,0,0,220))
 
-                            # [버핏 / 멍거 / 반론] 좌측 하단 명패 (Lower-Third)
-                            if tag_type in ["버핏", "멍거", "반론"]:
-                                badge_cfg = {
-                                    "버핏": ((29, 78, 216, 235), "워런 버핏 (Warren Buffett)", "버크셔 해서웨이 · 오마하의 현인"),
-                                    "멍거": ((109, 40, 217, 235), "찰리 멍거 (Charlie Munger)", "다학제적 멘탈 모델 · 인간 오판의 심리학"),
-                                    "반론": ((190, 18, 60, 235), "월가 회의론 / 리스크 점검", f"{doc_comp_nm} 핵심 반론 & Bear Case")
-                                }
-                                bar_col, nm_main, nm_sub = badge_cfg[tag_type]
+                            # [버핏] 또는 [반론] 인용구일 때 체스막타식 좌측 하단 블루/레드 명패(Lower-Third)
+                            if tag_type in ["버핏", "반론"]:
+                                bar_col = (29, 78, 216, 235) if tag_type == "버핏" else (190, 18, 60, 235)
+                                nm_main = "워런 버핏 (Warren Buffett)" if tag_type == "버핏" else "월가 회의론 / 리스크 점검"
+                                nm_sub = "버크셔 해서웨이 회장 · 가치투자 원칙" if tag_type == "버핏" else f"{doc_comp_nm} 핵심 반론 체크"
                                 dr.rectangle(_sc([60, 745, 74, 835]), fill=(250, 204, 21, 255))
-                                dr.rectangle(_sc([74, 745, 640, 835]), fill=bar_col)
-                                dr.text((int(94*sf), int(755*sf)), nm_main, font=get_f(max(14, int(28*sf))), fill=(255, 255, 255, 255))
-                                dr.text((int(94*sf), int(798*sf)), nm_sub, font=get_f(max(12, int(19*sf))), fill=(226, 232, 240, 255))
+                                dr.rectangle(_sc([74, 745, 620, 835]), fill=bar_col)
+                                f_nm = get_f(max(14, int(28*sf)))
+                                f_sb = get_f(max(12, int(19*sf)))
+                                dr.text((int(94*sf), int(755*sf)), nm_main, font=f_nm, fill=(255, 255, 255, 255))
+                                dr.text((int(94*sf), int(798*sf)), nm_sub, font=f_sb, fill=(226, 232, 240, 255))
 
-                            sub_col = (255, 232, 56, 255) if (is_yellow_sub or tag_type == "충격") else (255, 255, 255, 255)
+                            # 하단 중앙 무박스 1줄 아웃라인 자막 (체스막타 핵심 스타일!)
+                            sub_col = (255, 232, 56, 255) if is_yellow_sub else (255, 255, 255, 255)
                             _draw_center_text(dr, 960, 965, 1740, sub_phrase, start_sz=54, min_sz=24, fill=sub_col, sw=7)
                             ov.save(out_p); ov.close()
 
-                        seg_files, tmp_cleanup = [], []
-                        srt_entries = []
+                        seg_files = []
+                        tmp_cleanup = []
                         acc_sec = 0.0
 
-                        # (Step 0) 챕터 타이틀 카드 + 저음 전환 SFX (2.2초)
+                        # (Step 0) 챕터 타이틀 카드 2.2초 무음 세그먼트 생성
                         f_title_png = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
-                        f_title_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
                         f_title_mp4 = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                        tmp_cleanup.extend([f_title_png, f_title_wav, f_title_mp4])
+                        tmp_cleanup.extend([f_title_png, f_title_mp4])
                         _make_title_card_png(f_title_png)
-                        _gen_doc_sfx_wav(f_title_wav, dur_sec=2.2, mode="chapter")
                         subprocess.run([
-                            ffmpeg_exe, "-y", "-threads", "2", "-loop", "1", "-i", f_title_png, "-i", f_title_wav,
-                            "-t", "2.2", "-r", "24", "-vf", "fade=t=in:st=0:d=0.4,fade=t=out:st=1.8:d=0.4",
-                            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                            "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", f_title_mp4
+                            ffmpeg_exe, "-y", "-threads", "2",
+                            "-loop", "1", "-i", f_title_png,
+                            "-f", "lavfi", "-i", "anullsrc=channel_layout=mono:sample_rate=24000",
+                            "-t", "2.2", "-r", "24", "-vf", f"fade=t=in:st=0:d=0.4,fade=t=out:st=1.8:d=0.4",
+                            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                            "-c:a", "aac", "-b:a", "128k", "-pix_fmt", "yuv420p", f_title_mp4
                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                         seg_files.append(f_title_mp4)
                         acc_sec += 2.2
 
-                        # 디스크에 저장된 미디어 경로 매핑
+                        # 세션에 보관된 미디어 에셋을 임시 파일로 풀기
                         media_paths = {}
                         for m_k, st_k in [
-                            ("해설", f"asset_host_path_{doc_clean_tk}"),
-                            ("버핏", f"asset_buffett_path_{doc_clean_tk}"),
-                            ("멍거", f"asset_munger_path_{doc_clean_tk}"),
-                            ("반론", f"asset_critic_path_{doc_clean_tk}")
+                            ("해설", f"doc_media_host_{doc_clean_tk}"),
+                            ("버핏", f"doc_media_buffett_{doc_clean_tk}"),
+                            ("반론", f"doc_media_critic_{doc_clean_tk}")
                         ]:
-                            mp_v = st.session_state.get(st_k)
-                            if mp_v and os.path.exists(mp_v):
-                                media_paths[m_k] = (mp_v, os.path.splitext(mp_v)[1].lower() in [".mp4", ".mov"])
-                        if broll_path and os.path.exists(broll_path):
-                            media_paths["장면"] = (broll_path, os.path.splitext(broll_path)[1].lower() in [".mp4", ".mov"])
+                            if st_k in st.session_state:
+                                fn_m, b_m = st.session_state[st_k]
+                                ext_m = os.path.splitext(fn_m)[1].lower() or ".png"
+                                tp_m = tempfile.NamedTemporaryFile(delete=False, suffix=ext_m).name
+                                with open(tp_m, "wb") as f_out: f_out.write(b_m)
+                                media_paths[m_k] = (tp_m, ext_m in [".mp4", ".mov"])
+                                tmp_cleanup.append(tp_m)
+
+                        if act_broll_tuple is not None:
+                            fn_b, b_b = act_broll_tuple
+                            ext_b = os.path.splitext(fn_b)[1].lower() or ".png"
+                            tp_b = tempfile.NamedTemporaryFile(delete=False, suffix=ext_b).name
+                            with open(tp_b, "wb") as f_out: f_out.write(b_b)
+                            media_paths["장면"] = (tp_b, ext_b in [".mp4", ".mov"])
+                            tmp_cleanup.append(tp_b)
 
                         raw_lines = [ln.strip() for ln in script_text_val.split("\n") if ln.strip()]
-                        srt_idx = 1
 
-                        for r_ln in raw_lines:
-                            m_t = re.match(r'^\[(해설|버핏|멍거|반론|충격|장면|차트:[A-Za-z가-힣0-9]+)\]\s*(.*)', r_ln)
+                        for l_i, r_ln in enumerate(raw_lines):
+                            m_t = re.match(r'^\[(해설|버핏|반론|장면|차트:[A-Za-z가-힣0-9]+)\]\s*(.*)', r_ln)
                             if m_t:
                                 raw_tag, clean_ln = m_t.group(1), m_t.group(2).strip()
                             else:
@@ -11423,17 +11401,16 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                             if not clean_ln:
                                 continue
 
-                            # 4인 멀티 보이스 자동 배정
+                            # 태그별 멀티 보이스 성우 자동 배정
                             if raw_tag == "버핏":
-                                v_id, v_pitch, v_rate = "ko-KR-BongJinNeural", "-5Hz", f"+{max(0, int(doc_v4_spd)-4)}%"
-                            elif raw_tag == "멍거":
-                                v_id, v_pitch, v_rate = "ko-KR-InJoonNeural", "-6Hz", f"+{max(0, int(doc_v4_spd)-2)}%"
+                                v_id, v_pitch, v_rate = "ko-KR-BongJinNeural", "-5Hz", f"+{max(0, int(doc_v3_spd)-4)}%"
                             elif raw_tag == "반론":
-                                v_id, v_pitch, v_rate = "ko-KR-HyunsuNeural", "+2Hz", f"+{int(doc_v4_spd)+4}%"
+                                v_id, v_pitch, v_rate = "ko-KR-HyunsuNeural", "+2Hz", f"+{int(doc_v3_spd)+4}%"
                             else:
-                                v_id = "ko-KR-SunHiNeural" if "선희" in doc_v4_narrator else "ko-KR-InJoonNeural"
-                                v_pitch, v_rate = ("-2Hz" if raw_tag == "충격" else "+0Hz"), f"+{int(doc_v4_spd)}%"
+                                v_id = "ko-KR-SunHiNeural" if "선희" in doc_v3_narrator else "ko-KR-InJoonNeural"
+                                v_pitch, v_rate = "+0Hz", f"+{int(doc_v3_spd)}%"
 
+                            # '/' 기준으로 짧은 1줄 자막 호흡 분할 (체스막타 리듬)
                             phrases = split_subtitle_phrases(clean_ln, max_len=24)
 
                             for p_i, p_txt in enumerate(phrases):
@@ -11445,21 +11422,11 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
 
                                 tts_s = fix_global_tts_pronunciation(p_txt, is_en=False)
                                 import edge_tts, asyncio
-                                _tts_ok = False
-                                for _rt in range(2):
-                                    loop = asyncio.new_event_loop()
-                                    try:
-                                        loop.run_until_complete(edge_tts.Communicate(str(tts_s), voice=v_id, rate=v_rate, pitch=v_pitch).save(f_mp3))
-                                        if os.path.exists(f_mp3) and os.path.getsize(f_mp3) > 500:
-                                            _tts_ok = True
-                                            break
-                                    except Exception:
-                                        time.sleep(0.5)
-                                    finally:
-                                        loop.close()
-                                if not _tts_ok:
-                                    from gtts import gTTS
-                                    gTTS(text=str(tts_s), lang='ko', slow=False).save(f_mp3)
+                                loop = asyncio.new_event_loop()
+                                try:
+                                    loop.run_until_complete(edge_tts.Communicate(str(tts_s), voice=v_id, rate=v_rate, pitch=v_pitch).save(f_mp3))
+                                finally:
+                                    loop.close()
 
                                 subprocess.run([
                                     ffmpeg_exe, "-y", "-threads", "2", "-i", f_mp3,
@@ -11467,19 +11434,15 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                                     "-ar", "24000", "-ac", "1", f_wav
                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                                if raw_tag == "충격" and p_i == 0:
-                                    _inject_impact_boom_on_wav(f_wav)
-
                                 with wave.open(f_wav, 'rb') as wf_c:
                                     exact_d = max(0.45, wf_c.getnframes() / float(wf_c.getframerate()))
-
-                                srt_entries.append(f"{srt_idx}\n{_fmt_srt_ts(acc_sec)} --> {_fmt_srt_ts(acc_sec + exact_d)}\n{p_txt}\n")
-                                srt_idx += 1
                                 acc_sec += exact_d
 
-                                is_y_sub = (raw_tag in ["버핏", "멍거", "반론", "충격"] or (p_i % 2 == 1))
+                                # 투명 자막/명패 오버레이 생성
+                                is_y_sub = (raw_tag in ["버핏", "반론"] or (p_i % 2 == 1))
                                 _make_hud_overlay_png(p_txt, raw_tag, is_y_sub, f_ov)
 
+                                # 배경 소스 결정 (차트 / 업로드된 MP4 / 업로드된 PNG / 폴백 다크 스튜디오)
                                 is_video_bg = False
                                 if raw_tag.startswith("차트:"):
                                     c_kind = raw_tag.split(":")[1]
@@ -11488,49 +11451,53 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                                     _make_fullscreen_chart_png(c_kind, bg_path)
                                 elif raw_tag in media_paths:
                                     bg_path, is_video_bg = media_paths[raw_tag]
-                                elif raw_tag == "충격" and "장면" in media_paths:
-                                    bg_path, is_video_bg = media_paths["장면"]
-                                elif "해설" in media_paths and raw_tag in ["장면", "충격"]:
+                                elif "해설" in media_paths and raw_tag == "장면":
                                     bg_path, is_video_bg = media_paths["해설"]
                                 else:
                                     bg_path = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                                     step_rm.append(bg_path)
                                     _make_fallback_bg_png(raw_tag, bg_path)
 
-                                # [충격] 태그일 때 자동 흑백 전환(hue=s=0) 적용
-                                fx_gray = ",hue=s=0,eq=contrast=1.12" if raw_tag == "충격" else ""
                                 if is_video_bg:
+                                    # [움직이는 AI MP4 클립 + 투명 HUD/자막 합성]
                                     subprocess.run([
-                                        ffmpeg_exe, "-y", "-threads", "2", "-stream_loop", "-1", "-i", bg_path,
+                                        ffmpeg_exe, "-y", "-threads", "2",
+                                        "-stream_loop", "-1", "-i", bg_path,
                                         "-i", f_ov, "-i", f_wav,
-                                        "-filter_complex", f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},fps=24,setsar=1{fx_gray}[bg];[bg][1:v]overlay=0:0[v]",
-                                        "-map", "[v]", "-map", "2:a", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", f_seg
+                                        "-filter_complex", f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},fps=24,setsar=1[bg];[bg][1:v]overlay=0:0[v]",
+                                        "-map", "[v]", "-map", "2:a",
+                                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                                        "-t", f"{exact_d:.3f}", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                elif use_kb_zoom:
+                                else:
+                                    # [정지 이미지/차트 + 부드러운 미세 줌인(Ken Burns) + 고정 자막 오버레이]
                                     frames_n = max(12, int(exact_d * 24) + 2)
-                                    kb_f = f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},setsar=1{fx_gray},zoompan=z='min(zoom+0.0007,1.05)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames_n}:s={W_D}x{H_D}:fps=24[bg];[bg][1:v]overlay=0:0[v]"
+                                    kb_filter = (
+                                        f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},setsar=1,"
+                                        f"zoompan=z='min(zoom+0.0008,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={frames_n}:s={W_D}x{H_D}:fps=24[bg];"
+                                        f"[bg][1:v]overlay=0:0[v]"
+                                    )
                                     res_kb = subprocess.run([
-                                        ffmpeg_exe, "-y", "-threads", "2", "-i", bg_path, "-i", f_ov, "-i", f_wav,
-                                        "-filter_complex", kb_f, "-map", "[v]", "-map", "2:a",
-                                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", f_seg
+                                        ffmpeg_exe, "-y", "-threads", "2",
+                                        "-i", bg_path, "-i", f_ov, "-i", f_wav,
+                                        "-filter_complex", kb_filter,
+                                        "-map", "[v]", "-map", "2:a",
+                                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                                        "-t", f"{exact_d:.3f}", f_seg
                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                                     if res_kb.returncode != 0:
+                                        # 안전 폴백 (정지 스케일 + 오버레이)
                                         subprocess.run([
-                                            ffmpeg_exe, "-y", "-threads", "2", "-loop", "1", "-i", bg_path, "-i", f_ov, "-i", f_wav,
-                                            "-filter_complex", f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},setsar=1{fx_gray}[bg];[bg][1:v]overlay=0:0[v]",
-                                            "-map", "[v]", "-map", "2:a", "-r", "24", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                                            "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", f_seg
+                                            ffmpeg_exe, "-y", "-threads", "2",
+                                            "-loop", "1", "-i", bg_path, "-i", f_ov, "-i", f_wav,
+                                            "-filter_complex", f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},setsar=1[bg];[bg][1:v]overlay=0:0[v]",
+                                            "-map", "[v]", "-map", "2:a", "-r", "24",
+                                            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20",
+                                            "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p",
+                                            "-t", f"{exact_d:.3f}", f_seg
                                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                else:
-                                    # 노트북 초고속 모드 (정지 스케일 + 오버레이 -> CPU 부하 70% 절감)
-                                    subprocess.run([
-                                        ffmpeg_exe, "-y", "-threads", "2", "-loop", "1", "-i", bg_path, "-i", f_ov, "-i", f_wav,
-                                        "-filter_complex", f"[0:v]scale={W_D}:{H_D}:force_original_aspect_ratio=increase,crop={W_D}:{H_D},setsar=1{fx_gray}[bg];[bg][1:v]overlay=0:0[v]",
-                                        "-map", "[v]", "-map", "2:a", "-r", "24", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "21",
-                                        "-c:a", "aac", "-b:a", "128k", "-ar", "24000", "-ac", "1", "-pix_fmt", "yuv420p", "-t", f"{exact_d:.3f}", f_seg
-                                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
                                 seg_files.append(f_seg)
                                 tmp_cleanup.append(f_seg)
@@ -11540,170 +11507,137 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                                         except Exception: pass
                                 gc.collect()
 
-                        # Act 세그먼트 통합 + BGM 덕킹 합성 후 디스크에 영구 저장
+                        # Act 세그먼트 통합
                         cat_act = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
-                        merged_raw = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                        tmp_cleanup.extend([cat_act, merged_raw])
+                        out_act = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                        tmp_cleanup.extend([cat_act, out_act])
                         with open(cat_act, "w", encoding="utf-8") as cf:
                             for sp in seg_files:
                                 cf.write(f"file '{sp.replace(chr(92), '/')}'\n")
-
                         subprocess.run([
                             ffmpeg_exe, "-y", "-threads", "2", "-f", "concat", "-safe", "0", "-i", cat_act,
-                            "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "160k", merged_raw
+                            "-c:v", "copy", "-af", "aresample=async=1", "-c:a", "aac", "-b:a", "192k", out_act
                         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
-                        out_act_disk = os.path.join(doc_work_dir, f"Act_{act_idx+1}.mp4")
-                        if "ON" in doc_v4_bgm:
-                            bgm_w = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
-                            tmp_cleanup.append(bgm_w)
-                            _gen_doc_bgm_wav(bgm_w, acc_sec)
-                            subprocess.run([
-                                ffmpeg_exe, "-y", "-threads", "2", "-i", merged_raw, "-i", bgm_w,
-                                "-filter_complex", "[0:a]volume=1.0[va];[1:a]volume=0.11[ba];[va][ba]amix=inputs=2:duration=first:dropout_transition=1[aout]",
-                                "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest", out_act_disk
-                            ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                        else:
-                            import shutil
-                            shutil.copyfile(merged_raw, out_act_disk)
-
-                        # 동기화된 SRT 자막 파일도 함께 저장
-                        with open(os.path.join(doc_work_dir, f"Act_{act_idx+1}.srt"), "w", encoding="utf-8") as sf_out:
-                            sf_out.write("\n".join(srt_entries))
-
+                        with open(out_act, "rb") as vf:
+                            act_bytes = vf.read()
                         for rm_f in tmp_cleanup:
                             if os.path.exists(rm_f):
                                 try: os.remove(rm_f)
                                 except Exception: pass
                         gc.collect()
-                        return out_act_disk, acc_sec
+                        return act_bytes, acc_sec
 
                     # -------------------------------------------------------------
-                    # [UI: Act 1 ~ Act 6 분할 대본 편집 + B-roll 업로드 + 디스크 렌더링]
+                    # [UI: Act 1 ~ Act 6 분할 대본 편집 + Act별 B-roll 업로더 + 개별 렌더링]
                     # -------------------------------------------------------------
-                    st.markdown("##### 🎬 2) Act별 대본 편집 & B-roll 업로드 · 디스크 분할 렌더링")
-                    act_keys_v4 = list(doc_acts_v4.keys())
-                    act_tabs_v4 = st.tabs([f"Act {idx+1}" for idx in range(len(act_keys_v4))])
+                    st.markdown("##### 🎬 2) Act별 대본 편집 & B-roll 업로드 · 분할 렌더링")
+                    act_keys_v3 = list(doc_acts_v3.keys())
+                    act_tabs_v3 = st.tabs([f"Act {idx+1}" for idx in range(len(act_keys_v3))])
 
-                    for idx_a, a_tab in enumerate(act_tabs_v4):
-                        ak = act_keys_v4[idx_a]
-                        am = doc_acts_v4[ak]
-                        act_disk_path = os.path.join(doc_work_dir, f"Act_{idx_a+1}.mp4")
-                        st_dur_k = f"doc_v4_dur_{doc_clean_tk}_{idx_a}"
-                        st_br_path_k = f"doc_v4_broll_path_{doc_clean_tk}_{idx_a}"
+                    for idx_a, a_tab in enumerate(act_tabs_v3):
+                        ak = act_keys_v3[idx_a]
+                        am = doc_acts_v3[ak]
+                        st_mp4_k = f"doc_v3_mp4_{doc_clean_tk}_{idx_a}"
+                        st_dur_k = f"doc_v3_dur_{doc_clean_tk}_{idx_a}"
+                        st_br_k = f"doc_v3_broll_{doc_clean_tk}_{idx_a}"
 
                         with a_tab:
                             st.markdown(f"**{ak}** — *{am['sub']}*")
                             act_broll_up = st.file_uploader(
-                                f"🎞️ Act {idx_a+1} 전용 [장면] B-roll 업로드 (MP4/PNG, 선택)",
+                                f"🎞️ Act {idx_a+1} 전용 [장면] B-roll 영상/이미지 업로드 (MP4/PNG, 선택)",
                                 type=["mp4", "mov", "png", "jpg", "jpeg"],
-                                key=f"up_br_v4_{doc_clean_tk}_{idx_a}"
+                                key=f"up_br_v3_{doc_clean_tk}_{idx_a}"
                             )
                             if act_broll_up is not None:
-                                _b_ext = os.path.splitext(act_broll_up.name)[1].lower() or ".png"
-                                _b_save = os.path.join(doc_work_dir, f"broll_act_{idx_a+1}{_b_ext}")
-                                with open(_b_save, "wb") as _fb:
-                                    _fb.write(act_broll_up.getvalue())
-                                st.session_state[st_br_path_k] = _b_save
+                                st.session_state[st_br_k] = (act_broll_up.name, act_broll_up.getvalue())
 
                             act_txt_val = st.text_area(
-                                f"✏️ Act {idx_a+1} 대본 (태그: `[해설]`, `[버핏]`, `[멍거]`, `[반론]`, `[충격]`, `[장면]`, `[차트:10년]`, `[차트:ROIC]`, `[차트:역산]`, `[차트:현금]`)",
+                                f"✏️ Act {idx_a+1} 대본 (제미나이에서 만든 대본을 그대로 붙여넣으세요! 태그: `[해설]`, `[버핏]`, `[반론]`, `[장면]`, `[차트:ROIC]`, `[차트:역산]`, `[차트:현금]`)",
                                 value="\n".join(am["lines"]),
                                 height=155,
-                                key=f"txt_v4_{doc_clean_tk}_{idx_a}"
+                                key=f"txt_v3_{doc_clean_tk}_{idx_a}"
                             )
 
                             c_btn1, c_btn2 = st.columns(2)
                             with c_btn1:
-                                if st.button(f"⚡ Act {idx_a+1} 렌더링 (디스크 저장)", key=f"run_v4_{doc_clean_tk}_{idx_a}", use_container_width=True, type="primary"):
-                                    with st.spinner(f"[{ak}] 4인 멀티보이스 · 10년 차트 · BGM 덕킹 합성 중..."):
+                                if st.button(f"⚡ Act {idx_a+1} 렌더링 (체스막타 포맷)", key=f"run_v3_{doc_clean_tk}_{idx_a}", use_container_width=True, type="primary"):
+                                    with st.spinner(f"[{ak}] 챕터 타이틀 · 멀티 보이스 · 풀스크린 차트 · 자막 합성 중..."):
                                         try:
-                                            out_p_a, ad = _render_doc_act_v4(idx_a, am, act_txt_val, st.session_state.get(st_br_path_k))
+                                            ab, ad = _render_chessmak_act_v3(idx_a, ak, am, act_txt_val, st.session_state.get(st_br_k))
+                                            st.session_state[st_mp4_k] = ab
                                             st.session_state[st_dur_k] = ad
-                                            st.success(f"✅ Act {idx_a+1} 디스크 저장 완료! ({ad:.1f}초)")
-                                        except Exception as e_v4:
-                                            st.error(f"Act {idx_a+1} 오류: {e_v4}")
+                                            st.success(f"✅ Act {idx_a+1} 완료! ({ad:.1f}초)")
+                                        except Exception as e_v3:
+                                            st.error(f"Act {idx_a+1} 오류: {e_v3}")
                             with c_btn2:
-                                if os.path.exists(act_disk_path):
+                                if st_mp4_k in st.session_state:
                                     ds = st.session_state.get(st_dur_k, 40.0)
-                                    with open(act_disk_path, "rb") as _df_a:
-                                        st.download_button(
-                                            f"📥 Act {idx_a+1} MP4 다운로드 ({ds:.1f}초)",
-                                            data=_df_a.read(),
-                                            file_name=f"AGIE_Doc_{doc_clean_tk}_Act{idx_a+1}.mp4",
-                                            mime="video/mp4",
-                                            use_container_width=True,
-                                            key=f"dl_v4_{doc_clean_tk}_{idx_a}"
-                                        )
-                            if os.path.exists(act_disk_path):
-                                st.video(act_disk_path)
+                                    st.download_button(
+                                        f"📥 Act {idx_a+1} MP4 다운로드 ({ds:.1f}초)",
+                                        data=st.session_state[st_mp4_k],
+                                        file_name=f"AGIE_DocV3_{doc_clean_tk}_Act{idx_a+1}.mp4",
+                                        mime="video/mp4",
+                                        use_container_width=True,
+                                        key=f"dl_v3_{doc_clean_tk}_{idx_a}"
+                                    )
+                            if st_mp4_k in st.session_state:
+                                st.video(st.session_state[st_mp4_k])
 
                     st.markdown("---")
-                    ready_v4 = [i_a for i_a in range(len(act_keys_v4)) if os.path.exists(os.path.join(doc_work_dir, f"Act_{i_a+1}.mp4"))]
-                    tot_v4_sec = sum(st.session_state.get(f"doc_v4_dur_{doc_clean_tk}_{i_a}", 40.0) for i_a in ready_v4)
-                    st.markdown(f"📊 **디스크 완료 파트:** 6개 중 **{len(ready_v4)}개** {[f'Act {x+1}' for x in ready_v4]} · **예상 누적 길이:** `{int(tot_v4_sec//60)}분 {int(tot_v4_sec%60)}초`")
+                    ready_v3 = [i_a for i_a in range(len(act_keys_v3)) if f"doc_v3_mp4_{doc_clean_tk}_{i_a}" in st.session_state]
+                    tot_v3_sec = sum(st.session_state.get(f"doc_v3_dur_{doc_clean_tk}_{i_a}", 0.0) for i_a in ready_v3)
+                    st.markdown(f"📊 **완료 파트:** 6개 중 **{len(ready_v3)}개** {[f'Act {x+1}' for x in ready_v3]} · **누적 길이:** `{int(tot_v3_sec//60)}분 {int(tot_v3_sec%60)}초`")
 
-                    mc1, mc2, mc3 = st.columns(3)
+                    mc1, mc2 = st.columns(2)
                     with mc1:
-                        if st.button("🚀 남은 파트 순차 생성", key=f"seq_v4_{doc_clean_tk}", use_container_width=True):
-                            for idx_a in range(len(act_keys_v4)):
-                                if not os.path.exists(os.path.join(doc_work_dir, f"Act_{idx_a+1}.mp4")):
-                                    ak = act_keys_v4[idx_a]
-                                    am = doc_acts_v4[ak]
-                                    cur_t = st.session_state.get(f"txt_v4_{doc_clean_tk}_{idx_a}", "\n".join(am["lines"]))
+                        if st.button("🚀 남은 파트 순차 자동 생성", key=f"seq_v3_{doc_clean_tk}", use_container_width=True):
+                            for idx_a in range(len(act_keys_v3)):
+                                st_mp4_k = f"doc_v3_mp4_{doc_clean_tk}_{idx_a}"
+                                if st_mp4_k not in st.session_state:
+                                    ak = act_keys_v3[idx_a]
+                                    am = doc_acts_v3[ak]
+                                    cur_t = st.session_state.get(f"txt_v3_{doc_clean_tk}_{idx_a}", "\n".join(am["lines"]))
                                     with st.spinner(f"순차 렌더링 중: {ak} ({idx_a+1}/6)..."):
-                                        _, ad = _render_doc_act_v4(idx_a, am, cur_t, st.session_state.get(f"doc_v4_broll_path_{doc_clean_tk}_{idx_a}"))
-                                        st.session_state[f"doc_v4_dur_{doc_clean_tk}_{idx_a}"] = ad
+                                        ab, ad = _render_chessmak_act_v3(idx_a, ak, am, cur_t, st.session_state.get(f"doc_v3_broll_{doc_clean_tk}_{idx_a}"))
+                                        st.session_state[st_mp4_k] = ab
+                                        st.session_state[f"doc_v3_dur_{doc_clean_tk}_{idx_a}"] = ad
                             st.rerun()
                     with mc2:
-                        full_disk_path = os.path.join(doc_work_dir, f"AGIE_Full_{doc_clean_tk}.mp4")
-                        if st.button("🔗 완료 파트 1초 무손실 병합", key=f"mrg_v4_{doc_clean_tk}", use_container_width=True, type="primary", disabled=(len(ready_v4) == 0)):
-                            import imageio_ffmpeg, subprocess, tempfile
-                            with st.spinner("무손실 스트림 병합 중 (RAM 사용 최소)..."):
+                        if st.button("🔗 완료된 파트 '1초 무손실 통합본(.mp4)' 합치기", key=f"mrg_v3_{doc_clean_tk}", use_container_width=True, type="primary", disabled=(len(ready_v3) == 0)):
+                            import imageio_ffmpeg, subprocess, tempfile, os
+                            with st.spinner("무손실 통합 중..."):
                                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                                tmps = []
                                 cat_p = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt", encoding="utf-8").name
+                                tmps.append(cat_p)
                                 with open(cat_p, "w", encoding="utf-8") as cf:
-                                    for i_a in sorted(ready_v4):
-                                        p_a = os.path.join(doc_work_dir, f"Act_{i_a+1}.mp4")
-                                        cf.write(f"file '{p_a.replace(chr(92), '/')}'\n")
-                                subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_p, "-c", "copy", full_disk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                                if os.path.exists(cat_p):
-                                    try: os.remove(cat_p)
-                                    except Exception: pass
-                                st.success("✅ 무손실 통합본 생성 완료!")
-                    with mc3:
-                        if st.button("📦 캡컷/프리미어용 에셋(.zip) 추출", key=f"zip_v4_{doc_clean_tk}", use_container_width=True, disabled=(len(ready_v4) == 0)):
-                            z_buf = io.BytesIO()
-                            with zipfile.ZipFile(z_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-                                for i_a in sorted(ready_v4):
-                                    p_mp4 = os.path.join(doc_work_dir, f"Act_{i_a+1}.mp4")
-                                    p_srt = os.path.join(doc_work_dir, f"Act_{i_a+1}.srt")
-                                    if os.path.exists(p_mp4): zf.write(p_mp4, f"acts/Act_{i_a+1}.mp4")
-                                    if os.path.exists(p_srt): zf.write(p_srt, f"subtitles/Act_{i_a+1}.srt")
-                            st.session_state[f"doc_v4_zip_{doc_clean_tk}"] = z_buf.getvalue()
+                                    for i_a in sorted(ready_v3):
+                                        tp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                        tmps.append(tp)
+                                        with open(tp, "wb") as pf: pf.write(st.session_state[f"doc_v3_mp4_{doc_clean_tk}_{i_a}"])
+                                        cf.write(f"file '{tp.replace(chr(92), '/')}'\n")
+                                out_m = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                                tmps.append(out_m)
+                                subprocess.run([ffmpeg_exe, "-y", "-f", "concat", "-safe", "0", "-i", cat_p, "-c", "copy", out_m], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                                with open(out_m, "rb") as vf:
+                                    st.session_state[f"doc_v3_full_{doc_clean_tk}"] = vf.read()
+                                for r_f in tmps:
+                                    if os.path.exists(r_f):
+                                        try: os.remove(r_f)
+                                        except Exception: pass
 
-                    if f"doc_v4_zip_{doc_clean_tk}" in st.session_state:
+                    if f"doc_v3_full_{doc_clean_tk}" in st.session_state:
+                        st.success(f"🎉 [{doc_comp_nm}] 체스막타 스타일 통합 롱폼 완성! ({int(tot_v3_sec//60)}분 {int(tot_v3_sec%60)}초)")
+                        st.video(st.session_state[f"doc_v3_full_{doc_clean_tk}"])
                         st.download_button(
-                            "📥 캡컷·프리미어 편집용 Act MP4 + SRT 자막 패키지(.zip) 다운로드",
-                            data=st.session_state[f"doc_v4_zip_{doc_clean_tk}"],
-                            file_name=f"AGIE_CapCut_LongForm_{doc_clean_tk}.zip",
-                            mime="application/zip",
-                            use_container_width=True
+                            f"📥 [{doc_comp_nm}] 통합 롱폼 풀버전(.mp4) 다운로드",
+                            data=st.session_state[f"doc_v3_full_{doc_clean_tk}"],
+                            file_name=f"AGIE_DocV3_Full_{doc_clean_tk}_{doc_today.replace('.','')}.mp4",
+                            mime="video/mp4",
+                            use_container_width=True,
+                            key=f"dl_v3_full_{doc_clean_tk}"
                         )
-
-                    if os.path.exists(os.path.join(doc_work_dir, f"AGIE_Full_{doc_clean_tk}.mp4")):
-                        _fp_show = os.path.join(doc_work_dir, f"AGIE_Full_{doc_clean_tk}.mp4")
-                        st.success(f"🎉 [{doc_comp_nm}] 가치투자 시네마틱 롱폼 완성! (`{_fp_show}`)")
-                        st.video(_fp_show)
-                        with open(_fp_show, "rb") as _vf_full:
-                            st.download_button(
-                                f"📥 [{doc_comp_nm}] 통합 롱폼 풀버전(.mp4) 다운로드",
-                                data=_vf_full.read(),
-                                file_name=f"AGIE_Doc_Full_{doc_clean_tk}_{doc_today.replace('.','')}.mp4",
-                                mime="video/mp4",
-                                use_container_width=True,
-                                key=f"dl_v4_full_{doc_clean_tk}"
-                            )
             st.subheader(t("📊 10년 핵심 장부 요약 및 차트 (연간 10년 · 분기별 40분기 · 연환산 10년)", "📊 10-Year Financial Statements & Charts (Annual · 40 Quarters · Annualized)"))
 
             cd = tk.split('.')[0] if kr else tk
@@ -11916,7 +11850,7 @@ Same character: 35-year-old sharp Wall Street male analyst with thin rectangular
                     except Exception:
                         pass
 
-                    effective_key = api_key if api_key else os.getenv("DART_API_KEY", "")
+                    effective_key = api_key if api_key else "102371dc99e43c0ea0a70f8ec5a6b04440766798"
                     mapping = get_dart_corp_codes(effective_key, target_code=clean_code)
                     corp_code = mapping.get(clean_code)
                     if not corp_code:
@@ -12543,17 +12477,9 @@ with tab2:
     elif guru_option == "가이 스피어 (Aquamarine Capital)":
         st.write("**가이 스피어(Guy Spier):** 내면의 판단 기준을 중시하며, 미스터 마켓의 소음을 철저히 배제하고 장기적이고 안전한 기회를 매입합니다.")
 
-    c_13f_1, c_13f_2 = st.columns([3, 1])
-    with c_13f_2:
-        if st.button("🔄 13F 최신 공시 강제 갱신", key="btn_refresh_13f", use_container_width=True):
-            _fetch_live_dataroma_13f.clear()
-            st.rerun()
-
-    with st.spinner(t("최신 13F 포트폴리오 자동 연동 중...", "Fetching latest 13F portfolio...")):
+    with st.spinner(t("최신 포트폴리오 데이터 연동 중...", "Fetching latest portfolio data...")):
         code = guru_map[guru_option]
         scraped_data = get_13f_portfolio(code)
-    with c_13f_1:
-        st.caption(st.session_state.get(f"13f_src_{code}", ""))
             
         if scraped_data and len(scraped_data) > 0:
             df = pd.DataFrame(scraped_data)
@@ -12605,111 +12531,21 @@ with tab2:
                         st.session_state.sync_tk = st.session_state["preview_tk_tab2"]
                         st.rerun()
 # ==========================================
-# 탭 3: 시가총액 랭킹 TOP 100 (실시간 자동 업데이트 + 폴백)
+# 탭 3: 시가총액 랭킹 TOP 30
 # ==========================================
-@st.cache_data(ttl=1800, show_spinner=False)
-def fetch_live_mcap_top100(mkt_key):
-    """TradingView 공개 스캐너 기반 미국·한국·글로벌(ADR) 시가총액 TOP 100 실시간 자동 갱신"""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
-    try:
-        if mkt_key == "US":
-            url = "https://scanner.tradingview.com/america/scan"
-            payload = {
-                "filter": [
-                    {"left": "market_cap_basic", "operation": "nempty"},
-                    {"left": "type", "operation": "equal", "right": "stock"},
-                    {"left": "subtype", "operation": "in_range", "right": ["common", ""]},
-                    {"left": "exchange", "operation": "in_range", "right": ["NASDAQ", "NYSE"]}
-                ],
-                "options": {"lang": "ko"}, "markets": ["america"],
-                "columns": ["name", "description", "market_cap_basic"],
-                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
-                "range": [0, 120]
-            }
-        elif mkt_key == "KR":
-            url = "https://scanner.tradingview.com/korea/scan"
-            payload = {
-                "filter": [
-                    {"left": "market_cap_basic", "operation": "nempty"},
-                    {"left": "type", "operation": "equal", "right": "stock"}
-                ],
-                "options": {"lang": "ko"}, "markets": ["korea"],
-                "columns": ["name", "description", "market_cap_basic"],
-                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
-                "range": [0, 125]
-            }
-        else:
-            url = "https://scanner.tradingview.com/america/scan"
-            payload = {
-                "filter": [
-                    {"left": "market_cap_basic", "operation": "nempty"},
-                    {"left": "type", "operation": "equal", "right": "dr"}
-                ],
-                "options": {"lang": "ko"}, "markets": ["america"],
-                "columns": ["name", "description", "market_cap_basic"],
-                "sort": {"sortBy": "market_cap_basic", "sortOrder": "desc"},
-                "range": [0, 110]
-            }
-
-        r = requests.post(url, json=payload, headers=headers, timeout=6)
-        if r.status_code == 200:
-            raw_items = r.json().get("data", [])
-            rows, seen = [], set()
-            for item in raw_items:
-                d = item.get("d", [])
-                if len(d) < 3:
-                    continue
-                tk_r = str(d[0]).strip()
-                desc_r = str(d[1] or tk_r).strip()
-                mc_v = safe_float(d[2])
-                if mc_v <= 0:
-                    continue
-                if mkt_key == "KR":
-                    if desc_r.endswith("우") or desc_r.endswith("우B"):
-                        continue
-                    tk_key = tk_r + ".KS"
-                    disp_tk = tk_r
-                    kor_nm = primary_names.get(tk_key, desc_r)
-                    mc_str = f"{mc_v / 1e12:,.1f}조 원" if mc_v >= 1e12 else f"{mc_v / 1e8:,.0f}억 원"
-                else:
-                    if tk_r in ["GOOG", "BRK.A", "BRK-A"]:
-                        continue
-                    disp_tk = tk_r.replace(".", "-")
-                    kor_nm = primary_names.get(disp_tk, desc_r)
-                    mc_str = f"${mc_v / 1e12:,.2f}T" if mc_v >= 1e12 else f"${mc_v / 1e9:,.1f}B"
-                if disp_tk in seen:
-                    continue
-                seen.add(disp_tk)
-                rows.append({"순위": len(rows) + 1, "티커": disp_tk, "기업명": kor_nm, "시가총액": mc_str})
-                if len(rows) >= 100:
-                    break
-            if len(rows) >= 20:
-                return pd.DataFrame(rows), f"🟢 실시간 시가총액 자동 갱신 완료 ({datetime.now().strftime('%Y.%m.%d %H:%M')})"
-    except Exception:
-        pass
-
-    fb_map = {"US": us_top30, "KR": kr_top30, "GLOBAL": global_top30}
-    return pd.DataFrame(fb_map[mkt_key]), "🟡 내장 시가총액 스냅샷 사용 (실시간 연결 지연 시 폴백)"
-
 with tab3:
-    st.subheader(t("글로벌 시가총액 TOP 100 (실시간 자동 갱신)", "Global Market Cap TOP 100 (Live)"))
-
-    c_m1, c_m2 = st.columns([3, 1])
-    with c_m1:
-        mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 (US)", "US"), t("한국 (KR)", "KR"), t("유럽/아시아 (EU/Asia)", "EU/Asia")], horizontal=True, label_visibility="collapsed")
-    with c_m2:
-        if st.button("🔄 시총 순위 새로고침", key="btn_refresh_mcap", use_container_width=True):
-            fetch_live_mcap_top100.clear()
-            st.rerun()
-
-    mkt_code_t3 = "US" if ("US" in mkt or "미국" in mkt) else ("KR" if ("KR" in mkt or "한국" in mkt) else "GLOBAL")
-    with st.spinner("실시간 시가총액 TOP 100 순위를 불러오는 중입니다..."):
-        df_mkt, mcap_src_msg = fetch_live_mcap_top100(mkt_code_t3)
-    st.caption(f"{mcap_src_msg} · 종목 행을 클릭하면 즉시 AI 분석이 실행됩니다.")
+    st.subheader(t("글로벌 시가총액 TOP 100 (미국/한국/기타)", "Global Market Cap TOP 100"))
+    st.caption(t("※ 속도 최적화를 위해 2026년 기준 랭킹 데이터가 내장되어 있습니다. 종목을 선택해 즉시 분석해 보세요.", "※ Static ranking data (as of 2026) is embedded for speed optimization. Select a stock to analyze."))
+    
+    # [핵심] 유럽/아시아 버튼 추가!
+    mkt = st.radio(t("시장 선택", "Select Market"), [t("미국 (US)", "US"), t("한국 (KR)", "KR"), t("유럽/아시아 (EU/Asia)", "EU/Asia")], horizontal=True, label_visibility="collapsed")
+    
+    if "US" in mkt or "미국" in mkt:
+        df_mkt = pd.DataFrame(us_top30)
+    elif "KR" in mkt or "한국" in mkt:
+        df_mkt = pd.DataFrame(kr_top30)
+    else:
+        df_mkt = pd.DataFrame(global_top30)
         
     # ▼▼ 교체할 탭 3 코드 ▼▼
     st.caption("👉 **표에서 원하는 기업의 행(줄)을 클릭하면 즉시 AI 분석이 실행됩니다!**")
@@ -13851,7 +13687,7 @@ with tab6:
             text = fetch_governance_criticism(tk, cd, "CEO")
             
             # 평가가 안 된 기본 텍스트는 순위에서 제외
-            if "공개 공시 및 공공 기록 스크리닝 결과" in text or "위키 및 공공 기록 스크리닝 결과" in text: continue
+            if "위키 및 공공 기록 스크리닝 결과" in text: continue
                 
             # --- [수정된 랭킹용 문맥 분석 엔진] ---
             kw_super_pos = ["교과서적", "자본 배분", "정직", "가장 신뢰받는", "파격적인 주주가치", "전량 소각", "압도적인 마진", "마진 극대화", "탁월한 자본수익률", "철저한 ROE", "연속 배당 성장", "버핏이 극찬", "멍거가 극찬", "리루가 극찬", "거장의 극찬", "버핏의 투자", "버핏이", "멍거가", "리루가", "극찬"]
@@ -15793,28 +15629,8 @@ def fetch_sp500_factset_live_data():
     except Exception:
         pass
 
-    # 실시간 섹터 ETF 선행/현재 PER 자동 수집 (실패 시 기존 FactSet 기준치 폴백)
-    live_pe_map = {}
-    def _get_etf_pe(tk_e):
-        try:
-            inf = yf.Ticker(tk_e).info
-            v = safe_float(inf.get("forwardPE") or inf.get("trailingPE"))
-            return tk_e, round(v, 1) if 5.0 <= v <= 60.0 else None
-        except Exception:
-            return tk_e, None
-
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex_pe:
-            for tk_r, pe_r in ex_pe.map(_get_etf_pe, etf_list):
-                if pe_r:
-                    live_pe_map[tk_r] = pe_r
-    except Exception:
-        pass
-
     for item in sector_data:
         item["price_chg_live"] = live_ytd_map.get(item["etf"], item["price_chg_default"])
-        if item["etf"] in live_pe_map:
-            item["fwd_pe"] = live_pe_map[item["etf"]]
 
     # 2. S&P 500 10년(2016~2026) 주가 vs 12개월 선행 EPS 궤적 생성
     dates_10y = pd.date_range("2016-03-01", "2026-03-27", freq="MS")
@@ -15876,13 +15692,12 @@ with tab_eps_val:
     auto_e26 = auto_data["e26"]
     auto_src = auto_data["source"]
 
-    # 2. 컨트롤 패널 (실시간 주가 기본값 + 강제 새로고침 버튼)
+    # 2. 컨트롤 패널 (실시간 주가 토글 및 자동 로드된 수치 확인용)
     ctrl_c1, ctrl_c2 = st.columns([1.6, 1.4])
     with ctrl_c1:
         fs_data_mode = st.radio(
             "📊 연초 대비(Since Dec 31) 주가 변화율 기준 선택",
-            ["⚡ 실시간 ETF 주가·PER 자동 연동 (Yahoo Finance 실시간)", "📌 FactSet 리포트 스냅샷 기준"],
-            index=0,
+            ["📌 FactSet 리포트 스냅샷 기준 (사진 원본 100% 재현)", "⚡ 실시간 ETF 주가 연동 (Yahoo Finance 실시간 YTD)"],
             horizontal=True,
             key="fs_mode_radio"
         )
@@ -15900,53 +15715,97 @@ with tab_eps_val:
     yoy_2025 = ((eps_2025 - eps_2024) / eps_2024) * 100.0 if eps_2024 > 0 else 12.5
     yoy_2026 = ((eps_2026 - eps_2025) / eps_2025) * 100.0 if eps_2025 > 0 else 14.7
     use_live_p = ("실시간" in fs_data_mode)
-    p_col_dyn = "price_chg_live" if use_live_p else "price_chg_default"
 
-    # 10년물 미국채 금리 대비 현재 S&P 500 이익수익률 & IT 섹터 실시간 동적 판독
-    tnx_now = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4) or 4.4
-    sp_row = df_fs_sec[df_fs_sec["sector_en"] == "S&P 500"].iloc[0]
-    it_row = df_fs_sec[df_fs_sec["sector_en"] == "Info. Technology"].iloc[0]
-
-    sp500_fpe_now = float(sp_row["fwd_pe"])
-    sp500_ytd_now = float(sp_row[p_col_dyn])
+    # 10년물 미국채 금리 대비 현재 S&P 500 이익수익률(Earnings Yield) 점검 배너
+    tnx_now = safe_float(macro_data.get("10Y Treasury", {}).get("p"), 4.4)
+    if tnx_now <= 0:
+        tnx_now = 4.4
+    sp500_fpe_now = float(df_fs_sec[df_fs_sec["sector_en"] == "S&P 500"]["fwd_pe"].iloc[0])
     sp500_ey_now = (100.0 / sp500_fpe_now) if sp500_fpe_now > 0 else 4.93
     sp500_erp_now = sp500_ey_now - tnx_now
-
-    it_pe_now = float(it_row["fwd_pe"])
-    it_avg5 = float(it_row["avg_5y"])
-    it_avg10 = float(it_row["avg_10y"])
-    it_ytd_now = float(it_row[p_col_dyn])
-
-    # 수치 변화에 따라 헤드라인 및 IT 밸류에이션 문구 자동 전환
-    if yoy_2026 > 0 and sp500_ytd_now < 0:
-        dyn_headline = f'💡 핵심 팩트 체크: "이익 추정치는 성장(+{yoy_2026:.1f}%) 중이나, S&P500 가격({sp500_ytd_now:+.1f}%)만 조정 중입니다."'
-    elif yoy_2026 > 0 and sp500_ytd_now >= 0:
-        dyn_headline = f'💡 핵심 팩트 체크: "이익 성장(+{yoy_2026:.1f}%)과 주가({sp500_ytd_now:+.1f}%)가 동반 상승 중입니다. (밸류에이션 부담 점검)"'
-    else:
-        dyn_headline = f'💡 핵심 팩트 체크: "이익 추정치 둔화({yoy_2026:+.1f}%) 구간입니다. 안전마진과 방어 섹터를 점검하세요."'
-
-    if it_pe_now < it_avg10:
-        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배) 및 10년 평균({it_avg10:.1f}배)을 모두 하회</b>하는 저평가 구간입니다."
-        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년·10년 평균 모두 하회 (할인 구간)"
-    elif it_pe_now < it_avg5:
-        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배)을 하회</b>하며 <b>10년 평균({it_avg10:.1f}배) 부근</b>에 위치합니다."
-        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년 평균 하회, 10년 평균 근접"
-    else:
-        it_val_desc = f"현재 PER <b>{it_pe_now:.1f}배</b>로 <b>5년 평균({it_avg5:.1f}배) 및 10년 평균({it_avg10:.1f}배)을 상회</b>하는 할증 구간입니다."
-        it_chart_title = f"3️⃣ 빅테크(IT) PER {it_pe_now:.1f}배 — 5년·10년 평균 상회 (프리미엄 주의)"
 
     st.markdown(f"""
     <div style='background: linear-gradient(90deg, rgba(26,115,232,0.12), rgba(46,204,113,0.08)); border-left: 5px solid #1A73E8; padding: 16px 20px; border-radius: 12px; margin-bottom: 20px;'>
         <div style='font-size: 1.15rem; font-weight: 800; color: var(--text-color); margin-bottom: 6px;'>
-            {dyn_headline}
+            💡 핵심 팩트 체크: "이익 추정치는 양호하고, 가격만 내려오고 있습니다."
         </div>
         <div style='font-size: 0.95rem; color: var(--text-color); opacity: 0.9; line-height: 1.6;'>
-            • <b>S&P 500 2026년 추정 EPS:</b> <b>${eps_2026:,.2f}</b> (YoY <b>{yoy_2026:+.1f}%</b>) · 연초대비 주가 <b>{sp500_ytd_now:+.1f}%</b><br>
-            • <b>S&P 500 PER 및 이익수익률:</b> 현재 PER <b>{sp500_fpe_now:.1f}배</b> (5년 평균 {sp_row['avg_5y']:.1f}배 · 10년 평균 {sp_row['avg_10y']:.1f}배) ➔ <b>이익수익률 {sp500_ey_now:.2f}%</b> vs <b>10년물 미국채 {tnx_now:.2f}%</b> (격차 <b>{sp500_erp_now:+.2f}%p</b>)<br>
-            • <b>빅테크(IT) 밸류에이션 (YTD {it_ytd_now:+.1f}%):</b> {it_val_desc}
+            • <b>S&P 500 2026년 추정 EPS:</b> <b>${eps_2026:,.2f}</b> (YoY <b>+{yoy_2026:.1f}%</b> 성장) — 12개월 선행 EPS 사상 최고치 경신 중!<br>
+            • <b>S&P 500 선행 PER 및 이익수익률:</b> 현재 12개월 선행 PER <b>{sp500_fpe_now:.1f}배</b> (5년 평균 20.0배 · 10년 평균 18.9배) ➔ <b>이익수익률(Earnings Yield) {sp500_ey_now:.2f}%</b> vs <b>10년물 미국채 금리 {tnx_now:.2f}%</b> (격차 <b>{sp500_erp_now:+.2f}%p</b>)<br>
+            • <b>빅테크(IT) 밸류에이션:</b> 현재 선행 PER <b>22.5배</b>로 <b>5년 평균(25.9배)을 큰 폭으로 하회</b>하며 <b>10년 평균(22.7배)에 수렴</b>했습니다.
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # =========================================================================
+    # [상단 섹션] 1. CY 2026 EPS 추정치 리비전 추이 + 2. 연도별 S&P 500 EPS & YoY 성장률 표
+    # =========================================================================
+    st.markdown("#### 1️⃣ S&P 500 이익 추정치 추이 (CY 2026 Earnings Estimate Revision Trend)")
+    top_c1, top_c2 = st.columns([1.25, 1.0])
+
+    with top_c1:
+        rev_dates = ["2025-09-30", "2025-12-31", "2026-02-26", "2026-03-27"]
+        rev_vals = [303.88, 311.25, eps_2026, eps_2026]
+
+        fig_rev = go.Figure()
+        fig_rev.add_trace(go.Scatter(
+            x=rev_dates,
+            y=rev_vals,
+            mode="lines+markers+text",
+            name="CY 2026 Est. EPS ($)",
+            line=dict(color="#3b3869", width=3.5),
+            marker=dict(size=10, color="#3b3869"),
+            text=[f"<b>${v:.2f}</b>" for v in rev_vals],
+            textposition=["top right", "top left", "top center", "top left"],
+            textfont=dict(size=13, color="#facc15", family="Pretendard, Arial Black, sans-serif")
+        ))
+        fig_rev.update_layout(
+            title=dict(text="<b>Revision Trend of S&P 500 CY 2026 Earnings Estimate (FactSet)</b>", font=dict(size=15, color="#ffffff"), x=0.02, y=0.95),
+            height=330,
+            paper_bgcolor="#0f172a",
+            plot_bgcolor="#0f172a",
+            font=dict(color="#e2e8f0", family="Pretendard, sans-serif"),
+            yaxis=dict(title="Estimated EPS ($)", range=[302, max(315.5, eps_2026 + 2.0)], gridcolor="#334155", tickprefix="$"),
+            xaxis=dict(title="Revision Date", gridcolor="#334155"),
+            margin=dict(l=55, r=30, t=50, b=40)
+        )
+        st.plotly_chart(fig_rev, use_container_width=True)
+
+    with top_c2:
+        st.markdown(f"""
+        <div style='background:#0f172a; border:1.5px solid #334155; border-radius:14px; padding:22px 18px; height:330px; display:flex; flex-direction:column; justify-content:center;'>
+            <div style='font-size:1.05rem; font-weight:800; color:#facc15; margin-bottom:16px; text-align:center;'>
+                📋 S&P 500 연도별 EPS 및 YoY 성장률 컨센서스
+            </div>
+            <table style='width:100%; border-collapse:collapse; text-align:center; color:#f8fafc; font-size:0.98rem;'>
+                <thead>
+                    <tr style='border-bottom:2px solid #475569; color:#94a3b8; font-size:0.9rem;'>
+                        <th style='padding:12px 6px;'>구분</th>
+                        <th style='padding:12px 6px;'>2024년 (확정/잠정)</th>
+                        <th style='padding:12px 6px;'>2025년 (추정)</th>
+                        <th style='padding:12px 6px; color:#38bdf8;'>2026년 (추정)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style='border-bottom:1px solid #334155; font-size:1.1rem;'>
+                        <td style='padding:16px 6px; font-weight:800; color:#cbd5e1;'>S&P 500 EPS</td>
+                        <td style='padding:16px 6px;'>~${eps_2024:,.1f}</td>
+                        <td style='padding:16px 6px;'>~${eps_2025:,.1f}</td>
+                        <td style='padding:16px 6px; font-weight:900; color:#facc15; font-size:1.22rem;'>${eps_2026:,.2f}</td>
+                    </tr>
+                    <tr style='font-size:1.1rem;'>
+                        <td style='padding:16px 6px; font-weight:800; color:#cbd5e1;'>YoY 성장률</td>
+                        <td style='padding:16px 6px; color:#64748b;'>-</td>
+                        <td style='padding:16px 6px; color:#4ade80; font-weight:700;'>+{yoy_2025:.1f}%</td>
+                        <td style='padding:16px 6px; font-weight:900; color:#00e676; font-size:1.22rem;'>+{yoy_2026:.1f}%</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style='font-size:0.8rem; color:#94a3b8; margin-top:16px; text-align:center;'>
+                * 출처: FactSet Earnings Insight (추정치는 분기 실적 발표에 따라 변동될 수 있어 주기적 확인이 필요한 부분입니다.)
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -15990,7 +15849,7 @@ with tab_eps_val:
         st.plotly_chart(fig_10y, use_container_width=True)
 
     with mid_c2:
-        st.markdown(f"#### {it_chart_title}")
+        st.markdown("#### 3️⃣ 빅테크 기업의 평가 정도는 5년 평균 하회, 10년 평균 수렴")
         fig_pe = go.Figure()
 
         x_labels = [f"{r['sector_ko']}<br>({r['sector_en']})" for _, r in df_fs_sec.iterrows()]
@@ -16266,33 +16125,23 @@ def fetch_sp500_cycles_live():
         ("2022 인플레긴축", "Bear", 2022, 2022, -25.4, 0.8)
     ]
 
-    # 2. 현재 진행 중인 사이클(2022.10.12 저점 3,577.03pt 기준) 실시간 연동 + 고점 대비 낙폭(Drawdown) 자동 판독
-    curr_sp, cycle_peak = 6500.0, 6500.0
+    # 2. 현재 진행 중인 사이클(2022년 10월 12일 저점 3,577.03pt 기준) 실시간 연동
+    curr_sp = 6500.0
     try:
         sp_tk = yf.Ticker("^GSPC")
-        hist = sp_tk.history(start="2022-10-12")
+        hist = sp_tk.history(period="5d")
         if not hist.empty:
-            closes = hist['Close'].dropna()
-            curr_sp = float(closes.iloc[-1])
-            cycle_peak = float(closes.max())
+            curr_sp = float(hist['Close'].dropna().iloc[-1])
     except Exception:
         pass
 
     oct_2022_trough = 3577.03
     live_ret = ((curr_sp - oct_2022_trough) / oct_2022_trough) * 100.0
-    dd_from_peak = ((curr_sp - cycle_peak) / cycle_peak) * 100.0 if cycle_peak > 0 else 0.0
     now_dt = datetime.now()
     live_dur = (now_dt - datetime(2022, 10, 12)).days / 365.25
 
     cycles = list(historical_fixed)
-    if dd_from_peak <= -20.0:
-        cur_label, cur_type, cur_ret = f"현재 약세장 진입({dd_from_peak:.1f}%)", "Bear", round(dd_from_peak, 1)
-    elif dd_from_peak <= -10.0:
-        cur_label, cur_type, cur_ret = f"2022~현재 강세(조정 {dd_from_peak:.1f}%)", "Bull", round(live_ret, 1)
-    else:
-        cur_label, cur_type, cur_ret = "2022~현재 강세장", "Bull", round(live_ret, 1)
-
-    cycles.append((cur_label, cur_type, 2022, now_dt.year, cur_ret, round(live_dur, 1)))
+    cycles.append((f"2022~현재 강세장", "Bull", 2022, now_dt.year, round(live_ret, 1), round(live_dur, 1)))
     return cycles, curr_sp
 
 with tab_bull_bear:
@@ -16400,29 +16249,17 @@ with tab_qe:
     df_fed, df_dbt = fetch_fred_liquidity_gap_data()
 
     latest_fed_t = df_fed["WALCL"].iloc[-1] / 1e6 if not df_fed.empty else 6.75
-    prev_fed_3m_t = df_fed["WALCL"].iloc[max(0, len(df_fed) - 13)] / 1e6 if len(df_fed) >= 13 else latest_fed_t
-    fed_3m_chg_pct = ((latest_fed_t - prev_fed_3m_t) / prev_fed_3m_t) * 100.0 if prev_fed_3m_t > 0 else 0.0
     latest_dbt_t = (df_dbt["DEBT"].iloc[-1] * 10.0) / 1e6 if not df_dbt.empty else 120.0
     gap_multiple = latest_dbt_t / latest_fed_t if latest_fed_t > 0 else 17.8
-    latest_fed_dt_str = df_fed["DATE"].iloc[-1].strftime("%Y-%m-%d") if not df_fed.empty else datetime.now().strftime("%Y-%m-%d")
-
-    # 배율 및 최근 3개월 연준 자산 증감에 따른 자동 문구 전환
-    if fed_3m_chg_pct >= 2.0:
-        qe_status_lbl, qe_sub_lbl, qe_col = "유동성 공급 전환 (QE 진행)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% 증가", "#4ade80"
-    elif gap_multiple >= 16.0:
-        qe_status_lbl, qe_sub_lbl, qe_col = "격차 확대 (QT 긴축·QE 압력 높음)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% · 차기 유동성 공급 압력 누적", "#facc15"
-    elif gap_multiple >= 12.0:
-        qe_status_lbl, qe_sub_lbl, qe_col = "중립 구간 (균형 유지)", f"최근 3개월 연준 자산 {fed_3m_chg_pct:+.1f}% 변화", "#38bdf8"
-    else:
-        qe_status_lbl, qe_sub_lbl, qe_col = "유동성 풍부 구간", f"본원통화 대비 부채 배율 안정({gap_multiple:.1f}배)", "#4ade80"
 
     qe_c1, qe_c2, qe_c3 = st.columns(3)
     with qe_c1:
         st.markdown(f"<div style='background:#1e293b; border-left:4px solid #b91c1c; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>미국 전 부문 총부채 (All Sector Debt)</div><div style='font-size:1.6rem; font-weight:900; color:#f87171;'>~${latest_dbt_t:.1f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기(1/10 스케일): {latest_dbt_t*100000:,.0f}M</div></div>", unsafe_allow_html=True)
     with qe_c2:
-        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #2563eb; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>연준 보유자산 / 본원통화 (기준: {latest_fed_dt_str})</div><div style='font-size:1.6rem; font-weight:900; color:#60a5fa;'>~${latest_fed_t:.2f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>최근 3개월 증감: <b>{fed_3m_chg_pct:+.2f}%</b></div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #2563eb; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>연준 보유자산 / 본원통화 (Fed Assets)</div><div style='font-size:1.6rem; font-weight:900; color:#60a5fa;'>~${latest_fed_t:.2f} Trillion</div><div style='font-size:0.8rem; color:#cbd5e1;'>차트 표기: ${latest_fed_t*1000:,.1f}B ({latest_fed_t*1000000:,.0f}M)</div></div>", unsafe_allow_html=True)
     with qe_c3:
-        st.markdown(f"<div style='background:#1e293b; border-left:4px solid {qe_col}; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>총부채 대비 본원통화 배율 (Debt / Fed)</div><div style='font-size:1.5rem; font-weight:900; color:{qe_col};'>{gap_multiple:.1f}배 ({qe_status_lbl})</div><div style='font-size:0.8rem; color:#cbd5e1;'>{qe_sub_lbl}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background:#1e293b; border-left:4px solid #facc15; padding:16px; border-radius:12px;'><div style='color:#94a3b8; font-size:0.85rem; font-weight:700;'>총부채 대비 본원통화 배율 (Debt / Fed)</div><div style='font-size:1.6rem; font-weight:900; color:#facc15;'>{gap_multiple:.1f}배 (격차 확대)</div><div style='font-size:0.8rem; color:#cbd5e1;'>이 격차가 벌어질수록 차기 QE(Big Print III) 압력 증가</div></div>", unsafe_allow_html=True)
+
     fig_qe = go.Figure()
 
     # 1. 경기 침체 및 위기 음영 구간 (2008 금융위기 / 2020 팬데믹)
@@ -16461,7 +16298,7 @@ with tab_qe:
     fig_qe.add_annotation(x="2017-03-01", y=5600000, text="<b>Big Print II</b>", showarrow=False, font=dict(size=13, color="#111827"))
 
     # Big Print III ? (2025~2026)
-    fig_qe.add_annotation(x=latest_fed_dt_str, y=latest_dbt_t*100000, ax=latest_fed_dt_str, ay=latest_fed_t*1000000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#991b1b")
+    fig_qe.add_annotation(x="2026-03-01", y=11400000, ax="2026-03-01", ay=6700000, xref="x", yref="y", axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.2, arrowwidth=2.5, arrowcolor="#991b1b")
     fig_qe.add_annotation(x="2023-06-01", y=9200000, text="<b>Big Print III ?</b>", showarrow=False, font=dict(size=14, color="#991b1b"))
 
     # 우측 하단 핵심 3대 메커니즘 요약 박스
