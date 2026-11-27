@@ -3369,28 +3369,47 @@ def get_implied_g(fcf, sh, p, ty):
 
 def get_real_roic(stk, i):
     """
-    [분기 실적 실시간 반영 ROIC 엔진]
-    연간 재무제표에 멈춰 있지 않고, 최근 4개 분기 합산 영업이익(TTM EBIT)과
-    가장 최신 분기 말 투하자본(Invested Capital)을 최우선으로 사용하여 분기 실적 발표를 즉시 반영합니다.
+    [분모 붕괴 방어 + 평균 투하자본 적용 ROIC 엔진]
+    1. 최근 4분기 합산(TTM) 세후영업이익(NOPAT) 산출
+    2. 기초·기말 평균 투하자본 사용 (고성장 기업 기말 편향 제거)
+    3. PDD처럼 현금+단기투자가 총자본의 75%를 초과해 순투하자본이 음수거나 극소화되는 경우,
+       400%~1000% 폭주 착시를 차단하고 '총투하자본(차입금+자본)' 기준으로 자동 보정
     """
     try:
         if 'returnOnCapitalEmployed' in i and i['returnOnCapitalEmployed'] is not None:
             val_roce = safe_float(i['returnOnCapitalEmployed']) * 100
-            if 0 < abs(val_roce) < 200:
+            if 0 < abs(val_roce) < 150:
                 return val_roce
         if stk is None:
             return None
 
-        # 1순위: 최근 4개 분기(Quarterly TTM) 손익계산서 + 최신 분기 대차대조표
+        def _calc_ic_for_col(bs_df, col_idx):
+            debt = safe_float(bs_df.loc['Total Debt'].iloc[col_idx]) if 'Total Debt' in bs_df.index else 0.0
+            eq = 0.0
+            for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
+                if eq_k in bs_df.index and pd.notna(bs_df.loc[eq_k].iloc[col_idx]):
+                    eq = safe_float(bs_df.loc[eq_k].iloc[col_idx])
+                    break
+            cash = 0.0
+            for ck in ['Cash Cash Equivalents And Short Term Investments', 'Cash And Cash Equivalents']:
+                if ck in bs_df.index and pd.notna(bs_df.loc[ck].iloc[col_idx]):
+                    cash = safe_float(bs_df.loc[ck].iloc[col_idx])
+                    break
+            total_cap = debt + eq
+            net_ic = total_cap - cash
+            # [핵심 방어] 현금이 총투하자본의 75%를 초과해 분모가 음수 또는 극소화되면 총투하자본으로 고정
+            if total_cap > 0 and (net_ic <= 0 or net_ic < total_cap * 0.25):
+                return total_cap
+            return net_ic if net_ic > 0 else (eq if eq > 0 else 0.0)
+
+        # 1순위: 최근 4개 분기(TTM) 손익 + 기초/기말 평균 투하자본
         q_inc = stk.quarterly_income_stmt
         q_bs = stk.quarterly_balance_sheet
 
         if q_inc is not None and not q_inc.empty and q_bs is not None and not q_bs.empty:
-            q_cols = q_inc.columns[:4]  # 최근 4개 분기 (1년 치 TTM)
+            q_cols = q_inc.columns[:4]
             if len(q_cols) >= 2:
-                # 4개 분기 미만이면 연환산(× 4 / 분기수) 보정
                 ann_factor = 4.0 / len(q_cols)
-
                 ebit_key = 'EBIT' if 'EBIT' in q_inc.index else ('Operating Income' if 'Operating Income' in q_inc.index else None)
                 if ebit_key:
                     ebit_ttm = sum(safe_float(q_inc.loc[ebit_key, c]) for c in q_cols) * ann_factor
@@ -3400,27 +3419,16 @@ def get_real_roic(stk, i):
                     tax_rate = (tax_ttm / pretax_ttm) if (pretax_ttm > 0 and 0 <= (tax_ttm / pretax_ttm) <= 0.5) else 0.22
                     nopat_ttm = ebit_ttm * (1.0 - tax_rate)
 
-                    # 최신 분기 말(iloc[0]) 투하자본 산출
-                    total_debt = safe_float(q_bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in q_bs.index else 0.0
-                    total_equity = 0.0
-                    for eq_k in ['Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity']:
-                        if eq_k in q_bs.index and pd.notna(q_bs.loc[eq_k].iloc[0]):
-                            total_equity = safe_float(q_bs.loc[eq_k].iloc[0])
-                            break
-                    cash = 0.0
-                    for ck in ['Cash Cash Equivalents And Short Term Investments', 'Cash And Cash Equivalents']:
-                        if ck in q_bs.index and pd.notna(q_bs.loc[ck].iloc[0]):
-                            cash = safe_float(q_bs.loc[ck].iloc[0])
-                            break
+                    ic_end = _calc_ic_for_col(q_bs, 0)
+                    # 직전 1년 전 분기(4분기 전 또는 가장 오래된 분기)와 평균 산출
+                    prev_idx = min(4, len(q_bs.columns) - 1)
+                    ic_start = _calc_ic_for_col(q_bs, prev_idx) if prev_idx > 0 else ic_end
+                    avg_ic = (ic_end + ic_start) / 2.0 if (ic_end > 0 and ic_start > 0) else ic_end
 
-                    invested_capital = total_debt + total_equity - cash
-                    if invested_capital <= 0 and total_equity > 0:
-                        invested_capital = total_equity
+                    if avg_ic > 0 and nopat_ttm != 0:
+                        return (nopat_ttm / avg_ic) * 100.0
 
-                    if invested_capital > 0 and nopat_ttm != 0:
-                        return (nopat_ttm / invested_capital) * 100.0
-
-        # 2순위 폴백: 분기 데이터가 없는 종목만 연간(Annual) 재무제표 사용
+        # 2순위 폴백: 연간(Annual) 재무제표 + 기초/기말 평균 투하자본
         inc = stk.income_stmt
         bs = stk.balance_sheet
         if inc is not None and not inc.empty and bs is not None and not bs.empty:
@@ -3429,14 +3437,13 @@ def get_real_roic(stk, i):
             tax = safe_float(inc.loc['Tax Provision'].iloc[0]) if 'Tax Provision' in inc.index else 0
             tax_rate = tax / pretax if (pretax > 0 and 0 <= (tax / pretax) <= 0.5) else 0.22
             nopat = ebit * (1 - tax_rate)
-            total_debt = safe_float(bs.loc['Total Debt'].iloc[0]) if 'Total Debt' in bs.index else 0
-            total_equity = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if 'Stockholders Equity' in bs.index else 0
-            cash = safe_float(bs.loc['Cash And Cash Equivalents'].iloc[0]) if 'Cash And Cash Equivalents' in bs.index else 0
-            invested_capital = total_debt + total_equity - cash
-            if invested_capital <= 0 and total_equity > 0:
-                invested_capital = total_equity
-            if invested_capital > 0:
-                return (nopat / invested_capital) * 100.0
+
+            ic_end = _calc_ic_for_col(bs, 0)
+            ic_start = _calc_ic_for_col(bs, 1) if len(bs.columns) >= 2 else ic_end
+            avg_ic = (ic_end + ic_start) / 2.0 if (ic_end > 0 and ic_start > 0) else ic_end
+
+            if avg_ic > 0:
+                return (nopat / avg_ic) * 100.0
     except Exception:
         pass
     return None
