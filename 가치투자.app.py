@@ -3414,8 +3414,8 @@ def get_real_roic(stk, i):
                             break
 
                     invested_capital = total_debt + total_equity - cash
-                    if invested_capital <= 0 and total_equity > 0:
-                        invested_capital = total_equity
+                    if invested_capital <= 0 or (cash > (total_debt + total_equity) * 0.70):
+                        invested_capital = total_debt + total_equity
 
                     if invested_capital > 0 and nopat_ttm != 0:
                         return (nopat_ttm / invested_capital) * 100.0
@@ -3433,8 +3433,8 @@ def get_real_roic(stk, i):
             total_equity = safe_float(bs.loc['Stockholders Equity'].iloc[0]) if 'Stockholders Equity' in bs.index else 0
             cash = safe_float(bs.loc['Cash And Cash Equivalents'].iloc[0]) if 'Cash And Cash Equivalents' in bs.index else 0
             invested_capital = total_debt + total_equity - cash
-            if invested_capital <= 0 and total_equity > 0:
-                invested_capital = total_equity
+            if invested_capital <= 0 or (cash > (total_debt + total_equity) * 0.70):
+                invested_capital = total_debt + total_equity
             if invested_capital > 0:
                 return (nopat / invested_capital) * 100.0
     except Exception:
